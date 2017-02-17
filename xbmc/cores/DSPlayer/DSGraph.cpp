@@ -157,11 +157,6 @@ void CDSGraph::UpdateDisplayLatencyForMadvr(float refresh)
   m_renderManager.UpdateDisplayLatencyForMadvr(refresh);
 }
 
-void CDSGraph::NewFrame()
-{
-  m_renderManager.NewFrame();
-}
-
 void CDSGraph::RegisterCallback(IPaintCallback *callback)
 {
   m_renderManager.RegisterCallback(callback);

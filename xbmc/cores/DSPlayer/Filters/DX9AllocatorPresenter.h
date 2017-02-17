@@ -71,7 +71,6 @@ class CDX9AllocatorPresenter
 {
 public:
   CCritSec        m_VMR9AlphaBitmapLock;
-  CEvent          m_drawingIsDone;
   void            UpdateAlphaBitmap();
 
 protected:
@@ -108,8 +107,6 @@ protected:
   std::auto_ptr<CPixelShaderCompiler>   m_pPSC;
 
   // Thread stuff
-  HANDLE                                m_hEvtQuit;      // Stop rendering thread event
-  HANDLE                                m_hVSyncThread;
   float                                 m_bicubicA;
 
   int                                   m_nTearingPos;
@@ -208,10 +205,6 @@ protected:
   CStdString                            m_strStatsMsg[10];
   CStdString                            m_D3D9Device;
 
-  static DWORD WINAPI                   VSyncThreadStatic(LPVOID lpParam);
-  void                                  VSyncThread();
-  void                                  StartWorkerThreads();
-  void                                  StopWorkerThreads();
   STDMETHODIMP_(void)                   SetTime(REFERENCE_TIME rtNow);
   uint32_t                              GetAdapter(IDirect3D9 *pD3D, bool GetAdapter = false);
   HRESULT(__stdcall *m_pD3DXCreateSprite)(LPDIRECT3DDEVICE9 pDevice, LPD3DXSPRITE * ppSprite);

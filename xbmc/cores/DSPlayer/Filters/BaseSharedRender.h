@@ -80,9 +80,9 @@ protected:
   bool m_bUnderRender;
   bool m_bGuiVisible;
   bool m_bGuiVisibleOver;
+  bool m_bWaitKodiRendering;
   CRenderWait m_kodiWait;
   CRenderWait m_dsWait;
-
   // stored DSPlayer Renderer device state
   IDirect3DVertexShader9* m_pOldVS = nullptr;
   IDirect3DVertexBuffer9* m_pOldStreamData = nullptr;

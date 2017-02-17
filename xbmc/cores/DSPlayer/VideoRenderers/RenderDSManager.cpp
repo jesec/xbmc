@@ -54,7 +54,6 @@ CRenderDSManager::CRenderDSManager(IRenderDSMsg *player) :
   m_dwidth(0),
   m_dheight(0),
   m_fps(0.0f),
-  m_presentstep(PRESENT_IDLE),
   m_playerPort(player)
 {
 }
@@ -97,22 +96,6 @@ bool CRenderDSManager::Configure(unsigned int width, unsigned int height, unsign
   }
 
   CLog::Log(LOGDEBUG, "CRenderDSManager::Configure - change configuration. %dx%d. display: %dx%d. framerate: %4.2f.", width, height, d_width,d_height, fps);
-
-  // make sure any queued frame was fully presented
-  {
-    CSingleLock lock(m_presentlock);
-    XbmcThreads::EndTime endtime(5000);
-    while (m_presentstep != PRESENT_IDLE)
-    {
-      if (endtime.IsTimePast())
-      {
-        CLog::Log(LOGWARNING, "CRenderManager::Configure - timeout waiting for state");
-        return false;
-      }
-      m_presentevent.wait(lock, endtime.MillisLeft());
-    }
-  }
-
   {
     CSingleLock lock(m_statelock);
     m_width = width;
@@ -123,10 +106,6 @@ bool CRenderDSManager::Configure(unsigned int width, unsigned int height, unsign
     m_flags = flags;
     m_renderState = STATE_CONFIGURING;
     m_stateEvent.Reset();
-
-    CSingleLock lock2(m_presentlock);
-    m_presentstep = PRESENT_READY;
-    m_presentevent.notifyAll();
   }
 
   if (!m_stateEvent.WaitMSec(1000))
@@ -148,7 +127,6 @@ bool CRenderDSManager::Configure(unsigned int width, unsigned int height, unsign
 bool CRenderDSManager::Configure()
 {
   CSingleLock lock(m_statelock);
-  CSingleLock lock2(m_presentlock);
   CSingleLock lock3(m_datalock);
 
   /*
@@ -173,9 +151,6 @@ bool CRenderDSManager::Configure()
 
     m_pRenderer->Update();
     m_bTriggerUpdateResolution = true;
-    m_presentstep = PRESENT_IDLE;
-    m_presentevent.notifyAll();
-
     m_renderState = STATE_CONFIGURED;
   }
   else
@@ -207,33 +182,13 @@ void CRenderDSManager::Update()
     m_pRenderer->Update();
 }
 
-void CRenderDSManager::NewFrame()
-{
-  {
-    CSingleLock lock2(m_presentlock);
-    m_presentstep = PRESENT_READY;
-  }
-  m_presentevent.notifyAll();
-}
-
-void CRenderDSManager::FrameWait(int ms)
-{
-  XbmcThreads::EndTime timeout(ms);
-  CSingleLock lock(m_presentlock);
-  while(m_presentstep == PRESENT_IDLE && !timeout.IsTimePast())
-    m_presentevent.wait(lock, timeout.MillisLeft());
-}
 
 bool CRenderDSManager::HasFrame()
 {
   if (!IsConfigured())
     return false;
 
-  CSingleLock lock(m_presentlock);
-  if (m_presentstep == PRESENT_READY)
     return true;
-  else
-    return false;
 }
 
 void CRenderDSManager::FrameMove()
@@ -248,21 +203,9 @@ void CRenderDSManager::FrameMove()
     if (!Configure())
       return;
 
-    FrameWait(50);
-
     if (m_flags & CONF_FLAGS_FULLSCREEN)
     {
       CApplicationMessenger::GetInstance().PostMsg(TMSG_SWITCHTOFULLSCREEN);
-    }
-  }
-
-  {
-    CSingleLock lock2(m_presentlock);
-
-    if (m_presentstep == PRESENT_READY)
-    {
-      m_presentstep = PRESENT_IDLE;
-      m_presentevent.notifyAll();
     }
   }
 }
@@ -281,8 +224,6 @@ void CRenderDSManager::PreInit()
     CreateRenderer();
 
   UpdateDisplayLatency();
-
-  m_presentstep = PRESENT_IDLE;
 }
 
 void CRenderDSManager::UnInit()
@@ -315,14 +256,12 @@ bool CRenderDSManager::Flush()
     CSingleExit exitlock(g_graphicsContext);
 
     CSingleLock lock(m_statelock);
-    CSingleLock lock2(m_presentlock);
     CSingleLock lock3(m_datalock);
 
     if (m_pRenderer)
     {
       m_pRenderer->Flush();
       m_debugRenderer.Flush();
-      m_presentstep = PRESENT_IDLE;
       m_flushEvent.Set();
     }
   }

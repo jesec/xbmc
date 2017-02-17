@@ -40,6 +40,7 @@ public:
   int GetId() const { return m_id; }
   CStdString GetSourceData() const { return m_SourceData; }
   void DeleteSourceData() { m_SourceData.SetBuf(0); }
+  void DeletePixelShader() { m_pPixelShader = nullptr; }
 
   bool IsEnabled() const { return m_enabled; }
   void SetEnabled(const bool enabled) { m_enabled = enabled; }

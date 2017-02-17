@@ -36,17 +36,32 @@ CEvrSharedRender::~CEvrSharedRender()
 
 HRESULT CEvrSharedRender::Render(DS_RENDER_LAYER layer)
 {
+  // Lock EVR thread while kodi rendering
+  if (m_bWaitKodiRendering)
+    m_dsWait.Wait(100);
+
   if (!CDSRendererCallback::Get()->GetRenderOnDS() || (g_graphicsContext.IsFullScreenVideo() && layer == RENDER_LAYER_UNDER))
     return S_FALSE;
 
   // Render the GUI on EVR
   RenderInternal(layer);
 
+  // Pull the trigger on the wait for the main Kodi application thread
+  if (layer == RENDER_LAYER_OVER)
+    m_kodiWait.Unlock();
+
   return S_OK;
 }
 
 void CEvrSharedRender::BeginRender()
 {
+  // Wait that EVR complete the rendering
+  m_kodiWait.Lock();
+  m_kodiWait.Wait(100);
+
+  // Lock EVR thread while kodi rendering
+  m_dsWait.Lock();
+
   // Clear RenderTarget
   ID3D11DeviceContext* pContext = g_Windowing.Get3D11Context();
   ID3D11RenderTargetView* pSurface11;
@@ -88,4 +103,7 @@ void CEvrSharedRender::EndRender()
   ForceComplete();
 
   g_dsGraph->OnAfterPresent(); // We need to do some stuff after Present
+
+  // Unlock EVR rendering
+  m_dsWait.Unlock();
 }

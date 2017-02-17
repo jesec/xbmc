@@ -40,5 +40,4 @@ public:
 private:
   bool CheckSkipRender();
   bool m_bSkipRender;
-  bool m_bWaitKodiRendering;
 };
