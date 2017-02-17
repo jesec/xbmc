@@ -480,16 +480,13 @@ void CGUIDialogVideoSettings::InitializeSettings()
       m_scalingMethod = videoSettings.GetDSPlayerScalingMethod();
       AddSpinner(groupVideo, SETTING_VIDEO_SCALINGMETHOD, 16300, 0, static_cast<int>(m_scalingMethod), entries);
 
-      /*
-      TODO EVR STATS
       entries.clear();
       entries.push_back(std::make_pair(55011, DS_STATS_NONE));
       entries.push_back(std::make_pair(55012, DS_STATS_1));
       entries.push_back(std::make_pair(55013, DS_STATS_2));
       entries.push_back(std::make_pair(55014, DS_STATS_3));
       AddSpinner(groupVideo, VIDEO_SETTINGS_DS_STATS, 55015, 0, static_cast<int>(m_dsStats), entries);
-      */
-
+     
     } 
     AddButton(groupFilters, VIDEO_SETTINGS_DS_FILTERS, 55062, 0);
   }

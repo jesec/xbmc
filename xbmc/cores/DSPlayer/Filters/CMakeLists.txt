@@ -16,6 +16,7 @@ set(SOURCES AllocatorCommon.cpp
             XBMCFileSource.cpp)
 
 set(HEADERS AllocatorCommon.h
+            AsyncCallback.h
             asyncio.h
             asyncrdr.h
             BaseSharedRender.h

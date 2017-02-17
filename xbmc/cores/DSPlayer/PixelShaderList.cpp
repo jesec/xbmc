@@ -164,7 +164,10 @@ void CPixelShaderList::DisableAll()
 
   for (PixelShaderVector::iterator it = m_pixelShaders.begin();
     it != m_pixelShaders.end(); ++it)
+  {
     (*it)->SetEnabled(false);
+    (*it)->DeletePixelShader();
+  }
 }
 
 bool HasSameID(uint32_t id, CExternalPixelShader* p2)

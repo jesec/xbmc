@@ -73,7 +73,6 @@ public:
   bool IsConfigured() const;
   void ToggleDebug();
   void Reset();
-  void NewFrame();
 
   // Functions called from GUI
   bool Supports(ERENDERFEATURE feature);
@@ -116,7 +115,6 @@ protected:
   CDebugRenderer m_debugRenderer;
   CBaseDSRenderer *m_pRenderer;
   CCriticalSection m_statelock;
-  CCriticalSection m_presentlock;
   CCriticalSection m_datalock;
   bool m_bTriggerUpdateResolution;
   
@@ -142,10 +140,6 @@ protected:
   unsigned int m_width, m_height, m_dwidth, m_dheight;
   unsigned int m_flags;
   float m_fps;
-
-  EPRESENTSTEP m_presentstep;
-
-  XbmcThreads::ConditionVariable  m_presentevent;
 
   CEvent m_flushEvent;
   IRenderDSMsg *m_playerPort;

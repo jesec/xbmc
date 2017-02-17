@@ -36,6 +36,7 @@
 #include <evr9.h>
 #include <queue>
 #include "Utils/SmartList.h"
+#include "AsyncCallback.h"
 
 // dxva.dll
 typedef HRESULT(__stdcall *PTR_DXVA2CreateDirect3DDeviceManager9)(UINT* pResetToken, IDirect3DDeviceManager9** ppDeviceManager);
@@ -81,6 +82,7 @@ public:
 
   STDMETHODIMP  CreateRenderer(IUnknown** ppRenderer);
   STDMETHODIMP_(bool) Paint(bool fAll);
+  STDMETHODIMP_(bool) Paint(IMFSample* pMFSample);
   STDMETHODIMP  GetNativeVideoSize(LONG* lpWidth, LONG* lpHeight, LONG* lpARWidth, LONG* lpARHeight);
   STDMETHODIMP  InitializeDevice(AM_MEDIA_TYPE*  pMediaType);
 
@@ -211,6 +213,7 @@ private:
 
   HANDLE                   m_hThread;
   HANDLE                   m_hGetMixerThread;
+  HANDLE                   m_hVSyncThread;
   RENDER_STATE             m_nRenderState;
 
   CCritSec                 m_SampleQueueLock;
@@ -220,8 +223,8 @@ private:
   VideoSampleList          m_FreeSamples;
   VideoSampleList          m_ScheduledSamples;
 
-  std::queue<IMFSample *>  m_pCurrentDisplaydSampleQueue;
-  IMFSample *              m_pCurrentDisplaydSample;
+  AsyncCallback<CEVRAllocatorPresenter> m_SampleFreeCallback;
+  Com::SmartPtr<IMFSample> m_pCurrentlyDisplayedSample;
   bool                     m_bWaitingSample;
   bool                     m_bLastSampleOffsetValid;
   int64_t                  m_LastScheduledSampleTime;
@@ -232,6 +235,7 @@ private:
   int64_t                  m_VSyncOffsetHistory[5];
   int64_t                  m_LastPredictedSync;
   int                      m_VSyncOffsetHistoryPos;
+  UINT32                   m_nCurrentGroupId;
 
   UINT                     m_nResetToken;
   int                      m_nStepCount;
@@ -252,6 +256,8 @@ private:
 
   bool                     GetImageFromMixer();
   void                     RenderThread();
+  void                     VSyncThread();
+  static DWORD WINAPI      VSyncThreadStatic(LPVOID lpParam);
   static DWORD WINAPI      PresentThread(LPVOID lpParam);
   void                     ResetStats();
   void                     StartWorkerThreads();
@@ -263,11 +269,11 @@ private:
   void                     RemoveAllSamples();
   HRESULT                  GetFreeSample(IMFSample** ppSample);
   HRESULT                  GetScheduledSample(IMFSample** ppSample, int &_Count);
+  HRESULT                  OnSampleFree(IMFAsyncResult* pResult);
   void                     MoveToFreeList(IMFSample* pSample, bool bTail);
   void                     MoveToScheduledList(IMFSample* pSample, bool _bSorted);
+  HRESULT                  TrackSample(IMFSample* pSample);
   void                     FlushSamples();
-  void                     FlushSamplesInternal();
-  void                     PaintInternal();
 
   // === Media type negociation functions
   HRESULT                  RenegotiateMediaType();

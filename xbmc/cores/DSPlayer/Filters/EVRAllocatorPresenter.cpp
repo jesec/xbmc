@@ -46,11 +46,16 @@
 #define TRACE_EVR
 #endif
 
+#define MIN_FRAME_TIME 15000
+
 typedef enum
 {
   MSG_MIXERIN,
   MSG_MIXEROUT
 } EVR_STATS_MSG;
+
+// Guid to tag IMFSample with a group id
+static const GUID GUID_GROUP_ID = { 0x309e32cc, 0x9b23, 0x4c6c,{ 0x86, 0x63, 0xcd, 0xd9, 0xad, 0x49, 0x7f, 0x8a } };
 
 // Guid to tag IMFSample with DirectX surface index
 static const GUID GUID_SURFACE_INDEX = { 0x30c8e9f6, 0x415, 0x4b81, { 0xa3, 0x15, 0x1, 0xa, 0xc6, 0xa9, 0xda, 0x19 } };
@@ -151,8 +156,6 @@ public:
       m_pEVR->QueryInterface(&pEVRBase);
     if (pEVRBase)
     {
-      // Prevents dead lock. Since we are stopping, set the drawing event
-      m_pAllocatorPresenter->m_drawingIsDone.Set();
       return pEVRBase->Stop();
     }
     return E_NOTIMPL;
@@ -314,6 +317,7 @@ COuterEVR::~COuterEVR()
 
 CEVRAllocatorPresenter::CEVRAllocatorPresenter(HWND hWnd, HRESULT& hr, CStdString &_Error)
   : CDX9AllocatorPresenter(hWnd, hr, true, _Error)
+  , m_SampleFreeCallback(this, &CEVRAllocatorPresenter::OnSampleFree)
 {
   HMODULE    hLib;
   //g_dsSettings.LoadConfig();
@@ -403,7 +407,8 @@ CEVRAllocatorPresenter::CEVRAllocatorPresenter(HWND hWnd, HRESULT& hr, CStdStrin
   m_bPendingRenegotiate = false;
   m_bPendingMediaFinished = false;
   m_bWaitingSample = false;
-  m_pCurrentDisplaydSample = NULL;
+  m_nCurrentGroupId = 0;
+  m_pCurrentlyDisplayedSample = nullptr;
   m_nStepCount = 0;
   m_dwVideoAspectRatioMode = MFVideoARMode_PreservePicture;
   m_dwVideoRenderPrefs = (MFVideoRenderPrefs)0;
@@ -418,6 +423,9 @@ CEVRAllocatorPresenter::CEVRAllocatorPresenter(HWND hWnd, HRESULT& hr, CStdStrin
   ZeroMemory(m_VSyncOffsetHistory, sizeof(m_VSyncOffsetHistory));
   m_VSyncOffsetHistoryPos = 0;
   m_bLastSampleOffsetValid = false;
+  m_hVSyncThread = nullptr;
+  m_hThread = nullptr;
+  m_hGetMixerThread = nullptr;
 }
 
 CEVRAllocatorPresenter::~CEVRAllocatorPresenter(void)
@@ -428,7 +436,6 @@ CEVRAllocatorPresenter::~CEVRAllocatorPresenter(void)
 
   m_pD3DManager = NULL;
 }
-
 
 void CEVRAllocatorPresenter::ResetStats()
 {
@@ -462,10 +469,12 @@ void CEVRAllocatorPresenter::StartWorkerThreads()
     m_hEvtQuit = CreateEvent(NULL, TRUE, FALSE, NULL);
     m_hEvtFlush = CreateEvent(NULL, TRUE, FALSE, NULL);
 
-    m_hThread = ::CreateThread(NULL, 0, PresentThread, (LPVOID)this, 0, &dwThreadId);
+    m_hThread = ::CreateThread(nullptr, 0, PresentThread, (LPVOID)this, 0, &dwThreadId);
     SetThreadPriority(m_hThread, THREAD_PRIORITY_TIME_CRITICAL);
-    m_hGetMixerThread = ::CreateThread(NULL, 0, GetMixerThreadStatic, (LPVOID)this, 0, &dwThreadId);
+    m_hGetMixerThread = ::CreateThread(nullptr, 0, GetMixerThreadStatic, (LPVOID)this, 0, &dwThreadId);
     SetThreadPriority(m_hGetMixerThread, THREAD_PRIORITY_HIGHEST);
+    m_hVSyncThread = ::CreateThread(nullptr, 0, VSyncThreadStatic, (LPVOID)this, 0, &dwThreadId);
+    SetThreadPriority(m_hVSyncThread, THREAD_PRIORITY_HIGHEST);
 
     m_nRenderState = Stopped;
     TRACE_EVR("EVR: Worker threads started...\n");
@@ -481,8 +490,6 @@ void CEVRAllocatorPresenter::StopWorkerThreads()
     SetEvent(m_hEvtQuit);
     m_bEvtQuit = true;
 
-    m_drawingIsDone.Set();
-
     if ((m_hThread != INVALID_HANDLE_VALUE) && (WaitForSingleObject(m_hThread, 10000) == WAIT_TIMEOUT))
     {
       ASSERT(FALSE);
@@ -493,9 +500,14 @@ void CEVRAllocatorPresenter::StopWorkerThreads()
       ASSERT(FALSE);
       TerminateThread(m_hGetMixerThread, 0xDEAD);
     }
+    if ((m_hVSyncThread != INVALID_HANDLE_VALUE) && (WaitForSingleObject(m_hVSyncThread, 10000) == WAIT_TIMEOUT)) {
+      ASSERT(FALSE);
+      TerminateThread(m_hVSyncThread, 0xDEAD);
+    }
 
     if (m_hThread != INVALID_HANDLE_VALUE) CloseHandle(m_hThread);
     if (m_hGetMixerThread != INVALID_HANDLE_VALUE) CloseHandle(m_hGetMixerThread);
+    if (m_hVSyncThread != INVALID_HANDLE_VALUE) CloseHandle(m_hVSyncThread);
     if (m_hEvtFlush != INVALID_HANDLE_VALUE) CloseHandle(m_hEvtFlush);
     if (m_hEvtQuit != INVALID_HANDLE_VALUE) CloseHandle(m_hEvtQuit);
 
@@ -508,61 +520,97 @@ void CEVRAllocatorPresenter::StopWorkerThreads()
   m_nRenderState = Shutdown;
 }
 
-
 STDMETHODIMP CEVRAllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
 {
   CheckPointer(ppRenderer, E_POINTER);
 
-  *ppRenderer = NULL;
+  *ppRenderer = nullptr;
+  HRESULT hr = S_OK;
 
-  HRESULT          hr = E_FAIL;
+  CMacrovisionKicker* pMK = DNew CMacrovisionKicker(NAME("CMacrovisionKicker"), nullptr);
+  Com::SmartPtr<IUnknown>   pUnk = (IUnknown*)(INonDelegatingUnknown*)pMK;
 
-  do
-  {
-    CMacrovisionKicker*    pMK = DNew CMacrovisionKicker(NAME("CMacrovisionKicker"), NULL);
-    Com::SmartPtr<IUnknown>    pUnk = (IUnknown*)(INonDelegatingUnknown*)pMK;
+  COuterEVR* pOuterEVR = DNew COuterEVR(NAME("COuterEVR"), pUnk, hr, &m_VMR9AlphaBitmap, this);
+  m_pOuterEVR = pOuterEVR;
 
-    COuterEVR *pOuterEVR = DNew COuterEVR(NAME("COuterEVR"), pUnk, hr, &m_VMR9AlphaBitmap, this);
-    m_pOuterEVR = pOuterEVR;
+  pMK->SetInner((IUnknown*)(INonDelegatingUnknown*)pOuterEVR);
+  Com::SmartQIPtr<IBaseFilter> pBF = pUnk;
 
-    pMK->SetInner((IUnknown*)(INonDelegatingUnknown*)pOuterEVR);
-    Com::SmartQIPtr<IBaseFilter> pBF = pUnk;
+  if (FAILED(hr)) {
+    return E_FAIL;
+  }
 
-    if (FAILED(hr)) break;
+  // Set EVR custom presenter
+  Com::SmartPtr<IMFVideoPresenter> pVP;
+  Com::SmartPtr<IMFVideoRenderer>  pMFVR;
+  Com::SmartQIPtr<IMFGetService, &__uuidof(IMFGetService)> pMFGS = pBF;
+  Com::SmartQIPtr<IEVRFilterConfig> pConfig = pBF;
+  if (SUCCEEDED(hr)) {
+    if (FAILED(pConfig->SetNumberOfStreams(3))) { // TODO - maybe need other number of input stream ...
+      return E_FAIL;
+    }
+  }
 
-    // Set EVR custom presenter
-    Com::SmartPtr<IMFVideoPresenter>    pVP;
-    Com::SmartPtr<IMFVideoRenderer>    pMFVR;
-    Com::SmartQIPtr<IMFGetService, &__uuidof(IMFGetService)> pMFGS = pBF;
+  hr = pMFGS->GetService(MR_VIDEO_RENDER_SERVICE, IID_PPV_ARGS(&pMFVR));
 
-    hr = pMFGS->GetService(MR_VIDEO_RENDER_SERVICE, IID_IMFVideoRenderer, (void**)&pMFVR);
-
-    if (SUCCEEDED(hr)) hr = QueryInterface(__uuidof(IMFVideoPresenter), (void**)&pVP);
-    if (SUCCEEDED(hr)) hr = pMFVR->InitializeRenderer(NULL, pVP);
+  if (SUCCEEDED(hr)) {
+    hr = QueryInterface(IID_PPV_ARGS(&pVP));
+  }
+  if (SUCCEEDED(hr)) {
+    hr = pMFVR->InitializeRenderer(nullptr, pVP);
+  }
 
 #if 1
-    Com::SmartPtr<IPin>           pPin = GetFirstPin(pBF);
-    Com::SmartQIPtr<IMemInputPin> pMemInputPin = pPin;
+  Com::SmartPtr<IPin> pPin = GetFirstPin(pBF);
+  Com::SmartQIPtr<IMemInputPin> pMemInputPin = pPin;
 
-    // No NewSegment : no chocolate :o)
-    m_fUseInternalTimer = HookNewSegmentAndReceive((IPinC*)(IPin*)pPin, (IMemInputPinC*)(IMemInputPin*)pMemInputPin);
+  // No NewSegment : no chocolate :o)
+  m_fUseInternalTimer = HookNewSegmentAndReceive((IPinC*)(IPin*)pPin, (IMemInputPinC*)(IMemInputPin*)pMemInputPin);
 #else
-    m_fUseInternalTimer = false;
+  m_fUseInternalTimer = false;
 #endif
 
-    if (FAILED(hr))
-      *ppRenderer = NULL;
-    else
-      *ppRenderer = pBF.Detach();
-
-  } while (0);
+  if (FAILED(hr)) {
+    *ppRenderer = nullptr;
+  }
+  else {
+    *ppRenderer = pBF.Detach();
+  }
 
   return hr;
 }
 
 STDMETHODIMP_(bool) CEVRAllocatorPresenter::Paint(bool fAll)
 {
-  return __super::Paint(fAll);
+  m_pD3DDev->BeginScene();
+  m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET, 0, 1.0f, 0);
+  m_pEvrShared->Render(RENDER_LAYER_UNDER);
+
+  //Need to be true for vsync
+  bool bResult = __super::Paint(fAll);
+
+  m_pEvrShared->Render(RENDER_LAYER_OVER);
+
+  m_pD3DDev->EndScene();
+  m_pD3DDev->Present(NULL, NULL, NULL, NULL);
+
+  return bResult;
+}
+
+STDMETHODIMP_(bool) CEVRAllocatorPresenter::Paint(IMFSample* pMFSample)
+{
+  CAutoLock lock(&m_RenderLock);
+
+  m_pCurrentlyDisplayedSample = pMFSample;
+  pMFSample->GetUINT32(GUID_SURFACE_INDEX, (UINT32*)&m_nCurSurface);
+
+  auto sampleHasCurrentGroupId = [this](IMFSample * pSample) {
+    UINT32 nGroupId;
+    return (SUCCEEDED(pSample->GetUINT32(GUID_GROUP_ID, &nGroupId)) && nGroupId == m_nCurrentGroupId);
+  };
+  ASSERT(sampleHasCurrentGroupId(pMFSample));
+
+  return Paint(true);
 }
 
 STDMETHODIMP CEVRAllocatorPresenter::NonDelegatingQueryInterface(REFIID riid, void** ppv)
@@ -841,7 +889,6 @@ STDMETHODIMP CEVRAllocatorPresenter::ProcessMessage(MFVP_MESSAGE_TYPE eMessage, 
   case MFVP_MESSAGE_FLUSH:          // The presenter should discard any pending samples
     SetEvent(m_hEvtFlush);
     m_bEvtFlush = true;
-    m_drawingIsDone.Set();
 
     TRACE_EVR("EVR: MFVP_MESSAGE_FLUSH\n");
     while (WaitForSingleObject(m_hEvtFlush, 1) == WAIT_OBJECT_0);
@@ -926,7 +973,7 @@ HRESULT CEVRAllocatorPresenter::CreateProposedOutputType(IMFMediaType* pMixerTyp
         m_rtTimePerFrame = (10000000I64 * VideoFormat->videoInfo.FramesPerSecond.Denominator) / VideoFormat->videoInfo.FramesPerSecond.Numerator;
         m_bInterlaced = false;
       }
-        break;
+      break;
       case MFVideoInterlace_FieldSingleUpper:
       case MFVideoInterlace_FieldSingleLower:
       case MFVideoInterlace_FieldInterleavedUpperFirst:
@@ -935,7 +982,7 @@ HRESULT CEVRAllocatorPresenter::CreateProposedOutputType(IMFMediaType* pMixerTyp
         m_rtTimePerFrame = (20000000I64 * VideoFormat->videoInfo.FramesPerSecond.Denominator) / VideoFormat->videoInfo.FramesPerSecond.Numerator;
         m_bInterlaced = true;
       }
-        break;
+      break;
       }
     }
   }
@@ -972,7 +1019,7 @@ HRESULT CEVRAllocatorPresenter::CreateProposedOutputType(IMFMediaType* pMixerTyp
 
   bool bDoneSomething = true;
 
-  if (m_AspectRatio.cx >= 1 && m_AspectRatio.cy >= 1){ //if any of these is 0, it will stuck into a infinite loop
+  if (m_AspectRatio.cx >= 1 && m_AspectRatio.cy >= 1) { //if any of these is 0, it will stuck into a infinite loop
     while (bDoneSomething)
     {
       bDoneSomething = false;
@@ -1162,67 +1209,79 @@ HRESULT CEVRAllocatorPresenter::RenegotiateMediaType()
 
 bool CEVRAllocatorPresenter::GetImageFromMixer()
 {
-  MFT_OUTPUT_DATA_BUFFER    Buffer;
-  HRESULT                   hr = S_OK;
-  DWORD                     dwStatus;
-  REFERENCE_TIME            nsSampleTime;
-  int64_t                   llClockBefore = 0;
-  int64_t                   llClockAfter = 0;
-  int64_t                   llMixerLatency;
-  UINT                      dwSurface;
-  bool                      bDoneSomething = false;
+  MFT_OUTPUT_DATA_BUFFER dataBuffer;
+  HRESULT hr = S_OK;
+  DWORD dwStatus;
+  REFERENCE_TIME nsSampleTime;
+  LONGLONG llClockBefore = 0;
+  LONGLONG llClockAfter = 0;
+  LONGLONG llMixerLatency;
+  UINT dwSurface;
 
-  while (SUCCEEDED(hr))
-  {
+  bool bDoneSomething = false;
+
+  auto sampleHasCurrentGroupId = [this](IMFSample * pSample) {
+    UINT32 nGroupId;
+    return (SUCCEEDED(pSample->GetUINT32(GUID_GROUP_ID, &nGroupId)) && nGroupId == m_nCurrentGroupId);
+  };
+
+  while (SUCCEEDED(hr)) {
     Com::SmartPtr<IMFSample>    pSample;
 
-    if (FAILED(GetFreeSample(&pSample)))
-    {
-      m_bWaitingSample = true;
+    if (FAILED(GetFreeSample(&pSample))) {
       break;
     }
 
-    memset(&Buffer, 0, sizeof(Buffer));
-    Buffer.pSample = pSample;
+    ZeroMemory(&dataBuffer, sizeof(dataBuffer));
+    dataBuffer.pSample = pSample;
     pSample->GetUINT32(GUID_SURFACE_INDEX, &dwSurface);
+    ASSERT(sampleHasCurrentGroupId(pSample));
 
     {
       llClockBefore = CDSTimeUtils::GetPerfCounter();
-      hr = m_pMixer->ProcessOutput(0, 1, &Buffer, &dwStatus);
+      hr = m_pMixer->ProcessOutput(0, 1, &dataBuffer, &dwStatus);
       llClockAfter = CDSTimeUtils::GetPerfCounter();
     }
-    if (FAILED(hr))
-    {
-      if (hr == MF_E_TRANSFORM_NEED_MORE_INPUT)
-      {
-        MoveToFreeList(pSample, false);
-        break;
-      }
+
+    if (hr == MF_E_TRANSFORM_NEED_MORE_INPUT) {
+      MoveToFreeList(pSample, false);
+      pSample = nullptr; // The sample should not be used after being queued
+                         // Important: Release any events returned from the ProcessOutput method.
+      SAFE_RELEASE(dataBuffer.pEvents);
+      break;
     }
-    else
-    {
-      if (m_pSink)
-      {
-        //CAutoLock autolock(this); We shouldn't need to lock here, m_pSink is thread safe
-        llMixerLatency = llClockAfter - llClockBefore;
-        m_pSink->Notify(EC_PROCESSING_LATENCY, (LONG_PTR)&llMixerLatency, 0);
-      }
 
-      pSample->GetSampleTime(&nsSampleTime);
+    if (m_pSink) {
+      //CAutoLock autolock(this); We shouldn't need to lock here, m_pSink is thread safe
+      llMixerLatency = llClockAfter - llClockBefore;
+      m_pSink->Notify(EC_PROCESSING_LATENCY, (LONG_PTR)&llMixerLatency, 0);
+    }
 
-      TRACE_EVR("EVR: Get from Mixer : %d  (%I64d) (%I64d)\n", dwSurface, nsSampleTime, m_rtTimePerFrame != 0 ? nsSampleTime / m_rtTimePerFrame : 0);
+    pSample->GetSampleTime(&nsSampleTime);
+    REFERENCE_TIME nsDuration;
+    pSample->GetSampleDuration(&nsDuration);
 
+    TRACE_EVR("EVR: Get from Mixer : %u  (%I64d) (%I64d)\n", dwSurface, nsSampleTime, m_rtTimePerFrame ? nsSampleTime / m_rtTimePerFrame : 0);
+
+    if (SUCCEEDED(TrackSample(pSample))) {
       MoveToScheduledList(pSample, false);
+      pSample = nullptr; // The sample should not be used after being queued
       bDoneSomething = true;
-      if (m_rtTimePerFrame == 0)
-        break;
+    }
+    else {
+      ASSERT(FALSE);
+    }
+
+    // Important: Release any events returned from the ProcessOutput method.
+    SAFE_RELEASE(dataBuffer.pEvents);
+
+    if (m_rtTimePerFrame == 0) {
+      break;
     }
   }
 
   return bDoneSomething;
 }
-
-
 
 STDMETHODIMP CEVRAllocatorPresenter::GetCurrentMediaType(__deref_out  IMFVideoMediaType **ppMediaType)
 {
@@ -1380,7 +1439,7 @@ STDMETHODIMP CEVRAllocatorPresenter::GetAspectRatioMode(DWORD *pdwAspectRatioMod
 STDMETHODIMP CEVRAllocatorPresenter::SetVideoWindow(HWND hwndVideo)
 {
   ASSERT(m_hWnd == hwndVideo);  // What if not ??
-  //  m_hWnd = hwndVideo;
+                                //  m_hWnd = hwndVideo;
   return S_OK;
 }
 STDMETHODIMP CEVRAllocatorPresenter::GetVideoWindow(HWND *phwndVideo)
@@ -1549,8 +1608,11 @@ STDMETHODIMP CEVRAllocatorPresenter::InitializeDevice(AM_MEDIA_TYPE*  pMediaType
 
     if (SUCCEEDED(hr))
     {
+      pMFSample->SetUINT32(GUID_GROUP_ID, m_nCurrentGroupId);
       pMFSample->SetUINT32(GUID_SURFACE_INDEX, i);
+      CAutoLock sampleQueueLock(&m_SampleQueueLock);
       m_FreeSamples.InsertBack(pMFSample);
+      pMFSample = nullptr; // The sample should not be used after being queued
     }
     ASSERT(SUCCEEDED(hr));
   }
@@ -1667,7 +1729,7 @@ void CEVRAllocatorPresenter::GetMixerThread()
       }
 
     }
-      break;
+    break;
     }
   }
 
@@ -1813,10 +1875,10 @@ int64_t CEVRAllocatorPresenter::GetClockTime(int64_t PerformanceCounter)
     int64_t ModerateTime = 10000;
     double ChangeSpeed = 1.00;
     /*    if (m_ModeratedTimeSpeedPrim != 0.0)
-        {
-        if (m_ModeratedTimeSpeedPrim < 0.1)
-        ChangeSpeed = 0.1;
-        }*/
+    {
+    if (m_ModeratedTimeSpeedPrim < 0.1)
+    ChangeSpeed = 0.1;
+    }*/
 
     int nModerate = 0;
     double Change = 0;
@@ -1836,9 +1898,9 @@ int64_t CEVRAllocatorPresenter::GetClockTime(int64_t PerformanceCounter)
       //if (AbsDiff > 20000.0)
       //        TimeSpeedTarget = 1.0 - (Diff / 1000000.0);
       /*else if (AbsDiff > 5000.0)
-        TimeSpeedTarget = 1.0 - (Diff / 100000000.0);
-        else
-        TimeSpeedTarget = 1.0 - (Diff / 500000000.0);*/
+      TimeSpeedTarget = 1.0 - (Diff / 100000000.0);
+      else
+      TimeSpeedTarget = 1.0 - (Diff / 500000000.0);*/
       double StartMod = m_ModeratedTimeSpeed;
       ModerateFloat(m_ModeratedTimeSpeed, TimeSpeedTarget, m_ModeratedTimeSpeedPrim, ChangeSpeed);
       m_ModeratedTimeSpeed = TimeSpeedTarget;
@@ -1865,114 +1927,306 @@ int64_t CEVRAllocatorPresenter::GetClockTime(int64_t PerformanceCounter)
 
 void CEVRAllocatorPresenter::OnVBlankFinished(bool fAll, int64_t PerformanceCounter)
 {
-  if (m_pCurrentDisplaydSampleQueue.empty() || !m_OrderedPaint || !fAll)
+  // This function is meant to be called only from the rendering function
+  // so with the ownership on m_RenderLock.
+  if (!m_pCurrentlyDisplayedSample || !m_OrderedPaint || !fAll) {
     return;
+  }
 
-  int64_t      llClockTime;
-  int64_t      nsSampleTime;
-  int64_t      SampleDuration = 0;
-  if (!m_bSignaledStarvation)
-  {
+  LONGLONG llClockTime;
+  LONGLONG nsSampleTime;
+  LONGLONG SampleDuration = 0;
+  LONGLONG TimePerFrame = m_rtTimePerFrame;
+  if (!TimePerFrame) {
+    return;
+  }
+
+  if (!m_bSignaledStarvation) {
     llClockTime = GetClockTime(PerformanceCounter);
     m_StarvationClock = llClockTime;
   }
-  else
-  {
+  else {
     llClockTime = m_StarvationClock;
   }
 
-  IMFSample * currentSample = NULL;
-  {
-    CSingleLock lock(m_DisplaydSampleQueueLock);
-    assert(m_pCurrentDisplaydSampleQueue.size() == 1);
-    currentSample = m_pCurrentDisplaydSampleQueue.front(); m_pCurrentDisplaydSampleQueue.pop();
+  if (SUCCEEDED(m_pCurrentlyDisplayedSample->GetSampleDuration(&SampleDuration))) {
+    // Some filters return invalid values, ignore them
+    if (SampleDuration > MIN_FRAME_TIME) {
+      TimePerFrame = SampleDuration;
+    }
   }
-  currentSample->GetSampleDuration(&SampleDuration);
 
-  currentSample->GetSampleTime(&nsSampleTime);
-  int64_t TimePerFrame = m_rtTimePerFrame;
-  if (!TimePerFrame)
-    return;
-  if (SampleDuration > 1)
-    TimePerFrame = SampleDuration;
+  if (FAILED(m_pCurrentlyDisplayedSample->GetSampleTime(&nsSampleTime))) {
+    nsSampleTime = llClockTime;
+  }
 
   {
     m_nNextSyncOffset = (m_nNextSyncOffset + 1) % NB_JITTER;
-    int64_t SyncOffset = nsSampleTime - llClockTime;
+    LONGLONG SyncOffset = nsSampleTime - llClockTime;
 
     m_pllSyncOffset[m_nNextSyncOffset] = SyncOffset;
-    TRACE_EVR("EVR: SyncOffset(%d, %d): %8I64d     %8I64d     %8I64d \n", m_nCurSurface, m_VSyncMode, m_LastPredictedSync, -SyncOffset, m_LastPredictedSync - (-SyncOffset));
+    //TRACE_EVR("EVR: SyncOffset(%d, %d): %8I64d     %8I64d     %8I64d \n", m_nCurSurface, m_VSyncMode, m_LastPredictedSync, -SyncOffset, m_LastPredictedSync - (-SyncOffset));
 
     m_MaxSyncOffset = MINLONG64;
     m_MinSyncOffset = MAXLONG64;
 
-    int64_t AvrageSum = 0;
-    for (int i = 0; i < NB_JITTER; i++)
-    {
-      int64_t Offset = m_pllSyncOffset[i];
+    LONGLONG AvrageSum = 0;
+    for (int i = 0; i < NB_JITTER; i++) {
+      LONGLONG Offset = m_pllSyncOffset[i];
       AvrageSum += Offset;
       m_MaxSyncOffset = std::max(m_MaxSyncOffset, Offset);
       m_MinSyncOffset = std::min(m_MinSyncOffset, Offset);
     }
     double MeanOffset = double(AvrageSum) / NB_JITTER;
     double DeviationSum = 0;
-    for (int i = 0; i < NB_JITTER; i++)
-    {
+    for (int i = 0; i < NB_JITTER; i++) {
       double Deviation = double(m_pllSyncOffset[i]) - MeanOffset;
-      DeviationSum += Deviation*Deviation;
+      DeviationSum += Deviation * Deviation;
     }
     double StdDev = sqrt(DeviationSum / NB_JITTER);
 
     m_fSyncOffsetAvr = MeanOffset;
     m_bSyncStatsAvailable = true;
     m_fSyncOffsetStdDev = StdDev;
-
-
   }
+}
+
+void CEVRAllocatorPresenter::VSyncThread()
+{
+  HANDLE   hEvts[] = { m_hEvtQuit };
+  bool     bQuit = false;
+  TIMECAPS tc;
+  DWORD    dwResolution;
+
+  // Tell Multimedia Class Scheduler we are a playback thread (increase priority)
+  //HANDLE hAvrt = 0;
+  //if (pfAvSetMmThreadCharacteristicsW) {
+  //    DWORD dwTaskIndex = 0;
+  //    hAvrt = pfAvSetMmThreadCharacteristicsW(L"Playback", &dwTaskIndex);
+  //    if (pfAvSetMmThreadPriority) {
+  //        pfAvSetMmThreadPriority(hAvrt, AVRT_PRIORITY_HIGH /*AVRT_PRIORITY_CRITICAL*/);
+  //    }
+  //}
+
+  timeGetDevCaps(&tc, sizeof(TIMECAPS));
+  dwResolution = std::min(std::max(tc.wPeriodMin, 0u), tc.wPeriodMax);
+  timeBeginPeriod(dwResolution);
+  //const CRenderersData* rd = GetRenderersData();
+  //const CRenderersSettings& r = GetRenderersSettings();
+
+  while (!bQuit) {
+
+    DWORD dwObject = WaitForMultipleObjects(_countof(hEvts), hEvts, FALSE, 1);
+    switch (dwObject) {
+    case WAIT_OBJECT_0:
+      bQuit = true;
+      break;
+    case WAIT_TIMEOUT: {
+      // Do our stuff
+      if (m_pD3DDev && g_dsSettings.pRendererSettings->vSync) {
+        if (m_nRenderState == Started) {
+          int VSyncPos = GetVBlackPos();
+          int WaitRange = std::max(m_ScreenSize.cy / 40l, 5l);
+          int MinRange = std::max(std::min(long(0.003 * m_ScreenSize.cy * m_RefreshRate + 0.5), m_ScreenSize.cy / 3l), 5l); // 1.8  ms or max 33 % of Time
+
+          VSyncPos += MinRange + WaitRange;
+
+          VSyncPos = VSyncPos % m_ScreenSize.cy;
+          if (VSyncPos < 0) {
+            VSyncPos += m_ScreenSize.cy;
+          }
+
+          int ScanLine = 0;
+          int StartScanLine = ScanLine;
+          UNREFERENCED_PARAMETER(StartScanLine);
+          int LastPos = ScanLine;
+          UNREFERENCED_PARAMETER(LastPos);
+          ScanLine = (VSyncPos + 1) % m_ScreenSize.cy;
+          if (ScanLine < 0) {
+            ScanLine += m_ScreenSize.cy;
+          }
+          int ScanLineMiddle = ScanLine + m_ScreenSize.cy / 2;
+          ScanLineMiddle = ScanLineMiddle % m_ScreenSize.cy;
+          if (ScanLineMiddle < 0) {
+            ScanLineMiddle += m_ScreenSize.cy;
+          }
+
+          int ScanlineStart = ScanLine;
+          bool bTakenLock;
+          WaitForVBlankRange(ScanlineStart, 5, true, true, false, bTakenLock);
+          LONGLONG TimeStart = CDSTimeUtils::GetPerfCounter();
+
+          WaitForVBlankRange(ScanLineMiddle, 5, true, true, false, bTakenLock);
+          LONGLONG TimeMiddle = CDSTimeUtils::GetPerfCounter();
+
+          int ScanlineEnd = ScanLine;
+          WaitForVBlankRange(ScanlineEnd, 5, true, true, false, bTakenLock);
+          LONGLONG TimeEnd = CDSTimeUtils::GetPerfCounter();
+
+          double nSeconds = (TimeEnd - TimeStart) / 10000000.0;
+          LONGLONG llDiffMiddle = TimeMiddle - TimeStart;
+          ASSERT(llDiffMiddle > 0);
+
+          if (nSeconds > 0.003 && llDiffMiddle > 0) {
+            double dDiffMiddle = double(llDiffMiddle);
+            double dDiffEnd = double(TimeEnd - TimeMiddle);
+
+            double dDiffDiff = dDiffEnd / dDiffMiddle;
+            if (dDiffDiff < 1.3 && dDiffDiff >(1 / 1.3)) {
+              double ScanLineSeconds;
+              double nScanLines;
+              if (ScanLineMiddle > ScanlineEnd) {
+                ScanLineSeconds = dDiffMiddle / 10000000.0;
+                nScanLines = ScanLineMiddle - ScanlineStart;
+              }
+              else {
+                ScanLineSeconds = dDiffEnd / 10000000.0;
+                nScanLines = ScanlineEnd - ScanLineMiddle;
+              }
+
+              double ScanLineTime = ScanLineSeconds / nScanLines;
+
+              int iPos = m_DetectedRefreshRatePos % 100;
+              m_ldDetectedScanlineRateList[iPos] = ScanLineTime;
+              if (m_DetectedScanlineTime && ScanlineStart != ScanlineEnd) {
+                int Diff = ScanlineEnd - ScanlineStart;
+                nSeconds -= double(Diff) * m_DetectedScanlineTime;
+              }
+              m_ldDetectedRefreshRateList[iPos] = nSeconds;
+              double Average = 0;
+              double AverageScanline = 0;
+              int nPos = std::min(iPos + 1, 100);
+              for (int i = 0; i < nPos; ++i) {
+                Average += m_ldDetectedRefreshRateList[i];
+                AverageScanline += m_ldDetectedScanlineRateList[i];
+              }
+
+              if (nPos) {
+                Average /= double(nPos);
+                AverageScanline /= double(nPos);
+              }
+              else {
+                Average = 0;
+                AverageScanline = 0;
+              }
+
+              double ThisValue = Average;
+
+              if (Average > 0.0 && AverageScanline > 0.0) {
+                CAutoLock Lock(&m_RefreshRateLock);
+                ++m_DetectedRefreshRatePos;
+                if (m_DetectedRefreshTime == 0 || m_DetectedRefreshTime / ThisValue > 1.01 || m_DetectedRefreshTime / ThisValue < 0.99) {
+                  m_DetectedRefreshTime = ThisValue;
+                  m_DetectedRefreshTimePrim = 0;
+                }
+                if (_isnan(m_DetectedRefreshTime)) {
+                  m_DetectedRefreshTime = 0.0;
+                }
+                if (_isnan(m_DetectedRefreshTimePrim)) {
+                  m_DetectedRefreshTimePrim = 0.0;
+                }
+
+                ModerateFloat(m_DetectedRefreshTime, ThisValue, m_DetectedRefreshTimePrim, 1.5);
+                if (m_DetectedRefreshTime > 0.0) {
+                  m_DetectedRefreshRate = 1.0 / m_DetectedRefreshTime;
+                }
+                else {
+                  m_DetectedRefreshRate = 0.0;
+                }
+
+                if (m_DetectedScanlineTime == 0 || m_DetectedScanlineTime / AverageScanline > 1.01 || m_DetectedScanlineTime / AverageScanline < 0.99) {
+                  m_DetectedScanlineTime = AverageScanline;
+                  m_DetectedScanlineTimePrim = 0;
+                }
+                ModerateFloat(m_DetectedScanlineTime, AverageScanline, m_DetectedScanlineTimePrim, 1.5);
+                if (m_DetectedScanlineTime > 0.0) {
+                  m_DetectedScanlinesPerFrame = m_DetectedRefreshTime / m_DetectedScanlineTime;
+                }
+                else {
+                  m_DetectedScanlinesPerFrame = 0;
+                }
+              }
+              //TRACE(_T("Refresh: %f\n"), RefreshRate);
+            }
+          }
+        }
+      }
+      else {
+        m_DetectedRefreshRate = 0.0;
+        m_DetectedScanlinesPerFrame = 0.0;
+      }
+    }
+                       break;
+    }
+  }
+
+  timeEndPeriod(dwResolution);
+  //if (pfAvRevertMmThreadCharacteristics) pfAvRevertMmThreadCharacteristics (hAvrt);
+}
+
+
+DWORD WINAPI CEVRAllocatorPresenter::VSyncThreadStatic(LPVOID lpParam)
+{
+  CEVRAllocatorPresenter* pThis = (CEVRAllocatorPresenter*)lpParam;
+  pThis->VSyncThread();
+  return 0;
 }
 
 void CEVRAllocatorPresenter::RenderThread()
 {
-  HANDLE        hAvrt;
-  DWORD         dwTaskIndex = 0;
-  HANDLE        hEvts[] = { m_hEvtQuit, m_hEvtFlush };
-  bool          bQuit = false;
-  TIMECAPS      tc;
-  DWORD         dwResolution;
-  MFTIME        nsSampleTime;
-  int64_t       llClockTime;
-  DWORD         dwUser = 0;
-  DWORD         dwObject;
+  HANDLE   hEvts[] = { m_hEvtQuit, m_hEvtFlush };
+  bool     bQuit = false, bForcePaint = false;
+  TIMECAPS tc;
+  MFTIME   nsSampleTime;
+  LONGLONG llClockTime;
 
-
-  // Tell Vista Multimedia Class Scheduler we are a playback thretad (increase priority)
-  if (pfAvSetMmThreadCharacteristicsW)  hAvrt = pfAvSetMmThreadCharacteristicsW(L"Playback", &dwTaskIndex);
-  if (pfAvSetMmThreadPriority)      pfAvSetMmThreadPriority(hAvrt, AVRT_PRIORITY_HIGH /*AVRT_PRIORITY_CRITICAL*/);
+  // Tell Multimedia Class Scheduler we are a playback thread (increase priority)
+  HANDLE hAvrt = 0;
+  if (pfAvSetMmThreadCharacteristicsW) {
+    DWORD dwTaskIndex = 0;
+    hAvrt = pfAvSetMmThreadCharacteristicsW(L"Playback", &dwTaskIndex);
+    if (pfAvSetMmThreadPriority) {
+      pfAvSetMmThreadPriority(hAvrt, AVRT_PRIORITY_HIGH /*AVRT_PRIORITY_CRITICAL*/);
+    }
+  }
 
   timeGetDevCaps(&tc, sizeof(TIMECAPS));
-  dwResolution = std::min(std::max(tc.wPeriodMin, (UINT)0), tc.wPeriodMax);
-  dwUser = timeBeginPeriod(dwResolution);
+  DWORD dwResolution = std::min(std::max(tc.wPeriodMin, 0u), tc.wPeriodMax);
+  VERIFY(timeBeginPeriod(dwResolution) == 0);
+
+  auto checkPendingMediaFinished = [this]() {
+    if (m_bPendingMediaFinished) {
+      CAutoLock lock(&m_SampleQueueLock);
+      if (m_ScheduledSamples.IsEmpty()) {
+        m_bPendingMediaFinished = false;
+        m_pSink->Notify(EC_COMPLETE, 0, 0);
+      }
+    }
+  };
 
   int NextSleepTime = 1;
-  while (!bQuit)
-  {
-    int64_t  llPerf = CDSTimeUtils::GetPerfCounter();
-    if (!g_dsSettings.pRendererSettings->vSyncAccurate && NextSleepTime == 0)
+  while (!bQuit) {
+    LONGLONG llPerf = CDSTimeUtils::GetPerfCounter();
+    UNREFERENCED_PARAMETER(llPerf);
+    if (!g_dsSettings.pRendererSettings->vSyncAccurate && NextSleepTime == 0) {
       NextSleepTime = 1;
-    dwObject = WaitForMultipleObjects(countof(hEvts), hEvts, FALSE, std::max(NextSleepTime < 0 ? 1 : NextSleepTime, 0));
-    /*    dwObject = WAIT_TIMEOUT;
-        if (m_bEvtFlush)
-        dwObject = WAIT_OBJECT_0 + 1;
-        else if (m_bEvtQuit)
-        dwObject = WAIT_OBJECT_0;*/
-    //    if (NextSleepTime)
-    //      TRACE_EVR("EVR: Sleep: %7.3f\n", double(AfxGetMyApp()->GetPerfCounter()-llPerf) / 10000.0);
-    if (NextSleepTime > 1)
+    }
+    DWORD dwObject = WaitForMultipleObjects(_countof(hEvts), hEvts, FALSE, std::max(NextSleepTime < 0 ? 1 : NextSleepTime, 0));
+    /*      dwObject = WAIT_TIMEOUT;
+    if (m_bEvtFlush)
+    dwObject = WAIT_OBJECT_0 + 1;
+    else if (m_bEvtQuit)
+    dwObject = WAIT_OBJECT_0;*/
+    //      if (NextSleepTime)
+    //          TRACE_EVR("EVR: Sleep: %7.3f\n", double(GetRenderersData()->GetPerfCounter()-llPerf) / 10000.0);
+    if (NextSleepTime > 1) {
       NextSleepTime = 0;
-    else if (NextSleepTime == 0)
+    }
+    else if (NextSleepTime == 0) {
       NextSleepTime = -1;
-    switch (dwObject)
-    {
+    }
+
+    switch (dwObject) {
     case WAIT_OBJECT_0:
       bQuit = true;
       break;
@@ -1981,99 +2235,96 @@ void CEVRAllocatorPresenter::RenderThread()
       FlushSamples();
       m_bEvtFlush = false;
       ResetEvent(m_hEvtFlush);
-      m_drawingIsDone.Reset();
+      bForcePaint = true;
       TRACE_EVR("EVR: Flush done!\n");
       break;
 
     case WAIT_TIMEOUT:
 
+
       if (m_LastSetOutputRange != -1 && m_LastSetOutputRange != ((CEVRRendererSettings *)g_dsSettings.pRendererSettings)->outputRange || m_bPendingRenegotiate)
       {
-        CAutoLock AutoLock(&m_ImageProcessingLock);
         FlushSamples();
         RenegotiateMediaType();
         m_bPendingRenegotiate = false;
       }
 
+      // Discard timer events if playback stop
+      //if ((dwObject == WAIT_OBJECT_0 + 3) && (m_nRenderState != Started)) continue;
+
+      //TRACE_EVR ("EVR: RenderThread ==>> Waiting buffer\n");
+
+      //if (WaitForMultipleObjects (_countof(hEvtsBuff), hEvtsBuff, FALSE, INFINITE) == WAIT_OBJECT_0+2)
       {
-        Com::SmartPtr<IMFSample>    pMFSample;
-        int64_t  llPerf = CDSTimeUtils::GetPerfCounter();
-        int                         nSamplesLeft = 0;
-        if (SUCCEEDED(GetScheduledSample(&pMFSample, nSamplesLeft)))
-        {
-          m_pCurrentDisplaydSample = pMFSample;
+        Com::SmartPtr<IMFSample> pMFSample;
+        //LONGLONG llPerf2 = GetRenderersData()->GetPerfCounter();
+        //UNREFERENCED_PARAMETER(llPerf2);
+        int nSamplesLeft = 0;
+        if (SUCCEEDED(GetScheduledSample(&pMFSample, nSamplesLeft))) {
+          //UINT32 nSurface;
+          //pMFSample->GetUINT32(GUID_SURFACE_INDEX, (UINT32*)&nSurface);
 
           bool bValidSampleTime = true;
-          HRESULT hGetSampleTime = pMFSample->GetSampleTime(&nsSampleTime);
-          if (hGetSampleTime != S_OK || nsSampleTime == 0)
-          {
+          HRESULT hrGetSampleTime = pMFSample->GetSampleTime(&nsSampleTime);
+          if (hrGetSampleTime != S_OK || nsSampleTime == 0) {
             bValidSampleTime = false;
           }
           // We assume that all samples have the same duration
-          int64_t SampleDuration = 0;
-          pMFSample->GetSampleDuration(&SampleDuration);
+          LONGLONG SampleDuration = 0;
+          bool bValidSampleDuration = true;
+          HRESULT hrGetSampleDuration = pMFSample->GetSampleDuration(&SampleDuration);
+          // Some filters return invalid values, ignore them
+          if (hrGetSampleDuration != S_OK || SampleDuration <= MIN_FRAME_TIME) {
+            bValidSampleDuration = false;
+          }
 
-          //          TRACE_EVR ("EVR: RenderThread ==>> Presenting surface %d  (%I64d)\n", m_nCurSurface, nsSampleTime);
+          //TRACE_EVR("EVR: RenderThread ==>> Presenting surface %d  (%I64d)\n", nSurface, nsSampleTime);
 
           bool bStepForward = false;
 
-          if (m_nStepCount < 0)
-          {
+          if (m_nStepCount < 0) {
             // Drop frame
             TRACE_EVR("EVR: Dropped frame\n");
             m_pcFrames++;
             bStepForward = true;
             m_nStepCount = 0;
-          }
-          else if (m_nStepCount > 0)
-          {
-            pMFSample->GetUINT32(GUID_SURFACE_INDEX, (UINT32 *)&m_nCurSurface);
+            /*
+            } else if (m_nStepCount > 0) {
             ++m_OrderedPaint;
-            if (!g_bExternalSubtitleTime)
-              __super::SetTime(g_tSegmentStart + nsSampleTime);
-
-            PaintInternal();
-
+            if (!g_bExternalSubtitleTime) {
+            __super::SetTime (g_tSegmentStart + nsSampleTime);
+            }
+            Paint(pMFSample);
             m_nDroppedUpdate = 0;
             CompleteFrameStep(false);
             bStepForward = true;
+            */
           }
-          else if ((m_nRenderState == Started))
-          {
-            int64_t CurrentCounter = CDSTimeUtils::GetPerfCounter();
+          else if (m_nRenderState == Started) {
+            LONGLONG CurrentCounter = CDSTimeUtils::GetPerfCounter();
             // Calculate wake up timer
-            if (!m_bSignaledStarvation)
-            {
+            if (!m_bSignaledStarvation) {
               llClockTime = GetClockTime(CurrentCounter);
               m_StarvationClock = llClockTime;
             }
-            else
-            {
+            else {
               llClockTime = m_StarvationClock;
             }
 
-            if (!bValidSampleTime)
-            {
+            if (!bValidSampleTime) {
               // Just play as fast as possible
               bStepForward = true;
-              pMFSample->GetUINT32(GUID_SURFACE_INDEX, (UINT32 *)&m_nCurSurface);
               ++m_OrderedPaint;
-              if (!g_bExternalSubtitleTime)
+              if (!g_bExternalSubtitleTime) {
                 __super::SetTime(g_tSegmentStart + nsSampleTime);
-
-              PaintInternal();
-
+              }
+              Paint(pMFSample);
             }
-            else
-            {
-              int64_t TimePerFrame = (int64_t)(GetFrameTime() * 10000000);
-              int64_t DrawTime = (int64_t)((m_PaintTime)* 0.9 - 20000); // 2 ms offset
-              //if (!s.iVMR9VSync)
-              DrawTime = 0;
-
-              int64_t SyncOffset = 0;
-              int64_t VSyncTime = 0;
-              int64_t TimeToNextVSync = -1;
+            else {
+              LONGLONG TimePerFrame = (LONGLONG)(GetFrameTime() * 10000000.0);
+              LONGLONG SyncOffset = 0;
+              LONGLONG VSyncTime = 0;
+              LONGLONG TimeToNextVSync = -1;
               bool bVSyncCorrection = false;
               double DetectedRefreshTime;
               double DetectedScanlinesPerFrame;
@@ -2087,8 +2338,7 @@ void CEVRAllocatorPresenter::RenderThread()
                 DetectedScanlineTime = m_DetectedScanlineTime;
               }
 
-              if (DetectedRefreshRatePos < 20 || !DetectedRefreshTime || !DetectedScanlinesPerFrame)
-              {
+              if (DetectedRefreshRatePos < 20 || !DetectedRefreshTime || !DetectedScanlinesPerFrame) {
                 DetectedRefreshTime = 1.0 / m_RefreshRate;
                 DetectedScanlinesPerFrame = m_ScreenSize.cy;
                 DetectedScanlineTime = DetectedRefreshTime / double(m_ScreenSize.cy);
@@ -2105,72 +2355,77 @@ void CEVRAllocatorPresenter::RenderThread()
                 //TargetVSyncPos -= ScanlinesPerSecond * (DrawTime/10000000.0);
                 //TargetVSyncPos -= 10;
                 TargetVSyncPos = fmod(TargetVSyncPos, RefreshLines);
-                if (TargetVSyncPos < 0)
+                if (TargetVSyncPos < 0) {
                   TargetVSyncPos += RefreshLines;
-                if (TargetVSyncPos > CurrentVSyncPos)
+                }
+                if (TargetVSyncPos > CurrentVSyncPos) {
                   LinesUntilVSync = TargetVSyncPos - CurrentVSyncPos;
-                else
+                }
+                else {
                   LinesUntilVSync = (RefreshLines - CurrentVSyncPos) + TargetVSyncPos;
+                }
                 double TimeUntilVSync = LinesUntilVSync * DetectedScanlineTime;
-                TimeToNextVSync = (int64_t)(TimeUntilVSync * 10000000.0);
-                VSyncTime = (int64_t)(DetectedRefreshTime * 10000000.0);
+                TimeToNextVSync = (LONGLONG)(TimeUntilVSync * 10000000.0);
+                VSyncTime = (LONGLONG)(DetectedRefreshTime * 10000000.0);
 
-                int64_t ClockTimeAtNextVSync = llClockTime + (int64_t)((TimeUntilVSync * 10000000.0) * m_ModeratedTimeSpeed);
+                LONGLONG ClockTimeAtNextVSync = llClockTime + (LONGLONG)(TimeUntilVSync * 10000000.0 * m_ModeratedTimeSpeed);
 
                 SyncOffset = (nsSampleTime - ClockTimeAtNextVSync);
 
-                //                if (SyncOffset < 0)
-                //                  TRACE_EVR("EVR: SyncOffset(%d): %I64d     %I64d     %I64d\n", m_nCurSurface, SyncOffset, TimePerFrame, VSyncTime);
+                //if (SyncOffset < 0)
+                //    TRACE_EVR("EVR: SyncOffset(%d): %I64d     %I64d     %I64d\n", m_nCurSurface, SyncOffset, TimePerFrame, VSyncTime);
               }
-              else
+              else {
                 SyncOffset = (nsSampleTime - llClockTime);
+              }
 
-              //int64_t SyncOffset = nsSampleTime - llClockTime;
+              //LONGLONG SyncOffset = nsSampleTime - llClockTime;
               TRACE_EVR("EVR: SyncOffset: %I64d SampleFrame: %I64d ClockFrame: %I64d\n", SyncOffset, TimePerFrame != 0 ? nsSampleTime / TimePerFrame : 0, TimePerFrame != 0 ? llClockTime / TimePerFrame : 0);
-              if (SampleDuration > 1 && !m_DetectedLock)
+              if (bValidSampleDuration && !m_DetectedLock) {
                 TimePerFrame = SampleDuration;
+              }
 
-              int64_t MinMargin;
-              if (m_FrameTimeCorrection && 0)
-                MinMargin = 15000;
-              else
-                MinMargin = 15000 + std::min((int64_t)(m_DetectedFrameTimeStdDev), 20000i64);
-              int64_t TimePerFrameMargin = (int64_t)std::min((__int64)(TimePerFrame * 0.11), std::max((__int64)(TimePerFrame * 0.02), MinMargin));
-              int64_t TimePerFrameMargin0 = (int64_t)TimePerFrameMargin / 2;
-              int64_t TimePerFrameMargin1 = 0;
+              LONGLONG MinMargin = MIN_FRAME_TIME + std::min(LONGLONG(m_DetectedFrameTimeStdDev), 20000ll);
+              //if (m_FrameTimeCorrection) {
+              //    MinMargin = MIN_FRAME_TIME;
+              //} else {
+              //    MinMargin = MIN_FRAME_TIME + std::min(LONGLONG(m_DetectedFrameTimeStdDev), 20000ll);
+              //}
+              LONGLONG TimePerFrameMargin = std::min(std::max(TimePerFrame * 2l / 100l, MinMargin), TimePerFrame * 11l / 100l); // (0.02..0.11)TimePerFrame
+              LONGLONG TimePerFrameMargin0 = TimePerFrameMargin / 2;
+              LONGLONG TimePerFrameMargin1 = 0;
 
-              if (m_DetectedLock && TimePerFrame < VSyncTime)
+              if (m_DetectedLock && TimePerFrame < VSyncTime) {
                 VSyncTime = TimePerFrame;
+              }
 
-              if (m_VSyncMode == 1)
+              if (m_VSyncMode == 1) {
                 TimePerFrameMargin1 = -TimePerFrameMargin;
-              else if (m_VSyncMode == 2)
+              }
+              else if (m_VSyncMode == 2) {
                 TimePerFrameMargin1 = TimePerFrameMargin;
+              }
 
               m_LastSampleOffset = SyncOffset;
               m_bLastSampleOffsetValid = true;
 
-              int64_t VSyncOffset0 = 0;
+              LONGLONG VSyncOffset0 = 0;
               bool bDoVSyncCorrection = false;
-              if ((SyncOffset < -(TimePerFrame + TimePerFrameMargin0 - TimePerFrameMargin1)) && nSamplesLeft > 0) // Only drop if we have something else to display at once
-              {
-                // Drop frame
+              if ((SyncOffset < -(TimePerFrame + TimePerFrameMargin0 - TimePerFrameMargin1)) && nSamplesLeft > 0) { // Only drop if we have something else to display at once
+                                                                                                                    // Drop frame
                 TRACE_EVR("EVR: Dropped frame\n");
                 m_pcFrames++;
                 bStepForward = true;
                 ++m_nDroppedUpdate;
                 NextSleepTime = 0;
-                //                VSyncOffset0 = (-SyncOffset) - VSyncTime;
+                //VSyncOffset0 = (-SyncOffset) - VSyncTime;
                 //VSyncOffset0 = (-SyncOffset) - VSyncTime + TimePerFrameMargin1;
                 //m_LastPredictedSync = VSyncOffset0;
                 bDoVSyncCorrection = false;
               }
-              else if (SyncOffset < TimePerFrameMargin1)
-              {
+              else if (SyncOffset < TimePerFrameMargin1) {
 
-                if (bVSyncCorrection)
-                {
-                  //                  VSyncOffset0 = -SyncOffset;
+                if (bVSyncCorrection) {
                   VSyncOffset0 = -SyncOffset;
                   bDoVSyncCorrection = true;
                 }
@@ -2179,48 +2434,51 @@ void CEVRAllocatorPresenter::RenderThread()
                 TRACE_EVR("EVR: Normalframe\n");
                 m_nDroppedUpdate = 0;
                 bStepForward = true;
-                pMFSample->GetUINT32(GUID_SURFACE_INDEX, (UINT32 *)&m_nCurSurface);
                 m_LastFrameDuration = nsSampleTime - m_LastSampleTime;
                 m_LastSampleTime = nsSampleTime;
                 m_LastPredictedSync = VSyncOffset0;
 
+                if (m_nStepCount > 0) {
+                  CompleteFrameStep(false);
+                }
+
                 ++m_OrderedPaint;
 
-                if (!g_bExternalSubtitleTime)
+                if (!g_bExternalSubtitleTime) {
                   __super::SetTime(g_tSegmentStart + nsSampleTime);
-
-                PaintInternal();
+                }
+                Paint(pMFSample);
 
                 NextSleepTime = 0;
                 m_pcFramesDrawn++;
               }
-              else
-              {
-                if (TimeToNextVSync >= 0 && SyncOffset > 0)
-                {
-                  NextSleepTime = (int)((TimeToNextVSync) / 10000) - 2;
+              else {
+
+                if (TimeToNextVSync >= 0 && SyncOffset > 0) {
+                  NextSleepTime = (int)(TimeToNextVSync / 10000 - 2);
                 }
-                else
-                  NextSleepTime = (int)((SyncOffset) / 10000) - 2;
+                else {
+                  NextSleepTime = (int)(SyncOffset / 10000 - 2);
+                }
 
-                if (NextSleepTime > TimePerFrame)
+                if (NextSleepTime > TimePerFrame) {
                   NextSleepTime = 1;
+                }
 
-                if (NextSleepTime < 0)
+                if (NextSleepTime < 0) {
                   NextSleepTime = 0;
+                }
                 NextSleepTime = 1;
-                TRACE_EVR("EVR: Delay\n");
+                //TRACE_EVR ("EVR: Delay\n");
               }
 
-              if (bDoVSyncCorrection)
-              {
-                //int64_t VSyncOffset0 = (((SyncOffset) % VSyncTime) + VSyncTime) % VSyncTime;
-                int64_t Margin = TimePerFrameMargin;
+              if (bDoVSyncCorrection) {
+                //LONGLONG VSyncOffset0 = (((SyncOffset) % VSyncTime) + VSyncTime) % VSyncTime;
+                LONGLONG Margin = TimePerFrameMargin;
 
-                int64_t VSyncOffsetMin = 30000000000000;
-                int64_t VSyncOffsetMax = -30000000000000;
-                for (int i = 0; i < 5; ++i)
-                {
+                LONGLONG VSyncOffsetMin = 30000000000000;
+                LONGLONG VSyncOffsetMax = -30000000000000;
+                for (int i = 0; i < 5; ++i) {
                   VSyncOffsetMin = std::min(m_VSyncOffsetHistory[i], VSyncOffsetMin);
                   VSyncOffsetMax = std::max(m_VSyncOffsetHistory[i], VSyncOffsetMax);
                 }
@@ -2228,92 +2486,79 @@ void CEVRAllocatorPresenter::RenderThread()
                 m_VSyncOffsetHistory[m_VSyncOffsetHistoryPos] = VSyncOffset0;
                 m_VSyncOffsetHistoryPos = (m_VSyncOffsetHistoryPos + 1) % 5;
 
-                //                int64_t VSyncTime2 = VSyncTime2 + (VSyncOffsetMax - VSyncOffsetMin);
+                //LONGLONG VSyncTime2 = VSyncTime2 + (VSyncOffsetMax - VSyncOffsetMin);
                 //VSyncOffsetMin; = (((VSyncOffsetMin) % VSyncTime) + VSyncTime) % VSyncTime;
                 //VSyncOffsetMax = (((VSyncOffsetMax) % VSyncTime) + VSyncTime) % VSyncTime;
 
-                TRACE_EVR("EVR: SyncOffset(%d, %d): %8I64d     %8I64d     %8I64d     %8I64d\n", m_nCurSurface, m_VSyncMode, VSyncOffset0, VSyncOffsetMin, VSyncOffsetMax, VSyncOffsetMax - VSyncOffsetMin);
+                //TRACE_EVR("EVR: SyncOffset(%d, %d): %8I64d     %8I64d     %8I64d     %8I64d\n", m_nCurSurface, m_VSyncMode,VSyncOffset0, VSyncOffsetMin, VSyncOffsetMax, VSyncOffsetMax - VSyncOffsetMin);
 
-                if (m_VSyncMode == 0)
-                {
+                if (m_VSyncMode == 0) {
                   // 23.976 in 60 Hz
-                  if (VSyncOffset0 < Margin && VSyncOffsetMax >(VSyncTime - Margin))
-                  {
+                  if (VSyncOffset0 < Margin && VSyncOffsetMax >(VSyncTime - Margin)) {
                     m_VSyncMode = 2;
                   }
-                  else if (VSyncOffset0 > (VSyncTime - Margin) && VSyncOffsetMin < Margin)
-                  {
+                  else if (VSyncOffset0 > (VSyncTime - Margin) && VSyncOffsetMin < Margin) {
                     m_VSyncMode = 1;
                   }
                 }
-                else if (m_VSyncMode == 2)
-                {
-                  if (VSyncOffsetMin > (Margin))
-                  {
+                else if (m_VSyncMode == 2) {
+                  if (VSyncOffsetMin >(Margin)) {
                     m_VSyncMode = 0;
                   }
                 }
-                else if (m_VSyncMode == 1)
-                {
-                  if (VSyncOffsetMax < (VSyncTime - Margin))
-                  {
+                else if (m_VSyncMode == 1) {
+                  if (VSyncOffsetMax < (VSyncTime - Margin)) {
                     m_VSyncMode = 0;
                   }
                 }
               }
-
             }
           }
-          m_pCurrentDisplaydSample = NULL;
-          if (bStepForward)
-          {
-            MoveToFreeList(pMFSample, true);
-            CheckWaitingSampleFromMixer();
-            m_MaxSampleDuration = std::max(SampleDuration, m_MaxSampleDuration);
+          else if (m_nRenderState == Paused) {
+            if (bForcePaint) {
+              bStepForward = true;
+              // Ensure that the renderer is properly updated after seeking when paused
+              if (!g_bExternalSubtitleTime) {
+                __super::SetTime(g_tSegmentStart + nsSampleTime);
+              }       
+            }
+            Paint(pMFSample);
+            NextSleepTime = int(SampleDuration / 10000 - 2);
           }
-          else
+
+          if (bStepForward) {
+            m_MaxSampleDuration = std::max(SampleDuration, m_MaxSampleDuration);
+            checkPendingMediaFinished();
+          }
+          else {
             MoveToScheduledList(pMFSample, true);
+            pMFSample = nullptr; // The sample should not be used after being queued
+          }
+
+          bForcePaint = false;
         }
-        else if (m_bLastSampleOffsetValid && m_LastSampleOffset < -10000000) // Only starve if we are 1 seconds behind
-        {
-          if (m_nRenderState == Started && !g_bNoDuration)
-          {
+        else if (m_bLastSampleOffsetValid && m_LastSampleOffset < -10000000) { // Only starve if we are 1 seconds behind
+          if (m_nRenderState == Started && !g_bNoDuration) {
             m_pSink->Notify(EC_STARVATION, 0, 0);
             m_bSignaledStarvation = true;
           }
         }
-        //GetImageFromMixer();
+        else {
+          checkPendingMediaFinished();
+        }
       }
-      //      else
-      //      {        
-      //        TRACE_EVR ("EVR: RenderThread ==>> Flush before rendering frame!\n");
-      //      }
+      //else
+      //{
+      //    TRACE_EVR ("EVR: RenderThread ==>> Flush before rendering frame!\n");
+      //}
 
       break;
     }
   }
 
   timeEndPeriod(dwResolution);
-  if (pfAvRevertMmThreadCharacteristics) pfAvRevertMmThreadCharacteristics(hAvrt);
-}
-
-void CEVRAllocatorPresenter::PaintInternal()
-{
-  {
-    CSingleLock lock(m_DisplaydSampleQueueLock);
-    // Since the Drawing isn't in the same thread that rendering, we need to keep track of current displayed sample
-    if (m_pCurrentDisplaydSampleQueue.empty() || m_pCurrentDisplaydSampleQueue.back() != m_pCurrentDisplaydSample)
-      m_pCurrentDisplaydSampleQueue.push(m_pCurrentDisplaydSample); //add only one time the sample to the queue
-  }
-
-  m_drawingIsDone.Reset();
-  g_dsGraph->NewFrame();
-  m_drawingIsDone.Wait(); // Wait until the drawing is done
-
-  {
-    CSingleLock lock(m_DisplaydSampleQueueLock);
-    while (!m_pCurrentDisplaydSampleQueue.empty())
-      m_pCurrentDisplaydSampleQueue.pop();
+  if (pfAvRevertMmThreadCharacteristics) {
+    pfAvRevertMmThreadCharacteristics(hAvrt);
   }
 }
 
@@ -2368,21 +2613,16 @@ void CEVRAllocatorPresenter::AfterDeviceReset()
 void CEVRAllocatorPresenter::RemoveAllSamples()
 {
   CAutoLock AutoLock(&m_ImageProcessingLock);
+  CAutoLock sampleQueueLock(&m_SampleQueueLock);
 
   FlushSamples();
   m_ScheduledSamples.Clear();
   m_FreeSamples.Clear();
-
-  {
-    CSingleLock lock(m_DisplaydSampleQueueLock);
-    while (!m_pCurrentDisplaydSampleQueue.empty())
-      m_pCurrentDisplaydSampleQueue.pop();
-  }
-
   m_LastScheduledSampleTime = -1;
   m_LastScheduledUncorrectedSampleTime = -1;
-  //ASSERT(m_nUsedBuffer == 0);
   m_nUsedBuffer = 0;
+  // Increment the group id to make sure old samples will really be deleted
+  m_nCurrentGroupId++;
 }
 
 HRESULT CEVRAllocatorPresenter::GetFreeSample(IMFSample** ppSample)
@@ -2401,7 +2641,6 @@ HRESULT CEVRAllocatorPresenter::GetFreeSample(IMFSample** ppSample)
 
   return hr;
 }
-
 
 HRESULT CEVRAllocatorPresenter::GetScheduledSample(IMFSample** ppSample, int &_Count)
 {
@@ -2425,78 +2664,90 @@ HRESULT CEVRAllocatorPresenter::GetScheduledSample(IMFSample** ppSample, int &_C
 void CEVRAllocatorPresenter::MoveToFreeList(IMFSample* pSample, bool bTail)
 {
   CAutoLock lock(&m_SampleQueueLock);
-  InterlockedDecrement(&m_nUsedBuffer);
-  if (m_bPendingMediaFinished && m_nUsedBuffer == 0)
-  {
-    m_bPendingMediaFinished = false;
-    m_pSink->Notify(EC_COMPLETE, 0, 0);
-  }
-  if (bTail)
+
+  m_nUsedBuffer--;
+  if (bTail) {
     m_FreeSamples.InsertBack(pSample);
-  else
+  }
+  else {
     m_FreeSamples.InsertFront(pSample);
+  }
 }
 
 
 void CEVRAllocatorPresenter::MoveToScheduledList(IMFSample* pSample, bool _bSorted)
 {
+  CAutoLock lock(&m_SampleQueueLock);
 
-  if (_bSorted)
-  {
-    CAutoLock lock(&m_SampleQueueLock);
+  if (_bSorted) {
+    // Insert sorted
+    /*POSITION Iterator = m_ScheduledSamples.GetHeadPosition();
+    LONGLONG NewSampleTime;
+    pSample->GetSampleTime(&NewSampleTime);
+    while (Iterator != nullptr)
+    {
+    POSITION CurrentPos = Iterator;
+    IMFSample *pIter = m_ScheduledSamples.GetNext(Iterator);
+    LONGLONG SampleTime;
+    pIter->GetSampleTime(&SampleTime);
+    if (NewSampleTime < SampleTime)
+    {
+    m_ScheduledSamples.InsertBefore(CurrentPos, pSample);
+    return;
+    }
+    }*/
+
     m_ScheduledSamples.InsertFront(pSample);
   }
-  else
-  {
-
-    CAutoLock lock(&m_SampleQueueLock);
-
+  else {
     double ForceFPS = 0.0;
-    //    double ForceFPS = 59.94;
-    //    double ForceFPS = 23.976;
-    if (ForceFPS != 0.0)
-      m_rtTimePerFrame = (int64_t)(10000000.0 / ForceFPS);
-    int64_t Duration = m_rtTimePerFrame;
-    int64_t PrevTime = m_LastScheduledUncorrectedSampleTime;
-    int64_t Time;
-    int64_t SetDuration;
+    //double ForceFPS = 59.94;
+    //double ForceFPS = 23.976;
+    if (ForceFPS != 0.0) {
+      m_rtTimePerFrame = (REFERENCE_TIME)(10000000.0 / ForceFPS);
+    }
+    LONGLONG Duration = m_rtTimePerFrame;
+    UNREFERENCED_PARAMETER(Duration);
+    LONGLONG PrevTime = m_LastScheduledUncorrectedSampleTime;
+    LONGLONG Time;
+    LONGLONG SetDuration;
     pSample->GetSampleDuration(&SetDuration);
     pSample->GetSampleTime(&Time);
     m_LastScheduledUncorrectedSampleTime = Time;
 
     m_bCorrectedFrameTime = false;
 
-    int64_t Diff2 = PrevTime - (int64_t)(m_LastScheduledSampleTimeFP*10000000.0);
-    int64_t Diff = Time - PrevTime;
-    if (PrevTime == -1)
+    LONGLONG Diff2 = PrevTime - (LONGLONG)(m_LastScheduledSampleTimeFP * 10000000.0);
+    LONGLONG Diff = Time - PrevTime;
+    if (PrevTime == -1) {
       Diff = 0;
-    if (Diff < 0)
+    }
+    if (Diff < 0) {
       Diff = -Diff;
-    if (Diff2 < 0)
+    }
+    if (Diff2 < 0) {
       Diff2 = -Diff2;
-    if (Diff < m_rtTimePerFrame * 8 && m_rtTimePerFrame && Diff2 < m_rtTimePerFrame * 8) // Detect seeking
-    {
+    }
+    if (Diff < m_rtTimePerFrame * 8 && m_rtTimePerFrame && Diff2 < m_rtTimePerFrame * 8) { // Detect seeking
       int iPos = (m_DetectedFrameTimePos++) % 60;
-      int64_t Diff = Time - PrevTime;
-      if (PrevTime == -1)
+      Diff = Time - PrevTime;
+      if (PrevTime == -1) {
         Diff = 0;
+      }
       m_DetectedFrameTimeHistory[iPos] = Diff;
 
-      if (m_DetectedFrameTimePos >= 10)
-      {
+      if (m_DetectedFrameTimePos >= 10) {
         int nFrames = std::min(m_DetectedFrameTimePos, 60);
-        int64_t DectedSum = 0;
-        for (int i = 0; i < nFrames; ++i)
-        {
+        LONGLONG DectedSum = 0;
+        for (int i = 0; i < nFrames; ++i) {
           DectedSum += m_DetectedFrameTimeHistory[i];
         }
 
         double Average = double(DectedSum) / double(nFrames);
         double DeviationSum = 0.0;
-        for (int i = 0; i < nFrames; ++i)
-        {
+        for (int i = 0; i < nFrames; ++i) {
           double Deviation = m_DetectedFrameTimeHistory[i] - Average;
-          DeviationSum += Deviation*Deviation;
+          DeviationSum += Deviation * Deviation;
         }
 
         double StdDev = sqrt(DeviationSum / double(nFrames));
@@ -2504,16 +2755,13 @@ void CEVRAllocatorPresenter::MoveToScheduledList(IMFSample* pSample, bool _bSort
         m_DetectedFrameTimeStdDev = StdDev;
 
         double DetectedRate = 1.0 / (double(DectedSum) / (nFrames * 10000000.0));
-
         double AllowedError = 0.0003;
 
         static double AllowedValues[] = { 60.0, 59.94, 50.0, 48.0, 47.952, 30.0, 29.97, 25.0, 24.0, 23.976 };
 
-        int nAllowed = sizeof(AllowedValues) / sizeof(AllowedValues[0]);
-        for (int i = 0; i < nAllowed; ++i)
-        {
-          if (fabs(1.0 - DetectedRate / AllowedValues[i]) < AllowedError)
-          {
+        int nAllowed = _countof(AllowedValues);
+        for (int i = 0; i < nAllowed; ++i) {
+          if (fabs(1.0 - DetectedRate / AllowedValues[i]) < AllowedError) {
             DetectedRate = AllowedValues[i];
             break;
           }
@@ -2527,22 +2775,18 @@ void CEVRAllocatorPresenter::MoveToScheduledList(IMFSample* pSample, bool _bSort
 
           int m_Int;
 
-          CAutoInt()
-          {
+          CAutoInt() {
             m_Int = 0;
           }
-          CAutoInt(int _Other)
-          {
+          CAutoInt(int _Other) {
             m_Int = _Other;
           }
 
-          operator int() const
-          {
+          operator int() const {
             return m_Int;
           }
 
-          CAutoInt &operator ++ ()
-          {
+          CAutoInt& operator ++ () {
             ++m_Int;
             return *this;
           }
@@ -2572,75 +2816,48 @@ void CEVRAllocatorPresenter::MoveToScheduledList(IMFSample* pSample, bool _bSort
           ++it;
         }
 
-        /*CMap<double, double, CAutoInt, CAutoInt> Map;
-
-        for (int i = 0; i < 500; ++i)
-        {
-        ++Map[m_DetectedFrameTimeHistoryHistory[i]];
-        }
-
-        POSITION Pos = Map.GetStartPosition();
-        double BestVal = 0.0;
-        int BestNum = 5;
-        while (Pos)
-        {
-        double Key;
-        CAutoInt Value;
-        Map.GetNextAssoc(Pos, Key, Value);
-        if (Value.m_Int > BestNum && Key != 0.0)
-        {
-        BestNum = Value.m_Int;
-        BestVal = Key;
-        }
-        }*/
-
         m_DetectedLock = false;
-        for (int i = 0; i < nAllowed; ++i)
-        {
-          if (BestVal == AllowedValues[i])
-          {
+        for (int i = 0; i < nAllowed; ++i) {
+          if (BestVal == AllowedValues[i]) {
             m_DetectedLock = true;
             break;
           }
         }
-        if (BestVal != 0.0)
-        {
+        if (BestVal != 0.0) {
           m_DetectedFrameRate = BestVal;
           m_DetectedFrameTime = 1.0 / BestVal;
         }
       }
 
-      int64_t PredictedNext = PrevTime + m_rtTimePerFrame;
-      int64_t PredictedDiff = PredictedNext - Time;
-      if (PredictedDiff < 0)
+      LONGLONG PredictedNext = PrevTime + m_rtTimePerFrame;
+      LONGLONG PredictedDiff = PredictedNext - Time;
+      if (PredictedDiff < 0) {
         PredictedDiff = -PredictedDiff;
+      }
 
       if (m_DetectedFrameTime != 0.0
-        //&& PredictedDiff > 15000 
-        && m_DetectedLock && ((CEVRRendererSettings *)g_dsSettings.pRendererSettings)->enableFrameTimeCorrection)
-      {
+        //&& PredictedDiff > MIN_FRAME_TIME
+        && m_DetectedLock && ((CEVRRendererSettings *)g_dsSettings.pRendererSettings)->enableFrameTimeCorrection) {
         double CurrentTime = Time / 10000000.0;
         double LastTime = m_LastScheduledSampleTimeFP;
         double PredictedTime = LastTime + m_DetectedFrameTime;
-        if (fabs(PredictedTime - CurrentTime) > 0.0015) // 1.5 ms wrong, lets correct
-        {
+        if (fabs(PredictedTime - CurrentTime) > 0.0015) { // 1.5 ms wrong, lets correct
           CurrentTime = PredictedTime;
-          Time = (int64_t)(CurrentTime * 10000000.0);
+          Time = (LONGLONG)(CurrentTime * 10000000.0);
           pSample->SetSampleTime(Time);
-          pSample->SetSampleDuration((int64_t)(m_DetectedFrameTime * 10000000.0));
+          pSample->SetSampleDuration(LONGLONG(m_DetectedFrameTime * 10000000.0));
           m_bCorrectedFrameTime = true;
           m_FrameTimeCorrection = 30;
         }
         m_LastScheduledSampleTimeFP = CurrentTime;
       }
-      else
+      else {
         m_LastScheduledSampleTimeFP = Time / 10000000.0;
+      }
     }
-    else
-    {
+    else {
       m_LastScheduledSampleTimeFP = Time / 10000000.0;
-      if (Diff > m_rtTimePerFrame * 8)
-      {
+      if (Diff > m_rtTimePerFrame * 8) {
         // Seek
         m_bSignaledStarvation = false;
         m_DetectedFrameTimePos = 0;
@@ -2648,19 +2865,18 @@ void CEVRAllocatorPresenter::MoveToScheduledList(IMFSample* pSample, bool _bSort
       }
     }
 
-    TRACE_EVR("EVR: Time: %f %f %f\n", Time / 10000000.0, SetDuration / 10000000.0, m_DetectedFrameRate);
-    if (!m_bCorrectedFrameTime && m_FrameTimeCorrection)
+    //      TRACE_EVR("EVR: Time: %f %f %f\n", Time / 10000000.0, SetDuration / 10000000.0, m_DetectedFrameRate);
+    if (!m_bCorrectedFrameTime && m_FrameTimeCorrection) {
       --m_FrameTimeCorrection;
+    }
 
 #if 0
-    if (Time <= m_LastScheduledUncorrectedSampleTime && m_LastScheduledSampleTime >= 0)
+    if (Time <= m_LastScheduledUncorrectedSampleTime && m_LastScheduledSampleTime >= 0) {
       PrevTime = m_LastScheduledSampleTime;
-
+    }
     m_bCorrectedFrameTime = false;
-    if (PrevTime != -1 && (Time >= PrevTime - ((Duration * 20) / 9) || Time == 0) || ForceFPS != 0.0)
-    {
-      if (Time - PrevTime > ((Duration * 20) / 9) && Time - PrevTime < Duration * 8 || Time == 0 || ((Time - PrevTime) < (Duration / 11)) || ForceFPS != 0.0)
-      {
+    if (PrevTime != -1 && (Time >= PrevTime - ((Duration * 20) / 9) || Time == 0) || ForceFPS != 0.0) {
+      if (Time - PrevTime > ((Duration * 20) / 9) && Time - PrevTime < Duration * 8 || Time == 0 || ((Time - PrevTime) < (Duration / 11)) || ForceFPS != 0.0) {
         // Error!!!!
         Time = PrevTime + Duration;
         pSample->SetSampleTime(Time);
@@ -2669,19 +2885,17 @@ void CEVRAllocatorPresenter::MoveToScheduledList(IMFSample* pSample, bool _bSort
         TRACE_EVR("EVR: Corrected invalid sample time\n");
       }
     }
-    if (Time + Duration * 10 < m_LastScheduledSampleTime)
-    {
+    if (Time + Duration * 10 < m_LastScheduledSampleTime) {
       // Flush when repeating movie
       FlushSamplesInternal();
     }
 #endif
 
 #if 0
-    static int64_t LastDuration = 0;
-    int64_t SetDuration = m_rtTimePerFrame;
+    static LONGLONG LastDuration = 0;
+    LONGLONG SetDuration = m_rtTimePerFrame;
     pSample->GetSampleDuration(&SetDuration);
-    if (SetDuration != LastDuration)
-    {
+    if (SetDuration != LastDuration) {
       TRACE_EVR("EVR: Old duration: %I64d New duration: %I64d\n", LastDuration, SetDuration);
     }
     LastDuration = SetDuration;
@@ -2689,35 +2903,50 @@ void CEVRAllocatorPresenter::MoveToScheduledList(IMFSample* pSample, bool _bSort
     m_LastScheduledSampleTime = Time;
 
     m_ScheduledSamples.InsertBack(pSample);
-
   }
 }
-
-
 
 void CEVRAllocatorPresenter::FlushSamples()
 {
-  CAutoLock        lock(this);
-  CAutoLock        lock2(&m_SampleQueueLock);
+  CAutoLock lock(this);
+  CAutoLock lock2(&m_SampleQueueLock);
+  CAutoLock lock3(&m_RenderLock);
 
-  FlushSamplesInternal();
-  m_LastScheduledSampleTime = -1;
-}
-
-void CEVRAllocatorPresenter::FlushSamplesInternal()
-{
-  while (m_ScheduledSamples.GetCount() > 0)
-  {
-    Com::SmartPtr<IMFSample>    pMFSample;
-
-    //pMFSample = m_ScheduledSamples.RemoveHead();
-    m_ScheduledSamples.RemoveFront(&pMFSample);
-    MoveToFreeList(pMFSample, true);
-  }
+  m_pCurrentlyDisplayedSample = nullptr;
+  m_ScheduledSamples.Clear();
 
   m_LastSampleOffset = 0;
   m_bLastSampleOffsetValid = false;
   m_bSignaledStarvation = false;
+  m_LastScheduledSampleTime = -1;
 }
+
+HRESULT CEVRAllocatorPresenter::TrackSample(IMFSample* pSample)
+{
+  HRESULT hr = E_FAIL;
+  if (Com::SmartQIPtr<IMFTrackedSample> pTracked = pSample) {
+    hr = pTracked->SetAllocator(&m_SampleFreeCallback, nullptr);
+  }
+  return hr;
+}
+
+HRESULT CEVRAllocatorPresenter::OnSampleFree(IMFAsyncResult* pResult)
+{
+  Com::SmartPtr<IUnknown> pObject;
+  HRESULT hr = pResult->GetObject(&pObject);
+  if (SUCCEEDED(hr)) {
+    if (Com::SmartQIPtr<IMFSample> pSample = pObject) {
+      // Ignore the sample if it is from an old group
+      UINT32 nGroupId;
+      CAutoLock sampleQueueLock(&m_SampleQueueLock);
+      if (SUCCEEDED(pSample->GetUINT32(GUID_GROUP_ID, &nGroupId)) && nGroupId == m_nCurrentGroupId) {
+        MoveToFreeList(pSample, true);
+        //pSample = nullptr; // The sample should not be used after being queued
+      }
+    }
+  }
+  return hr;
+}
+
 
 #endif
