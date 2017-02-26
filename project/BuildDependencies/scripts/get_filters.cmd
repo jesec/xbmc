@@ -38,7 +38,15 @@ IF EXIST %~nx1 (
   TITLE Getting  %i
 )
 
-SET FILTER_PATH=%TMP_PATH%\%~n1\system\players\dsplayer\%2
+SET FOLDER=%2
+IF not x%FOLDER:_LIB=%==x%FOLDER% (
+  SET FOLDER=%FOLDER:_LIB=%
+  SET FILTER_PATH=%TMP_PATH%\%~n1\xbmc\cores\DSPlayer\Libs
+) ELSE (
+  SET FILTER_PATH=%TMP_PATH%\%~n1\system\players\dsplayer
+)
+SET FILTER_PATH=%FILTER_PATH%\%FOLDER%
+
 IF NOT EXIST %FILTER_PATH% md %FILTER_PATH%
 
 CALL :setSubStageName Extracting %~nx1...

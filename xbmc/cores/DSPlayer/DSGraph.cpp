@@ -109,7 +109,7 @@ void CDSGraph::UpdateProcessInfo(int index)
   CStdString info;
 
   //Renderers in dsplayer
-  info.Format("(Video) %s, (Audio) %s", CGraphFilters::Get()->VideoRenderer.osdname, CGraphFilters::Get()->AudioRenderer.osdname);
+  info.Format("%s, %s", CGraphFilters::Get()->VideoRenderer.osdname, CGraphFilters::Get()->AudioRenderer.osdname);
   m_processInfo->SetVideoPixelFormat(info);
   //filters in dsplayer
   m_processInfo->SetVideoDeintMethod(g_dsGraph->GetGeneralInfo());

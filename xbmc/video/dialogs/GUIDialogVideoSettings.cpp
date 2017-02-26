@@ -243,11 +243,21 @@ void CGUIDialogVideoSettings::OnSettingAction(const CSetting *setting)
 
     BeginEnumFilters(g_dsGraph->pFilterGraph, pEF, pBF)
     {
-      if ((pBF == CGraphFilters::Get()->AudioRenderer.pBF && CGraphFilters::Get()->AudioRenderer.guid != CLSID_ReClock && CGraphFilters::Get()->AudioRenderer.guid != CLSID_SANEAR)
+      if ((pBF == CGraphFilters::Get()->AudioRenderer.pBF 
+        && CGraphFilters::Get()->AudioRenderer.guid != CLSID_ReClock 
+        && CGraphFilters::Get()->AudioRenderer.guid != CLSID_SANEAR
+        && CGraphFilters::Get()->AudioRenderer.guid != CLSID_SANEAR_INTERNAL)
         || pBF == CGraphFilters::Get()->VideoRenderer.pBF)
         continue;
 
       Com::SmartQIPtr<ISpecifyPropertyPages> pProp = pBF;
+
+      if (!pProp)
+      {
+        Com::SmartQIPtr<ISpecifyPropertyPages2> pProp2 = pBF;
+        pProp = pProp2;
+      }
+
       CAUUID pPages;
       if (pProp)
       {

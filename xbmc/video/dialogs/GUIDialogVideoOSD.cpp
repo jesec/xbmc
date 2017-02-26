@@ -52,6 +52,7 @@ void CGUIDialogVideoOSD::FrameMove()
                            || g_windowManager.IsWindowActive(WINDOW_DIALOG_LAVVIDEO)
                            || g_windowManager.IsWindowActive(WINDOW_DIALOG_LAVAUDIO)
                            || g_windowManager.IsWindowActive(WINDOW_DIALOG_LAVSPLITTER)
+                           || g_windowManager.IsWindowActive(WINDOW_DIALOG_SANEAR)
 #endif
                            || g_windowManager.IsWindowActive(WINDOW_DIALOG_VIDEO_BOOKMARKS)
                            || g_windowManager.IsWindowActive(WINDOW_DIALOG_PVR_OSD_CHANNELS)
@@ -122,6 +123,9 @@ bool CGUIDialogVideoOSD::OnMessage(CGUIMessage& message)
         pDialog->Close(true);
       pDialog = (CGUIDialog *)g_windowManager.GetWindow(WINDOW_DIALOG_LAVSPLITTER);
       if (pDialog && pDialog->IsDialogRunning()) 
+        pDialog->Close(true);
+      pDialog = (CGUIDialog *)g_windowManager.GetWindow(WINDOW_DIALOG_SANEAR);
+      if (pDialog && pDialog->IsDialogRunning())
         pDialog->Close(true);
 #endif
     }

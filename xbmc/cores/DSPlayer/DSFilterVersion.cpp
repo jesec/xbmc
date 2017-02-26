@@ -88,6 +88,11 @@ void CDSFilterVersion::InitVersion()
   FilterVersion filterVersion;
   GetVersionByPath(GetMadvrFilePath(), filterVersion);
   m_FilterVersions[CGraphFilters::MADSHI_VIDEO_RENDERER] = filterVersion;
+
+  // saneAR (hardcoded)
+  filterVersion.sVersion = "v0.3.0.0";
+  filterVersion.iVersion = (0 << 24 | 3 << 16 | 0 << 8 | 0);
+  m_FilterVersions[CGraphFilters::INTERNAL_SANEAR] = filterVersion;
 }
 
 void CDSFilterVersion::GetVersionByFilter(const std::string &type, bool bForceUpdate)

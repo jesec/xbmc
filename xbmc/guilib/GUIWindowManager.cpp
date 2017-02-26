@@ -159,6 +159,7 @@
 #include "cores/DSPlayer/Dialogs/GUIDialogLAVAudio.h"
 #include "cores/DSPlayer/Dialogs/GUIDialogLAVSplitter.h"
 #include "cores/DSPlayer/Dialogs/GUIDIalogMadvrSettings.h"
+#include "cores/DSPlayer/Dialogs/GUIDIalogSanear.h"
 #include "cores/DSPlayer/DSRendererCallback.h"
 #include "cores/DSPlayer/Dialogs/GUIDialogDSPlayerProcessInfo.h"
 #endif
@@ -245,6 +246,7 @@ void CGUIWindowManager::CreateWindows()
   Add(new CGUIDialogLAVAudio);
   Add(new CGUIDialogLAVSplitter);
   Add(new CGUIDialogMadvrSettings);
+  Add(new CGUIDialogSanear);
   Add(new CGUIDialogDSPlayerProcessInfo);
 #endif
   Add(new CGUIDialogVideoBookmarks);
@@ -370,6 +372,7 @@ bool CGUIWindowManager::DestroyWindows()
     Delete(WINDOW_DIALOG_LAVVIDEO);
     Delete(WINDOW_DIALOG_LAVAUDIO);
     Delete(WINDOW_DIALOG_LAVSPLITTER);
+    Delete(WINDOW_DIALOG_SANEAR);
     Delete(WINDOW_DIALOG_DSPLAYER_PROCESS_INFO);
 #endif
     Delete(WINDOW_DIALOG_VIDEO_BOOKMARKS);
@@ -1081,11 +1084,13 @@ void CGUIWindowManager::RenderPass() const
         CGUIDialog* pDialogLAVVideo = (CGUIDialog *)g_windowManager.GetWindow(WINDOW_DIALOG_LAVVIDEO);
         CGUIDialog* pDialogLAVAudio = (CGUIDialog *)g_windowManager.GetWindow(WINDOW_DIALOG_LAVAUDIO);
         CGUIDialog* pDialogLAVSplitter = (CGUIDialog *)g_windowManager.GetWindow(WINDOW_DIALOG_LAVSPLITTER);
+        CGUIDialog* pDialogSanear = (CGUIDialog *)g_windowManager.GetWindow(WINDOW_DIALOG_SANEAR);
 
         if ((pDialogMadvr && pDialogMadvr->IsDialogRunning())
           || (pDialogLAVVideo && pDialogLAVVideo->IsDialogRunning())
           || (pDialogLAVAudio && pDialogLAVAudio->IsDialogRunning())
-          || (pDialogLAVSplitter && pDialogLAVSplitter->IsDialogRunning()))
+          || (pDialogLAVSplitter && pDialogLAVSplitter->IsDialogRunning())
+          || (pDialogSanear && pDialogSanear->IsDialogRunning()))
           continue;
       }
       (*it)->DoRender();

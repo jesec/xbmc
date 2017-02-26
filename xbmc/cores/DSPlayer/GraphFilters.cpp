@@ -37,6 +37,8 @@
 #include "filtercorefactory/filtercorefactory.h"
 #include "Utils/DSFilterEnumerator.h"
 #include "Utils/AudioEnumerator.h"
+#include "Filters/Sanear/Factory.h"
+#include "settings/Settings.h"
 #include "settings/AdvancedSettings.h"
 
 #pragma comment(lib , "version.lib")
@@ -46,6 +48,7 @@ const std::string CGraphFilters::INTERNAL_LAVAUDIO = "lavaudio_internal";
 const std::string CGraphFilters::INTERNAL_LAVSPLITTER = "lavsource_internal";
 const std::string CGraphFilters::INTERNAL_XYVSFILTER = "xyvsfilter_internal";
 const std::string CGraphFilters::INTERNAL_XYSUBFILTER ="xysubfilter_internal";
+const std::string CGraphFilters::INTERNAL_SANEAR = "sanear_internal";
 const std::string CGraphFilters::MADSHI_VIDEO_RENDERER = "madVR";
 
 CGraphFilters *CGraphFilters::m_pSingleton = NULL;
@@ -58,7 +61,7 @@ m_isDVD(false), m_UsingDXVADecoder(false), m_hsubfilter(false)
   m_pD3DDevice = NULL;
   m_auxAudioDelay = false;
   m_bDialogProcessInfo = false;
-
+  sanear = NULL;
 }
 
 CGraphFilters::~CGraphFilters()
@@ -73,6 +76,32 @@ CGraphFilters::~CGraphFilters()
 CGraphFilters* CGraphFilters::Get()
 {
   return (m_pSingleton) ? m_pSingleton : (m_pSingleton = new CGraphFilters());
+}
+
+void CGraphFilters::SetSanearSettings()
+{
+  if (!sanear)
+    if (FAILED(SaneAudioRenderer::Factory::CreateSettings(&sanear)))
+      return;
+
+  CStdStringW adeviceW;
+  CStdString adevice = CSettings::GetInstance().GetString(CSettings::SETTING_DSPLAYER_SANEARDEVICES);  
+  if (adevice == "System Default")
+    adevice = "";
+  g_charsetConverter.utf8ToW(adevice, adeviceW, false);
+
+  bool bSanearExclusive = CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_SANEAREXCLUSIVE);
+  bool bSanearAllowbitstream = CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_SANEARALLOWBITSTREAM);
+  bool bSanearStereoCrossfeed = CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_SANEARSTEREOCROSSFEED);
+  int iSanearCutoff = CSettings::GetInstance().GetInt(CSettings::SETTING_DSPLAYER_SANEARCUTOFF);
+  int iSanearLevel = CSettings::GetInstance().GetInt(CSettings::SETTING_DSPLAYER_SANEARLEVEL);
+
+  UINT32 buffer;
+  sanear->GetOuputDevice(nullptr, nullptr, &buffer);
+  sanear->SetOuputDevice(adeviceW, bSanearExclusive, buffer);
+  sanear->SetAllowBitstreaming(bSanearAllowbitstream);
+  sanear->SetCrossfeedEnabled(bSanearStereoCrossfeed);
+  sanear->SetCrossfeedSettings(iSanearCutoff, iSanearLevel);
 }
 
 void CGraphFilters::ShowInternalPPage(const std::string &type, bool showPropertyPage)
@@ -102,6 +131,8 @@ void CGraphFilters::ShowInternalPPage(const std::string &type, bool showProperty
       g_windowManager.ActivateWindow(WINDOW_DIALOG_LAVAUDIO);
     if (type == INTERNAL_LAVSPLITTER)
       g_windowManager.ActivateWindow(WINDOW_DIALOG_LAVSPLITTER);
+    if (type == INTERNAL_SANEAR)
+      g_windowManager.ActivateWindow(WINDOW_DIALOG_SANEAR);
   }
 }
 
@@ -120,6 +151,11 @@ bool CGraphFilters::ShowOSDPPage(IBaseFilter *pBF)
   if ((Source.pBF == pBF && Source.internalFilter) || (Splitter.pBF == pBF && Splitter.internalFilter))
   {
     g_windowManager.ActivateWindow(WINDOW_DIALOG_LAVSPLITTER);
+    return true;
+  }
+  if (AudioRenderer.pBF == pBF && AudioRenderer.internalFilter)
+  {
+    g_windowManager.ActivateWindow(WINDOW_DIALOG_SANEAR);
     return true;
   }
 
@@ -163,6 +199,9 @@ void CGraphFilters::GetInternalFilter(const std::string &type, IBaseFilter **ppB
 
   if (type == INTERNAL_XYSUBFILTER && Subs.pBF && Subs.internalFilter)
     *ppBF = Subs.pBF;
+
+  if (type == INTERNAL_SANEAR && AudioRenderer.pBF && AudioRenderer.internalFilter)
+    *ppBF = AudioRenderer.pBF;
 }
 
 std::string CGraphFilters::GetInternalType(IBaseFilter *pBF)
@@ -175,6 +214,8 @@ std::string CGraphFilters::GetInternalType(IBaseFilter *pBF)
     return INTERNAL_LAVSPLITTER;
   if ((Subs.pBF == pBF && Subs.internalFilter))
     return INTERNAL_XYSUBFILTER;
+  if ((AudioRenderer.pBF == pBF && AudioRenderer.internalFilter))
+    return INTERNAL_SANEAR;
 
   return "";
 }

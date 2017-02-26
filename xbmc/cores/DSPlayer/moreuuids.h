@@ -401,6 +401,11 @@ DEFINE_GUID(CLSID_madVR,
 // XySubFilter - {2DFCB782-EC20-4A7C-B530-4577ADB33F21}
 DEFINE_GUID(CLSID_XySubFilter, 0x2DFCB782, 0xEC20, 0x4A7C, 0xB5, 0x30, 0x45, 0x77, 0xAD, 0xB3, 0x3F, 0x21);
 
+// sanear (internal version)
+// SaneAudioRenderer::Factory::GetFilterGuid() is the right way do optain it,
+// but we link DSUtil to everything and consequently will have to link sanear to everything.
+DEFINE_GUID(CLSID_SANEAR_INTERNAL, 0x2AE00773, 0x819A, 0x40FB, 0xA5, 0x54, 0x54, 0x82, 0x7E, 0x11, 0x63, 0x59);
+
 // sanear (standalone version) - {DF557071-C9FD-433A-9627-81E0D3640ED9}
 DEFINE_GUID(CLSID_SANEAR, 0xdf557071, 0xc9fd, 0x433a, 0x96, 0x27, 0x81, 0xe0, 0xd3, 0x64, 0xe, 0xd9);
 
