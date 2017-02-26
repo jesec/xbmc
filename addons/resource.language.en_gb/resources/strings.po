@@ -20193,6 +20193,10 @@ msgctxt "#55131"
 msgid "Internal Sanear"
 msgstr ""
 
+msgctxt "#55132"
+msgid "Internal LAV Filters"
+msgstr ""
+
 msgctxt "#60001"
 msgid "Media rules"
 msgstr ""
