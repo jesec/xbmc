@@ -281,7 +281,7 @@ void CGUIDialogVideoSettings::OnSettingAction(const CSetting *setting)
     std::wstring strNameW;
 
     g_charsetConverter.utf8ToW(pDlg->GetSelectedFileItem()->GetLabel(), strNameW);
-    if (SUCCEEDED(g_dsGraph->pFilterGraph->FindFilterByName(strNameW.c_str(), &pBF)))
+    if (!strNameW.empty() && SUCCEEDED(g_dsGraph->pFilterGraph->FindFilterByName(strNameW.c_str(), &pBF)))
     {
       if (!CGraphFilters::Get()->ShowOSDPPage(pBF))
       {
