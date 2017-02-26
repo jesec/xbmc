@@ -20145,6 +20145,54 @@ msgctxt "#55119"
 msgid "(madVR tray icon setting)"
 msgstr ""
 
+msgctxt "#55120"
+msgid "Device"
+msgstr ""
+
+msgctxt "#55121"
+msgid "Exclusive mode"
+msgstr ""
+
+msgctxt "#55122"
+msgid "Allow bitstreaming"
+msgstr ""
+
+msgctxt "#55123"
+msgid "Internal Audio Renderer"
+msgstr ""
+
+msgctxt "#55124"
+msgid "Stereo Crossfeed (headphones)"
+msgstr ""
+
+msgctxt "#55125"
+msgid "C.Moy"
+msgstr ""
+
+msgctxt "#55126"
+msgid "J.Meier"
+msgstr ""
+
+msgctxt "#55127"
+msgid "Cut-off"
+msgstr ""
+
+msgctxt "#55128"
+msgid "Level"
+msgstr ""
+
+msgctxt "#55129"
+msgid "%i Hz"
+msgstr ""
+
+msgctxt "#55130"
+msgid "%i dB"
+msgstr ""
+
+msgctxt "#55131"
+msgid "Internal Sanear"
+msgstr ""
+
 msgctxt "#60001"
 msgid "Media rules"
 msgstr ""

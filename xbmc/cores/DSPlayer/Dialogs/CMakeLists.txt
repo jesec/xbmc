@@ -7,7 +7,8 @@ set(SOURCES GUIDialogDSFilters.cpp
             GUIDialogLAVSplitter.cpp
             GUIDialogLAVVideo.cpp
             GUIDialogMadvrSettings.cpp
-            GUIDialogMadvrSettingsBase.cpp)
+            GUIDialogMadvrSettingsBase.cpp
+            GUIDialogSanear.cpp)
 
 set(HEADERS GUIDialogDSFilters.h
             GUIDialogDSManager.h
@@ -18,6 +19,7 @@ set(HEADERS GUIDialogDSFilters.h
             GUIDialogLAVSplitter.h
             GUIDialogLAVVideo.h
             GUIDialogMadvrSettings.h
-            GUIDialogMadvrSettingsBase.h)
+            GUIDialogMadvrSettingsBase.h
+            GUIDialogSanear.h)
 
 core_add_library(Dialogs)

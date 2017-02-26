@@ -153,9 +153,15 @@ void CDSPropertyPage::Process()
   }
 
   HRESULT hr;
-  Com::SmartPtr<ISpecifyPropertyPages> pProp = NULL;
+  Com::SmartQIPtr<ISpecifyPropertyPages> pProp = m_pBF;
   CAUUID pPages;
-  if (SUCCEEDED(m_pBF->QueryInterface(IID_ISpecifyPropertyPages, (void **)&pProp)))
+  if (!pProp)
+  {
+    Com::SmartQIPtr<ISpecifyPropertyPages2> pProp2 = m_pBF;
+    pProp = pProp2;
+  }
+  
+  if (pProp)
   {
     pProp->GetPages(&pPages);
 
@@ -207,17 +213,19 @@ void CDSPropertyPage::Process()
 
     xBaseUnit = GdiGetCharDimensions(hdc, NULL, &yBaseUnit);
 
+    Com::SmartQIPtr<ISpecifyPropertyPages2> pProp2 = pProp;
+
     for (unsigned int page = 0; page < pPages.cElems; page++)
     {
       opf[page].pps = new CDSPlayerPropertyPageSite(LANG_NEUTRAL);
       hr = LoadExternalPropertyPage(m_pBF, pPages.pElems[page], &opf[page].propPage);
+      if (FAILED(hr) && pProp2)
+        hr = pProp2->CreatePage(pPages.pElems[page], &opf[page].propPage);
+
       if (FAILED(hr))
         continue;
 
       hr = opf[page].propPage->SetPageSite(opf[page].pps);
-
-      if (FAILED(hr))
-        continue;
 
       hr = opf[page].propPage->GetPageInfo(&pPageInfo);
       if (FAILED(hr))

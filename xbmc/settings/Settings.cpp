@@ -457,6 +457,14 @@ const std::string CSettings::SETTING_DSPLAYER_VIDEOSUBSEX = "dsplayer.videosubse
 const std::string CSettings::SETTING_DSPLAYER_VIDEOAUDIOEX = "dsplayer.videoaudioexpandedselector";
 const std::string CSettings::SETTING_DSPLAYER_VIDEORENDERER = "dsplayer.videorenderer";
 const std::string CSettings::SETTING_DSPLAYER_AUDIORENDERER = "dsplayer.audiorenderer";
+const std::string CSettings::SETTING_DSPLAYER_SANEARDEVICES = "dsplayer.saneardevices";
+const std::string CSettings::SETTING_DSPLAYER_SANEAREXCLUSIVE = "dsplayer.sanearexclusive";
+const std::string CSettings::SETTING_DSPLAYER_SANEARALLOWBITSTREAM = "dsplayer.sanearallowbitstream";
+const std::string CSettings::SETTING_DSPLAYER_SANEARSTEREOCROSSFEED = "dsplayer.sanearstereocrossfeed";
+const std::string CSettings::SETTING_DSPLAYER_SANEARCMOY = "dsplayer.sanearcmoy";
+const std::string CSettings::SETTING_DSPLAYER_SANEARJMEIER = "dsplayer.sanearjmeier";
+const std::string CSettings::SETTING_DSPLAYER_SANEARCUTOFF = "dsplayer.sanearcutoff";
+const std::string CSettings::SETTING_DSPLAYER_SANEARLEVEL = "dsplayer.sanearlevel";
 const std::string CSettings::SETTING_DSPLAYER_FILTERSMANAGEMENT = "dsplayer.filtersmanagement";
 const std::string CSettings::SETTING_DSPLAYER_PREFAUDIOCODEC = "dsplayer.prefaudiocodec";
 const std::string CSettings::SETTING_DSPLAYER_EXSUBTITLELANGUAGE = "dsplayer.exsubtitlelanguage";
@@ -613,6 +621,7 @@ void CSettings::Uninitialize()
 #ifdef HAS_DS_PLAYER 
   m_settingsManager->UnregisterSettingOptionsFiller("dsvideorenderer");
   m_settingsManager->UnregisterSettingOptionsFiller("dsaudiorenderer");
+  m_settingsManager->UnregisterSettingOptionsFiller("saneardevices");
   m_settingsManager->UnregisterSettingOptionsFiller("dsextrafilter");
 #endif
   m_settingsManager->UnregisterSettingOptionsFiller("audiodevicespassthrough");
@@ -980,6 +989,7 @@ void CSettings::InitializeOptionFillers()
 #ifdef HAS_DS_PLAYER  
   m_settingsManager->RegisterSettingOptionsFiller("dsvideorenderer", CFGLoader::SettingOptionsDSVideoRendererFiller);
   m_settingsManager->RegisterSettingOptionsFiller("dsaudiorenderer", CFGLoader::SettingOptionsDSAudioRendererFiller);
+  m_settingsManager->RegisterSettingOptionsFiller("saneardevices", CFGLoader::SettingOptionsSanearDevicesFiller);
   m_settingsManager->RegisterSettingOptionsFiller("dsextrafilter", CGUIDialogDSManager::AllFiltersConfigOptionFiller);
 #endif
   m_settingsManager->RegisterSettingOptionsFiller("audiodevicespassthrough", CAEFactory::SettingOptionsAudioDevicesPassthroughFiller);
@@ -1105,6 +1115,14 @@ void CSettings::InitializeISettingCallbacks()
   settingSet.insert(CSettings::SETTING_DSPLAYER_XYSUBFILTER);
   settingSet.insert(CSettings::SETTING_DSPLAYER_XYVSFILTER);
   settingSet.insert(CSettings::SETTING_DSPLAYER_DSAREARESET);
+  settingSet.insert(CSettings::SETTING_DSPLAYER_SANEARDEVICES);
+  settingSet.insert(CSettings::SETTING_DSPLAYER_SANEAREXCLUSIVE);
+  settingSet.insert(CSettings::SETTING_DSPLAYER_SANEARALLOWBITSTREAM);
+  settingSet.insert(CSettings::SETTING_DSPLAYER_SANEARSTEREOCROSSFEED);
+  settingSet.insert(CSettings::SETTING_DSPLAYER_SANEARCMOY);
+  settingSet.insert(CSettings::SETTING_DSPLAYER_SANEARJMEIER);
+  settingSet.insert(CSettings::SETTING_DSPLAYER_SANEARCUTOFF);
+  settingSet.insert(CSettings::SETTING_DSPLAYER_SANEARLEVEL);
 #endif
   m_settingsManager->RegisterCallback(&CMediaSettings::GetInstance(), settingSet);
 

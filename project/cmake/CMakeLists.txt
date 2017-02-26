@@ -104,7 +104,7 @@ find_package(Threads REQUIRED QUIET)
 list(APPEND DEPLIBS ${CMAKE_THREAD_LIBS_INIT})
 
 # Required dependencies
-set(required_deps DSExternals DirectX Sqlite3 FreeType PCRE Cpluff LibDvd
+set(required_deps Sanears DSExternals DirectX Sqlite3 FreeType PCRE Cpluff LibDvd
                   TinyXML Python Yajl Cdio
                   Lzo2 Fribidi TagLib FFMPEG CrossGUID)
 if(NOT WIN32)

@@ -52,6 +52,9 @@ public:
   virtual bool Load(const TiXmlNode *settings) override;
   virtual bool Save(TiXmlNode *settings) const override;
 
+#ifdef HAS_DS_PLAYER
+  virtual void OnSettingChanged(const CSetting *setting) override;
+#endif
   virtual void OnSettingAction(const CSetting *setting) override;
   virtual void OnSettingsLoaded() override;
 

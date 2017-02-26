@@ -48,4 +48,4 @@ set(HEADERS AllocatorCommon.h
             XBMCFileReader.h
             XBMCFileSource.h)
 
-core_add_library(FilterCoreFactory)
+core_add_library(Filters)

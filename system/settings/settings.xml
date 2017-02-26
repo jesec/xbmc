@@ -1020,11 +1020,94 @@
         </setting>
         <setting id="dsplayer.audiorenderer" type="string" label="55003" help="90007">
           <level>0</level>
-          <default>System Default</default>
+          <default>sanear_internal</default>
           <constraints>
             <options>dsaudiorenderer</options>
           </constraints>
           <control type="list" format="string" />
+        </setting>
+        <setting id="dsplayer.saneardevices" parent="dsplayer.audiorenderer" type="string" label="55120" help="">
+          <level>0</level>
+          <default>System Default</default>
+          <constraints>
+            <options>saneardevices</options>
+          </constraints>
+          <dependencies>
+            <dependency type="visible" setting="dsplayer.audiorenderer" operator="is">sanear_internal</dependency>
+          </dependencies>
+          <control type="list" format="string" />
+        </setting>
+        <setting id="dsplayer.sanearexclusive" parent="dsplayer.audiorenderer" type="boolean" label="55121" help="">
+          <level>0</level>
+          <default>true</default>
+          <dependencies>
+            <dependency type="visible" setting="dsplayer.audiorenderer" operator="is">sanear_internal</dependency>
+          </dependencies>
+          <control type="toggle" />
+        </setting>
+        <setting id="dsplayer.sanearallowbitstream" parent="dsplayer.audiorenderer" type="boolean" label="55122" help="">
+          <level>0</level>
+          <default>true</default>
+          <dependencies>
+            <dependency type="visible" setting="dsplayer.audiorenderer" operator="is">sanear_internal</dependency>
+          </dependencies>
+          <control type="toggle" />
+        </setting>
+        <setting id="dsplayer.sanearstereocrossfeed" parent="dsplayer.audiorenderer" type="boolean" label="55124" help="">
+          <level>0</level>
+          <default>false</default>
+          <dependencies>
+            <dependency type="visible" setting="dsplayer.audiorenderer" operator="is">sanear_internal</dependency>
+          </dependencies>
+          <control type="toggle" />
+        </setting>
+        <setting id="dsplayer.sanearcmoy" parent="dsplayer.audiorenderer" type="action" label="55125" help="">
+          <level>0</level>
+          <dependencies>
+            <dependency type="visible" setting="dsplayer.audiorenderer" operator="is">sanear_internal</dependency>
+            <dependency type="visible" setting="dsplayer.sanearstereocrossfeed" operator="is">true</dependency>
+          </dependencies>
+          <control type="button" format="action" />
+        </setting>
+        <setting id="dsplayer.sanearjmeier" parent="dsplayer.audiorenderer" type="action" label="55126" help="">
+          <level>0</level>
+          <dependencies>
+            <dependency type="visible" setting="dsplayer.audiorenderer" operator="is">sanear_internal</dependency>
+            <dependency type="visible" setting="dsplayer.sanearstereocrossfeed" operator="is">true</dependency>
+          </dependencies>
+          <control type="button" format="action" />
+        </setting>
+        <setting id="dsplayer.sanearcutoff" parent="dsplayer.audiorenderer" type="integer" label="55127" help="">
+          <level>0</level>
+          <default>700</default>
+          <constraints>
+            <minimum >300</minimum>
+            <step>1</step>
+            <maximum>2000</maximum>
+          </constraints>
+          <dependencies>
+            <dependency type="visible" setting="dsplayer.audiorenderer" operator="is">sanear_internal</dependency>
+            <dependency type="visible" setting="dsplayer.sanearstereocrossfeed" operator="is">true</dependency>
+          </dependencies>
+          <control type="spinner" format="string">
+            <formatlabel>55129</formatlabel>
+          </control>
+        </setting>
+        <setting id="dsplayer.sanearlevel" parent="dsplayer.audiorenderer" type="integer" label="55128" help="">
+          <level>0</level>
+          <default>60</default>
+          <constraints>
+            <minimum >10</minimum>
+            <step>1</step>
+            <maximum>150</maximum>
+          </constraints>
+          <dependencies>
+            <dependency type="visible" setting="dsplayer.audiorenderer" operator="is">sanear_internal</dependency>
+            <dependency type="visible" setting="dsplayer.sanearstereocrossfeed" operator="is">true</dependency>
+          </dependencies>
+          <control type="spinner" format="string">
+            <formatlabel>55130</formatlabel>
+          </control>
         </setting>
       </group>
       <group id="3" label="55002">

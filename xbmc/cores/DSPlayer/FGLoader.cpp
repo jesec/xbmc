@@ -52,6 +52,46 @@
 #include "video/VideoInfoTag.h"
 #include "utils/URIUtils.h"
 #include "utils/DSFileUtils.h"
+#include "Filters/Sanear/Factory.h"
+#include <mmdeviceapi.h>
+#include <Functiondiscoverykeys_devpkey.h>
+
+namespace
+{
+  std::vector<std::pair<CStdString, CStdString>> GetDevices()
+  {
+    std::vector<std::pair<CStdString, CStdString>> ret;
+
+    Com::SmartPtr<IMMDeviceEnumerator> enumerator;
+    Com::SmartPtr<IMMDeviceCollection> collection;
+    UINT count = 0;
+
+    if (SUCCEEDED(enumerator.CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_INPROC_SERVER)) &&
+      SUCCEEDED(enumerator->EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE | DEVICE_STATE_UNPLUGGED, &collection)) &&
+      SUCCEEDED(collection->GetCount(&count))) {
+
+      for (UINT i = 0; i < count; i++) {
+        LPWSTR id = nullptr;
+        Com::SmartPtr<IMMDevice> device;
+        Com::SmartPtr<IPropertyStore> devicePropertyStore;
+        PROPVARIANT friendlyName;
+        PropVariantInit(&friendlyName);
+
+        if (SUCCEEDED(collection->Item(i, &device)) &&
+          SUCCEEDED(device->GetId(&id)) &&
+          SUCCEEDED(device->OpenPropertyStore(STGM_READ, &devicePropertyStore)) &&
+          SUCCEEDED(devicePropertyStore->GetValue(PKEY_Device_FriendlyName, &friendlyName))) {
+
+          ret.emplace_back(friendlyName.pwszVal, static_cast<LPWSTR>(id));
+          PropVariantClear(&friendlyName);
+          CoTaskMemFree(id);
+        }
+      }
+    }
+
+    return ret;
+  }
+}
 
 using namespace std;
 
@@ -306,38 +346,77 @@ HRESULT CFGLoader::InsertAudioRenderer(const CStdString& filterName)
 
   //see if there a config first 
   const CStdString renderer = CSettings::GetInstance().GetString(CSettings::SETTING_DSPLAYER_AUDIORENDERER);
-  for (std::vector<DSFilterInfo>::const_iterator iter = deviceList.begin(); !renderer.empty() && (iter != deviceList.end()); ++iter)
+
+  if (renderer == CGraphFilters::INTERNAL_SANEAR)
   {
-    DSFilterInfo dev = *iter;
-    if (renderer.Equals(dev.lpstrName))
-    {
-      sAudioRenderName = dev.lpstrName;
-      sAudioRenderDisplayName = dev.lpstrDisplayName;
-      START_PERFORMANCE_COUNTER
-        //pFGF = new CFGFilterRegistry(GUIDFromString(dev.lpstrGuid));
-        pFGF = new CFGFilterRegistry(dev.lpstrDisplayName);
-      hr = pFGF->Create(&CGraphFilters::Get()->AudioRenderer.pBF);
-      delete pFGF;
-      END_PERFORMANCE_COUNTER("Loaded audio renderer from registry");
+    struct SaneAudioRendererFilter : CFGFilter {
+      SaneAudioRendererFilter(CStdString name) :
+        CFGFilter(SaneAudioRenderer::Factory::GetFilterGuid(), CFGFilter::FILE, name) {}
 
-      if (FAILED(hr))
-      {
-        CLog::Log(LOGERROR, "%s Failed to create the audio renderer (%X)", __FUNCTION__, hr);
-        return hr;
+      HRESULT Create(IBaseFilter** ppBF) override {
+        return SaneAudioRenderer::Factory::CreateFilter(CGraphFilters::Get()->sanear, ppBF);
       }
+    };
 
+    CGraphFilters::Get()->SetSanearSettings();
+
+    CFGFilter *pFilter;
+    START_PERFORMANCE_COUNTER
+      pFilter = DNew SaneAudioRendererFilter("(i) Sanear Audio Renderer");
+    hr = pFilter->Create(&CGraphFilters::Get()->AudioRenderer.pBF);
+    delete pFilter;
+    END_PERFORMANCE_COUNTER("Loaded internal sanear audio renderer");
+
+    if (SUCCEEDED(hr))
+    {
       START_PERFORMANCE_COUNTER
-        hr = g_dsGraph->pFilterGraph->AddFilter(CGraphFilters::Get()->AudioRenderer.pBF, AnsiToUTF16(dev.lpstrName));
-      END_PERFORMANCE_COUNTER("Added audio renderer to the graph");
+        hr = g_dsGraph->pFilterGraph->AddFilter(CGraphFilters::Get()->AudioRenderer.pBF, L"(i) Sanear Audio Renderer");
+      END_PERFORMANCE_COUNTER("Added internal sanear audio renderer to the graph");
 
-      break;
+      CGraphFilters::Get()->AudioRenderer.internalFilter = true;
+      CLog::Log(LOGNOTICE, "%s Successfully added internal sanear audio renderer to the graph", __FUNCTION__);
+    } 
+    else
+    {
+      CLog::Log(LOGERROR, "%s Failed to create the intenral audio renderer (%X)", __FUNCTION__, hr);
     }
   }
+  
+  if (renderer != CGraphFilters::INTERNAL_SANEAR || FAILED(hr))
+  {
+    for (std::vector<DSFilterInfo>::const_iterator iter = deviceList.begin(); !renderer.empty() && (iter != deviceList.end()); ++iter)
+    {
+      DSFilterInfo dev = *iter;
+      if (renderer.Equals(dev.lpstrName))
+      {
+        sAudioRenderName = dev.lpstrName;
+        sAudioRenderDisplayName = dev.lpstrDisplayName;
+        START_PERFORMANCE_COUNTER
+          //pFGF = new CFGFilterRegistry(GUIDFromString(dev.lpstrGuid));
+          pFGF = new CFGFilterRegistry(dev.lpstrDisplayName);
+        hr = pFGF->Create(&CGraphFilters::Get()->AudioRenderer.pBF);
+        delete pFGF;
+        END_PERFORMANCE_COUNTER("Loaded audio renderer from registry");
 
+        if (FAILED(hr))
+        {
+          CLog::Log(LOGERROR, "%s Failed to create the audio renderer (%X)", __FUNCTION__, hr);
+          return hr;
+        }
+
+        START_PERFORMANCE_COUNTER
+          hr = g_dsGraph->pFilterGraph->AddFilter(CGraphFilters::Get()->AudioRenderer.pBF, AnsiToUTF16(dev.lpstrName));
+        END_PERFORMANCE_COUNTER("Added audio renderer to the graph");
+
+        break;
+      }
+    }  
+    
   if (SUCCEEDED(hr))
     CLog::Log(LOGNOTICE, "%s Successfully added \"%s\" - DiplayName: %s to the graph", __FUNCTION__, sAudioRenderName.c_str(), sAudioRenderDisplayName.c_str());
   else
     CLog::Log(LOGNOTICE, "%s Failed to add \"%s\" to the graph (result: %X)", __FUNCTION__, sAudioRenderName.c_str(), hr);
+  }
 
   return hr;
 }
@@ -701,7 +780,7 @@ void CFGLoader::SettingOptionsDSVideoRendererFiller(const CSetting *setting, std
 
 void CFGLoader::SettingOptionsDSAudioRendererFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)
 {
-
+  list.push_back(std::make_pair("Internal Audio Renderer (Sanear)", CGraphFilters::INTERNAL_SANEAR));
   list.push_back(std::make_pair("System Default", "System Default"));
 
   CAudioEnumerator p_dsound;
@@ -714,6 +793,15 @@ void CFGLoader::SettingOptionsDSAudioRendererFiller(const CSetting *setting, std
     DSFilterInfo dev = *iter;
     list.push_back(std::make_pair(dev.lpstrName, dev.lpstrName));
     ++iter;
+  }
+}
+
+void CFGLoader::SettingOptionsSanearDevicesFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)
+{
+  list.push_back(std::make_pair("System Default", "System Default"));
+  for (const auto& device : GetDevices())
+  {
+    list.push_back(std::make_pair(device.first, device.second));
   }
 }
 

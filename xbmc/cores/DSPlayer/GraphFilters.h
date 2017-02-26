@@ -33,6 +33,7 @@
 #include "streams.h"
 #include "utils/CharsetConverter.h"
 #include "system.h"
+#include "Filters/Sanear/Interfaces.h"
 
 static const std::string XYSUBFILTER_FILTERSTR = "XySubFilter";
 static const std::string MADVR_FILTERSTR = "madVR";
@@ -132,6 +133,7 @@ public:
   static const std::string INTERNAL_LAVSPLITTER;
   static const std::string INTERNAL_XYVSFILTER;
   static const std::string INTERNAL_XYSUBFILTER;
+  static const std::string INTERNAL_SANEAR;
   static const std::string MADSHI_VIDEO_RENDERER;
 
   /// Retrieve singleton instance
@@ -193,6 +195,9 @@ public:
   bool LoadLavSettings(const std::string &type);
   bool SaveLavSettings(const std::string &type);
   void EraseLavSetting(const std::string &type);
+
+  void SetSanearSettings();
+
   static HRESULT PropertyPageCallback(IUnknown* pBF);
 
   bool HasSubFilter() { return m_hsubfilter; }
@@ -210,6 +215,7 @@ public:
   }
   void SetD3DDevice(IDirect3DDevice9 * pD3DDevice){ m_pD3DDevice = pD3DDevice; }
   IDirect3DDevice9* GetD3DDevice(){ return m_pD3DDevice; }
+  Com::SmartPtr<SaneAudioRenderer::ISettings> sanear;
   
 private:
   CGraphFilters();

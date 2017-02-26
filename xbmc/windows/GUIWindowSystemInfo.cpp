@@ -155,7 +155,8 @@ void CGUIWindowSystemInfo::FrameMove()
     SetControlLabel(i++, "%s %s", 22010, SYSTEM_GPU_TEMPERATURE);
 #endif
 #ifdef HAS_DS_PLAYER
-    SetControlLabel(i++, "%s: %s", 55102, CDSFilterVersion::Get()->GetStringVersion(CGraphFilters::MADSHI_VIDEO_RENDERER));
+    SetControlLabel(i++, "%s: %s", 55102, CDSFilterVersion::Get()->GetStringVersion(CGraphFilters::MADSHI_VIDEO_RENDERER));   
+    SetControlLabel(i++, "%s: %s", 55131, CDSFilterVersion::Get()->GetStringVersion(CGraphFilters::INTERNAL_SANEAR));
     SetControlLabel(i++, "%s: %s", 55097, CDSFilterVersion::Get()->GetStringVersion(CGraphFilters::INTERNAL_LAVSPLITTER));
     SetControlLabel(i++, "%s: %s", 55098, CDSFilterVersion::Get()->GetStringVersion(CGraphFilters::INTERNAL_LAVVIDEO));
     SetControlLabel(i++, "%s: %s", 55099, CDSFilterVersion::Get()->GetStringVersion(CGraphFilters::INTERNAL_LAVAUDIO));

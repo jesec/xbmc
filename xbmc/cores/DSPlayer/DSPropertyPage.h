@@ -115,3 +115,9 @@ protected:
   IBaseFilter* m_pBF;
   std::string m_type;
 };
+
+interface __declspec(uuid("03481710-D73E-4674-839F-03EDE2D60ED8"))
+  ISpecifyPropertyPages2 :
+  public ISpecifyPropertyPages {
+  STDMETHOD(CreatePage)(const GUID & guid, IPropertyPage** ppPage) = 0;
+};

@@ -414,6 +414,7 @@ static const ActionMapping windows[] =
     { "dsplayerlavvideo"         , WINDOW_DIALOG_LAVVIDEO },
     { "dsplayerlavaudio"         , WINDOW_DIALOG_LAVAUDIO },
     { "dsplayerlavsplitter"      , WINDOW_DIALOG_LAVSPLITTER },
+    { "dsplayersanear"           , WINDOW_DIALOG_SANEAR },
     { "dsplayerprocessinfo"      , WINDOW_DIALOG_DSPLAYER_PROCESS_INFO },
 #endif
     { "weather"                  , WINDOW_WEATHER },

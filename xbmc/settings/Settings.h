@@ -409,6 +409,14 @@ public:
   static const std::string CSettings::SETTING_DSPLAYER_VIDEOAUDIOEX;
   static const std::string CSettings::SETTING_DSPLAYER_VIDEORENDERER;
   static const std::string CSettings::SETTING_DSPLAYER_AUDIORENDERER;
+  static const std::string CSettings::SETTING_DSPLAYER_SANEARDEVICES;
+  static const std::string CSettings::SETTING_DSPLAYER_SANEAREXCLUSIVE;
+  static const std::string CSettings::SETTING_DSPLAYER_SANEARALLOWBITSTREAM;
+  static const std::string CSettings::SETTING_DSPLAYER_SANEARSTEREOCROSSFEED;
+  static const std::string CSettings::SETTING_DSPLAYER_SANEARCMOY;
+  static const std::string CSettings::SETTING_DSPLAYER_SANEARJMEIER;
+  static const std::string CSettings::SETTING_DSPLAYER_SANEARCUTOFF;
+  static const std::string CSettings::SETTING_DSPLAYER_SANEARLEVEL;
   static const std::string CSettings::SETTING_DSPLAYER_FILTERSMANAGEMENT;
   static const std::string CSettings::SETTING_DSPLAYER_PREFAUDIOCODEC;
   static const std::string CSettings::SETTING_DSPLAYER_EXSUBTITLELANGUAGE;
