@@ -430,17 +430,17 @@ HRESULT CFGLoader::InsertVideoRenderer()
 
   if (videoRender == "EVR")
   { 
-    CDSRendererCallback::Get()->SetCurrentRenderer(DIRECTSHOW_RENDERER_EVR);
+    g_application.m_pPlayer->SetCurrentRenderer(DIRECTSHOW_RENDERER_EVR);
     m_pFGF = new CFGFilterVideoRenderer(CLSID_EVRAllocatorPresenter, L"Kodi EVR");
   }
   if (videoRender == "VMR9")
   { 
-    CDSRendererCallback::Get()->SetCurrentRenderer(DIRECTSHOW_RENDERER_VMR9);
+    g_application.m_pPlayer->SetCurrentRenderer(DIRECTSHOW_RENDERER_VMR9);
     m_pFGF = new CFGFilterVideoRenderer(CLSID_VMR9AllocatorPresenter, L"Kodi VMR9");
   }
   if (videoRender == "madVR")
   {
-    CDSRendererCallback::Get()->SetCurrentRenderer(DIRECTSHOW_RENDERER_MADVR);
+    g_application.m_pPlayer->SetCurrentRenderer(DIRECTSHOW_RENDERER_MADVR);
     m_pFGF = new CFGFilterVideoRenderer(CLSID_madVRAllocatorPresenter, L"Kodi madVR");
   }
 
@@ -538,11 +538,7 @@ HRESULT CFGLoader::LoadFilterRules(const CFileItem& _pFileItem)
 
 
   START_PERFORMANCE_COUNTER
-    if (FAILED(CFilterCoreFactory::GetSubsFilter(pFileItem, filter, CGraphFilters::Get()->IsUsingDXVADecoder())))
-    {
-      CGraphFilters::Get()->SetHasSubFilter(false);
-    }
-    else 
+    if (SUCCEEDED(CFilterCoreFactory::GetSubsFilter(pFileItem, filter, CGraphFilters::Get()->IsUsingDXVADecoder())))
     {
       if (CSettings::GetInstance().GetInt(CSettings::SETTING_DSPLAYER_FILTERSMANAGEMENT) == INTERNALFILTERS 
         && CSettings::GetInstance().GetString(CSettings::SETTING_DSPLAYER_VIDEORENDERER) == "EVR"
@@ -551,7 +547,6 @@ HRESULT CFGLoader::LoadFilterRules(const CFileItem& _pFileItem)
 
       if (FAILED(InsertFilter(filter, CGraphFilters::Get()->Subs)))
         return E_FAIL;
-      CGraphFilters::Get()->SetHasSubFilter(true);
       END_PERFORMANCE_COUNTER("Loading subs filter");
     }
 
@@ -687,14 +682,11 @@ HRESULT CFGLoader::LoadConfig(FILTERSMAN_TYPE filterManager)
     LoadFilterCoreFactorySettings("special://xbmc/system/players/dsplayer/filtersconfig.xml", FILTERS, false);
 
     // Second, medias rules
-    CGraphFilters::Get()->SetDefaultRulePriority("0");
     LoadFilterCoreFactorySettings(CProfilesManager::GetInstance().GetUserDataItem("dsplayer/mediasconfig.xml"), MEDIAS, false);
-    CGraphFilters::Get()->SetDefaultRulePriority("100");
-    LoadFilterCoreFactorySettings("special://xbmc/system/players/dsplayer/mediasconfig.xml", MEDIAS, false);
+    LoadFilterCoreFactorySettings("special://xbmc/system/players/dsplayer/mediasconfig.xml", MEDIAS, false, 100);
   }
   else if (filterManager == INTERNALFILTERS)
   {
-    CGraphFilters::Get()->SetDefaultRulePriority("0");
     LoadFilterCoreFactorySettings("special://xbmc/system/players/dsplayer/filtersconfig_internal.xml", FILTERS, true);
     LoadFilterCoreFactorySettings(CProfilesManager::GetInstance().GetUserDataItem("dsplayer/filtersconfig.xml"), FILTERS, false);
     LoadFilterCoreFactorySettings("special://xbmc/system/players/dsplayer/filtersconfig.xml", FILTERS, false);
@@ -805,7 +797,7 @@ void CFGLoader::SettingOptionsSanearDevicesFiller(const CSetting *setting, std::
   }
 }
 
-bool CFGLoader::LoadFilterCoreFactorySettings(const CStdString& fileStr, ESettingsType type, bool clear)
+bool CFGLoader::LoadFilterCoreFactorySettings(const CStdString& fileStr, ESettingsType type, bool clear, int iPriority)
 {
   if (clear)
   {
@@ -826,7 +818,7 @@ bool CFGLoader::LoadFilterCoreFactorySettings(const CStdString& fileStr, ESettin
     return false;
   }
 
-  return ((type == MEDIAS) ? SUCCEEDED(CFilterCoreFactory::LoadMediasConfiguration(filterCoreFactoryXML.RootElement()))
+  return ((type == MEDIAS) ? SUCCEEDED(CFilterCoreFactory::LoadMediasConfiguration(filterCoreFactoryXML.RootElement(), iPriority))
     : SUCCEEDED(CFilterCoreFactory::LoadFiltersConfiguration(filterCoreFactoryXML.RootElement())));
 }
 

@@ -38,10 +38,10 @@
 class CGlobalFilterSelectionRule
 {
 public:
-  CGlobalFilterSelectionRule(TiXmlElement* pRule)
+  CGlobalFilterSelectionRule(TiXmlElement* pRule, int iPriority)
     : m_url(false)
   {
-    Initialize(pRule);
+    Initialize(pRule, iPriority);
   }
 
   ~CGlobalFilterSelectionRule()
@@ -176,7 +176,7 @@ private:
     return regExp.RegFind(str, 0) == 0;
   }
 
-  void Initialize(TiXmlElement* pRule)
+  void Initialize(TiXmlElement* pRule, int iPriority)
   {
     m_name = pRule->Attribute("name");
     if (!m_name || m_name.IsEmpty())
@@ -192,7 +192,7 @@ private:
 
     m_priority = pRule->Attribute("priority");
     if (m_priority.length() <= 0)
-      m_priority = CGraphFilters::Get()->GetDefaultRulePriority();
+      m_priority.Format("%i", iPriority);
 
     // Source rules
     m_pSource = new CFilterSelectionRule(pRule->FirstChildElement("source"), "source");

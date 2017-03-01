@@ -34,10 +34,8 @@
 #include "DSUtil/SmartPtr.h"
 #include "StreamsManager.h"
 #include "Filters\DX9AllocatorPresenter.h"
-#include "IPaintCallback.h"
 #include "settings/DisplaySettings.h"
 #include "settings/MediaSettings.h"
-#include "DSRendererCallback.h"
 #include "guilib\GraphicContext.h"
 
 CWinDsRenderer::CWinDsRenderer():
@@ -85,8 +83,7 @@ bool CWinDsRenderer::Configure(unsigned int width, unsigned int height, unsigned
 
 void CWinDsRenderer::Reset()
 {
-  if (m_paintCallback)
-    m_paintCallback->OnReset();
+  // todo
 }
 
 void CWinDsRenderer::Update()
@@ -174,7 +171,6 @@ void CWinDsRenderer::PreInit()
   return;
 }
 
-
 void CWinDsRenderer::UnInit()
 {
   m_bConfigured = false;
@@ -187,40 +183,6 @@ void CWinDsRenderer::Render(DWORD flags)
     return;*/
 
   CSingleLock lock(g_graphicsContext);
-
-  if (m_paintCallback)
-    m_paintCallback->OnPaint(m_destRect);
-}
-
-void CWinDsRenderer::RegisterCallback(IPaintCallback *callback)
-{
-  m_paintCallback = callback;
-}
-
-void CWinDsRenderer::UnregisterCallback()
-{
-  m_paintCallback = NULL;
-}
-
-inline void CWinDsRenderer::OnAfterPresent()
-{
-  if (m_paintCallback)
-    m_paintCallback->OnAfterPresent();
-}
-
-EINTERLACEMETHOD CWinDsRenderer::AutoInterlaceMethod()
-{
-    return VS_INTERLACEMETHOD_NONE;
-}
-
-bool CWinDsRenderer::Supports(EINTERLACEMETHOD method)
-{
-  if(method == VS_INTERLACEMETHOD_NONE
-  || method == VS_INTERLACEMETHOD_AUTO
-  || method == VS_INTERLACEMETHOD_DEINTERLACE)
-    return true;
-
-  return false;
 }
 
 bool CWinDsRenderer::Supports(ESCALINGMETHOD method)

@@ -24,7 +24,6 @@
 
 #include "AllocatorCommon.h"
 #include "mvrInterfaces.h"
-#include "DSRendererCallback.h"
 #include "MadvrSharedRender.h"
 #include "MadvrSettingsManager.h"
 
@@ -141,12 +140,11 @@ public:
   // IDSRendererAllocatorCallback
   virtual bool IsEnteringExclusive(){ return m_isEnteringExclusive; }
   virtual void EnableExclusive(bool bEnable);
-  virtual void SetMadvrPixelShader();
+  virtual void SetPixelShader();
   virtual void SetResolution();
   virtual bool ParentWindowProc(HWND hWnd, UINT uMsg, WPARAM *wParam, LPARAM *lParam, LRESULT *ret);
-  virtual void SetMadvrPosition(CRect wndRect, CRect videoRect);
+  virtual void SetPosition();
   virtual CRect GetActiveVideoRect() { return m_activeVideoRect; };
-  virtual CRect GetMadvrRect() { return m_madvrRect; };
 
 private:
   void ConfigureMadvr();
@@ -164,7 +162,7 @@ private:
   CMadvrSharedRender *m_pMadvrShared;
   CMadvrSettingsManager *m_pSettingsManager;
   CRect m_activeVideoRect;
-  CRect m_madvrRect;
+  CRect m_oldVideoRect;
   int m_frameCount;
 };
 

@@ -40,9 +40,6 @@
 #include <d3d10umddi.h>
 #pragma warning(default: 4091)
 #include <algorithm>
-#ifdef HAS_DS_PLAYER
-#include "DSPlayer.h"
-#endif
 
 #ifndef _M_X64
 #pragma comment(lib, "EasyHook32.lib")
@@ -1061,10 +1058,6 @@ bool CRenderSystemDX::CreateWindowSizeDependentResources()
 
   m_resizeInProgress = false;
   m_bResizeRequred = false;
-
-#ifdef HAS_DS_PLAYER
-  CDSPlayer::PostGraphMessage(new CDSMsg(CDSMsg::RESET_DEVICE), true);
-#endif
 
   return true;
 }

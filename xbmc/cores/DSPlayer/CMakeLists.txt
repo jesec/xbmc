@@ -5,7 +5,7 @@ set(SOURCES ChaptersManager.cpp
             DSPlayer.cpp
             DSPlayerDatabase.cpp
             DSPropertyPage.cpp
-            DSRendererCallback.cpp
+
             ExternalPixelShader.cpp
             FGFilter.cpp
             FGLoader.cpp
@@ -27,7 +27,7 @@ set(HEADERS ChaptersManager.h
             DSPlayer.h
             DSPlayerDatabase.h
             DSPropertyPage.h
-            DSRendererCallback.h
+ 
             ExternalPixelShader.h
             FGFilter.h
             FGLoader.h
@@ -35,7 +35,7 @@ set(HEADERS ChaptersManager.h
             FGManager2.h
             GraphFilters.h
             GUIDialogShaderList.h
-            IPaintCallback.h
+            IDSPlayer.h
             moreuuids.h
             PixelShaderCompiler.h
             PixelShaderList.h

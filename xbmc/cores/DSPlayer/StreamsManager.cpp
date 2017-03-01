@@ -46,7 +46,7 @@
 #include "LangInfo.h"
 #include "DSPlayerDatabase.h"
 #include "guilib/StereoscopicsManager.h"
-
+#include "DSPropertyPage.h"
 
 CDSStreamDetail::CDSStreamDetail()
   : IAMStreamSelect_Index(0), flags(0), pObj(NULL), pUnk(NULL), lcid(0),
@@ -442,7 +442,7 @@ void CStreamsManager::LoadIAMStreamSelectStreamsInternal()
     case CStreamDetail::AUDIO:	infos = new CDSStreamDetailAudio();		break;
     case CStreamDetail::SUBTITLE:
     {
-      if (m_hsubfilter)
+      if (m_bHasSubsFilter)
         infos = new CDSStreamDetailSubfilter(INTERNAL);
       else
         infos = new CDSStreamDetailSubtitle();
@@ -478,7 +478,7 @@ void CStreamsManager::LoadIAMStreamSelectStreamsInternal()
     }
     else if (group == CStreamDetail::SUBTITLE)
     {
-      if (m_hsubfilter)
+      if (m_bHasSubsFilter)
         m_subfilterStreams.push_back(static_cast<CDSStreamDetailSubfilter *>(infos));
       else
         SubtitleManager->GetSubtitles().push_back(static_cast<CDSStreamDetailSubtitle *>(infos));
@@ -619,7 +619,7 @@ void CStreamsManager::LoadStreams()
   else
     LoadStreamsInternal();
 
-  if (m_hsubfilter)
+  if (m_bHasSubsFilter)
   {
     CStdString subName;
     g_charsetConverter.wToUTF8(GetFilterName(m_pSubs), subName);
@@ -642,7 +642,7 @@ void CStreamsManager::LoadStreams()
       hr = m_pSubs->QueryInterface(__uuidof(pDPlayerCustom), (void **)&pDPlayerCustom);
       if (SUCCEEDED(hr))
       {
-        pDPlayerCustom->SetPropertyPageCallback(CGraphFilters::PropertyPageCallback);
+        pDPlayerCustom->SetPropertyPageCallback(CDSPropertyPage::PropertyPageCallback);
       }
 
       SubInterface(ADD_EXTERNAL_SUB);
@@ -672,8 +672,13 @@ void CStreamsManager::LoadStreams()
   SubtitleManager->SetSubtitleVisible(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_SubtitleOn);
 }
 
-int CStreamsManager::GetSubfilter()
+int CStreamsManager::GetSubtitle()
 {
+  if (!m_bHasSubsFilter)
+  {
+    return SubtitleManager->GetSubtitle();
+  }
+
   if (m_subfilterStreams.size() == 0)
     return -1;
 
@@ -687,13 +692,25 @@ int CStreamsManager::GetSubfilter()
   return -1;
 }
 
-int CStreamsManager::GetSubfilterCount()
+int CStreamsManager::GetSubtitleCount()
 {
+  if (!m_bHasSubsFilter)
+  {
+    return SubtitleManager->GetSubtitleCount();
+  }
+
   return m_subfilterStreams.size();
 }
 
-void CStreamsManager::GetSubfilterName(int iStream, CStdString &strStreamName)
+void CStreamsManager::GetSubtitleName(int iStream, CStdString &strStreamName)
 {
+  if (!m_bHasSubsFilter)
+  {
+    SubtitleManager->GetSubtitleName(iStream, strStreamName);
+    return;
+  }
+
+
   if (m_subfilterStreams.size() == 0)
     return;
 
@@ -708,13 +725,24 @@ void CStreamsManager::GetSubfilterName(int iStream, CStdString &strStreamName)
   }
 }
 
-bool CStreamsManager::GetSubfilterVisible()
+bool CStreamsManager::GetSubtitleVisible()
 {
+  if (!m_bHasSubsFilter)
+  {
+    return SubtitleManager->GetSubtitleVisible();
+  }
+
   return m_bSubfilterVisible;
 }
 
-void CStreamsManager::SetSubfilterVisible(bool bVisible)
+void CStreamsManager::SetSubtitleVisible(bool bVisible)
 {
+  if (!m_bHasSubsFilter)
+  {
+    SubtitleManager->SetSubtitleVisible(bVisible);
+    return;
+  }
+
   CMediaSettings::GetInstance().GetCurrentVideoSettings().m_SubtitleOn = bVisible;
   m_bSubfilterVisible = bVisible;
 
@@ -824,6 +852,12 @@ float CStreamsManager::GetAVDelay()
 
 void CStreamsManager::SetSubTitleDelay(float fValue)
 {
+  if (!m_bHasSubsFilter)
+  {
+    SubtitleManager->SetSubtitleDelay(fValue);
+    return;
+  }
+
   int iValue = round(fValue * 1000.0f);
 
   //get delay and invert the sign because kodi interface
@@ -835,6 +869,11 @@ void CStreamsManager::SetSubTitleDelay(float fValue)
 
 float CStreamsManager::GetSubTitleDelay()
 {
+  if (!m_bHasSubsFilter)
+  {
+    return SubtitleManager->GetSubtitleDelay();
+  }
+
   float fValue = 0.0f;
   int iValue, a, b;
 
@@ -850,6 +889,11 @@ float CStreamsManager::GetSubTitleDelay()
 
 int CStreamsManager::AddSubtitle(const std::string& subFilePath)
 {
+  if (!m_bHasSubsFilter)
+  {
+    return SubtitleManager->AddSubtitle(subFilePath);
+  }
+
   if (!m_bIsXYVSFilter)
     return -1;
 
@@ -871,17 +915,17 @@ int CStreamsManager::AddSubtitle(const std::string& subFilePath)
 
   SubInterface(ADD_EXTERNAL_SUB);
 
-  return GetSubfilterCount() - 1;
+  return GetSubtitleCount() - 1;
 }
 
-bool CStreamsManager::SetSubfilter(const std::string &sTrackName)
+bool CStreamsManager::SetSubtitle(const std::string &sTrackName)
 {
   if (!m_init || sTrackName.empty())
     return false;
 
   CSingleLock lock(m_lock);
 
-  if (GetSubfilterCount() <= 0)
+  if (GetSubtitleCount() <= 0)
     return false;
 
   int iStream = 0;
@@ -889,7 +933,7 @@ bool CStreamsManager::SetSubfilter(const std::string &sTrackName)
   {
     if (sub->displayname == sTrackName)
     {
-      SetSubfilter(iStream);
+      SetSubtitle(iStream);
       return true;
     }
     iStream++;
@@ -898,20 +942,26 @@ bool CStreamsManager::SetSubfilter(const std::string &sTrackName)
   return false;
 }
 
-void CStreamsManager::SetSubfilter(int iStream)
+void CStreamsManager::SetSubtitle(int iStream)
 {
+  if (!m_bHasSubsFilter)
+  {
+    SubtitleManager->SetSubtitle(iStream);
+    return;
+  }
+
   if (!m_init)
     return;
 
   CSingleLock lock(m_lock);
 
-  if (GetSubfilterCount() <= 0)
+  if (GetSubtitleCount() <= 0)
     return;
 
-  if (iStream > GetSubfilterCount()-1)
+  if (iStream > GetSubtitleCount()-1)
     return;
 
-  long disableIndex = GetSubfilter(), enableIndex = iStream;
+  long disableIndex = GetSubtitle(), enableIndex = iStream;
 
   m_readyEvent.Reset();
   CAutoSetEvent event(&m_readyEvent);
@@ -947,7 +997,7 @@ void CStreamsManager::SetSubfilter(int iStream)
     }
   }
   CLog::Log(LOGDEBUG, "%s Successfully selected subfilter stream number %i", __FUNCTION__, enableIndex);
-  SetSubfilterVisible(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_SubtitleOn);
+  SetSubtitleVisible(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_SubtitleOn);
 }
 
 void CStreamsManager::SubInterface(SelectSubType action)
@@ -1037,11 +1087,15 @@ void CStreamsManager::SelectBestAudio()
       i++;
     }
   }
-
 }
 
 void CStreamsManager::SelectBestSubtitle(const std::string &fileName /* ="" */)
 {
+  if (!m_bHasSubsFilter)
+  {
+    SubtitleManager->SelectBestSubtitle();
+    return;
+  }
 
   int selectFirst = -1;
   int select = -1;
@@ -1055,7 +1109,7 @@ void CStreamsManager::SelectBestSubtitle(const std::string &fileName /* ="" */)
     db.Close();
     if (!exSubTrackName.empty())
     {
-      if (SetSubfilter(exSubTrackName))
+      if (SetSubtitle(exSubTrackName))
         return;
     }
   }
@@ -1103,12 +1157,12 @@ void CStreamsManager::SelectBestSubtitle(const std::string &fileName /* ="" */)
   }
 
   if (select != -1)
-    SetSubfilter(select);
+    SetSubtitle(select);
 }
 
 void CStreamsManager::DisconnectCurrentSubtitlePins()
 {
-  int i = GetSubfilter();
+  int i = GetSubtitle();
   if (i == -1)
     return;
 
@@ -1122,14 +1176,14 @@ bool CStreamsManager::InitManager()
   if (!g_dsGraph)
     return false;
 
-  m_pSplitter = CGraphFilters::Get()->Splitter.pBF;
-  m_pGraphBuilder = g_dsGraph->pFilterGraph;
+  m_pSplitter = CGraphFilters::Get()->Splitter.pBF;  
   m_pSubs = CGraphFilters::Get()->Subs.pBF;
+  m_pGraphBuilder = g_dsGraph->pFilterGraph;
 
   // Create subtitle manager
   SubtitleManager.reset(new CSubtitleManager(this));
 
-  m_hsubfilter = CGraphFilters::Get()->HasSubFilter();
+  m_bHasSubsFilter = m_pSubs != nullptr;
   m_init = true;
   m_bIsXYVSFilter = false;
   m_bIsLavAudio = false;
@@ -1528,7 +1582,7 @@ void CSubtitleManager::Initialize()
   SIZE s; s.cx = 0; s.cy = 0;
   ISubManager *pManager = NULL;
 
-  if (CGraphFilters::Get()->HasSubFilter()) {
+  if (CGraphFilters::Get()->Subs.pBF != nullptr) {
     CLog::Log(LOGNOTICE, "%s disabled libsubs.dll", __FUNCTION__);
     return;
   }

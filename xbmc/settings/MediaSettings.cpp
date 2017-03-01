@@ -48,7 +48,6 @@
 #include "cores/DSPlayer/Dialogs/GUIDialogDSRules.h"
 #include "cores/DSPlayer/Dialogs/GUIDialogDSFilters.h"
 #include "cores/DSPlayer/Dialogs/GUIDialogDSPlayercoreFactory.h"
-#include "DSRendererCallback.h"
 #include "GraphFilters.h"
 #include "Filters/Sanear/Interfaces.h"
 #endif

@@ -62,7 +62,6 @@
 #include "cores/DSPlayer/dsgraph.h"
 #include "settings/MediaSettings.h"
 #include "settings/DisplaySettings.h"
-#include "DSRendererCallback.h"
 #include "ServiceBroker.h"
 #include "cores/DataCacheCore.h"
 #include "DSFilterVersion.h"
@@ -88,12 +87,22 @@ CDSPlayer::CDSPlayer(IPlayerCallback& callback)
   m_bEof(false),
   m_renderManager(this)
 {
+  m_CurrentRenderer = DIRECTSHOW_RENDERER_UNDEF;
+  m_pAllocatorCallback = nullptr;
+  m_pSettingCallback = nullptr;
+  m_pPaintCallback = nullptr;
+  m_renderOnDs = false;
+  m_bPerformStop = false;
+  ResetRenderCount();
+  m_currentVideoLayer = RENDER_LAYER_UNDER;
+  m_lastActiveVideoRect = { 0, 0, 0, 0 };
+
   m_canTempo = false;
   m_HasVideo = false;
   m_HasAudio = false;
   m_isMadvr = (CSettings::GetInstance().GetString(CSettings::SETTING_DSPLAYER_VIDEORENDERER) == "madVR");
 
-  if (InitMadvrWindow(m_hWnd))
+  if (InitWindow(m_hWnd))
     CLog::Log(LOGDEBUG, "%s : Create DSPlayer window - hWnd: %i", __FUNCTION__, m_hWnd);
 
   /* Suspend AE temporarily so exclusive or hog-mode sinks */
@@ -106,13 +115,12 @@ CDSPlayer::CDSPlayer(IPlayerCallback& callback)
   CoInitializeEx(NULL, COINIT_MULTITHREADED);
 
   m_pClock.GetClock(); // Reset the clock
-  g_dsGraph = new CDSGraph(callback, m_renderManager);
+  g_dsGraph = new CDSGraph(callback);
 
   // Change DVD Clock, time base
   m_pClock.SetTimeBase((int64_t)DS_TIME_BASE);
 
   m_processInfo = CProcessInfo::CreateInstance();
-  g_dsGraph->SetProcesInfo(m_processInfo);
 
   g_Windowing.Register(this);
 }
@@ -141,82 +149,47 @@ CDSPlayer::~CDSPlayer()
 
   CoUninitialize();
 
-  DeInitMadvrWindow();
+  DeInitWindow();
 
   SAFE_DELETE(g_dsGraph);
   SAFE_DELETE(g_pPVRStream);
+
+  SetVisibleScreenArea(m_lastActiveVideoRect);
 
   CLog::Log(LOGNOTICE, "%s DSPlayer is now closed", __FUNCTION__);
 }
 
 int CDSPlayer::GetSubtitleCount()
 {
-  if (CGraphFilters::Get()->HasSubFilter())
-  {
-    return (CStreamsManager::Get()) ? CStreamsManager::Get()->GetSubfilterCount() : 0;
-  }
-  else {
-    return (CStreamsManager::Get()) ? CStreamsManager::Get()->SubtitleManager->GetSubtitleCount() : 0;
-  }
+  return (CStreamsManager::Get()) ? CStreamsManager::Get()->GetSubtitleCount() : 0;
 }
 
 int CDSPlayer::GetSubtitle()
 {
-  if (CGraphFilters::Get()->HasSubFilter())
-  {
-    return (CStreamsManager::Get()) ? CStreamsManager::Get()->GetSubfilter() : 0;
-  }
-  else {
-    return (CStreamsManager::Get()) ? CStreamsManager::Get()->SubtitleManager->GetSubtitle() : 0;
-  }
+  return (CStreamsManager::Get()) ? CStreamsManager::Get()->GetSubtitle() : 0;
 }
 
 void CDSPlayer::SetSubtitle(int iStream)
 {
-  if (CGraphFilters::Get()->HasSubFilter())
-  {
-    if (CStreamsManager::Get()) CStreamsManager::Get()->SetSubfilter(iStream);
-  }
-  else {
-    if (CStreamsManager::Get()) CStreamsManager::Get()->SubtitleManager->SetSubtitle(iStream);
-  }
+   if (CStreamsManager::Get()) 
+     CStreamsManager::Get()->SetSubtitle(iStream);
 }
 
 bool CDSPlayer::GetSubtitleVisible()
 {
-  if (CGraphFilters::Get()->HasSubFilter())
-  {
-    return (CStreamsManager::Get()) ? CStreamsManager::Get()->GetSubfilterVisible() : true;
-  }
-  else {
-    return (CStreamsManager::Get()) ? CStreamsManager::Get()->SubtitleManager->GetSubtitleVisible() : true;
-  }
+  return (CStreamsManager::Get()) ? CStreamsManager::Get()->GetSubtitleVisible() : true;
 }
 
 void CDSPlayer::SetSubtitleVisible(bool bVisible)
 {
-  if (CGraphFilters::Get()->HasSubFilter())
-  {
-    if (CStreamsManager::Get())
-      CStreamsManager::Get()->SetSubfilterVisible(bVisible);
-  }
-  else {
-    if (CStreamsManager::Get())
-      CStreamsManager::Get()->SubtitleManager->SetSubtitleVisible(bVisible);
-  }
+  if (CStreamsManager::Get())
+    CStreamsManager::Get()->SetSubtitleVisible(bVisible);
 }
 
-void CDSPlayer::AddSubtitle(const std::string& strSubPath) {
-
-  if (CGraphFilters::Get()->HasSubFilter())
-  {
-    if (CStreamsManager::Get())
-      CStreamsManager::Get()->SetSubfilter(CStreamsManager::Get()->AddSubtitle(strSubPath));
-  }
-  else {
-    if (CStreamsManager::Get())
-      CStreamsManager::Get()->SubtitleManager->SetSubtitle(CStreamsManager::Get()->SubtitleManager->AddSubtitle(strSubPath));
-  }
+void CDSPlayer::AddSubtitle(const std::string& strSubPath) 
+{
+  if (CStreamsManager::Get())
+    CStreamsManager::Get()->SetSubtitle(CStreamsManager::Get()->AddSubtitle(strSubPath));
 }
 
 void CDSPlayer::ShowEditionDlg(bool playStart)
@@ -343,16 +316,9 @@ bool CDSPlayer::OpenFileInternal(const CFileItem& file)
 
       // Select Subtitle Stream and set Delay
       fValue = CMediaSettings::GetInstance().GetCurrentVideoSettings().m_SubtitleDelay;
-      if (CGraphFilters::Get()->HasSubFilter())
-      {
-        if (CStreamsManager::Get()) CStreamsManager::Get()->SelectBestSubtitle(file.GetPath());
-        if (CStreamsManager::Get()) CStreamsManager::Get()->SetSubTitleDelay(fValue);
-      }
-      else
-      {
-        if (CStreamsManager::Get()) CStreamsManager::Get()->SubtitleManager->SelectBestSubtitle();
-        if (CStreamsManager::Get()) CStreamsManager::Get()->SubtitleManager->SetSubtitleDelay(fValue);
-      }
+
+      if (CStreamsManager::Get()) CStreamsManager::Get()->SelectBestSubtitle(file.GetPath());
+      if (CStreamsManager::Get()) CStreamsManager::Get()->SetSubTitleDelay(fValue);
 
       // Get Audio Interface LAV AUDIO/FFDSHOW to setting Delay
       if (CStreamsManager::Get())
@@ -413,7 +379,7 @@ void CDSPlayer::LoadVideoSettings(const CFileItem& file)
   CStreamDetails streamDetails = fileItem.GetVideoInfoTag()->m_streamDetails;
   CMadvrSettings &madvrSettings = CMediaSettings::GetInstance().GetCurrentMadvrSettings();
 
-  madvrSettings.m_Resolution = CDSRendererCallback::Get()->VideoDimsToResolution(streamDetails.GetVideoWidth(), streamDetails.GetVideoHeight());
+  madvrSettings.m_Resolution = VideoDimsToResolution(streamDetails.GetVideoWidth(), streamDetails.GetVideoHeight());
   madvrSettings.m_TvShowName = fileItem.GetVideoInfoTag()->m_strShowTitle;
 
   // Load stored files settings
@@ -494,6 +460,16 @@ bool CDSPlayer::OpenFile(const CFileItem& file, const CPlayerOptions &options)
 bool CDSPlayer::CloseFile(bool reopen)
 {
   CSingleLock lock(m_CleanSection);
+
+  if (!ReadyDS())
+  {
+    g_dsGraph->QueueStop();
+    return false;
+  }
+
+  // zoom
+  if (m_pAllocatorCallback)
+    m_lastActiveVideoRect = m_pAllocatorCallback->GetActiveVideoRect();
 
   // if needed restore the currentrate
   if (m_pGraphThread.GetCurrentRate() != 1)
@@ -579,13 +555,8 @@ void CDSPlayer::GetAudioStreamInfo(int index, SPlayerAudioStreamInfo &info)
 void CDSPlayer::GetSubtitleStreamInfo(int index, SPlayerSubtitleStreamInfo &info)
 {
   CStdString strStreamName;
-  if (CGraphFilters::Get()->HasSubFilter())
-  {
-    if (CStreamsManager::Get()) CStreamsManager::Get()->GetSubfilterName(index, strStreamName);
-  }
-  else {
-    if (CStreamsManager::Get()) CStreamsManager::Get()->SubtitleManager->GetSubtitleName(index, strStreamName);
-  }
+ if (CStreamsManager::Get()) CStreamsManager::Get()->GetSubtitleName(index, strStreamName);
+  
   info.language = strStreamName;
   info.name = strStreamName;
 }
@@ -634,13 +605,13 @@ void CDSPlayer::SetAVDelay(float fValue)
 
   if (CStreamsManager::Get()) CStreamsManager::Get()->SetAVDelay(fValue,iDisplayLatency);
 
-  g_dsGraph->SetAudioCodeDelayInfo();
+  SetAudioCodeDelayInfo();
 }
 
 void CDSPlayer::SetAudioStream(int iStream) 
 { 
   if (CStreamsManager::Get()) CStreamsManager::Get()->SetAudioStream(iStream); 
-  g_dsGraph->UpdateProcessInfo(iStream);
+    UpdateProcessInfo(iStream);
 }
 
 float CDSPlayer::GetSubTitleDelay()
@@ -648,24 +619,15 @@ float CDSPlayer::GetSubTitleDelay()
   float fValue = 0.0f;
 
   if (CStreamsManager::Get())
-  {
-    if (CGraphFilters::Get()->HasSubFilter())
-      fValue = CStreamsManager::Get()->GetSubTitleDelay();
-    else
-      fValue = CStreamsManager::Get()->SubtitleManager->GetSubtitleDelay();
-  }
+    fValue = CStreamsManager::Get()->GetSubTitleDelay();
+
   return fValue;
 }
 
 void CDSPlayer::SetSubTitleDelay(float fValue)
 {
   if (CStreamsManager::Get())
-  {
-    if (CGraphFilters::Get()->HasSubFilter())
-      CStreamsManager::Get()->SetSubTitleDelay(fValue);
-    else
-      CStreamsManager::Get()->SubtitleManager->SetSubtitleDelay(fValue);
-  }
+    CStreamsManager::Get()->SetSubTitleDelay(fValue);
 }
 
 //CThread
@@ -733,7 +695,7 @@ void CDSPlayer::Process()
     HandleMessages();
 }
 
-void CDSPlayer::DeInitMadvrWindow()
+void CDSPlayer::DeInitWindow()
 {
   // remove ourself as user data to ensure we're not called anymore
   SetWindowLongPtr(m_hWnd, GWLP_USERDATA, 0);
@@ -748,7 +710,7 @@ void CDSPlayer::DeInitMadvrWindow()
   m_hWnd = NULL;
 }
 
-bool CDSPlayer::InitMadvrWindow(HWND &hWnd)
+bool CDSPlayer::InitWindow(HWND &hWnd)
 {
   m_hInstance = (HINSTANCE)GetModuleHandle(NULL);
   if (m_hInstance == NULL)
@@ -819,6 +781,7 @@ LRESULT CALLBACK CDSPlayer::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     return(0);
   case WM_SIZE:
     SetWindowPos(hWnd, 0, 0, 0, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOZORDER);
+    PostGraphMessage(new CDSMsg(CDSMsg::RESET_DEVICE), false);
     return(0);
   }
   return DefWindowProc(hWnd, uMsg, wParam, lParam);
@@ -842,10 +805,6 @@ void CDSPlayer::HandleMessages()
     if (pMsg->IsType(CDSMsg::GENERAL_SET_WINDOW_POS))
     {
       g_dsGraph->UpdateWindowPosition();
-    }
-    else if (pMsg->IsType(CDSMsg::MADVR_SET_WINDOW_POS))
-    {
-      g_dsGraph->UpdateMadvrWindowPosition();
     }
     else if (pMsg->IsType(CDSMsg::PLAYER_SEEK_TIME))
     {
@@ -971,6 +930,12 @@ void CDSPlayer::Stop()
 
 void CDSPlayer::Pause()
 {
+  if (!ReadyDS())
+  {
+    g_dsGraph->QueuePause();
+    return;
+  }
+
   g_dsGraph->UpdateState();
 
   if (PlayerState == DSPLAYER_LOADING || PlayerState == DSPLAYER_LOADED)
@@ -1252,14 +1217,14 @@ void CDSPlayer::LoadMadvrSettings(int id)
         sId.Format("Resolution settings SD", id);
     }
 
-    CDSRendererCallback::Get()->RestoreSettings();
+    g_application.m_pPlayer->RestoreSettings();
     dspdb.Close();
     CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Info, "DSPlayer", sId, TOAST_MESSAGE_TIME, false);
   }
   else
   {
     madvrSettings.RestoreAtStartSettings();
-    CDSRendererCallback::Get()->RestoreSettings();
+    g_application.m_pPlayer->RestoreSettings();
 
     CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Info, "DSPlayer", "Restored original video settings", TOAST_MESSAGE_TIME, false);
   }
@@ -1376,12 +1341,6 @@ bool CDSPlayer::ShowPVRChannelInfo()
   return bReturn;
 }
 
-CDSGraphThread::CDSGraphThread(CDSPlayer * pPlayer)
-  : m_pPlayer(pPlayer), CThread("CDSGraphThread thread")
-{
-  CoInitializeEx(NULL, COINIT_MULTITHREADED);
-}
-
 void CDSPlayer::FrameMove()
 {
   m_renderManager.FrameMove();
@@ -1431,7 +1390,12 @@ bool CDSPlayer::IsRenderingVideoLayer()
 
 bool CDSPlayer::Supports(EINTERLACEMETHOD method)
 {
-  return m_renderManager.Supports(method);
+  if (method == VS_INTERLACEMETHOD_NONE
+    || method == VS_INTERLACEMETHOD_AUTO
+    || method == VS_INTERLACEMETHOD_DEINTERLACE)
+    return true;
+
+  return false;
 }
 
 bool CDSPlayer::Supports(ESCALINGMETHOD method)
@@ -1444,6 +1408,23 @@ bool CDSPlayer::Supports(ERENDERFEATURE feature)
   return m_renderManager.Supports(feature);
 }
 
+bool CDSPlayer::Configure(unsigned int width, unsigned int height, unsigned int d_width, unsigned int d_height, float fps, unsigned flags)
+{
+  m_fps = fps;
+  UpdateProcessInfo();
+  return m_renderManager.Configure(width, height, d_width, d_height, fps, flags);
+}
+
+void CDSPlayer::UpdateDisplayLatencyForMadvr(float refresh)
+{
+  m_renderManager.UpdateDisplayLatencyForMadvr(refresh);
+}
+
+void CDSPlayer::GetVideoRect(CRect &source, CRect &dest, CRect &view)
+{
+  m_renderManager.GetVideoRect(source, dest, view);
+}
+
 void CDSPlayer::OnLostDisplay()
 {
 }
@@ -1452,11 +1433,57 @@ void CDSPlayer::OnResetDisplay()
 {
 }
 
-
-
-void CDSGraphThread::OnStartup()
+void CDSPlayer::UpdateProcessInfo(int index)
 {
-  m_threadID = CThread::GetCurrentThreadId();
+  if (index == CURRENT_STREAM)
+    index = g_application.m_pPlayer->GetAudioStream();
+
+  CStdString info;
+
+  //Renderers in dsplayer
+  info.Format("%s, %s", CGraphFilters::Get()->VideoRenderer.osdname, CGraphFilters::Get()->AudioRenderer.osdname);
+  m_processInfo->SetVideoPixelFormat(info);
+  //filters in dsplayer
+  m_processInfo->SetVideoDeintMethod(g_dsGraph->GetGeneralInfo());
+
+  //AUDIO
+
+  //add visible track number
+  info.Format("%i %s", CStreamsManager::Get() ? CStreamsManager::Get()->GetChannels(index) : 0, g_localizeStrings.Get(14301));
+  if (GetAudioStreamCount() > 1)
+    info.Format("(%i/%i) %s ", index + 1, GetAudioStreamCount(), info);
+  m_processInfo->SetAudioChannels(info);
+
+  m_processInfo->SetAudioBitsPerSample(CStreamsManager::Get() ? CStreamsManager::Get()->GetBitsPerSample(index) : 0);
+  m_processInfo->SetAudioSampleRate(CStreamsManager::Get() ? CStreamsManager::Get()->GetSampleRate(index) : 0);
+
+  //add delay info to audio decoder name;
+  SetAudioCodeDelayInfo(index);
+
+  //VIDEO
+  unsigned int width = GetPictureWidth();
+  unsigned int heigth = GetPictureHeight();
+  m_processInfo->SetVideoDimensions(width, heigth);
+  m_processInfo->SetVideoDecoderName(CStreamsManager::Get() ? CStreamsManager::Get()->GetVideoCodecName() : "", CStreamsManager::Get()->GetHWAccel() > 0);
+  m_processInfo->SetVideoDAR((float)width / (float)heigth);
+  m_processInfo->SetVideoFps(m_fps);
+
+  CServiceBroker::GetDataCacheCore().SignalAudioInfoChange();
+  CServiceBroker::GetDataCacheCore().SignalVideoInfoChange();
+}
+
+void CDSPlayer::SetAudioCodeDelayInfo(int index)
+{
+  if (index == CURRENT_STREAM)
+    index = g_application.m_pPlayer->GetAudioStream();
+
+  CStdString info;
+  int iAudioDelay = CStreamsManager::Get() ? CStreamsManager::Get()->GetLastAVDelay() : 0;
+  info.Format("%s, %ims delay", CStreamsManager::Get() ? CStreamsManager::Get()->GetAudioCodecDisplayName(index) : "", iAudioDelay);
+
+  m_processInfo->SetAudioDecoderName(info);
+
+  CServiceBroker::GetDataCacheCore().SignalAudioInfoChange();
 }
 
 void CDSGraphThread::Process()
@@ -1488,7 +1515,7 @@ void CDSGraphThread::HandleMessages()
 
       if (pMsg->IsType(CDSMsg::RESET_DEVICE))
       {
-        g_dsGraph->Reset();
+        g_application.m_pPlayer->Reset();
       }
       pMsg->Set();
       pMsg->Release();
@@ -1498,6 +1525,18 @@ void CDSGraphThread::HandleMessages()
     TranslateMessage(&msg);
     DispatchMessage(&msg);
   }
+}
+
+CDSGraphThread::CDSGraphThread(CDSPlayer * pPlayer)
+  : m_pPlayer(pPlayer), CThread("CDSGraphThread thread")
+{
+  CoInitializeEx(NULL, COINIT_MULTITHREADED);
+}
+
+//CThread
+void CDSGraphThread::OnStartup()
+{
+  m_threadID = CThread::GetCurrentThreadId();
 }
 
 void CDSGraphThread::OnExit()
@@ -1598,6 +1637,216 @@ void CGraphManagementThread::Process()
     if (CDSPlayer::PlayerState == DSPLAYER_CLOSED)
       break;
   }
+}
+
+void CDSPlayer::IncRenderCount()
+{
+  if (!ReadyDS())
+    return;
+
+  m_currentVideoLayer == RENDER_LAYER_UNDER ? m_renderUnderCount += 1 : m_renderOverCount += 1;
+}
+
+void CDSPlayer::ResetRenderCount()
+{
+  m_renderUnderCount = 0;
+  m_renderOverCount = 0;
+}
+
+bool CDSPlayer::GuiVisible(DS_RENDER_LAYER layer)
+{
+  bool result = false;
+  switch (layer)
+  {
+  case RENDER_LAYER_UNDER:
+    result = m_renderUnderCount > 0;
+    break;
+  case RENDER_LAYER_OVER:
+    result = m_renderOverCount > 0;
+    break;
+  case RENDER_LAYER_ALL:
+    result = m_renderOverCount + m_renderUnderCount > 0;
+    break;
+  }
+  return result;
+}
+
+int CDSPlayer::VideoDimsToResolution(int iWidth, int iHeight)
+{
+  int res = 0;
+  int madvr_res = -1;
+
+  if (iWidth == 0 || iHeight == 0)
+    res = 0;
+  else if (iWidth <= 720 && iHeight <= 480)
+    res = 480;
+  // 720x576 (PAL) (768 when rescaled for square pixels)
+  else if (iWidth <= 768 && iHeight <= 576)
+    res = 576;
+  // 960x540 (sometimes 544 which is multiple of 16)
+  else if (iWidth <= 960 && iHeight <= 544)
+    res = 540;
+  // 1280x720
+  else if (iWidth <= 1280 && iHeight <= 720)
+    res = 720;
+  // 1920x1080
+  else if (iWidth <= 1920 && iHeight <= 1080)
+    res = 1080;
+  // 4K
+  else if (iWidth * iHeight >= 6000000)
+    res = 2160;
+  else
+    res = 0;
+
+  if (res == 480 || res == 540 || res == 576)
+    madvr_res = MADVR_RES_SD;
+
+  if (res == 720)
+    madvr_res = MADVR_RES_720;
+
+  if (res == 1080)
+    madvr_res = MADVR_RES_1080;
+
+  if (res == 2160)
+    madvr_res = MADVR_RES_2160;
+
+  return madvr_res;
+}
+
+bool CDSPlayer::UsingDS(DIRECTSHOW_RENDERER renderer)
+{
+  if (renderer == DIRECTSHOW_RENDERER_UNDEF)
+    renderer = m_CurrentRenderer;
+
+  return (m_pAllocatorCallback != NULL && m_CurrentRenderer == renderer);
+}
+
+bool CDSPlayer::ReadyDS(DIRECTSHOW_RENDERER renderer)
+{
+  if (renderer == DIRECTSHOW_RENDERER_UNDEF)
+    renderer = m_CurrentRenderer;
+
+  return (m_pAllocatorCallback != NULL && m_renderOnDs && m_CurrentRenderer == renderer);
+}
+
+void CDSPlayer::SetVisibleScreenArea(CRect activeVideoRect)
+{
+  if (CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_OSDINTOACTIVEAREA)
+    && CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_COPYACTIVERECT)
+    && activeVideoRect != CRect {0,0,0,0})
+  {
+    CRect wndRect = g_graphicsContext.GetViewWindow();
+    CSettings::GetInstance().SetInt(CSettings::SETTING_DSPLAYER_DSAREALEFT, activeVideoRect.x1 - wndRect.x1);
+    CSettings::GetInstance().SetInt(CSettings::SETTING_DSPLAYER_DSAREARIGHT, wndRect.x2 - activeVideoRect.x2);
+    CSettings::GetInstance().SetInt(CSettings::SETTING_DSPLAYER_DSAREATOP, activeVideoRect.y1 - wndRect.y1);
+    CSettings::GetInstance().SetInt(CSettings::SETTING_DSPLAYER_DSAREABOTTOM, wndRect.y2 - activeVideoRect.y2);
+  }
+}
+
+// IDSRendererAllocatorCallback
+CRect CDSPlayer::GetActiveVideoRect()
+{
+  CRect activeVideoRect(0, 0, 0, 0);
+
+  if (ReadyDS())
+    activeVideoRect = m_pAllocatorCallback->GetActiveVideoRect();
+
+  return activeVideoRect;
+}
+
+bool CDSPlayer::IsEnteringExclusive()
+{
+  if (UsingDS(DIRECTSHOW_RENDERER_MADVR))
+    return m_pAllocatorCallback->IsEnteringExclusive();
+
+  return false;
+}
+
+void CDSPlayer::EnableExclusive(bool bEnable)
+{
+  if (UsingDS(DIRECTSHOW_RENDERER_MADVR))
+    m_pAllocatorCallback->EnableExclusive(bEnable);
+}
+
+void CDSPlayer::SetPixelShader()
+{
+  if (UsingDS(DIRECTSHOW_RENDERER_MADVR))
+    m_pAllocatorCallback->SetPixelShader();
+}
+
+void CDSPlayer::SetResolution()
+{
+  if (UsingDS(DIRECTSHOW_RENDERER_MADVR))
+    m_pAllocatorCallback->SetResolution();
+}
+
+bool CDSPlayer::ParentWindowProc(HWND hWnd, UINT uMsg, WPARAM *wParam, LPARAM *lParam, LRESULT *ret)
+{
+  if (UsingDS(DIRECTSHOW_RENDERER_MADVR))
+    return m_pAllocatorCallback->ParentWindowProc(hWnd, uMsg, wParam, lParam, ret);
+
+  return false;
+}
+
+void CDSPlayer::Reset()
+{
+  if (UsingDS(DIRECTSHOW_RENDERER_EVR))
+    m_pAllocatorCallback->Reset();
+}
+
+// IDSRendererPaintCallback
+void CDSPlayer::BeginRender()
+{
+  if (m_pPaintCallback && ReadyDS())
+    m_pPaintCallback->BeginRender();
+}
+
+void CDSPlayer::RenderToTexture(DS_RENDER_LAYER layer)
+{
+  if (m_pPaintCallback && ReadyDS())
+    m_pPaintCallback->RenderToTexture(layer);
+}
+
+void CDSPlayer::EndRender()
+{
+  if (m_pPaintCallback && ReadyDS())
+    m_pPaintCallback->EndRender();
+}
+
+// IMadvrSettingCallback
+void CDSPlayer::RestoreSettings()
+{
+  if (m_pSettingCallback)
+    m_pSettingCallback->RestoreSettings();
+}
+
+void CDSPlayer::LoadSettings(int iSectionId)
+{
+  if (m_pSettingCallback)
+    m_pSettingCallback->LoadSettings(iSectionId);
+}
+
+void CDSPlayer::GetProfileActiveName(const std::string &path, std::string *profile)
+{
+  if (m_pSettingCallback)
+    m_pSettingCallback->GetProfileActiveName(path, profile);
+}
+void CDSPlayer::OnSettingChanged(int iSectionId, CSettingsManager* settingsManager, const CSetting *setting)
+{
+  if (m_pSettingCallback)
+    m_pSettingCallback->OnSettingChanged(iSectionId, settingsManager, setting);
+}
+
+void CDSPlayer::AddDependencies(const std::string &xml, CSettingsManager *settingsManager, CSetting *setting)
+{
+  if (m_pSettingCallback)
+    m_pSettingCallback->AddDependencies(xml, settingsManager, setting);
+}
+
+void CDSPlayer::ListSettings(const std::string &path)
+{
+  if (m_pSettingCallback)
+    m_pSettingCallback->ListSettings(path);
 }
 
 #endif

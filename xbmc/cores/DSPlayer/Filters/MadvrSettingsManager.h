@@ -24,7 +24,6 @@
 #pragma once
 
 #include "AllocatorCommon.h"
-#include "DSRendererCallback.h"
 #include "MadvrSettings.h"
 
 enum MADVR_SETTINGS_TYPE

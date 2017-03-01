@@ -22,11 +22,11 @@
 
 #include <cassert>
 #include <utility>
-#ifdef HAS_DS_PLAYER
-#include "DSRendererCallback.h"
-#endif
 
 #include "guiinfo/GUIInfoLabels.h"
+#ifdef HAS_DS_PLAYER
+#include "Application.h"
+#endif
 
 CGUIControlGroup::CGUIControlGroup()
 {
@@ -128,7 +128,7 @@ void CGUIControlGroup::Render()
 #ifdef HAS_DS_PLAYER
     {
       if (control->GetControlType() == GUICONTROL_VIDEO && control->IsVisible())
-        CDSRendererCallback::Get()->RenderToTexture(RENDER_LAYER_OVER);
+        g_application.m_pPlayer->RenderToTexture(RENDER_LAYER_OVER);
 
       control->DoRender();
     }

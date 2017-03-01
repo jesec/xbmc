@@ -29,7 +29,6 @@
 
 #include "DSUtil/DSUtil.h"
 #include "DSUtil/SmartPtr.h"
-#include "IPaintCallback.h"
 #include "streams.h"
 #include "utils/CharsetConverter.h"
 #include "system.h"
@@ -179,9 +178,6 @@ public:
   void SetIsUsingDXVADecoder(bool val) { m_UsingDXVADecoder = val; }
   void SetIsDVD(bool val) { m_isDVD = val; }
 
-  std::string GetDefaultRulePriority() { return m_defaultRulePriority; }
-  void SetDefaultRulePriority(std::string sValue) { m_defaultRulePriority = sValue; }
-
   // Internal Filters
   void ShowInternalPPage(const std::string &type, bool showPropertyPage);
   bool ShowOSDPPage(IBaseFilter *pBF);
@@ -198,10 +194,6 @@ public:
 
   void SetSanearSettings();
 
-  static HRESULT PropertyPageCallback(IUnknown* pBF);
-
-  bool HasSubFilter() { return m_hsubfilter; }
-  void SetHasSubFilter(bool b) { m_hsubfilter = b; }
   void SetKodiRealFS(bool b) { m_isKodiRealFS = b; }
   void SetAuxAudioDelay();
   bool GetAuxAudioDelay() { return m_auxAudioDelay; }
@@ -224,14 +216,12 @@ private:
   static CGraphFilters* m_pSingleton;
 
   bool m_isKodiRealFS;
-  bool m_hsubfilter;
   bool m_isDVD;
   bool m_UsingDXVADecoder;
   bool m_auxAudioDelay;
 
   bool m_bDialogProcessInfo = false;
 
-  std::string m_defaultRulePriority;
   Com::SmartPtr<IBaseFilter> m_pBF;
   IDirect3DDevice9 * m_pD3DDevice;
 };

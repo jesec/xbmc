@@ -160,7 +160,6 @@
 #include "cores/DSPlayer/Dialogs/GUIDialogLAVSplitter.h"
 #include "cores/DSPlayer/Dialogs/GUIDIalogMadvrSettings.h"
 #include "cores/DSPlayer/Dialogs/GUIDIalogSanear.h"
-#include "cores/DSPlayer/DSRendererCallback.h"
 #include "cores/DSPlayer/Dialogs/GUIDialogDSPlayerProcessInfo.h"
 #endif
 
@@ -1125,7 +1124,7 @@ bool CGUIWindowManager::Render()
   CSingleExit lock(g_graphicsContext);
 
 #ifdef HAS_DS_PLAYER
-  CDSRendererCallback::Get()->RenderToTexture(RENDER_LAYER_UNDER);
+  g_application.m_pPlayer->RenderToTexture(RENDER_LAYER_UNDER);
 #endif
 
   CDirtyRegionList dirtyRegions = m_tracker.GetDirtyRegions();

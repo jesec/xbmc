@@ -582,6 +582,11 @@ STDMETHODIMP CEVRAllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
 
 STDMETHODIMP_(bool) CEVRAllocatorPresenter::Paint(bool fAll)
 {
+  CRect sourceRect, viewRect, videoRect;
+  g_application.m_pPlayer->GetVideoRect(sourceRect, videoRect, viewRect);
+  
+  __super::OnPaint(videoRect);
+
   m_pD3DDev->BeginScene();
   m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET, 0, 1.0f, 0);
   m_pEvrShared->Render(RENDER_LAYER_UNDER);
@@ -593,6 +598,8 @@ STDMETHODIMP_(bool) CEVRAllocatorPresenter::Paint(bool fAll)
 
   m_pD3DDev->EndScene();
   m_pD3DDev->Present(NULL, NULL, NULL, NULL);
+
+  __super::AfterPresent();
 
   return bResult;
 }
@@ -1723,7 +1730,7 @@ void CEVRAllocatorPresenter::GetMixerThread()
         if (!g_application.m_pPlayer->IsRenderingVideo())
         {
 
-          g_dsGraph->Configure(m_NativeVideoSize.cx, m_NativeVideoSize.cy, m_AspectRatio.cx, m_AspectRatio.cy, m_fps, CONF_FLAGS_FULLSCREEN);
+          g_application.m_pPlayer->Configure(m_NativeVideoSize.cx, m_NativeVideoSize.cy, m_AspectRatio.cx, m_AspectRatio.cy, m_fps, CONF_FLAGS_FULLSCREEN);
           CLog::Log(LOGDEBUG, "%s Render manager configured (FPS: %f)", __FUNCTION__, m_fps);
         }
       }

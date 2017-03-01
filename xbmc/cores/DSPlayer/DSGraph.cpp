@@ -53,7 +53,6 @@
 #include "utils/timeutils.h"
 #include "utils/ipinhook.h"
 #include "DSInputStreamPVRManager.h"
-#include "DSRendererCallback.h"
 
 #include "guilib/LocalizeStrings.h"
 #include "cores/DataCacheCore.h"
@@ -74,112 +73,18 @@ using namespace KODI::MESSAGING;
 
 CDSGraph* g_dsGraph = NULL;
 
-CDSGraph::CDSGraph(IPlayerCallback& callback, CRenderDSManager& renderManager)
+CDSGraph::CDSGraph(IPlayerCallback& callback)
   : m_pGraphBuilder(NULL),
   m_iCurrentFrameRefreshCycle(0),
   m_callback(callback),
   m_canSeek(-1),
   m_currentVolume(-1.0f),
-  m_renderManager(renderManager)
+  m_bPerformStop(false)
 {
-  m_width = 0;
-  m_height = 0;
-  m_fps = 0.0f;
 }
 
 CDSGraph::~CDSGraph()
 {
-}
-
-bool CDSGraph::Configure(unsigned int width, unsigned int height, unsigned int d_width, unsigned int d_height, float fps, unsigned flags)
-{
-  m_fps = fps;
-  m_height = height;
-  m_width = width;
-  m_audioStreamCount = g_application.m_pPlayer->GetAudioStreamCount();
-  UpdateProcessInfo();
-  return m_renderManager.Configure(width, height, d_width, d_height, fps, flags);
-}
-
-void CDSGraph::UpdateProcessInfo(int index)
-{
-  if (index == CURRENT_STREAM)
-    index = g_application.m_pPlayer->GetAudioStream();
-
-  CStdString info;
-
-  //Renderers in dsplayer
-  info.Format("%s, %s", CGraphFilters::Get()->VideoRenderer.osdname, CGraphFilters::Get()->AudioRenderer.osdname);
-  m_processInfo->SetVideoPixelFormat(info);
-  //filters in dsplayer
-  m_processInfo->SetVideoDeintMethod(g_dsGraph->GetGeneralInfo());
-
-  //AUDIO
-
-  //add visible track number
-  info.Format("%i %s", CStreamsManager::Get() ? CStreamsManager::Get()->GetChannels(index) : 0, g_localizeStrings.Get(14301));
-  if (m_audioStreamCount > 1)
-    info.Format("(%i/%i) %s ", index+1, m_audioStreamCount, info);
-  m_processInfo->SetAudioChannels(info);
-
-  m_processInfo->SetAudioBitsPerSample(CStreamsManager::Get() ? CStreamsManager::Get()->GetBitsPerSample(index) : 0);
-  m_processInfo->SetAudioSampleRate(CStreamsManager::Get() ? CStreamsManager::Get()->GetSampleRate(index) : 0);
-
-  //add delay info to audio decoder name;
-  SetAudioCodeDelayInfo(index);
-
-  //VIDEO
-  m_processInfo->SetVideoDimensions(m_width, m_height);
-  m_processInfo->SetVideoDecoderName(CStreamsManager::Get() ? CStreamsManager::Get()->GetVideoCodecName() : "", CStreamsManager::Get()->GetHWAccel() > 0);
-  m_processInfo->SetVideoDAR((float)m_width / (float)m_height);
-  m_processInfo->SetVideoFps(m_fps);
-
-  CServiceBroker::GetDataCacheCore().SignalAudioInfoChange();
-  CServiceBroker::GetDataCacheCore().SignalVideoInfoChange();
-}
-
-void CDSGraph::SetAudioCodeDelayInfo(int index)
-{
-  if (index == CURRENT_STREAM)
-    index = g_application.m_pPlayer->GetAudioStream();
-
-  CStdString info;
-  int iAudioDelay = CStreamsManager::Get() ? CStreamsManager::Get()->GetLastAVDelay() : 0;
-  info.Format("%s, %ims delay", CStreamsManager::Get() ? CStreamsManager::Get()->GetAudioCodecDisplayName(index) : "", iAudioDelay);
-
-  m_processInfo->SetAudioDecoderName(info);
-
-  CServiceBroker::GetDataCacheCore().SignalAudioInfoChange();
-}
-
-void CDSGraph::UpdateDisplayLatencyForMadvr(float refresh)
-{
-  m_renderManager.UpdateDisplayLatencyForMadvr(refresh);
-}
-
-void CDSGraph::RegisterCallback(IPaintCallback *callback)
-{
-  m_renderManager.RegisterCallback(callback);
-}
-
-void CDSGraph::Render(bool clear, DWORD flags, DWORD alpha, bool gui)
-{
-  m_renderManager.Render(clear, flags, alpha, gui);
-}
-
-void CDSGraph::OnAfterPresent()
-{
-  m_renderManager.OnAfterPresent();
-}
-
-void CDSGraph::UnregisterCallback()
-{
-  m_renderManager.UnregisterCallback();
-}
-
-void CDSGraph::Reset()
-{
-  m_renderManager.Reset();
 }
 
 //This is also creating the Graph
@@ -221,9 +126,10 @@ HRESULT CDSGraph::SetFile(const CFileItem& file, const CPlayerOptions &options)
   m_VideoInfo.time_format = TIME_FORMAT_MEDIA_TIME;
 
   // if needed set resolution to match fps then set pixelshader & settings for madVR
-  CDSRendererCallback::Get()->SetResolution();
-  CDSRendererCallback::Get()->SetMadvrPixelShader();
-  CDSRendererCallback::Get()->RestoreSettings();
+  
+  g_application.m_pPlayer->SetResolution();
+  g_application.m_pPlayer->SetPixelShader();
+  g_application.m_pPlayer->RestoreSettings();
 
   if (m_pVideoWindow)
   {
@@ -276,7 +182,7 @@ void CDSGraph::CloseFile()
 
   if (m_pGraphBuilder)
   {
-    CDSRendererCallback::Get()->SetRenderOnDS(false);
+    g_application.m_pPlayer->SetRenderOnDS(false);
 
     if (m_pAMOpenProgress)
       m_pAMOpenProgress->AbortOperation();
@@ -310,7 +216,7 @@ void CDSGraph::CloseFile()
     if (CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_EXITMADVRFULLSCREEN))
     {
       CDSPlayer::SetDsWndVisible(false);
-      CDSRendererCallback::Get()->EnableExclusive(false);
+      g_application.m_pPlayer->EnableExclusive(false);
     }
 
     pFilterGraph.Release();
@@ -385,7 +291,7 @@ void CDSGraph::UpdateTime()
 
   /*
   TODO EVR STATS
-  if ((CGraphFilters::Get()->VideoRenderer.pQualProp) && m_iCurrentFrameRefreshCycle <= 0 && !CDSRendererCallback::Get()->UsingDS(DIRECTSHOW_RENDERER_MADVR))
+  if ((CGraphFilters::Get()->VideoRenderer.pQualProp) && m_iCurrentFrameRefreshCycle <= 0 && !g_application.m_pPlayer->UsingDS(DIRECTSHOW_RENDERER_MADVR))
   {
     //this is too slow if we are doing it on every UpdateTime
     int avgRate;
@@ -446,14 +352,6 @@ void CDSGraph::UpdateTotalTime()
   }
 }
 
-void CDSGraph::UpdateMadvrWindowPosition()
-{
-  SPlayerVideoStreamInfo info;
-  g_application.m_pPlayer->GetVideoStreamInfo(0,info);
-  CRect viewRect = g_graphicsContext.GetViewWindow();
-  CDSRendererCallback::Get()->SetMadvrPosition(viewRect, info.DestRect);
-}
-
 void CDSGraph::UpdateWindowPosition()
 {
   if (m_pVideoWindow && m_pVideoWindow)
@@ -471,6 +369,9 @@ void CDSGraph::UpdateWindowPosition()
 
 void CDSGraph::UpdateState()
 {
+  if (m_pMediaControl == nullptr)
+    return;
+
   HRESULT hr = S_OK;
   if (CDSPlayer::PlayerState == DSPLAYER_CLOSING || CDSPlayer::PlayerState == DSPLAYER_CLOSED)
     return;
@@ -508,11 +409,18 @@ HRESULT CDSGraph::HandleGraphEvent()
   LONG_PTR evParam1, evParam2;
   HRESULT hr = S_OK;
 
-  if (CDSRendererCallback::Get()->ReadyDS() && CDSRendererCallback::Get()->GetStop())
+  if (g_application.m_pPlayer->ReadyDS() && m_bPerformStop)
   {
-    CDSRendererCallback::Get()->SetStop(false);
+    m_bPerformStop = false;
     CApplicationMessenger::GetInstance().SendMsg(TMSG_MEDIA_STOP);
     CLog::Log(LOGDEBUG, "%s Playback stopped at start", __FUNCTION__);
+  }
+
+  if (g_application.m_pPlayer->ReadyDS() && m_bPerformPause)
+  {
+    m_bPerformPause = false;
+    CApplicationMessenger::GetInstance().SendMsg(TMSG_MEDIA_PAUSE);
+    CLog::Log(LOGDEBUG, "%s Playback paused at start", __FUNCTION__);
   }
 
   // Make sure that we don't access the media event interface
@@ -1021,7 +929,7 @@ CStdString CDSGraph::GetVideoInfo()
     videoInfo += m_pStrCurrentFrameRate.c_str();
 
   CStdString strDXVA;
-  if (!CDSRendererCallback::Get()->UsingDS(DIRECTSHOW_RENDERER_MADVR))
+  if (!g_application.m_pPlayer->UsingDS(DIRECTSHOW_RENDERER_MADVR))
     strDXVA = GetDXVADecoderDescription();
 
   if (!strDXVA.empty())

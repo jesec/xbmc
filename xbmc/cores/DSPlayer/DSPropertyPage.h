@@ -109,6 +109,8 @@ public:
   virtual ~CDSPropertyPage();
 
   virtual bool Initialize();
+  static HRESULT PropertyPageCallback(IUnknown* pBF);
+
 protected:
   virtual void OnExit();
   virtual void Process();

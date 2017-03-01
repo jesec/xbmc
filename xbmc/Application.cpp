@@ -151,7 +151,6 @@
 #include "dialogs/GUIDialogSimpleMenu.h"
 #include "addons/GUIDialogAddonSettings.h"
 #ifdef HAS_DS_PLAYER
-#include "DSRendererCallback.h"
 #include "DSPlayerDatabase.h"
 #endif
 
@@ -1934,7 +1933,7 @@ void CApplication::Render()
     return;
 
 #ifdef HAS_DS_PLAYER
-  CDSRendererCallback::Get()->BeginRender();
+  g_application.m_pPlayer->BeginRender();
 #endif
   CDirtyRegionList dirtyRegions;
 
@@ -1966,13 +1965,13 @@ void CApplication::Render()
 
   // render video layer
 #ifdef HAS_DS_PLAYER   
-  if (!CDSRendererCallback::Get()->ReadyDS())
+  if (!g_application.m_pPlayer->ReadyDS())
 #endif
   g_windowManager.RenderEx();
 
   g_Windowing.EndRender();
 #ifdef HAS_DS_PLAYER
-  CDSRendererCallback::Get()->EndRender();
+  g_application.m_pPlayer->EndRender();
 #endif
 
   // reset our info cache - we do this at the end of Render so that it is
@@ -3896,15 +3895,6 @@ void CApplication::LoadVideoSettings(const CFileItem& item)
 void CApplication::StopPlaying()
 {
   int iWin = g_windowManager.GetActiveWindow();
-#ifdef HAS_DS_PLAYER
-  std::string cazz = GetCurrentPlayer();
-  if (GetCurrentPlayer() == "DSPlayer" && m_pPlayer->IsPlaying() && !CDSRendererCallback::Get()->ReadyDS())
-  {
-    CDSRendererCallback::Get()->SetStop(true);
-    return;
-  }
-#endif
-
   if ( m_pPlayer->IsPlaying() )
   {
 

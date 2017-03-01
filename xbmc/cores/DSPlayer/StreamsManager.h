@@ -199,13 +199,13 @@ public:
 
   void GetVideoStreamName(CStdString &strStreamName);
 
-  int  GetSubfilterCount();
-  int  GetSubfilter();
-  void GetSubfilterName(int iStream, CStdString &strStreamName);
-  bool GetSubfilterVisible();
-  void SetSubfilterVisible(bool bVisible);
-  bool SetSubfilter(const std::string &sTrackName);
-  void SetSubfilter(int iStream);
+  int  GetSubtitleCount();
+  int  GetSubtitle();
+  void GetSubtitleName(int iStream, CStdString &strStreamName);
+  bool GetSubtitleVisible();
+  void SetSubtitleVisible(bool bVisible);
+  bool SetSubtitle(const std::string &sTrackName);
+  void SetSubtitle(int iStream);
   void SelectBestSubtitle(const std::string &fileName = "");
   void SelectBestAudio();
   int AddSubtitle(const std::string& subFilePath);
@@ -306,7 +306,7 @@ protected:
   Com::SmartPtr<IBaseFilter> m_pSubs;
 
   bool m_bSubfilterVisible;
-  bool m_hsubfilter;
+  bool m_bHasSubsFilter;
   bool m_init;
   bool m_bIsXYVSFilter;
   bool m_bIsLavAudio;

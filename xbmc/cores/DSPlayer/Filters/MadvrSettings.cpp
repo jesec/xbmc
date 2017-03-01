@@ -22,7 +22,6 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "MadvrSettings.h"
-#include "DSRendererCallback.h"
 #include "utils/JSONVariantParser.h"
 #include "utils/JSONVariantWriter.h"
 #include "Utils/Log.h"

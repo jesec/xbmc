@@ -47,7 +47,6 @@
 #include "utils/CharsetConverter.h"
 #include "guilib/LocalizeStrings.h"
 #include "application.h"
-#include "DSRendererCallback.h"
 #include "DSPlayerDatabase.h"
 #endif
 
