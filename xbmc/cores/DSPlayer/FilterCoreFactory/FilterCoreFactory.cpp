@@ -31,7 +31,7 @@ InternalFilters internalFilters[] =
   { "internal_archivesource", "Internal archive source", &InternalFilterConstructor < CXBMCASyncReader > }
 };
 
-HRESULT CFilterCoreFactory::LoadMediasConfiguration(TiXmlElement* pConfig)
+HRESULT CFilterCoreFactory::LoadMediasConfiguration(TiXmlElement* pConfig, int iPriority)
 {
   if (!pConfig || strcmpi(pConfig->Value(), "mediasconfig") != 0)
   {
@@ -46,7 +46,7 @@ HRESULT CFilterCoreFactory::LoadMediasConfiguration(TiXmlElement* pConfig)
     TiXmlElement *pRule = pRules->FirstChildElement("rule");
     while (pRule)
     {
-      m_selecRules.push_back(new CGlobalFilterSelectionRule(pRule));
+      m_selecRules.push_back(new CGlobalFilterSelectionRule(pRule, iPriority));
       pRule = pRule->NextSiblingElement("rule");
     }
   }

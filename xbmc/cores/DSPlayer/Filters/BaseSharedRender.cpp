@@ -21,7 +21,6 @@
  *
  */
 #include "BaseSharedRender.h"
-#include "mvrInterfaces.h"
 #include "Utils/Log.h"
 #include "guilib/GUIWindowManager.h"
 #include "windowing/WindowingFactory.h"

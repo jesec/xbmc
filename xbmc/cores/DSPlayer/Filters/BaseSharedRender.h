@@ -22,8 +22,8 @@
  */
 #pragma once
 
-#include "DSRendererCallback.h"
 #include "threads/Event.h"
+#include "IDSPlayer.h"
 
 enum SHAREDRENDER_STATE
 {

@@ -278,5 +278,12 @@ void CDSPropertyPage::OnExit()
   }
 }
 
+HRESULT CDSPropertyPage::PropertyPageCallback(IUnknown* pBF)
+{
+  CDSPropertyPage *pDSPropertyPage = DNew CDSPropertyPage((IBaseFilter *)pBF);
+  pDSPropertyPage->Initialize();
+
+  return S_OK;
+}
 
 #endif

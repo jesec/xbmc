@@ -49,7 +49,7 @@ public:
   static std::vector<CFGFilterFile *> m_Filters;
 
   static HRESULT LoadFiltersConfiguration(TiXmlElement* pConfig);
-  static HRESULT LoadMediasConfiguration(TiXmlElement* pConfig);
+  static HRESULT LoadMediasConfiguration(TiXmlElement* pConfig, int iPriority);
 
   static HRESULT GetSourceFilter(const CFileItem& pFileItem, CStdString& filter);
   static HRESULT GetSplitterFilter(const CFileItem& pFileItem, CStdString& filter);

@@ -23,15 +23,16 @@
 #include "EvrSharedRender.h"
 #include "guilib/GraphicContext.h"
 #include "windowing/WindowingFactory.h"
-#include "DSGraph.h"
+#include "Application.h"
 
 CEvrSharedRender::CEvrSharedRender()
 {
-  CDSRendererCallback::Get()->Register(this);
+  g_application.m_pPlayer->Register(this);
 }
 
 CEvrSharedRender::~CEvrSharedRender()
 {
+  g_application.m_pPlayer->Unregister(this);
 }
 
 HRESULT CEvrSharedRender::Render(DS_RENDER_LAYER layer)
@@ -40,7 +41,7 @@ HRESULT CEvrSharedRender::Render(DS_RENDER_LAYER layer)
   if (m_bWaitKodiRendering)
     m_dsWait.Wait(100);
 
-  if (!CDSRendererCallback::Get()->GetRenderOnDS() || (g_graphicsContext.IsFullScreenVideo() && layer == RENDER_LAYER_UNDER))
+  if (!g_application.m_pPlayer->GetRenderOnDS() || (g_graphicsContext.IsFullScreenVideo() && layer == RENDER_LAYER_UNDER))
     return S_FALSE;
 
   // Render the GUI on EVR
@@ -75,12 +76,12 @@ void CEvrSharedRender::BeginRender()
   pSurface11->Release();
 
   // Reset RenderCount
-  CDSRendererCallback::Get()->ResetRenderCount();
+  g_application.m_pPlayer->ResetRenderCount();
 }
 
 void CEvrSharedRender::RenderToTexture(DS_RENDER_LAYER layer)
 {
-  CDSRendererCallback::Get()->SetCurrentVideoLayer(layer);
+  g_application.m_pPlayer->SetCurrentVideoLayer(layer);
 
   ID3D11DeviceContext* pContext = g_Windowing.Get3D11Context();
   ID3D11RenderTargetView* pSurface11;
@@ -92,17 +93,12 @@ void CEvrSharedRender::RenderToTexture(DS_RENDER_LAYER layer)
 
 void CEvrSharedRender::EndRender()
 {
-  m_bGuiVisible = CDSRendererCallback::Get()->GuiVisible();
-  m_bGuiVisibleOver = CDSRendererCallback::Get()->GuiVisible(RENDER_LAYER_OVER);
-
-  if (!m_bGuiVisibleOver && !g_graphicsContext.IsFullScreenVideo())
-    g_dsGraph->Render(true, 0, 255);
-
   // Force to complete the rendering on Kodi device
   g_Windowing.FinishCommandList();
   ForceComplete();
 
-  g_dsGraph->OnAfterPresent(); // We need to do some stuff after Present
+  m_bGuiVisible = g_application.m_pPlayer->GuiVisible();
+  m_bGuiVisibleOver = g_application.m_pPlayer->GuiVisible(RENDER_LAYER_OVER);
 
   // Unlock EVR rendering
   m_dsWait.Unlock();

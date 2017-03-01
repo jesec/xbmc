@@ -54,14 +54,14 @@ const std::string CGraphFilters::MADSHI_VIDEO_RENDERER = "madVR";
 CGraphFilters *CGraphFilters::m_pSingleton = NULL;
 
 CGraphFilters::CGraphFilters() :
-m_isDVD(false), m_UsingDXVADecoder(false), m_hsubfilter(false)
+  m_isDVD(false), 
+  m_UsingDXVADecoder(false),
+  m_isKodiRealFS(false),
+  m_auxAudioDelay(false),
+  m_bDialogProcessInfo(false),
+  m_pD3DDevice(nullptr),
+  sanear(nullptr)
 {
-  m_isKodiRealFS = false;
-  m_defaultRulePriority = "0";
-  m_pD3DDevice = NULL;
-  m_auxAudioDelay = false;
-  m_bDialogProcessInfo = false;
-  sanear = NULL;
 }
 
 CGraphFilters::~CGraphFilters()
@@ -431,7 +431,7 @@ bool CGraphFilters::SetLavSettings(const std::string &type, IBaseFilter* pBF)
 
     // Custom interface
     if (Com::SmartQIPtr<ILAVVideoSettingsDSPlayerCustom> pLAVFSettingsDSPlayerCustom = pLAVVideoSettings)
-      pLAVFSettingsDSPlayerCustom->SetPropertyPageCallback(PropertyPageCallback);
+      pLAVFSettingsDSPlayerCustom->SetPropertyPageCallback(CDSPropertyPage::PropertyPageCallback);
   }
   if (type == INTERNAL_LAVAUDIO)
   {
@@ -476,7 +476,7 @@ bool CGraphFilters::SetLavSettings(const std::string &type, IBaseFilter* pBF)
 
     // Custom interface
     if (Com::SmartQIPtr<ILAVAudioSettingsDSPlayerCustom> pLAVFSettingsDSPlayerCustom = pLAVAudioSettings)
-      pLAVFSettingsDSPlayerCustom->SetPropertyPageCallback(PropertyPageCallback);
+      pLAVFSettingsDSPlayerCustom->SetPropertyPageCallback(CDSPropertyPage::PropertyPageCallback);
   }
   if (type == INTERNAL_LAVSPLITTER)
   {
@@ -506,7 +506,7 @@ bool CGraphFilters::SetLavSettings(const std::string &type, IBaseFilter* pBF)
 
     // Custom interface
     if (Com::SmartQIPtr<ILAVFSettingsDSPlayerCustom> pLAVFSettingsDSPlayerCustom = pLAVFSettings)
-      pLAVFSettingsDSPlayerCustom->SetPropertyPageCallback(PropertyPageCallback);
+      pLAVFSettingsDSPlayerCustom->SetPropertyPageCallback(CDSPropertyPage::PropertyPageCallback);
   }
   return true;
 }
@@ -572,14 +572,6 @@ void CGraphFilters::EraseLavSetting(const std::string &type)
 
     dsdbs.Close();
   }
-}
-
-HRESULT CGraphFilters::PropertyPageCallback(IUnknown* pBF)
-{
-  CDSPropertyPage *pDSPropertyPage = DNew CDSPropertyPage((IBaseFilter *)pBF);
-  pDSPropertyPage->Initialize();
-
-  return S_OK;
 }
 
 void CGraphFilters::SetAuxAudioDelay()

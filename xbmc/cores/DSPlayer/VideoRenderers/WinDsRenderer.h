@@ -29,17 +29,17 @@
 
 #include "../DSPlayer/DSUtil/SmartPtr.h"
 #include "threads/CriticalSection.h"
-#include "BaseDSRenderer.h"
 #include "guilib/D3DResource.h"
 #include "../VideoPlayer/VideoRenderers/RenderCapture.h"
 #include "settings/VideoSettings.h"
+#include "../VideoPlayer/VideoRenderers/BaseRenderer.h"
 
 #define AUTOSOURCE -1
 
 class CBaseTexture;
 class IPaintCallback;
 
-class CWinDsRenderer : public CBaseDSRenderer
+class CWinDsRenderer : public CBaseRenderer
 {
 public:
   CWinDsRenderer();
@@ -62,18 +62,11 @@ public:
   virtual void         Reset(); /* resets renderer after seek for example */
   virtual bool         IsConfigured() { return m_bConfigured; }
   virtual void         Flush();
-  
-  virtual void         RegisterCallback(IPaintCallback *callback);
-  virtual void         UnregisterCallback();
-  virtual inline void  OnAfterPresent();
 
   // Feature support
   virtual bool         SupportsMultiPassRendering() { return false; }
   virtual bool         Supports(ERENDERFEATURE feature);
-  virtual bool         Supports(EINTERLACEMETHOD method);
   virtual bool         Supports(ESCALINGMETHOD method);
-
-  virtual EINTERLACEMETHOD AutoInterlaceMethod();
 
   void                 RenderUpdate(bool clear, unsigned int flags = 0, unsigned int alpha = 255);
 

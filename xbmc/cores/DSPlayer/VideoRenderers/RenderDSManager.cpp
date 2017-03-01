@@ -474,17 +474,6 @@ bool CRenderDSManager::Supports(ERENDERFEATURE feature)
     return false;
 }
 
-bool CRenderDSManager::Supports(EINTERLACEMETHOD method)
-{
-  CSingleLock lock(m_statelock);
-  if (m_pRenderer)
-    return m_pRenderer->Supports(method);
-  else
-    return false;
-    
-  return false;
-}
-
 bool CRenderDSManager::Supports(ESCALINGMETHOD method)
 {
   CSingleLock lock(m_statelock);
@@ -494,24 +483,5 @@ bool CRenderDSManager::Supports(ESCALINGMETHOD method)
     return false;
 }
 
-EINTERLACEMETHOD CRenderDSManager::AutoInterlaceMethod(EINTERLACEMETHOD mInt)
-{
-  CSingleLock lock(m_statelock);
-  return AutoInterlaceMethodInternal(mInt);
-}
-
-EINTERLACEMETHOD CRenderDSManager::AutoInterlaceMethodInternal(EINTERLACEMETHOD mInt)
-{
-  if (mInt == VS_INTERLACEMETHOD_NONE)
-    return VS_INTERLACEMETHOD_NONE;
-
-  if(m_pRenderer && !m_pRenderer->Supports(mInt))
-    mInt = VS_INTERLACEMETHOD_AUTO;
-
-  if (m_pRenderer && mInt == VS_INTERLACEMETHOD_AUTO)
-    return m_pRenderer->AutoInterlaceMethod();
-    
-  return mInt;
-}
 
 #endif

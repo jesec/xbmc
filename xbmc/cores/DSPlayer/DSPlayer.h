@@ -188,6 +188,10 @@ public:
   virtual bool Supports(EINTERLACEMETHOD method) override;
   virtual bool Supports(ESCALINGMETHOD method) override;
   virtual bool Supports(ERENDERFEATURE feature) override;
+  
+  virtual bool Configure(unsigned int width, unsigned int height, unsigned int d_width, unsigned int d_height, float fps, unsigned flags) override;
+  virtual void UpdateDisplayLatencyForMadvr(float refresh) override;
+  virtual void GetVideoRect(CRect &source, CRect &dest, CRect &view) override;
 
   // IDispResource interface
   virtual void OnLostDisplay();
@@ -228,12 +232,15 @@ public:
   void UpdateApplication();
   void UpdateChannelSwitchSettings();
   void LoadVideoSettings(const CFileItem& file);
+
+  void UpdateProcessInfo(int index = CURRENT_STREAM);
+  void SetAudioCodeDelayInfo(int index = CURRENT_STREAM);
   
   //madVR Window
   static LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
   static HWND m_hWnd;
-  bool InitMadvrWindow(HWND &hWnd);
-  void DeInitMadvrWindow();
+  bool InitWindow(HWND &hWnd);
+  void DeInitWindow();
   CStdString m_className;
   HINSTANCE m_hInstance; 
   bool m_isMadvr;
@@ -327,5 +334,62 @@ protected:
   std::atomic_bool m_canTempo;
 
   CRenderDSManager m_renderManager;
+
+  float m_fps;
+
+  void SetVisibleScreenArea(CRect activeVideoRect);
+  int VideoDimsToResolution(int iWidth, int iHeight);
+  CRect m_lastActiveVideoRect;
+
+  // IDSPlayer
+  bool UsingDS(DIRECTSHOW_RENDERER renderer = DIRECTSHOW_RENDERER_UNDEF);
+  bool ReadyDS(DIRECTSHOW_RENDERER renderer = DIRECTSHOW_RENDERER_UNDEF);
+  bool GetRenderOnDS() { return m_renderOnDs; }
+  void SetRenderOnDS(bool b) { m_renderOnDs = b; }
+  void SetCurrentVideoLayer(DS_RENDER_LAYER layer) { m_currentVideoLayer = layer; }
+  void IncRenderCount();
+  void ResetRenderCount();
+  bool GuiVisible(DS_RENDER_LAYER layer = RENDER_LAYER_ALL);
+  DIRECTSHOW_RENDERER GetCurrentRenderer() { return m_CurrentRenderer; }
+  void SetCurrentRenderer(DIRECTSHOW_RENDERER renderer) { m_CurrentRenderer = renderer; }
+
+  // IDSRendererAllocatorCallback (madVR)
+  CRect GetActiveVideoRect();
+  bool IsEnteringExclusive();
+  void EnableExclusive(bool bEnable);
+  void SetPixelShader();
+  void SetResolution();
+  bool ParentWindowProc(HWND hWnd, UINT uMsg, WPARAM *wParam, LPARAM *lParam, LRESULT *ret);
+  // IDSRendererAllocatorCallback (EVR)
+  void Reset();
+  void Register(IDSRendererAllocatorCallback* pAllocatorCallback) { m_pAllocatorCallback = pAllocatorCallback; }
+  void Unregister(IDSRendererAllocatorCallback* pAllocatorCallback) { m_pAllocatorCallback = nullptr; }
+
+  // IDSRendererPaintCallback
+  void BeginRender();
+  void RenderToTexture(DS_RENDER_LAYER layer);
+  void EndRender();
+  void Register(IDSRendererPaintCallback* pPaintCallback) { m_pPaintCallback = pPaintCallback; }
+  void Unregister(IDSRendererPaintCallback* pPaintCallback) { m_pPaintCallback = nullptr; }
+
+  // IMadvrSettingCallback
+  void LoadSettings(int iSectionId);
+  void RestoreSettings();
+  void GetProfileActiveName(const std::string &path, std::string *profile);
+  void OnSettingChanged(int iSectionId, CSettingsManager* settingsManager, const CSetting *setting);
+  void AddDependencies(const std::string &xml, CSettingsManager *settingsManager, CSetting *setting);
+  void ListSettings(const std::string &path);
+  void Register(IMadvrSettingCallback* pSettingCallback) { m_pSettingCallback = pSettingCallback; }
+  void Unregister(IMadvrSettingCallback* pSettingCallback) { m_pSettingCallback = nullptr; }
+
+  IDSRendererAllocatorCallback* m_pAllocatorCallback;
+  IMadvrSettingCallback* m_pSettingCallback;
+  IDSRendererPaintCallback* m_pPaintCallback;
+  bool m_renderOnDs;
+  bool m_bPerformStop;
+  int m_renderUnderCount;
+  int m_renderOverCount;
+  DS_RENDER_LAYER m_currentVideoLayer;
+  DIRECTSHOW_RENDERER m_CurrentRenderer;
 };
 

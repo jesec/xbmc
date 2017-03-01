@@ -185,8 +185,52 @@ public:
   void SetEdition(int iEdition);
   bool IsMatroskaEditions();
   void ShowEditionDlg(bool playStart);
-#endif
 
+  bool Configure(unsigned int width, unsigned int height, unsigned int d_width, unsigned int d_height, float fps, unsigned flags);
+  void UpdateDisplayLatencyForMadvr(float refresh);
+  void GetVideoRect(CRect &source, CRect &dest, CRect &view);
+
+  // IDSPlayer
+  bool UsingDS(DIRECTSHOW_RENDERER renderer = DIRECTSHOW_RENDERER_UNDEF);
+  bool ReadyDS(DIRECTSHOW_RENDERER renderer = DIRECTSHOW_RENDERER_UNDEF);
+  bool GetRenderOnDS();
+  void SetRenderOnDS(bool b);
+  void SetCurrentVideoLayer(DS_RENDER_LAYER layer);
+  void IncRenderCount();
+  void ResetRenderCount();
+  bool GuiVisible(DS_RENDER_LAYER layer = RENDER_LAYER_ALL);
+  DIRECTSHOW_RENDERER GetCurrentRenderer();
+  void SetCurrentRenderer(DIRECTSHOW_RENDERER renderer);;
+
+  // IDSRendererAllocatorCallback (madVR)
+  CRect GetActiveVideoRect();
+  bool IsEnteringExclusive();
+  void EnableExclusive(bool bEnable);
+  void SetPixelShader();
+  void SetResolution();
+  bool ParentWindowProc(HWND hWnd, UINT uMsg, WPARAM *wParam, LPARAM *lParam, LRESULT *ret);
+  // IDSRendererAllocatorCallback (EVR)
+  void Reset();
+  void Register(IDSRendererAllocatorCallback* pAllocatorCallback);
+  void Unregister(IDSRendererAllocatorCallback* pAllocatorCallback);
+
+  // IDSRendererPaintCallback
+  void BeginRender();
+  void RenderToTexture(DS_RENDER_LAYER layer);
+  void EndRender();
+  void Register(IDSRendererPaintCallback* pPaintCallback);
+  void Unregister(IDSRendererPaintCallback* pPaintCallback);
+
+  // IMadvrSettingCallback
+  void LoadSettings(int iSectionId);
+  void RestoreSettings();
+  void GetProfileActiveName(const std::string &path, std::string *profile);
+  void OnSettingChanged(int iSectionId, CSettingsManager* settingsManager, const CSetting *setting);
+  void AddDependencies(const std::string &xml, CSettingsManager *settingsManager, CSetting *setting);
+  void ListSettings(const std::string &path);
+  void Register(IMadvrSettingCallback* pSettingCallback);
+  void Unregister(IMadvrSettingCallback* pSettingCallback);
+#endif
   
   protected:
     std::shared_ptr<IPlayer> GetInternal() const;

@@ -45,7 +45,6 @@
 #include "guilib/IDirtyRegionSolver.h"
 #include "settings/AdvancedSettings.h"
 
-
 #ifndef TRACE
 #define TRACE(x)
 #endif
@@ -222,12 +221,10 @@ CDX9AllocatorPresenter::CDX9AllocatorPresenter(HWND hWnd, HRESULT& hr, bool bIsE
 {
 
 
-  CDSRendererCallback::Get()->Register(this);
+  g_application.m_pPlayer->Register(this);
   m_pEvrShared = DNew CEvrSharedRender();
   m_firstBoot = true;
   g_Windowing.Register(this);
-
-  g_dsGraph->RegisterCallback(this);
   m_bIsFullscreen = g_dsSettings.IsD3DFullscreen();
 
   m_hDeviceWnd = CDSPlayer::m_hWnd;
@@ -317,10 +314,10 @@ CDX9AllocatorPresenter::CDX9AllocatorPresenter(HWND hWnd, HRESULT& hr, bool bIsE
 
 CDX9AllocatorPresenter::~CDX9AllocatorPresenter()
 {
-  CDSRendererCallback::Destroy();
   SAFE_DELETE(m_pEvrShared);
   g_Windowing.Unregister(this);
-  g_dsGraph->UnregisterCallback();
+  g_application.m_pPlayer->Unregister(this);
+
   if (m_bDesktopCompositionDisabled)
   {
     m_bDesktopCompositionDisabled = false;
@@ -2657,7 +2654,7 @@ void CDX9AllocatorPresenter::OnResetDevice()
   AfterDeviceReset();
 }
 
-void CDX9AllocatorPresenter::OnReset()
+void CDX9AllocatorPresenter::Reset()
 {
   ResetRenderParam();
 }
@@ -2676,13 +2673,13 @@ void CDX9AllocatorPresenter::OnPaint(CRect destRect)
   if (m_firstBoot)
   {
     CDSPlayer::SetDsWndVisible(true);
-    CDSRendererCallback::Get()->SetRenderOnDS(true);
+    g_application.m_pPlayer->SetRenderOnDS(true);
     g_advancedSettings.m_guiAlgorithmDirtyRegions = DIRTYREGION_SOLVER_FILL_VIEWPORT_ALWAYS;
     m_firstBoot = false;
   }
 
-  m_VideoRect.bottom = (long)destRect.y2;
   m_VideoRect.top = (long)destRect.y1;
+  m_VideoRect.bottom = (long)destRect.y2; 
   m_VideoRect.left = (long)destRect.x1;
   m_VideoRect.right = (long)destRect.x2;
 
@@ -2702,7 +2699,7 @@ void CDX9AllocatorPresenter::OnPaint(CRect destRect)
   }
 }
 
-void CDX9AllocatorPresenter::OnAfterPresent()
+void CDX9AllocatorPresenter::AfterPresent()
 {
   if (!m_bPaintWasCalled)
     return;

@@ -34,7 +34,6 @@
 #include "AllocatorCommon.h"
 #include "RendererSettings.h"
 #include "guilib/D3DResource.h"
-#include "IPaintCallback.h"
 #include "Utils/smartlist.h"
 #include "threads/Event.h"
 #include "DSGraph.h"
@@ -66,7 +65,6 @@ public:
 class CDX9AllocatorPresenter
   : public ISubPicAllocatorPresenterImpl,
   public ID3DResource,
-  public IPaintCallback,
   public IDSRendererAllocatorCallback
 {
 public:
@@ -352,10 +350,9 @@ public:
   virtual void                        OnCreateDevice();
   virtual void                        OnResetDevice();
 
-  // IPainCallback
-  virtual void                        OnPaint(CRect destRect);
-  virtual void                        OnAfterPresent();
-  virtual void                        OnReset();
+  void                                OnPaint(CRect destRect);
+  virtual void                        AfterPresent();
+  virtual void                        Reset();
 
   // IEvrAllocatorCallback
   virtual CRect GetActiveVideoRect() { return m_activeVideoRect; };

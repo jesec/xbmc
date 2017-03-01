@@ -31,9 +31,6 @@
 #include "TextureManager.h"
 #include "input/InputManager.h"
 #include "GUIWindowManager.h"
-#ifdef HAS_DS_PLAYER
-#include "DSRendererCallback.h"
-#endif
 
 using namespace KODI::MESSAGING;
 
@@ -768,7 +765,7 @@ void CGraphicContext::GetGUIScaling(const RESOLUTION_INFO &res, float &scaleX, f
       && CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_OSDINTOACTIVEAREA))
     {
       g_guiSkinzoom = 0;
-      activeRect = CDSRendererCallback::Get()->GetActiveVideoRect();
+      activeRect = g_application.m_pPlayer->GetActiveVideoRect();
 
       if (activeRect.x2 - activeRect.x1 > 0 || activeRect.y2 - activeRect.y1 > 0)
       {
@@ -1032,7 +1029,7 @@ void CGraphicContext::SetMediaDir(const std::string &strMediaDir)
 void CGraphicContext::Flip(bool rendered, bool videoLayer)
 {
 #ifdef HAS_DS_PLAYER   
-  if (!CDSRendererCallback::Get()->ReadyDS())
+  if (!g_application.m_pPlayer->ReadyDS())
 #endif
   g_Windowing.PresentRender(rendered, videoLayer);
 

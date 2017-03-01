@@ -26,13 +26,11 @@
 
 #include <list>
 
-#include "BaseDSRenderer.h"
 #include "guilib/Resolution.h"
 #include "threads/CriticalSection.h"
 #include "settings/VideoSettings.h"
 #include "Videorenderers/WinDsRenderer.h"
 #include "../VideoPlayer/Videorenderers/DebugRenderer.h"
-#include "IPaintCallback.h"
 #include "threads/Event.h"
 
 class IPaintCallback;
@@ -58,7 +56,6 @@ public:
   float GetAspectRatio();
   void Update();
   void FrameMove();
-  void FrameWait(int ms);
   bool HasFrame();
   void Render(bool clear, DWORD flags = 0, DWORD alpha = 255, bool gui = true);
   bool IsGuiLayer();
@@ -76,44 +73,23 @@ public:
 
   // Functions called from GUI
   bool Supports(ERENDERFEATURE feature);
-  bool Supports(EINTERLACEMETHOD method);
   bool Supports(ESCALINGMETHOD method);
-  EINTERLACEMETHOD AutoInterlaceMethod(EINTERLACEMETHOD mInt);
 
   double GetDisplayLatency() { return m_displayLatency; }
 
   bool Configure(unsigned int width, unsigned int height, unsigned int d_width, unsigned int d_height, float fps, unsigned flags);
-  inline void RegisterCallback(IPaintCallback *callback)
-  {
-    CSingleLock lock(m_statelock);
-    if (m_pRenderer)
-      m_pRenderer->RegisterCallback(callback);
-  }
-  inline void UnregisterCallback()
-  {
-    CSingleLock lock(m_statelock);
-    if (m_pRenderer)
-      m_pRenderer->UnregisterCallback();
-  }
-  inline void OnAfterPresent()
-  {
-    if (m_pRenderer)
-      m_pRenderer->OnAfterPresent();
-  }
-
   void UpdateDisplayLatencyForMadvr(float fps);
 
 protected:
 
   void PresentSingle(bool clear, DWORD flags, DWORD alpha);
 
-  EINTERLACEMETHOD AutoInterlaceMethodInternal(EINTERLACEMETHOD mInt);
   bool Configure();
   void CreateRenderer();
   void DeleteRenderer();
 
   CDebugRenderer m_debugRenderer;
-  CBaseDSRenderer *m_pRenderer;
+  CBaseRenderer *m_pRenderer;
   CCriticalSection m_statelock;
   CCriticalSection m_datalock;
   bool m_bTriggerUpdateResolution;

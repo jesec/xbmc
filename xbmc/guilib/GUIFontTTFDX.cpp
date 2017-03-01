@@ -26,9 +26,8 @@
 #include "windowing/WindowingFactory.h"
 #include "utils/log.h"
 #ifdef HAS_DS_PLAYER
-#include "DSRendererCallback.h"
+#include "Application.h"
 #endif
-
 // stuff for freetype
 #include <ft2build.h>
 
@@ -89,7 +88,7 @@ void CGUIFontTTFDX::LastEnd()
 
 #ifdef HAS_DS_PLAYER
   // Render count to detect when the GUI it's active or deactive (useful for madVR latency mode)
-  CDSRendererCallback::Get()->IncRenderCount();
+  g_application.m_pPlayer->IncRenderCount();
 #endif
 
   CreateStaticIndexBuffer();

@@ -55,7 +55,7 @@ CmadVRAllocatorPresenter::CmadVRAllocatorPresenter(HWND hWnd, HRESULT& hr, CStdS
   m_kodiGuiDirtyAlgo = g_advancedSettings.m_guiAlgorithmDirtyRegions;
   m_pMadvrShared = DNew CMadvrSharedRender();
   m_activeVideoRect.SetRect(0, 0, 0, 0);
-  m_madvrRect.SetRect(0, 0, 0, 0);
+  m_oldVideoRect.SetRect(0, 0, 0, 0);
   m_frameCount = 0;
   
   if (FAILED(hr)) {
@@ -89,8 +89,8 @@ CmadVRAllocatorPresenter::~CmadVRAllocatorPresenter()
   g_advancedSettings.m_guiAlgorithmDirtyRegions = m_kodiGuiDirtyAlgo;
   
   // the order is important here
-  CDSRendererCallback::Destroy();
   SAFE_DELETE(m_pMadvrShared);
+  g_application.m_pPlayer->Unregister(this);
   m_pSubPicQueue = nullptr;
   m_pAllocator = nullptr;
   m_pDXR = nullptr;
@@ -306,6 +306,8 @@ HRESULT CmadVRAllocatorPresenter::Render( REFERENCE_TIME rtStart, REFERENCE_TIME
   Com::SmartRect videoRect(left, top, right, bottom);
 
   __super::SetPosition(wndRect, videoRect);
+  SetPosition();
+
   if (!g_bExternalSubtitleTime) {
     SetTime(rtStart);
   }
@@ -320,12 +322,12 @@ HRESULT CmadVRAllocatorPresenter::Render( REFERENCE_TIME rtStart, REFERENCE_TIME
     m_AspectRatio = GetVideoSize(true);
 
     // Configure Render Manager
-    g_dsGraph->Configure(m_NativeVideoSize.cx, m_NativeVideoSize.cy, m_AspectRatio.cx, m_AspectRatio.cy, m_fps, CONF_FLAGS_FULLSCREEN);
+    g_application.m_pPlayer->Configure(m_NativeVideoSize.cx, m_NativeVideoSize.cy, m_AspectRatio.cx, m_AspectRatio.cy, m_fps, CONF_FLAGS_FULLSCREEN);
     CLog::Log(LOGDEBUG, "%s Render manager configured (FPS: %f) %i %i %i %i", __FUNCTION__, m_fps, m_NativeVideoSize.cx, m_NativeVideoSize.cy, m_AspectRatio.cx, m_AspectRatio.cy);
 
     // Begin Render Kodi 
     CDSPlayer::SetDsWndVisible(true);
-    CDSRendererCallback::Get()->SetRenderOnDS(true);
+    g_application.m_pPlayer->SetRenderOnDS(true);
 
     // Update Display Latency for madVR (sets differents delay for each refresh as configured in advancedsettings)
     if (m_updateDisplayLatencyForMadvr)
@@ -334,7 +336,7 @@ HRESULT CmadVRAllocatorPresenter::Render( REFERENCE_TIME rtStart, REFERENCE_TIME
       { 
         double refreshRate;
         pInfo->GetDouble("refreshRate", &refreshRate);
-        g_dsGraph->UpdateDisplayLatencyForMadvr(refreshRate);
+        g_application.m_pPlayer->UpdateDisplayLatencyForMadvr(refreshRate);
       }
     }
   }
@@ -423,7 +425,7 @@ STDMETHODIMP CmadVRAllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
   // Configure initial Madvr Settings
   ConfigureMadvr();
 
-  CDSRendererCallback::Get()->Register(this);
+  g_application.m_pPlayer->Register(this);
 
   (*ppRenderer = (IUnknown*)(INonDelegatingUnknown*)(this))->AddRef();
 
@@ -437,13 +439,18 @@ STDMETHODIMP CmadVRAllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
   return S_OK;
 }
 
-void CmadVRAllocatorPresenter::SetMadvrPosition(CRect wndRect, CRect videoRect)
+void CmadVRAllocatorPresenter::SetPosition()
 {
-  Com::SmartRect wndR(wndRect.x1, wndRect.y1, wndRect.x2, wndRect.y2);
+  CRect sourceRect, viewRect, videoRect;
+  g_application.m_pPlayer->GetVideoRect(sourceRect, videoRect, viewRect);
+
+  Com::SmartRect wndR(viewRect.x1, viewRect.y1, viewRect.x2, viewRect.y2);
   Com::SmartRect videoR(videoRect.x1, videoRect.y1, videoRect.x2, videoRect.y2);
-  SetPosition(wndR, videoR);
-  m_madvrRect = videoRect;
-  //CLog::Log(0, "wndR x1: %g   y1: %g   x2: %g   y2: %g - videoR x1: %g   y1: %g   x2: %g   y2: %g", wndRect.x1, wndRect.y1, wndRect.x2, wndRect.y2, videoRect.x1, videoRect.y1, videoRect.x2, videoRect.y2);
+  if (m_oldVideoRect != videoRect)
+  {
+    SetPosition(wndR, videoR);
+    m_oldVideoRect = videoRect;
+  }
 }
 
 STDMETHODIMP_(void) CmadVRAllocatorPresenter::SetPosition(RECT w, RECT v)
@@ -515,7 +522,7 @@ STDMETHODIMP_(bool) CmadVRAllocatorPresenter::Paint(bool fAll)
   return false;
 }
 
-void CmadVRAllocatorPresenter::SetMadvrPixelShader()
+void CmadVRAllocatorPresenter::SetPixelShader()
 {
   g_dsSettings.pixelShaderList->UpdateActivatedList();
   m_shaderStage = 0;

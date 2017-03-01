@@ -69,7 +69,7 @@ class CFGManager;
 class CDSGraph
 {
 public:
-  CDSGraph(IPlayerCallback& callback, CRenderDSManager& renderManager);
+  CDSGraph(IPlayerCallback& callback);
   virtual ~CDSGraph();
 
   /** Determine if the graph can seek
@@ -122,8 +122,6 @@ public:
   virtual void UpdateDvdState();
   // Updating the video position is needed for dvd menu navigation
   virtual void UpdateWindowPosition();
-  // Updating the madVR video position
-  virtual void UpdateMadvrWindowPosition();
   /// Update current player state
   virtual void UpdateState();
   /// @return Current playing time in DS_TIME_BASE unit
@@ -158,18 +156,10 @@ public:
 
   Com::SmartPtr<IFilterGraph2> pFilterGraph;
 
-  bool Configure(unsigned int width, unsigned int height, unsigned int d_width, unsigned int d_height, float fps, unsigned flags);
-  void UpdateDisplayLatencyForMadvr(float refresh);
-  void RegisterCallback(IPaintCallback *callback);
-  void UnregisterCallback();
-  void Reset();
-  void Render(bool clear, DWORD flags = 0, DWORD alpha = 255, bool gui = true);
-  void OnAfterPresent();
-
-  void SetProcesInfo(CProcessInfo *processInfo) { m_processInfo = processInfo; }
-  void UpdateProcessInfo(int index = -1);
-  void SetAudioCodeDelayInfo(int index = -1);
   bool SetSpeed(double dSpeed);
+
+  void QueueStop() { m_bPerformStop = true; }
+  void QueuePause() { m_bPerformPause = true; }
 
 private:
   //Direct Show Filters
@@ -187,6 +177,8 @@ private:
   std::vector<DvdTitle*>                m_pDvdTitles;
   int8_t m_canSeek; //<-1: not queried; 0: false; 1: true
   float m_currentVolume;
+  bool m_bPerformStop;
+  bool m_bPerformPause;
 
   CCriticalSection m_ObjectLock;
 
@@ -194,8 +186,6 @@ private:
   int m_iCurrentFrameRefreshCycle;
 
   IPlayerCallback& m_callback;
-  CRenderDSManager& m_renderManager;
-  CProcessInfo *m_processInfo;
 
   struct SPlayerState
   {
@@ -254,10 +244,6 @@ private:
     GUID time_format;
     bool isDVD;
   } m_VideoInfo;
-  float m_fps;
-  int m_width;
-  int m_height;
-  int m_audioStreamCount;
 };
 
 extern CDSGraph* g_dsGraph;

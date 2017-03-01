@@ -27,6 +27,7 @@
 #include "settings/MediaSettings.h"
 #include "Utils/Log.h"
 #include "Utils/StringUtils.h"
+#include "Application.h"
 
 // DSPLAYER DUMMY
 #define DSPROFILE                              "DSPlayer Profile"
@@ -59,13 +60,14 @@ CMadvrSettingsManager::CMadvrSettingsManager(IUnknown* pUnk)
 {
   m_pDXR = pUnk;
   m_bAllowChanges = true;
-  CDSRendererCallback::Get()->Register(this);
+  g_application.m_pPlayer->Register(this);
 
   m_bDebug = CMediaSettings::GetInstance().GetCurrentMadvrSettings().m_bDebug;
 }
 
 CMadvrSettingsManager::~CMadvrSettingsManager()
 {
+  g_application.m_pPlayer->Unregister(this);
 }
 
 BOOL CMadvrSettingsManager::GetSettings(MADVR_SETTINGS_TYPE type, LPCWSTR path, int enumIndex, LPCWSTR sValue, BOOL* bValue, int* iValue, int *bufSize)
