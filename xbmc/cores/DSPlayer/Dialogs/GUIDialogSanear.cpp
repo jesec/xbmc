@@ -136,7 +136,7 @@ void CGUIDialogSanear::InitializeSettings()
     return;
   }
 
-  CStdString sValue;
+  std::string sValue;
   bool bValue;
   int iValue;
 
@@ -178,7 +178,7 @@ void CGUIDialogSanear::OnSettingChanged(const CSetting *setting)
   CGUIDialogSettingsManualBase::OnSettingChanged(setting);
   const std::string &settingId = setting->GetId();
 
-  CStdString sValue;
+  std::string sValue;
   bool bValue;
   int iValue;
 
@@ -276,7 +276,7 @@ void CGUIDialogSanear::HideUnused()
   m_allowchange = true;
 }
 
-void CGUIDialogSanear::SetVisible(CStdString id, bool visible)
+void CGUIDialogSanear::SetVisible(std::string id, bool visible)
 {
   CSetting *setting = m_settingsManager->GetSetting(id);
   if (setting->IsEnabled() && visible)

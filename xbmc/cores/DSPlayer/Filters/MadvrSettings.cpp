@@ -34,6 +34,7 @@
 #include "DSFilterVersion.h"
 #include "FileItem.h"
 #include "Application.h"
+#include "utils/DSFileUtils.h"
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -152,7 +153,7 @@ void CMadvrSettings::AddProfiles(TiXmlNode *pNode)
     std::string strPath;
     std::string strFolders;
 
-    if (GetString(pProfile, "path", &strPath) && GetString(pProfile, "folder", &strFolders))
+    if (CDSXMLUtils::GetString(pProfile, "path", &strPath) && CDSXMLUtils::GetString(pProfile, "folder", &strFolders))
       m_profiles[strPath] = strFolders;
 
     pProfile = pProfile->NextSiblingElement("dsprofile");
@@ -213,7 +214,7 @@ void CMadvrSettings::AddButton(TiXmlNode *pNode, int iSectionId, int iGroupId, i
   button->dialogId = NameToId(button->name);
   button->type = type;
   
-  if (!GetInt(pSetting, "label",&button->label))
+  if (!CDSXMLUtils::GetInt(pSetting, "label",&button->label))
     CLog::Log(LOGERROR, "%s missing attritube (label) for button %s", __FUNCTION__, button->name.c_str());
 
   if (button->type == "button_section")
@@ -226,7 +227,7 @@ void CMadvrSettings::AddButton(TiXmlNode *pNode, int iSectionId, int iGroupId, i
   }
   else if (button->type == "button_debug")
   {
-    if (!GetString(pSetting,"path",&button->value))
+    if (!CDSXMLUtils::GetString(pSetting,"path",&button->value))
       CLog::Log(LOGERROR, "%s missing attritube (path) for button %s", __FUNCTION__, button->name.c_str());
   }
 
@@ -243,8 +244,8 @@ void CMadvrSettings::AddSetting(TiXmlNode *pNode, int iSectionId, int iGroupId)
   setting->group = iGroupId;
 
   //GET NAME, TYPE
-  if (!GetString(pSetting, "name", &setting->name)
-    ||!GetString(pSetting, "type", &setting->type))
+  if (!CDSXMLUtils::GetString(pSetting, "name", &setting->name)
+    ||!CDSXMLUtils::GetString(pSetting, "type", &setting->type))
   {
     CLog::Log(LOGERROR, "%s missing attritube (name, type) for setting name=%s type=%s", __FUNCTION__, setting->name.c_str(), setting->type.c_str());
   }
@@ -255,13 +256,13 @@ void CMadvrSettings::AddSetting(TiXmlNode *pNode, int iSectionId, int iGroupId)
   }  
 
   // GET VALUE, PARENT
-  GetString(pSetting, "value", &setting->value);
-  GetString(pSetting, "parent", &setting->parent);
+  CDSXMLUtils::GetString(pSetting, "value", &setting->value);
+  CDSXMLUtils::GetString(pSetting, "parent", &setting->parent);
   setting->parent = NameToId(setting->parent);
   setting->dialogId = NameToId(setting->name);
 
   // GET LABEL
-  if (!GetInt(pSetting, "label", &setting->label))
+  if (!CDSXMLUtils::GetInt(pSetting, "label", &setting->label))
     CLog::Log(LOGERROR, "%s missing attritube (label) for setting name=%s", __FUNCTION__, setting->name.c_str());
 
   // GET DEFAULT VALUE
@@ -285,7 +286,7 @@ void CMadvrSettings::AddSetting(TiXmlNode *pNode, int iSectionId, int iGroupId)
     { 
       int iLabel;
       CVariant value;
-      if (!GetInt(pOption, "label", &iLabel))
+      if (!CDSXMLUtils::GetInt(pOption, "label", &iLabel))
         CLog::Log(LOGERROR, "%s missing attritube (label) for setting option name=%s", __FUNCTION__, setting->name.c_str());
 
       if (!GetVariant(pOption, "value", setting->type, &value))
@@ -304,13 +305,13 @@ void CMadvrSettings::AddSetting(TiXmlNode *pNode, int iSectionId, int iGroupId)
   {
     setting->slider = new CMadvrSlider();
 
-    if (!GetString(pSetting,"format",&setting->slider->format))
+    if (!CDSXMLUtils::GetString(pSetting,"format",&setting->slider->format))
       CLog::Log(LOGERROR, "%s missing attribute (format) for setting name=%s", __FUNCTION__, setting->name.c_str());
 
-    if ( !GetInt(pSetting, "parentlabel", &setting->slider->parentLabel)
-      || !GetFloat(pSetting, "min", &setting->slider->min)
-      || !GetFloat(pSetting, "max", &setting->slider->max)
-      || !GetFloat(pSetting, "step", &setting->slider->step))
+    if ( !CDSXMLUtils::GetInt(pSetting, "parentlabel", &setting->slider->parentLabel)
+      || !CDSXMLUtils::GetFloat(pSetting, "min", &setting->slider->min)
+      || !CDSXMLUtils::GetFloat(pSetting, "max", &setting->slider->max)
+      || !CDSXMLUtils::GetFloat(pSetting, "step", &setting->slider->step))
     {
       CLog::Log(LOGERROR, "%s missing attritube (parentLabel, min, max, step) for setting name=%s", __FUNCTION__, setting->name.c_str());
     }
@@ -416,48 +417,6 @@ bool CMadvrSettings::GetVariant(TiXmlElement *pElement, const std::string &attr,
   return true;
 }
 
-bool CMadvrSettings::GetInt(TiXmlElement *pElement, const std::string &attr, int *iValue)
-{
-  const char *str = pElement->Attribute(attr.c_str());
-  if (str == NULL)
-  {
-    *iValue = 0;
-    return false;
-  }
-
-  *iValue = atoi(str);
-
-  return true;
-}
-
-bool CMadvrSettings::GetFloat(TiXmlElement *pElement, const std::string &attr, float *fValue)
-{
-  const char *str = pElement->Attribute(attr.c_str());
-  if (str == NULL)
-  {
-    *fValue = 0.0f;
-    return false;
-  }
-
-  *fValue = (float)atof(str);
-
-  return true;
-}
-
-bool CMadvrSettings::GetString(TiXmlElement *pElement, const std::string &attr, std::string *sValue)
-{
-  const char *str = pElement->Attribute(attr.c_str());
-  if (str == NULL)
-  {
-    *sValue = "";
-    return false;
-  }
-
-  *sValue = std::string(str);
-
-  return true;
-}
-
 std::string CMadvrSettings::GetVersionSuffix(const std::string &path)
 {
   if (path.empty())
@@ -474,8 +433,8 @@ std::string CMadvrSettings::GetVersionSuffix(const std::string &path)
     {
       std::string sMin, sMax;
       unsigned int iMin, iMax;
-      GetString(pVersion, "min", &sMin);
-      GetString(pVersion, "max", &sMax);
+      CDSXMLUtils::GetString(pVersion, "min", &sMin);
+      CDSXMLUtils::GetString(pVersion, "max", &sMax);
       std::vector<std::string> vecMin = StringUtils::Split(sMin, ".");
       std::vector<std::string> vecMax = StringUtils::Split(sMax, ".");
 
@@ -488,7 +447,7 @@ std::string CMadvrSettings::GetVersionSuffix(const std::string &path)
 
       if (iCurrentVersion >= iMin && iCurrentVersion <= iMax)
       {
-        GetString(pVersion, "id", &sVersion);
+        CDSXMLUtils::GetString(pVersion, "id", &sVersion);
         break;
       }
 

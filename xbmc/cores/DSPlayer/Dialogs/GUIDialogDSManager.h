@@ -24,7 +24,6 @@
  */
 
 #include "settings/dialogs/GUIDialogSettingsManualBase.h"
-#include "utils/stdstring.h"
 #include "utils/XMLUtils.h"
 
 
@@ -55,11 +54,11 @@ class DSConfigList
 public:
   DSConfigList(ConfigType type);
 
-  CStdString m_attr;
-  CStdString m_nodeName;
-  CStdString m_nodeList;
-  CStdString m_value;
-  CStdString m_setting;
+  std::string m_attr;
+  std::string m_nodeName;
+  std::string m_nodeList;
+  std::string m_value;
+  std::string m_setting;
   int m_subNode;
   int m_label;
   ConfigType m_configType;
@@ -88,7 +87,7 @@ public:
   void ResetValue(std::vector<DSConfigList *>& configList);
   void LoadDsXML(xmlType type, TiXmlElement* &pNode, bool forceCreate = false);
   void SaveDsXML(xmlType type);
-  void GetPath(xmlType type, CStdString &xmlFile, CStdString &xmlNode, CStdString &xmlRoot);
+  void GetPath(xmlType type, std::string &xmlFile, std::string &xmlNode, std::string &xmlRoot);
   static void AllFiltersConfigOptionFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data);
   static void ShadersOptionFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data);
   static void ShadersScaleOptionFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data);

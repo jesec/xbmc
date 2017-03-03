@@ -121,7 +121,7 @@ void CDSFilterVersion::GetVersionByPath(const std::string &path, FilterVersion &
   if (path.empty())
     return;
 
-  CStdString szVersionFile = path;
+  std::string szVersionFile = path;
   DWORD  verHandle = NULL;
   UINT   size = 0;
   LPBYTE lpBuffer = NULL;

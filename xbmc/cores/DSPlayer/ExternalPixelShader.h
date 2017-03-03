@@ -25,7 +25,6 @@
 #endif
 
 #include "PixelShaderCompiler.h"
-#include "utils/StdString.h"
 
 class TiXmlElement;
 
@@ -35,11 +34,11 @@ public:
   HRESULT Compile(CPixelShaderCompiler *pCompiler);
   bool Load();
   CExternalPixelShader(TiXmlElement* xml);
-  CExternalPixelShader(CStdString strFile, CStdString strProfile);
+  CExternalPixelShader(std::string strFile, std::string strProfile);
   bool IsValid() const { return m_valid; }
   int GetId() const { return m_id; }
-  CStdString GetSourceData() const { return m_SourceData; }
-  void DeleteSourceData() { m_SourceData.SetBuf(0); }
+  std::string GetSourceData() const { return m_SourceData; }
+  void DeleteSourceData() { m_SourceData = ""; }
   void DeletePixelShader() { m_pPixelShader = nullptr; }
 
   bool IsEnabled() const { return m_enabled; }
@@ -47,17 +46,17 @@ public:
   int GetStage() const { return m_shaderStage; }
   void SetStage(const int stage) { m_shaderStage = stage; }
 
-  CStdString GetName() const { return m_name; }
-  void SetName(const CStdString& name) { m_name = name; }
+  std::string GetName() const { return m_name; }
+  void SetName(const std::string& name) { m_name = name; }
 
   TiXmlElement ToXML();
 
   Com::SmartPtr<IDirect3DPixelShader9> m_pPixelShader;
 private:
-  CStdString m_SourceFile;
-  CStdString m_SourceTarget;
-  CStdString m_SourceData;
-  CStdString m_name;
+  std::string m_SourceFile;
+  std::string m_SourceTarget;
+  std::string m_SourceData;
+  std::string m_name;
   int m_shaderStage;
   int m_id;
   bool m_valid;

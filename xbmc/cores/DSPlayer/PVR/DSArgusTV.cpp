@@ -26,7 +26,7 @@
 
 #include "DSArgusTV.h"
 
-CDSArgusTV::CDSArgusTV(const CStdString& strBackendBaseAddress, const CStdString& strBackendName) 
+CDSArgusTV::CDSArgusTV(const std::string& strBackendBaseAddress, const std::string& strBackendName) 
   : CDSPVRBackend(strBackendBaseAddress, strBackendName)
 {
   CLog::Log(LOGNOTICE, "%s PVR Backend name: %s, Base Address: %s", __FUNCTION__, strBackendName.c_str(), strBackendBaseAddress.c_str());
@@ -37,7 +37,7 @@ CDSArgusTV::~CDSArgusTV(void)
   CLog::Log(LOGNOTICE, "%s", __FUNCTION__);
 }
 
-bool CDSArgusTV::ConvertStreamURLToTimeShiftFilePath(const CStdString& strUrl, CStdString& strTimeShiftFile)
+bool CDSArgusTV::ConvertStreamURLToTimeShiftFilePath(const std::string& strUrl, std::string& strTimeShiftFile)
 {
   bool bReturn = false;
 
@@ -54,7 +54,7 @@ bool CDSArgusTV::ConvertStreamURLToTimeShiftFilePath(const CStdString& strUrl, C
   }
   
   strTimeShiftFile.clear() ;
-  CStdString strTimeShiftFilePath;
+  std::string strTimeShiftFilePath;
   
   CVariant json_response;
   bReturn = SendCommandToArgusTV_GET("ArgusTV/Control/GetLiveStreams", json_response);
@@ -100,12 +100,12 @@ bool CDSArgusTV::ConvertStreamURLToTimeShiftFilePath(const CStdString& strUrl, C
   return bReturn;
 }
 
-bool CDSArgusTV::SendCommandToArgusTV_GET(const CStdString& strCommand, CVariant &json_response)
+bool CDSArgusTV::SendCommandToArgusTV_GET(const std::string& strCommand, CVariant &json_response)
 {
   return JSONRPCSendCommand(REQUEST_GET, strCommand, "", json_response);
 }
 
-bool CDSArgusTV::SendCommandToArgusTV_POST(const CStdString& strCommand, const CStdString& strArguments, CVariant &json_response)
+bool CDSArgusTV::SendCommandToArgusTV_POST(const std::string& strCommand, const std::string& strArguments, CVariant &json_response)
 {
   return JSONRPCSendCommand(REQUEST_POST, strCommand, strArguments, json_response);
 }

@@ -27,7 +27,7 @@
 #include "utils/StreamDetails.h"
 #include "settings/Settings.h"
 #include "utils/log.h"
-#include "utils/XMLUtils.h"
+#include "utils/DSFileUtils.h"
 
 CShadersSelectionRule::CShadersSelectionRule(TiXmlElement* pRule)
   : m_shaderId(-1)
@@ -43,22 +43,19 @@ void CShadersSelectionRule::Initialize(TiXmlElement* pRule)
   if (!pRule)
     return;
 
-  m_name = pRule->Attribute("name");
-  if (!m_name || m_name.IsEmpty())
+  if (!CDSXMLUtils::GetString(pRule, "name", &m_name))
     m_name = "un-named";
 
-  m_dxva = GetTristate(pRule->Attribute("dxva"));
-
-  m_mimeTypes = pRule->Attribute("mimetypes");
-  m_fileName = pRule->Attribute("filename");
-
-  m_audioCodec = pRule->Attribute("audiocodec");
-  m_audioChannels = pRule->Attribute("audiochannels");
-  m_videoCodec = pRule->Attribute("videocodec");
-  m_videoResolution = pRule->Attribute("videoresolution");
-  m_videoAspect = pRule->Attribute("videoaspect");
-  m_videoFourcc = pRule->Attribute("fourcc");
-  m_shaderStageStr = pRule->Attribute("stage");
+  CDSXMLUtils::GetTristate(pRule, "dxva", &m_dxva);
+  CDSXMLUtils::GetString(pRule, "mimetypes", &m_mimeTypes);
+  CDSXMLUtils::GetString(pRule, "filename", &m_fileName);
+  CDSXMLUtils::GetString(pRule, "audiocodec", &m_audioCodec);
+  CDSXMLUtils::GetString(pRule, "audiochannels", &m_audioChannels);
+  CDSXMLUtils::GetString(pRule, "videocodec", &m_audioChannels);
+  CDSXMLUtils::GetString(pRule, "videoresolution", &m_videoResolution);
+  CDSXMLUtils::GetString(pRule, "videoaspect", &m_videoAspect);
+  CDSXMLUtils::GetString(pRule, "fourcc", &m_videoFourcc);
+  CDSXMLUtils::GetString(pRule, "stage", &m_shaderStageStr);
 
   m_bStreamDetails = m_audioCodec.length() > 0 || m_audioChannels.length() > 0 || m_videoFourcc.length() > 0 ||
     m_videoCodec.length() > 0 || m_videoResolution.length() > 0 || m_videoAspect.length() > 0;
@@ -79,22 +76,12 @@ void CShadersSelectionRule::Initialize(TiXmlElement* pRule)
   }
 }
 
-int CShadersSelectionRule::GetTristate(const char* szValue) const
-{
-  if (szValue)
-  {
-    if (stricmp(szValue, "true") == 0) return 1;
-    if (stricmp(szValue, "false") == 0) return 0;
-  }
-  return -1;
-}
-
-bool CShadersSelectionRule::CompileRegExp(const CStdString& str, CRegExp& regExp) const
+bool CShadersSelectionRule::CompileRegExp(const std::string& str, CRegExp& regExp) const
 {
   return str.length() > 0 && regExp.RegComp(str.c_str());
 }
 
-bool CShadersSelectionRule::MatchesRegExp(const CStdString& str, CRegExp& regExp) const
+bool CShadersSelectionRule::MatchesRegExp(const std::string& str, CRegExp& regExp) const
 {
   return regExp.RegFind(str, 0) != -1; // Need more testing
 }

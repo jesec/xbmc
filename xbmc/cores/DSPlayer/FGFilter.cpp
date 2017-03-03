@@ -45,13 +45,15 @@
 #include "settings/Settings.h"
 #include "../../filesystem/SpecialProtocol.h "
 #include "cores/DSPlayer/DSPlayer.h"
+#include "Utils/DSFileUtils.h"
+
 #pragma comment(lib, "Dmoguids.lib")
 //
 // CFGFilter
 //
 #define _P(x)     CSpecialProtocol::TranslatePath(x)
 
-CFGFilter::CFGFilter(const CLSID& clsid, Type type, CStdString name)
+CFGFilter::CFGFilter(const CLSID& clsid, Type type, std::string name)
   : m_clsid(clsid)
   , m_name(name)
   , m_type(type)
@@ -69,14 +71,15 @@ void CFGFilter::AddType(const GUID& majortype, const GUID& subtype)
 //
 
 CFGFilterRegistry::CFGFilterRegistry(IMoniker* pMoniker)
-  : CFGFilter(GUID_NULL, CFGFilter::REGISTRY, L"")
+  : CFGFilter(GUID_NULL, CFGFilter::REGISTRY, "")
   , m_pMoniker(pMoniker)
 {
   if (!m_pMoniker) return;
 
   LPOLESTR str = NULL;
   if (FAILED(m_pMoniker->GetDisplayName(0, 0, &str))) return;
-  m_DisplayName = m_name = str;
+  g_charsetConverter.wToUTF8(str, m_name);
+  m_DisplayName = m_name;
   CoTaskMemFree(str), str = NULL;
 
   IPropertyBag* pPB;
@@ -85,7 +88,7 @@ CFGFilterRegistry::CFGFilterRegistry(IMoniker* pMoniker)
     tagVARIANT var;
     if (SUCCEEDED(pPB->Read(LPCOLESTR(L"FriendlyName"), &var, NULL)))
     {
-      m_name = var.bstrVal;
+      g_charsetConverter.wToUTF8(var.bstrVal, m_name);
       VariantClear(&var);
     }
 
@@ -109,11 +112,11 @@ CFGFilterRegistry::CFGFilterRegistry(IMoniker* pMoniker)
   }
 }
 
-CFGFilterRegistry::CFGFilterRegistry(CStdString DisplayName)
-  : CFGFilter(GUID_NULL, CFGFilter::REGISTRY, L"")
+CFGFilterRegistry::CFGFilterRegistry(std::string DisplayName)
+  : CFGFilter(GUID_NULL, CFGFilter::REGISTRY, "")
   , m_DisplayName(DisplayName)
 {
-  if (m_DisplayName.IsEmpty()) return;
+  if (m_DisplayName.empty()) return;
 
   IBindCtx* pBC;
   CreateBindCtx(0, &pBC);
@@ -128,7 +131,7 @@ CFGFilterRegistry::CFGFilterRegistry(CStdString DisplayName)
     tagVARIANT var;
     if (SUCCEEDED(pPB->Read(LPCOLESTR(L"FriendlyName"), &var, NULL)))
     {
-      m_name = var.bstrVal;
+      g_charsetConverter.wToUTF8(var.bstrVal, m_name);
       VariantClear(&var);
     }
 
@@ -153,12 +156,12 @@ CFGFilterRegistry::CFGFilterRegistry(CStdString DisplayName)
 }
 
 CFGFilterRegistry::CFGFilterRegistry(const CLSID& clsid)
-  : CFGFilter(clsid, CFGFilter::REGISTRY, L"")
+  : CFGFilter(clsid, CFGFilter::REGISTRY, "")
 {
   m_pMoniker = NULL;
   if (m_clsid == GUID_NULL) return;
 
-  CStdString guid = StringFromGUID(m_clsid);
+  std::wstring guid = StringFromGUID(m_clsid);
 
 }
 
@@ -306,7 +309,7 @@ void CFGFilterRegistry::ExtractFilterData(BYTE* p, UINT len)
 // CFGFilterFile
 //
 
-CFGFilterFile::CFGFilterFile(const CLSID& clsid, CStdString path, CStdStringW name, CStdString internalName, CStdString filetype)
+CFGFilterFile::CFGFilterFile(const CLSID& clsid, std::string path, std::string name, std::string internalName, std::string filetype)
   : CFGFilter(clsid, CFGFilter::FILE, name),
   m_path(path),
   m_xFileType(filetype),
@@ -325,20 +328,20 @@ CFGFilterFile::CFGFilterFile(TiXmlElement *pFilter)
 {
   bool m_filterFound = true;
 
-  m_internalName = pFilter->Attribute("name");
-  m_xFileType = pFilter->Attribute("type"); // Currently not used
+  m_internalName = CDSXMLUtils::GetString(pFilter, "name");
+  m_xFileType = CDSXMLUtils::GetString(pFilter, "type"); // Currently not used
 
-  CStdString guid = "";
+  std::string guid = "";
   XMLUtils::GetString(pFilter, "guid", guid);
   const CLSID clsid = GUIDFromString(guid);
 
-  CStdString osdname = "";
+  std::string osdname = "";
   XMLUtils::GetString(pFilter, "osdname", osdname);
 
   //This is needed for a correct insertion of dmo filters into a graph
   XMLUtils::GetBoolean(pFilter, "isdmo", m_isDMO);
 
-  CStdString strDmoGuid = "";
+  std::string strDmoGuid = "";
   if (XMLUtils::GetString(pFilter, "guid_category_dmo", strDmoGuid))
   {
     const CLSID dmoclsid = GUIDFromString(strDmoGuid);
@@ -352,11 +355,11 @@ CFGFilterFile::CFGFilterFile(TiXmlElement *pFilter)
   else {
     if (!XFILE::CFile::Exists(m_path))
     {
-      CStdString path(m_path);
+      std::string path(m_path);
       m_path = CProfilesManager::GetInstance().GetUserDataItem("dsplayer/" + path);
       if (!XFILE::CFile::Exists(m_path))
       {
-        m_path.Format("special://xbmc/system/players/dsplayer/%s", path.c_str());
+        m_path = StringUtils::Format("special://xbmc/system/players/dsplayer/%s", path.c_str());
         if (!XFILE::CFile::Exists(m_path))
         {
           m_filterFound = false;
@@ -365,7 +368,9 @@ CFGFilterFile::CFGFilterFile(TiXmlElement *pFilter)
     }
   }
 
-  m_path = m_filterFound ? _P(m_path) : GetFilterPath(clsid);
+  std::string filterPath;
+  g_charsetConverter.wToUTF8(GetFilterPath(clsid), filterPath);
+  m_path = m_filterFound ? _P(m_path) : filterPath;
 
   // Call super constructor
   m_clsid = clsid;
@@ -397,7 +402,7 @@ HRESULT CFGFilterFile::Create(IBaseFilter** ppBF)
     hr = LoadExternalFilter(m_path, m_clsid, ppBF);
     if (FAILED(hr))
     {
-      CStdString guid;
+      std::string guid;
       g_charsetConverter.wToUTF8(StringFromGUID(m_clsid), guid);
       CLog::Log(LOGINFO, "%s Failed to load external filter (clsid:%s path:%s). Trying with CoCreateInstance", __FUNCTION__,
         guid.c_str(), m_path.c_str());
@@ -417,7 +422,7 @@ HRESULT CFGFilterFile::Create(IBaseFilter** ppBF)
 
   }
 
-  CStdString guid;
+  std::string guid;
   g_charsetConverter.wToUTF8(StringFromGUID(m_clsid), guid);
 
   if (FAILED(hr))
@@ -434,7 +439,7 @@ HRESULT CFGFilterFile::Create(IBaseFilter** ppBF)
 // CFGFilterVideoRenderer
 //
 
-CFGFilterVideoRenderer::CFGFilterVideoRenderer(const CLSID& clsid, CStdStringW name)
+CFGFilterVideoRenderer::CFGFilterVideoRenderer(const CLSID& clsid, std::string name)
   : CFGFilter(clsid, VIDEORENDERER, name)
 {
   AddType(MEDIATYPE_Video, MEDIASUBTYPE_NULL);
@@ -451,7 +456,7 @@ HRESULT CFGFilterVideoRenderer::Create(IBaseFilter** ppBF)
   HRESULT hr = S_OK;
   Com::SmartPtr<ISubPicAllocatorPresenter> pCAP;
 
-  CStdString __err;
+  std::string __err;
   if (m_clsid == CLSID_VMR9AllocatorPresenter)
     CreateAP9(m_clsid, g_hWnd, &pCAP);
   else if (m_clsid == CLSID_EVRAllocatorPresenter)

@@ -46,7 +46,7 @@ typedef std::list<CFGFilter*>::iterator FilterListIter;
 typedef std::list<CMediaType> MediaTypeList;
 typedef std::list<CMediaType>::iterator MediaTypeListIter;
 
-struct path_t { CLSID clsid; CStdStringW filter, pin; };
+struct path_t { CLSID clsid; std::wstring filter, pin; };
 typedef std::list<path_t> PathList;
 typedef std::list<path_t>::iterator PathListIter;
 typedef std::list<path_t>::const_iterator PathListConstIter;
@@ -94,7 +94,7 @@ protected:
   CFile m_File;
   CFGLoader* m_CfgLoader;
 
-  CStdString m_xbmcConfigFilePath;
+  std::string m_xbmcConfigFilePath;
 
   // IFilterGraph
   STDMETHODIMP AddFilter(IBaseFilter* pFilter, LPCWSTR pName);
@@ -121,7 +121,7 @@ protected:
   // IGraphBuilderDeadEnd
 
   STDMETHODIMP_(size_t) GetCount();
-  STDMETHODIMP GetDeadEnd(int iIndex, std::list<CStdStringW>& path, std::list<CMediaType>& mts);
+  STDMETHODIMP GetDeadEnd(int iIndex, std::list<std::wstring>& path, std::list<CMediaType>& mts);
   //CfgManagerCustom
   UINT64 m_vrmerit, m_armerit;
   // IFilterGraph

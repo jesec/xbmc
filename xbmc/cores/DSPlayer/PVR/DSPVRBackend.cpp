@@ -27,12 +27,12 @@
 
 #include "DSPVRBackend.h"
 
-CDSPVRBackend::CDSPVRBackend(const CStdString& strBackendBaseAddress, const CStdString& strBackendName)
+CDSPVRBackend::CDSPVRBackend(const std::string& strBackendBaseAddress, const std::string& strBackendName)
   : m_strBaseURL(strBackendBaseAddress)
   , m_strBackendName(strBackendName)
   , m_tcpclient(NULL) 
 { 
-  if (m_strBaseURL.length() > 7 && !(m_strBaseURL.Left(7).Equals("http://", false)))
+  if (m_strBaseURL.length() > 7 && !StringUtils::EqualsNoCase(StringUtils::Left(m_strBaseURL, 7), "http://"))
     m_strBaseURL = "http://" + m_strBaseURL;
 }
 
@@ -42,9 +42,9 @@ CDSPVRBackend::~CDSPVRBackend()
   SAFE_DELETE(m_tcpclient);
 }
 
-bool CDSPVRBackend::JSONRPCSendCommand(HttpRequestMethod requestType, const CStdString& strCommand, const CStdString& strArguments, CVariant &json_response)
+bool CDSPVRBackend::JSONRPCSendCommand(HttpRequestMethod requestType, const std::string& strCommand, const std::string& strArguments, CVariant &json_response)
 {
-  CStdString strResponse;
+  std::string strResponse;
   bool bReturn = false;
 
   switch (requestType)
@@ -130,15 +130,15 @@ bool CDSPVRBackend::TCPClientDisconnect()
   return m_tcpclient->close();
 }
 
-bool CDSPVRBackend::TCPClientSendCommand(const CStdString& strCommand, CStdString& strResponse)
+bool CDSPVRBackend::TCPClientSendCommand(const std::string& strCommand, std::string& strResponse)
 {
   CSingleLock lock(m_ObjectLock);
 
   if (!m_tcpclient)
     return false;
 
-  CStdString strCommandCopy = strCommand;
-  strCommandCopy.Replace("\n","");
+  std::string strCommandCopy = strCommand;
+  StringUtils::Replace(strCommandCopy, "\n","");
   CLog::Log(LOGDEBUG, "%s Sending Command: '%s'", __FUNCTION__, strCommandCopy.c_str());
 
   strResponse.clear();
@@ -173,7 +173,7 @@ bool CDSPVRBackend::TCPClientIsConnected()
   return true;
 }
 
-bool CDSPVRBackend::IsFileExistAndAccessible(const CStdString& strFilePath)
+bool CDSPVRBackend::IsFileExistAndAccessible(const std::string& strFilePath)
 {
   long errCode;
 
@@ -211,22 +211,22 @@ bool CDSPVRBackend::IsFileExistAndAccessible(const CStdString& strFilePath)
   return bReturn;
 }
 
-bool CDSPVRBackend::ResolveHostName(const CStdString& strUrl, CStdString& strResolvedUrl)
+bool CDSPVRBackend::ResolveHostName(const std::string& strUrl, std::string& strResolvedUrl)
 {
   bool bReturn = false;
   strResolvedUrl.clear();
 
   CURL url(strUrl);
-  CStdString strHostName = url.GetHostName();
+  std::string strHostName = url.GetHostName();
   hostent* remoteHost = gethostbyname(strHostName.c_str());
   if (remoteHost != NULL)
   {
     in_addr * address = (in_addr *)remoteHost->h_addr;
-    CStdString ip_address = inet_ntoa(*address);
+    std::string ip_address = inet_ntoa(*address);
     strResolvedUrl = strUrl;
     if (ip_address != strHostName)
     {
-      strResolvedUrl.Replace(strHostName, ip_address);
+      StringUtils::Replace(strResolvedUrl, strHostName, ip_address);
       CLog::Log(LOGDEBUG, "%s Successfully resolved host name: %s to ip: %s", __FUNCTION__, strHostName.c_str(), ip_address.c_str());
     }
     bReturn = true;
@@ -238,7 +238,7 @@ bool CDSPVRBackend::ResolveHostName(const CStdString& strUrl, CStdString& strRes
   return bReturn;
 }
 
-bool CDSPVRBackend::HttpRequestGET(const CStdString& strCommand, CStdString& strResponse)
+bool CDSPVRBackend::HttpRequestGET(const std::string& strCommand, std::string& strResponse)
 {
   if (m_strBaseURL.empty())
   {
@@ -249,7 +249,7 @@ bool CDSPVRBackend::HttpRequestGET(const CStdString& strCommand, CStdString& str
   CSingleLock lock(m_ObjectLock);
 
   bool bReturn = false;
-  CStdString strUrl = m_strBaseURL + strCommand;
+  std::string strUrl = m_strBaseURL + strCommand;
   CLog::Log(LOGDEBUG, "%s URL: %s", __FUNCTION__, strUrl.c_str());
   CFile file;
   if (file.Open(strUrl.c_str(), 0))
@@ -272,7 +272,7 @@ bool CDSPVRBackend::HttpRequestGET(const CStdString& strCommand, CStdString& str
   return bReturn;
 }
 
-bool CDSPVRBackend::HttpRequestPOST(const CStdString& strCommand, const CStdString& strArguments, CStdString& strResponse)
+bool CDSPVRBackend::HttpRequestPOST(const std::string& strCommand, const std::string& strArguments, std::string& strResponse)
 {
   if (m_strBaseURL.empty())
   {
@@ -283,7 +283,7 @@ bool CDSPVRBackend::HttpRequestPOST(const CStdString& strCommand, const CStdStri
   CSingleLock lock(m_ObjectLock);
   
   bool bReturn = false;
-  CStdString strUrl = m_strBaseURL + strCommand;
+  std::string strUrl = m_strBaseURL + strCommand;
   CLog::Log(LOGDEBUG, "%s URL: %s", __FUNCTION__, strUrl.c_str());
   CFile file;
   if (file.OpenForWrite(strUrl, false))
@@ -291,7 +291,7 @@ bool CDSPVRBackend::HttpRequestPOST(const CStdString& strCommand, const CStdStri
 	  int rc = file.Write(strArguments.c_str(), strArguments.length());
   	if (rc >= 0)
   	{
-  	  CStdString result;
+  	  std::string result;
   	  result.clear();
   	  char buffer[1024];
 	    while (file.ReadString(buffer, 1023))

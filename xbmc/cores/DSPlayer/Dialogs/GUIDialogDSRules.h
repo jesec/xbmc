@@ -24,20 +24,19 @@
  */
 
 #include "settings/dialogs/GUIDialogSettingsManualBase.h"
-#include "utils/stdstring.h"
 #include "GUIDialogDSManager.h"
 
 class CRules
 {
 public:
-  CStdString strName;
-  CStdString strfileName;
-  CStdString strfileTypes;
-  CStdString strVideoCodec;
-  CStdString strAudioCodec;
-  CStdString strProtocols;
-  CStdString strPriority;
-  CStdString strRule;
+  std::string strName;
+  std::string strfileName;
+  std::string strfileTypes;
+  std::string strVideoCodec;
+  std::string strAudioCodec;
+  std::string strProtocols;
+  std::string strPriority;
+  std::string strRule;
   int id;
 };
 
@@ -67,8 +66,8 @@ protected:
 
   void HideUnused();
   void HideUnused(ConfigType type, ConfigType subType);
-  void SetVisible(CStdString id, bool visible, ConfigType subType, bool isChild = false);
-  bool NodeHasAttr(TiXmlElement *pNode, CStdString attr);
+  void SetVisible(std::string id, bool visible, ConfigType subType, bool isChild = false);
+  bool NodeHasAttr(TiXmlElement *pNode, std::string attr);
 
   std::vector<DSConfigList *> m_ruleList;
   CGUIDialogDSManager* m_dsmanager;
@@ -79,8 +78,8 @@ protected:
 private:
   static bool compare_by_word(CRules* lhs, CRules* rhs)
   {
-    CStdString strLine1 = lhs->strPriority;
-    CStdString strLine2 = rhs->strPriority;
+    std::string strLine1 = lhs->strPriority;
+    std::string strLine2 = rhs->strPriority;
     StringUtils::ToLower(strLine1);
     StringUtils::ToLower(strLine2);
     return strcmp(strLine1.c_str(), strLine2.c_str()) < 0;

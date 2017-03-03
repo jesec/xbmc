@@ -24,7 +24,6 @@
  */
 
 #include "settings/dialogs/GUIDialogSettingsManualBase.h"
-#include "utils/stdstring.h"
 #include "GUIDialogDSManager.h"
 
 class CGUIDialogDSFilters : public CGUIDialogSettingsManualBase
@@ -53,7 +52,7 @@ protected:
   virtual void SetupView();
 
   static void TypeOptionFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data);
-  CStdString GetFilterName(CStdString guid);
+  std::string GetFilterName(std::string guid);
 
   bool m_bEdited;
 

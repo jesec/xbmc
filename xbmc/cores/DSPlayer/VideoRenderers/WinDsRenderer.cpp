@@ -31,7 +31,6 @@
 #include "utils/log.h"
 #include "FileSystem/File.h"
 #include "utils/MathUtils.h"
-#include "DSUtil/SmartPtr.h"
 #include "StreamsManager.h"
 #include "Filters\DX9AllocatorPresenter.h"
 #include "settings/DisplaySettings.h"

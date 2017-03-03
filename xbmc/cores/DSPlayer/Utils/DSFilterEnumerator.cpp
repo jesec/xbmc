@@ -51,16 +51,16 @@ HRESULT CDSFilterEnumerator::GetDSFilters(std::vector<DSFiltersInfo>& pFilters)
     {
       _variant_t var;
 
-      CStdStringW filterName;
-      CStdStringW filterGuid;
+      std::wstring filterName;
+      std::wstring filterGuid;
 
       if (SUCCEEDED(propBag->Read(L"FriendlyName", &var, 0)))
-        filterName = CStdStringW(var.bstrVal);
+        filterName = std::wstring(var.bstrVal);
 
       var.Clear();
 
       if (SUCCEEDED(propBag->Read(L"CLSID", &var, 0)))
-        filterGuid = CStdStringW(var.bstrVal);
+        filterGuid = std::wstring(var.bstrVal);
 
       AddFilter(pFilters, filterGuid, filterName);
       propBag = NULL;
@@ -77,19 +77,19 @@ HRESULT CDSFilterEnumerator::GetDSFilters(std::vector<DSFiltersInfo>& pFilters)
 
 bool CDSFilterEnumerator::compare_by_word(const DSFiltersInfo& lhs, const DSFiltersInfo& rhs) {
 
-  CStdString strLine1 = lhs.lpstrName;
-  CStdString strLine2 = rhs.lpstrName;
+  std::string strLine1 = lhs.lpstrName;
+  std::string strLine2 = rhs.lpstrName;
   StringUtils::ToLower(strLine1);
   StringUtils::ToLower(strLine2);
   return strcmp(strLine1.c_str(), strLine2.c_str()) < 0;
 
 }
 
-void CDSFilterEnumerator::AddFilter(std::vector<DSFiltersInfo>& pFilters, CStdStringW lpGuid, CStdStringW lpName)
+void CDSFilterEnumerator::AddFilter(std::vector<DSFiltersInfo>& pFilters, std::wstring lpGuid, std::wstring lpName)
 {
   DSFiltersInfo filterInfo;
 
-  filterInfo.lpstrGuid = lpGuid;
+  g_charsetConverter.wToUTF8(lpGuid, filterInfo.lpstrGuid);
   g_charsetConverter.wToUTF8(lpName, filterInfo.lpstrName);
 
   pFilters.push_back(filterInfo);

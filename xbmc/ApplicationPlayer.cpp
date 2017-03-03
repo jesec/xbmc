@@ -755,6 +755,8 @@ bool CApplicationPlayer::Configure(unsigned int width, unsigned int height, unsi
   {
     return player->Configure(width, height,d_width, d_height, fps, flags);
   }
+  else 
+    return false;
 }
 
 void CApplicationPlayer::UpdateDisplayLatencyForMadvr(float refresh)

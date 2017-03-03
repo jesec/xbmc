@@ -120,7 +120,7 @@ bool CChaptersManager::LoadInterface()
 {
   if (!CGraphFilters::Get()->Splitter.pBF)
     return false;
-  CStdString splitterName = CGraphFilters::Get()->Splitter.osdname;
+  std::string splitterName = CGraphFilters::Get()->Splitter.osdname;
 
   //CLog::Log(LOGDEBUG, "%s Looking for chapters in \"%s\"", __FUNCTION__, splitterName.c_str());
 
@@ -135,7 +135,7 @@ bool CChaptersManager::LoadChapters()
   CSingleLock lock(m_lock);
   if (!m_chapters.empty())
     FlushChapters();
-  CStdString splitterName = CGraphFilters::Get()->Splitter.osdname;
+  std::string splitterName = CGraphFilters::Get()->Splitter.osdname;
   if (!m_pIAMExtendedSeeking)
     LoadInterface();
   if (m_pIAMExtendedSeeking)

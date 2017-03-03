@@ -43,6 +43,7 @@
 #include "utils/XMLUtils.h"
 #include "Filters/RendererSettings.h"
 #include "PixelShaderList.h"
+#include "utils/DSFileUtils.h"
 
 #define SETTING_FILTER_SAVE                   "dsfilters.save"
 #define SETTING_FILTER_ADD                    "dsfilters.add"
@@ -124,7 +125,7 @@ void CGUIDialogDSFilters::InitializeSettings()
   }
 
   // Init variables
-  CStdString strGuid;
+  std::string strGuid;
 
   if (m_filterList.size() == 0)
   {
@@ -151,7 +152,7 @@ void CGUIDialogDSFilters::InitializeSettings()
       for (const auto &it : m_filterList)
       {
         if (it->m_configType == EDITATTR || it->m_configType == FILTER)
-          it->m_value = pFilter->Attribute(it->m_attr.c_str());
+          it->m_value = CDSXMLUtils::GetString(pFilter, it->m_attr.c_str());
 
         if (it->m_configType == OSDGUID) {
           XMLUtils::GetString(pFilter, it->m_nodeName.c_str(), strGuid);
@@ -209,10 +210,10 @@ void CGUIDialogDSFilters::OnSettingChanged(const CSetting *setting)
 
         if (it->m_value != "[null]")
         {
-          CStdString strOSDName = GetFilterName(it->m_value);
-          CStdString strFilterName = strOSDName;
-          strFilterName.ToLower();
-          strFilterName.Replace(" ", "_");
+          std::string strOSDName = GetFilterName(it->m_value);
+          std::string strFilterName = strOSDName;
+          StringUtils::ToLower(strFilterName);
+          StringUtils::Replace(strFilterName, " ", "_");
 
           m_settingsManager->SetString("dsfilters.guid", it->m_value.c_str());
           m_settingsManager->SetString("dsfilters.osdname", strOSDName);
@@ -317,8 +318,8 @@ void CGUIDialogDSFilters::ShowDSFiltersList()
 
   pDlg->SetHeading(65001);
 
-  CStdString strFilter;
-  CStdString strFilterLabel;
+  std::string strFilter;
+  std::string strFilterLabel;
 
   TiXmlElement *pFilter = pFilters->FirstChildElement("filter");
   while (pFilter)
@@ -330,8 +331,8 @@ void CGUIDialogDSFilters::ShowDSFiltersList()
     if (pOsdname)
       XMLUtils::GetString(pFilter, "osdname", strFilterLabel);
 
-    strFilter = pFilter->Attribute("name");
-    strFilterLabel.Format("%s (%s)", strFilterLabel, strFilter);
+    strFilter = CDSXMLUtils::GetString(pFilter, "name");
+    strFilterLabel = StringUtils::Format("%s (%s)", strFilterLabel.c_str(), strFilter.c_str());
     pDlg->Add(strFilterLabel.c_str()); 
     count++;
 
@@ -360,7 +361,7 @@ void CGUIDialogDSFilters::TypeOptionFiller(const CSetting *setting, std::vector<
   list.emplace_back("Extra Filter (extra)", "extra");
 }
 
-CStdString CGUIDialogDSFilters::GetFilterName(CStdString guid)
+std::string CGUIDialogDSFilters::GetFilterName(std::string guid)
 {
   CDSFilterEnumerator p_dfilter;
   std::vector<DSFiltersInfo> filterList;

@@ -221,10 +221,10 @@ STDMETHODIMP CFGManager::ConnectDirect(IPin* pPinOut, IPin* pPinIn, const AM_MED
   HRESULT hr = Com::SmartQIPtr<IFilterGraph2>(m_pUnkInner)->ConnectDirect(pPinOut, pPinIn, pmt);
 
 #ifdef _DSPLAYER_DEBUG
-  CStdString filterNameIn, filterNameOut;
-  CStdString pinNameIn, pinNameOut;
+  std::string filterNameIn, filterNameOut;
+  std::string pinNameIn, pinNameOut;
   Com::SmartPtr<IBaseFilter> pBFOut = GetFilterFromPin(pPinOut);
-  CStdString strPinType;
+  std::string strPinType;
   strPinType = GetPinMainTypeString(pPinOut);
   g_charsetConverter.wToUTF8(GetFilterName(pBFOut), filterNameOut);
   g_charsetConverter.wToUTF8(GetPinName(pPinOut), pinNameOut);
@@ -599,7 +599,7 @@ STDMETHODIMP_(size_t) CFGManager::GetCount()
   return m_deadends.size();
 }
 
-STDMETHODIMP CFGManager::GetDeadEnd(int iIndex, std::list<CStdStringW>& path, std::list<CMediaType>& mts)
+STDMETHODIMP CFGManager::GetDeadEnd(int iIndex, std::list<std::wstring>& path, std::list<CMediaType>& mts)
 {
   CSingleLock CSingleLock(*this);
 
@@ -616,8 +616,8 @@ STDMETHODIMP CFGManager::GetDeadEnd(int iIndex, std::list<CStdStringW>& path, st
   for (list<path_t>::iterator it = m_deadends.at(iIndex).begin(); it != m_deadends.at(iIndex).end(); it++)
   {
     p = *it;
-    CStdStringW str;
-    str.Format(L"%s::%s", p.filter, p.pin);
+    std::wstring str;
+    str = StringUtils::Format(L"%s::%s", p.filter.c_str(), p.pin.c_str());
     path.push_back(str);
   }
 
@@ -633,7 +633,7 @@ STDMETHODIMP CFGManager::GetDeadEnd(int iIndex, std::list<CStdStringW>& path, st
 #ifdef _DSPLAYER_DEBUG
 void CFGManager::LogFilterGraph(void)
 {
-  CStdString buffer;
+  std::string buffer;
   CLog::Log(LOGDEBUG, "Starting filters listing ...");
   BeginEnumFilters(g_dsGraph->pFilterGraph, pEF, pBF)
   {
@@ -734,7 +734,7 @@ void CFGManager::InitManager()
     m_armerit += 0x100;
     }
 
-    CStdString fileconfigtmp;
+    std::string fileconfigtmp;
     fileconfigtmp = _P("special://xbmc/system/players/dsplayer/dsfilterconfig.xml");*/
 
   //Load the config for the xml
@@ -807,7 +807,7 @@ HRESULT CFGManager::RecoverFromGraphError(const CFileItem& pFileItem)
       CGraphFilters::Get()->Video.pBF.FullRelease();
       CGraphFilters::Get()->Video.Clear();
 
-      CStdString filter = "";
+      std::string filter = "";
       if (SUCCEEDED(CFilterCoreFactory::GetVideoFilter(pFileItem, filter, false)))
       {
         if (SUCCEEDED(m_CfgLoader->InsertFilter(filter, CGraphFilters::Get()->Video)))
@@ -867,14 +867,14 @@ HRESULT CFGManager::RecoverFromGraphError(const CFileItem& pFileItem)
     CGUIDialogOK *dialog = (CGUIDialogOK *)g_windowManager.GetWindow(WINDOW_DIALOG_OK);
     if (dialog)
     {
-      CStdString strError;
+      std::string strError;
 
       if (videoError && audioError)
-        strError = CStdString("Error in both audio and video rendering chain.");
+        strError = std::string("Error in both audio and video rendering chain.");
       else if (videoError)
-        strError = CStdString("Error in the video rendering chain.");
+        strError = std::string("Error in the video rendering chain.");
       else if (audioError)
-        strError = CStdString("Error in the audio rendering chain.");
+        strError = std::string("Error in the audio rendering chain.");
 
       CLog::Log(LOGERROR, "%s Audio / Video error \n %s \n Ensure that the audio/video stream is supported by your selected decoder and ensure that the decoder is properly configured.", __FUNCTION__, strError.c_str());
       dialog->SetHeading("Audio / Video error");

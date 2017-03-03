@@ -46,11 +46,11 @@ protected:
   bool                                                m_fUseInternalTimer;
   REFERENCE_TIME                                      m_rtPrevStart;
 
-  HRESULT     CreateDevice(CStdString &_Error);
+  HRESULT     CreateDevice(std::string &_Error);
   void        DeleteSurfaces();
 
 public:
-  CVMR9AllocatorPresenter(HWND hWnd, HRESULT& hr, CStdString &_Error);
+  CVMR9AllocatorPresenter(HWND hWnd, HRESULT& hr, std::string &_Error);
 
   DECLARE_IUNKNOWN
   STDMETHODIMP                    NonDelegatingQueryInterface(REFIID riid, void** ppv);

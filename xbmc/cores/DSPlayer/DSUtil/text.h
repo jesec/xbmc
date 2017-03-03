@@ -1,7 +1,5 @@
 #pragma once
 
-#include "utils\StdString.h"
-
 //extern CStdString ExplodeMin(CStdString str, std::list<CStdString>& sl, TCHAR sep, int limit = 0);
 //extern CStdString Explode(CStdString str, std::list<CStdString>& sl, TCHAR sep, int limit = 0);
 //extern CStdString Implode(std::list<CStdString>& sl, TCHAR sep);

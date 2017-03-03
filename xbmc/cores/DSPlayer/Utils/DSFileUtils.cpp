@@ -62,7 +62,7 @@ std::string CDSFile::SmbToUncPath(const std::string& strFileName)
   if (!StringUtils::StartsWithNoCase(strFileName, "smb://"))
     return strFileName;
 
-  CStdString strWinFileName;
+  std::string strWinFileName;
   // Find first "/" after " smb://"
   int iEndOfHostNameInd = strFileName.find_first_of('/', 6);
   std::size_t found = strFileName.find_last_of('@', iEndOfHostNameInd);
@@ -74,18 +74,18 @@ std::string CDSFile::SmbToUncPath(const std::string& strFileName)
   else
   {
     strWinFileName = strFileName;
-    strWinFileName.Replace("smb://", "\\\\");
+    StringUtils::Replace(strWinFileName, "smb://", "\\\\");
   }
 
-  strWinFileName.Replace('/', '\\');
+  StringUtils::Replace(strWinFileName, '/', '\\');
 
   return strWinFileName;
 }
 
 bool CDSFile::Exists(const std::string& strFileName, long* errCode)
 {
-  CStdString strWinFile = SmbToUncPath(strFileName);
-  CStdStringW strFileW;
+  std::string strWinFile = SmbToUncPath(strFileName);
+  std::wstring strFileW;
   g_charsetConverter.utf8ToW(strWinFile, strFileW, false);
 
   DWORD dwAttr = GetFileAttributesW(strFileW.c_str());
@@ -125,6 +125,68 @@ int64_t CDSTimeUtils::GetPerfCounter()
     // ms to 100ns units
     return timeGetTime() * 10000;
   }
+}
+
+bool CDSXMLUtils::GetInt(TiXmlElement *pElement, const std::string &attr, int *iValue)
+{
+  const char *str = pElement->Attribute(attr.c_str());
+  if (str == NULL)
+  {
+    *iValue = 0;
+    return false;
+  }
+
+  *iValue = atoi(str);
+
+  return true;
+}
+
+bool CDSXMLUtils::GetFloat(TiXmlElement *pElement, const std::string &attr, float *fValue)
+{
+  const char *str = pElement->Attribute(attr.c_str());
+  if (str == NULL)
+  {
+    *fValue = 0.0f;
+    return false;
+  }
+
+  *fValue = (float)atof(str);
+
+  return true;
+}
+
+bool CDSXMLUtils::GetString(TiXmlElement *pElement, const std::string &attr, std::string *sValue)
+{
+  const char *str = pElement->Attribute(attr.c_str());
+  if (str == NULL)
+  {
+    *sValue = "";
+    return false;
+  }
+
+  *sValue = std::string(str);
+
+  return true;
+}
+
+std::string CDSXMLUtils::GetString(TiXmlElement *pElement, const std::string &attr)
+{
+  std::string s;
+  GetString(pElement, attr, &s);
+  return s;
+}
+
+bool CDSXMLUtils::GetTristate(TiXmlElement *pElement, const std::string &attr, int *iValue)
+{
+  *iValue = -1;
+  const char *str = pElement->Attribute(attr.c_str()); 
+  if (str == NULL)
+    return false;
+
+  if (stricmp(str, "true") == 0) *iValue = 1;
+  if (stricmp(str, "false") == 0) *iValue = 0;
+
+  return true;
 }
 
 #endif

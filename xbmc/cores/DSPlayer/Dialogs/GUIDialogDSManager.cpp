@@ -25,6 +25,7 @@
 #include "cores/DSPlayer/Utils/DSFilterEnumerator.h"
 #include "profiles/ProfilesManager.h"
 #include "utils/log.h"
+#include "utils/DSFileUtils.h"
 #include <iterator>
 
 using namespace std;
@@ -97,7 +98,7 @@ void CGUIDialogDSManager::ResetValue(std::vector<DSConfigList *> &configList)
   }
 }
 
-void CGUIDialogDSManager::GetPath(xmlType type, CStdString &xmlFile, CStdString &xmlNode, CStdString &xmlRoot)
+void CGUIDialogDSManager::GetPath(xmlType type, std::string &xmlFile, std::string &xmlNode, std::string &xmlRoot)
 {
   if (type == MEDIASCONFIG)
   {
@@ -136,7 +137,7 @@ void CGUIDialogDSManager::GetPath(xmlType type, CStdString &xmlFile, CStdString 
 
 void CGUIDialogDSManager::SaveDsXML(xmlType type)
 {
-  CStdString xmlFile, xmlNode, xmlRoot;
+  std::string xmlFile, xmlNode, xmlRoot;
   GetPath(type, xmlFile, xmlNode, xmlRoot);
 
   m_XML.SaveFile(xmlFile);
@@ -147,8 +148,8 @@ bool CGUIDialogDSManager::FindPrepend(TiXmlElement* &pNode, const std::string &x
   bool isPrepend = false;
   while (pNode)
   {
-    CStdString value;
-    value = pNode->Attribute("action");
+    std::string value;
+    value = CDSXMLUtils::GetString(pNode, "action");
     if (value == "prepend")
     {
       isPrepend = true;
@@ -161,7 +162,7 @@ bool CGUIDialogDSManager::FindPrepend(TiXmlElement* &pNode, const std::string &x
 
 void CGUIDialogDSManager::LoadDsXML(xmlType type, TiXmlElement* &pNode, bool forceCreate /*= false*/)
 {
-  CStdString xmlFile, xmlNode, xmlRoot;
+  std::string xmlFile, xmlNode, xmlRoot;
   GetPath(type, xmlFile, xmlNode, xmlRoot);
 
   pNode = NULL;
@@ -219,8 +220,8 @@ void CGUIDialogDSManager::GetFilterList(xmlType type, std::vector<DynamicStringS
   TiXmlElement *pFilters;
   LoadDsXML(type, pFilters);
 
-  CStdString strFilter;
-  CStdString strFilterLabel;
+  std::string strFilter;
+  std::string strFilterLabel;
 
   if (pFilters)
   {
@@ -232,8 +233,8 @@ void CGUIDialogDSManager::GetFilterList(xmlType type, std::vector<DynamicStringS
       if (pOsdname)
       {
         XMLUtils::GetString(pFilter, "osdname", strFilterLabel);
-        strFilter = pFilter->Attribute("name");
-        strFilterLabel.Format("%s (%s)", strFilterLabel, strFilter);
+        strFilter = CDSXMLUtils::GetString(pFilter, "name");
+        strFilterLabel = StringUtils::Format("%s (%s)", strFilterLabel.c_str(), strFilter.c_str());
 
         list.emplace_back(strFilterLabel, strFilter);
       }
@@ -268,8 +269,8 @@ void CGUIDialogDSManager::ShadersOptionFiller(const CSetting *setting, std::vect
   // Load userdata shaders.xml
   Get()->LoadDsXML(SHADERS, pShaders);
 
-  CStdString strShader;
-  CStdString strShaderLabel;
+  std::string strShader;
+  std::string strShaderLabel;
 
   if (!pShaders)
     return;
@@ -277,9 +278,9 @@ void CGUIDialogDSManager::ShadersOptionFiller(const CSetting *setting, std::vect
   TiXmlElement *pShader = pShaders->FirstChildElement("shader");
   while (pShader)
   {
-    strShaderLabel = pShader->Attribute("name");
-    strShader = pShader->Attribute("id");
-    strShaderLabel.Format("%s (%s)", strShaderLabel, strShader);
+    strShaderLabel = CDSXMLUtils::GetString(pShader, "name");
+    strShader = CDSXMLUtils::GetString(pShader, "id");
+    strShaderLabel = StringUtils::Format("%s (%s)", strShaderLabel.c_str(), strShader.c_str());
 
     list.emplace_back(strShaderLabel, strShader);
 
@@ -318,8 +319,8 @@ void CGUIDialogDSManager::PriorityOptionFiller(const CSetting *setting, std::vec
 
   for (unsigned int i = 0; i < 10; i++)
   {
-    CStdString sValue;
-    sValue.Format("%i",i);
+    std::string sValue;
+    sValue = StringUtils::Format("%i",i);
     list.emplace_back(sValue, sValue);
   }
 }
@@ -342,8 +343,8 @@ TiXmlElement* CGUIDialogDSManager::KeepSelectedNode(TiXmlElement* pNode, const s
 
 bool CGUIDialogDSManager::compare_by_word(const DynamicStringSettingOption& lhs, const DynamicStringSettingOption& rhs)
 {
-  CStdString strLine1 = lhs.first;
-  CStdString strLine2 = rhs.first;
+  std::string strLine1 = lhs.first;
+  std::string strLine2 = rhs.first;
   StringUtils::ToLower(strLine1);
   StringUtils::ToLower(strLine2);
   return strcmp(strLine1.c_str(), strLine2.c_str()) < 0;

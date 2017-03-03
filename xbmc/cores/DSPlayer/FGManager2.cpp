@@ -60,22 +60,23 @@ HRESULT CFGManager2::RenderFileXbmc(const CFileItem& pFileItem)
 
   CURL url(FileItem.GetPath());
 
-  CStdString pWinFilePath = url.Get();
-  if ((pWinFilePath.Left(6)).Equals("smb://", false))
-    pWinFilePath.Replace("smb://", "\\\\");
+  std::string pWinFilePath = url.Get();
+  
+  if (StringUtils::EqualsNoCase(StringUtils::Left(pWinFilePath, 6), "smb://"))
+    StringUtils::Replace(pWinFilePath,"smb://", "\\\\");
 
   if (!FileItem.IsInternetStream())
-    pWinFilePath.Replace("/", "\\");
+    StringUtils::Replace(pWinFilePath,"/", "\\");
 
   Com::SmartPtr<IBaseFilter> pBF;
-  CStdStringW strFileW;
+  std::wstring strFileW;
   g_charsetConverter.utf8ToW(pWinFilePath, strFileW);
   if (FAILED(hr = g_dsGraph->pFilterGraph->AddSourceFilter(strFileW.c_str(), NULL, &pBF)))
   {
     return hr;
   }
 
-  CStdString filter = "";
+  std::string filter = "";
 
   START_PERFORMANCE_COUNTER
     CFilterCoreFactory::GetAudioRendererFilter(FileItem, filter);

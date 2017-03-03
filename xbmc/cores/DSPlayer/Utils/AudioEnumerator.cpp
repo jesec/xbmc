@@ -31,6 +31,8 @@
 #include "DSUtil/DSUtil.h"
 #include "DSUtil/SmartPtr.h"
 
+#include "utils/StringUtils.h"
+
 CAudioEnumerator::CAudioEnumerator(void)
 {
 }
@@ -43,26 +45,27 @@ HRESULT CAudioEnumerator::GetAudioRenderers(std::vector<DSFilterInfo>& pRenderer
   Com::SmartPtr<IPropertyBag> propBag = NULL;
   BeginEnumSysDev(CLSID_AudioRendererCategory, pMoniker)
   {
-    CStdString displayName;
+    std::string displayName;
     LPOLESTR str = NULL;
     if (FAILED(pMoniker->GetDisplayName(0, 0, &str))) 
       return E_FAIL;
-    displayName = str;
+
+    g_charsetConverter.wToUTF8(str, displayName);
 
     if (SUCCEEDED(pMoniker->BindToStorage(NULL, NULL, IID_IPropertyBag, (void**)&propBag)))
     {
       _variant_t var;
 
-      CStdStringW filterName;
-      CStdStringW filterGuid;
+      std::wstring filterName;
+      std::wstring filterGuid;
 
       if (SUCCEEDED(propBag->Read(L"FriendlyName", &var, 0)))
-        filterName = CStdStringW(var.bstrVal);
+        filterName = std::wstring(var.bstrVal);
 
       var.Clear();
 
       if (SUCCEEDED(propBag->Read(L"CLSID", &var, 0)))
-        filterGuid = CStdStringW(var.bstrVal);
+        filterGuid = std::wstring(var.bstrVal);
 
       AddFilter(pRenderers, filterGuid, filterName, displayName);
       propBag = NULL;
@@ -75,7 +78,7 @@ HRESULT CAudioEnumerator::GetAudioRenderers(std::vector<DSFilterInfo>& pRenderer
   return S_OK;
 }
 
-bool CAudioEnumerator::IsDevice(CStdString strDevice)
+bool CAudioEnumerator::IsDevice(std::string strDevice)
 {
   CSingleLock lock(m_critSection);
   if (strDevice.empty())
@@ -88,12 +91,15 @@ bool CAudioEnumerator::IsDevice(CStdString strDevice)
     {
       _variant_t var;
 
-      CStdString filterName;
+      std::string filterName;
 
       if (SUCCEEDED(propBag->Read(L"FriendlyName", &var, 0)))
-        filterName = CStdStringW(var.bstrVal);
+        g_charsetConverter.wToUTF8(std::wstring(var.bstrVal), filterName);
 
-      std::size_t found = filterName.ToLower().find(strDevice.ToLower());
+      StringUtils::ToLower(filterName);
+      StringUtils::ToLower(strDevice);
+
+      std::size_t found = StringUtils::FindWords(filterName.c_str(), strDevice.c_str());
       if (found != std::string::npos)
         return true;
 
@@ -108,11 +114,11 @@ bool CAudioEnumerator::IsDevice(CStdString strDevice)
 }
 
 
-void CAudioEnumerator::AddFilter(std::vector<DSFilterInfo>& pRenderers, CStdStringW lpGuid, CStdStringW lpName, CStdString lpDisplayName)
+void CAudioEnumerator::AddFilter(std::vector<DSFilterInfo>& pRenderers, std::wstring lpGuid, std::wstring lpName, std::string lpDisplayName)
 {
   DSFilterInfo filterInfo;
 
-  filterInfo.lpstrGuid = lpGuid;
+  g_charsetConverter.wToUTF8(lpGuid, filterInfo.lpstrGuid);
   g_charsetConverter.wToUTF8(lpName, filterInfo.lpstrName);
   filterInfo.lpstrDisplayName = lpDisplayName;
 

@@ -64,5 +64,5 @@ private:
   PixelShaderVector m_activatedPixelShaders;
   PixelShaderVector m_pixelShaders;
 
-  bool LoadXMLFile(const CStdString& xmlFile);
+  bool LoadXMLFile(const std::string& xmlFile);
 };

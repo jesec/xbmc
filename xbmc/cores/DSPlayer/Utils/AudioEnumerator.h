@@ -22,13 +22,12 @@
  */
 
 #include "threads/CriticalSection.h"
-#include "utils/StdString.h"
 
 struct DSFilterInfo
 {
-  CStdString lpstrGuid;
-  CStdString lpstrName;
-  CStdString lpstrDisplayName;
+  std::string lpstrGuid;
+  std::string lpstrName;
+  std::string lpstrDisplayName;
 };
 
 class CAudioEnumerator
@@ -36,11 +35,11 @@ class CAudioEnumerator
 public:
   CAudioEnumerator(void);
   HRESULT GetAudioRenderers(std::vector<DSFilterInfo>& pRenderers);
-  bool IsDevice(CStdString strDevice);
+  bool IsDevice(std::string strDevice);
 
 private:
   CCriticalSection m_critSection;
-  void AddFilter(std::vector<DSFilterInfo>& pRenderers, CStdStringW lpGuid, CStdStringW lpName, CStdString lpDisplayName);
+  void AddFilter(std::vector<DSFilterInfo>& pRenderers, std::wstring lpGuid, std::wstring lpName, std::string lpDisplayName);
 
 };
 

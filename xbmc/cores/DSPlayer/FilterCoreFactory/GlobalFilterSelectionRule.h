@@ -34,6 +34,7 @@
 #include "URL.h"
 #include "video/VideoInfoTag.h"
 #include "utils/StreamDetails.h"
+#include "utils/DSFileUtils.h"
 
 class CGlobalFilterSelectionRule
 {
@@ -86,7 +87,7 @@ public:
     if (CompileRegExp(m_fileName, regExp) && !MatchesRegExp(pFileItem.GetPath(), regExp)) return false;
     if (CompileRegExp(m_Protocols, regExp) && !MatchesRegExp(url.GetProtocol(), regExp)) return false;
     if (CompileRegExp(m_videoCodec, regExp) && !MatchesRegExp(streamDetails.GetVideoCodec(), regExp)) return false;
-    CStdString audioCodec = streamDetails.GetAudioCodec();
+    std::string audioCodec = streamDetails.GetAudioCodec();
     if (audioCodec == "dca")
       audioCodec = "dts";
     if (CompileRegExp(m_audioCodec, regExp) && !MatchesRegExp(audioCodec, regExp)) return false;
@@ -94,37 +95,37 @@ public:
     return true;
   }
 
-  void GetSourceFilters(const CFileItem& item, std::vector<CStdString> &vecCores)
+  void GetSourceFilters(const CFileItem& item, std::vector<std::string> &vecCores)
   {
     m_pSource->GetFilters(item, vecCores);
   }
 
-  void GetSplitterFilters(const CFileItem& item, std::vector<CStdString> &vecCores)
+  void GetSplitterFilters(const CFileItem& item, std::vector<std::string> &vecCores)
   {
     m_pSplitter->GetFilters(item, vecCores);
   }
 
-  void GetAudioRendererFilters(const CFileItem& item, std::vector<CStdString> &vecCores)
+  void GetAudioRendererFilters(const CFileItem& item, std::vector<std::string> &vecCores)
   {
     m_pAudioRenderer->GetFilters(item, vecCores, false);
   }
 
-  void GetVideoFilters(const CFileItem& item, std::vector<CStdString> &vecCores, bool dxva = false)
+  void GetVideoFilters(const CFileItem& item, std::vector<std::string> &vecCores, bool dxva = false)
   {
     m_pVideo->GetFilters(item, vecCores, dxva);
   }
 
-  void GetAudioFilters(const CFileItem& item, std::vector<CStdString> &vecCores, bool dxva = false)
+  void GetAudioFilters(const CFileItem& item, std::vector<std::string> &vecCores, bool dxva = false)
   {
     m_pAudio->GetFilters(item, vecCores, dxva);
   }
 
-  void GetSubsFilters(const CFileItem& item, std::vector<CStdString> &vecCores, bool dxva = false)
+  void GetSubsFilters(const CFileItem& item, std::vector<std::string> &vecCores, bool dxva = false)
   {
     m_pSubs->GetFilters(item, vecCores, dxva);
   }
 
-  void GetExtraFilters(const CFileItem& item, std::vector<CStdString> &vecCores, bool dxva = false)
+  void GetExtraFilters(const CFileItem& item, std::vector<std::string> &vecCores, bool dxva = false)
   {
     m_pExtras->GetFilters(item, vecCores, dxva);
   }
@@ -134,7 +135,7 @@ public:
     m_pShaders->GetShaders(item, shaders, shadersStages, dxva);
   }
 
-  CStdString GetPriority()
+  std::string GetPriority()
   {
     return m_priority;
   }
@@ -142,13 +143,13 @@ public:
 private:
   int        m_url;
   bool       m_bStreamDetails;
-  CStdString m_name;
-  CStdString m_fileName;
-  CStdString m_fileTypes;
-  CStdString m_Protocols;
-  CStdString m_videoCodec;
-  CStdString m_audioCodec;
-  CStdString m_priority;
+  std::string m_name;
+  std::string m_fileName;
+  std::string m_fileTypes;
+  std::string m_Protocols;
+  std::string m_videoCodec;
+  std::string m_audioCodec;
+  std::string m_priority;
   CFilterSelectionRule * m_pSource;
   CFilterSelectionRule * m_pSplitter;
   CFilterSelectionRule * m_pVideo;
@@ -167,32 +168,30 @@ private:
     }
     return -1;
   }
-  bool CompileRegExp(const CStdString& str, CRegExp& regExp) const
+  bool CompileRegExp(const std::string& str, CRegExp& regExp) const
   {
     return str.length() > 0 && regExp.RegComp(str.c_str());
   }
-  bool MatchesRegExp(const CStdString& str, CRegExp& regExp) const
+  bool MatchesRegExp(const std::string& str, CRegExp& regExp) const
   {
     return regExp.RegFind(str, 0) == 0;
   }
 
   void Initialize(TiXmlElement* pRule, int iPriority)
   {
-    m_name = pRule->Attribute("name");
-    if (!m_name || m_name.IsEmpty())
+    if ( !CDSXMLUtils::GetString(pRule, "name", &m_name))
       m_name = "un-named";
 
-    m_url = GetTristate(pRule->Attribute("url"));
-    m_fileTypes = pRule->Attribute("filetypes");
-    m_fileName = pRule->Attribute("filename");
-    m_Protocols = pRule->Attribute("protocols");
-    m_videoCodec = pRule->Attribute("videocodec");
-    m_audioCodec = pRule->Attribute("audiocodec");
+    CDSXMLUtils::GetTristate(pRule, "url", &m_url);
+    m_fileTypes = CDSXMLUtils::GetString(pRule, "filetypes");
+    m_fileName = CDSXMLUtils::GetString(pRule, "filename");
+    m_Protocols = CDSXMLUtils::GetString(pRule, "protocols");
+    m_videoCodec = CDSXMLUtils::GetString(pRule, "videocodec");
+    m_audioCodec = CDSXMLUtils::GetString(pRule, "audiocodec");
     m_bStreamDetails = m_videoCodec.length() > 0 || m_audioCodec.length() > 0;
 
-    m_priority = pRule->Attribute("priority");
-    if (m_priority.length() <= 0)
-      m_priority.Format("%i", iPriority);
+    if (!CDSXMLUtils::GetString(pRule, "priority", &m_priority))
+      m_priority = StringUtils::Format("%i", iPriority);
 
     // Source rules
     m_pSource = new CFilterSelectionRule(pRule->FirstChildElement("source"), "source");

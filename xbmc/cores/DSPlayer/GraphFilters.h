@@ -63,14 +63,14 @@ struct SFilterInfos
 
   void SetFilterInfo(IBaseFilter * pBF)
   {
-    CStdString filterName;
+    std::string filterName;
     g_charsetConverter.wToUTF8(GetFilterName(pBF), filterName);
     osdname = filterName;
     guid = GetCLSID(pBF);
   }
 
   Com::SmartPtr<IBaseFilter> pBF; ///< Pointer to the IBaseFilter interface. May be NULL
-  CStdString osdname; ///< OSD Name of the filter
+  std::string osdname; ///< OSD Name of the filter
   GUID guid; ///< GUID of the filter
   bool isinternal; ///<  Releasing is not done the same way for internal filters
   bool internalFilter = false;

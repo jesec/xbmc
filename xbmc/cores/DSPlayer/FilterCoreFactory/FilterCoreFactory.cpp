@@ -68,7 +68,7 @@ HRESULT CFilterCoreFactory::LoadFiltersConfiguration(TiXmlElement* pConfig)
   if (pFilters)
   {
     TiXmlElement *pFilter = pFilters->FirstChildElement("filter");
-    CStdString type = "";
+    std::string type = "";
     while (pFilter)
     {
       m_Filters.push_back(new CFGFilterFile(pFilter));
@@ -92,7 +92,7 @@ CGlobalFilterSelectionRule* CFilterCoreFactory::GetGlobalFilterSelectionRule(con
   return NULL;
 }
 
-HRESULT CFilterCoreFactory::GetSourceFilter(const CFileItem& pFileItem, CStdString& filter)
+HRESULT CFilterCoreFactory::GetSourceFilter(const CFileItem& pFileItem, std::string& filter)
 {
   filter = "";
 
@@ -115,7 +115,7 @@ HRESULT CFilterCoreFactory::GetSourceFilter(const CFileItem& pFileItem, CStdStri
     return E_FAIL;
   }
 
-  std::vector<CStdString> foo;
+  std::vector<std::string> foo;
   pRule->GetSourceFilters(pFileItem, foo);
 
   if (foo.empty())
@@ -125,14 +125,14 @@ HRESULT CFilterCoreFactory::GetSourceFilter(const CFileItem& pFileItem, CStdStri
   return S_OK;
 }
 
-HRESULT CFilterCoreFactory::GetSplitterFilter(const CFileItem& pFileItem, CStdString& filter)
+HRESULT CFilterCoreFactory::GetSplitterFilter(const CFileItem& pFileItem, std::string& filter)
 {
   filter = "";
   CGlobalFilterSelectionRule * pRule = GetGlobalFilterSelectionRule(pFileItem);
   if (!pRule)
     return E_FAIL;
 
-  std::vector<CStdString> foo;
+  std::vector<std::string> foo;
   pRule->GetSplitterFilters(pFileItem, foo);
 
   if (foo.empty())
@@ -142,14 +142,14 @@ HRESULT CFilterCoreFactory::GetSplitterFilter(const CFileItem& pFileItem, CStdSt
   return S_OK;
 }
 
-HRESULT CFilterCoreFactory::GetAudioRendererFilter(const CFileItem& pFileItem, CStdString& filter)
+HRESULT CFilterCoreFactory::GetAudioRendererFilter(const CFileItem& pFileItem, std::string& filter)
 {
   filter = "";
   CGlobalFilterSelectionRule * pRule = GetGlobalFilterSelectionRule(pFileItem);
   if (!pRule)
     return E_FAIL;
 
-  std::vector<CStdString> foo;
+  std::vector<std::string> foo;
   pRule->GetAudioRendererFilters(pFileItem, foo);
 
   if (foo.empty())
@@ -159,14 +159,14 @@ HRESULT CFilterCoreFactory::GetAudioRendererFilter(const CFileItem& pFileItem, C
   return S_OK;
 }
 
-HRESULT CFilterCoreFactory::GetAudioFilter(const CFileItem& pFileItem, CStdString& filter, bool dxva /*= false*/)
+HRESULT CFilterCoreFactory::GetAudioFilter(const CFileItem& pFileItem, std::string& filter, bool dxva /*= false*/)
 {
   filter = "";
   CGlobalFilterSelectionRule * pRule = GetGlobalFilterSelectionRule(pFileItem);
   if (!pRule)
     return E_FAIL;
 
-  std::vector<CStdString> foo;
+  std::vector<std::string> foo;
   pRule->GetAudioFilters(pFileItem, foo, dxva);
 
   if (foo.empty())
@@ -176,14 +176,14 @@ HRESULT CFilterCoreFactory::GetAudioFilter(const CFileItem& pFileItem, CStdStrin
   return S_OK;;
 }
 
-HRESULT CFilterCoreFactory::GetVideoFilter(const CFileItem& pFileItem, CStdString& filter, bool dxva /*= false*/)
+HRESULT CFilterCoreFactory::GetVideoFilter(const CFileItem& pFileItem, std::string& filter, bool dxva /*= false*/)
 {
   filter = "";
   CGlobalFilterSelectionRule * pRule = GetGlobalFilterSelectionRule(pFileItem);
   if (!pRule)
     return E_FAIL;
 
-  std::vector<CStdString> foo;
+  std::vector<std::string> foo;
   pRule->GetVideoFilters(pFileItem, foo, dxva);
 
   if (foo.empty())
@@ -193,14 +193,14 @@ HRESULT CFilterCoreFactory::GetVideoFilter(const CFileItem& pFileItem, CStdStrin
   return S_OK;
 }
 
-HRESULT CFilterCoreFactory::GetSubsFilter(const CFileItem& pFileItem, CStdString& filter, bool dxva /*= false*/)
+HRESULT CFilterCoreFactory::GetSubsFilter(const CFileItem& pFileItem, std::string& filter, bool dxva /*= false*/)
 {
   filter = "";
   CGlobalFilterSelectionRule * pRule = GetGlobalFilterSelectionRule(pFileItem);
   if (!pRule)
     return E_FAIL;
 
-  std::vector<CStdString> foo;
+  std::vector<std::string> foo;
   pRule->GetSubsFilters(pFileItem, foo, dxva);
 
   if (foo.empty())
@@ -210,7 +210,7 @@ HRESULT CFilterCoreFactory::GetSubsFilter(const CFileItem& pFileItem, CStdString
   return S_OK;
 }
 
-HRESULT CFilterCoreFactory::GetExtraFilters(const CFileItem& pFileItem, std::vector<CStdString>& filters, bool dxva /*= false*/)
+HRESULT CFilterCoreFactory::GetExtraFilters(const CFileItem& pFileItem, std::vector<std::string>& filters, bool dxva /*= false*/)
 {
   filters.clear();
   CGlobalFilterSelectionRule * pRule = GetGlobalFilterSelectionRule(pFileItem);
@@ -232,14 +232,14 @@ HRESULT CFilterCoreFactory::GetShaders(const CFileItem& pFileItem, std::vector<u
   return S_OK;
 }
 
-CFGFilter* CFilterCoreFactory::GetFilterFromName(const CStdString& _filter, bool showError)
+CFGFilter* CFilterCoreFactory::GetFilterFromName(const std::string& _filter, bool showError)
 {
-  CStdString filter = _filter;
+  std::string filter = _filter;
 
   // Right now we only have the rar source filter
   for (int i = 0; i < countof(internalFilters); i++)
   {
-    if (internalFilters[i].name.Equals(filter))
+    if (StringUtils::EqualsNoCase(internalFilters[i].name, filter))
     {
       return internalFilters[i].cst(internalFilters[i].osdname);
     }

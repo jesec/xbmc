@@ -26,9 +26,10 @@
 #ifdef HAS_DS_PLAYER
 
 #include "DSMediaPortal.h"
+#include "utils/StdString.h"
 #include "utils/uri.h"
 
-CDSMediaPortal::CDSMediaPortal(const CStdString& strBackendBaseAddress, const CStdString& strBackendName) 
+CDSMediaPortal::CDSMediaPortal(const std::string& strBackendBaseAddress, const std::string& strBackendName) 
   : CDSPVRBackend(strBackendBaseAddress, strBackendName)
   , m_pCardsSettings(NULL)
 {
@@ -41,13 +42,13 @@ CDSMediaPortal::~CDSMediaPortal(void)
   SAFE_DELETE(m_pCardsSettings);
 }
 
-bool CDSMediaPortal::ConvertStreamURLToTimeShiftFilePath(const CStdString& strUrl, CStdString& strTimeShiftFile)
+bool CDSMediaPortal::ConvertStreamURLToTimeShiftFilePath(const std::string& strUrl, std::string& strTimeShiftFile)
 {
   bool bReturn = false;
-  CStdString strResponse;
+  std::string strResponse;
   strTimeShiftFile.clear();
-  CStdString strTimeShiftFilePath;
-  CStdString strResolvedUrl;
+  std::string strTimeShiftFilePath;
+  std::string strResolvedUrl;
 
   if (strUrl.empty())
   {
@@ -105,7 +106,7 @@ bool CDSMediaPortal::ConvertStreamURLToTimeShiftFilePath(const CStdString& strUr
 
   if (bReturn)
   {
-    CStdString strUNCPath;
+    std::string strUNCPath;
     if (TranslatePathToUNC(strTimeShiftFilePath, strUNCPath))
       strTimeShiftFilePath = strUNCPath;
 
@@ -125,11 +126,11 @@ bool CDSMediaPortal::ConvertStreamURLToTimeShiftFilePath(const CStdString& strUr
   return bReturn;
 }
 
-bool  CDSMediaPortal::GetRecordingStreamURL(const CStdString& strRecordingId, CStdString& strRecordingUrl, bool bGetUNCPath /* = false */)
+bool  CDSMediaPortal::GetRecordingStreamURL(const std::string& strRecordingId, std::string& strRecordingUrl, bool bGetUNCPath /* = false */)
 {
   bool bReturn = false;
-  CStdString strResponse;
-  CStdString strRecUrl;
+  std::string strResponse;
+  std::string strRecUrl;
   strRecordingUrl.clear();
 
   if (strRecordingId.empty())
@@ -162,7 +163,7 @@ bool  CDSMediaPortal::GetRecordingStreamURL(const CStdString& strRecordingId, CS
   {
     bReturn = false;
     // Make sure that the empty fields will not be ignored by "Tokenize" function.
-    strResponse.Replace("||", "|_|");
+    StringUtils::Replace(strResponse, "||", "|_|");
     std::vector<std::string> recordingInfo;
     StringUtils::Tokenize(strResponse, recordingInfo, "|");
     if (recordingInfo.size() >= 8)
@@ -171,7 +172,7 @@ bool  CDSMediaPortal::GetRecordingStreamURL(const CStdString& strRecordingId, CS
       {    
         // Recording UNC Path 
         strRecUrl = recordingInfo[7];
-        CStdString strUNCPath;
+        std::string strUNCPath;
         if (TranslatePathToUNC(strRecUrl, strUNCPath))
           strRecUrl = strUNCPath;
 
@@ -184,7 +185,7 @@ bool  CDSMediaPortal::GetRecordingStreamURL(const CStdString& strRecordingId, CS
         strRecUrl = recordingInfo[6]; 
         if (URIUtils::IsInternetStream(strRecUrl))
         {
-          CStdString strResolvedRecUrl;
+          std::string strResolvedRecUrl;
           if (ResolveHostName(strRecUrl, strResolvedRecUrl))
             strRecUrl = strResolvedRecUrl;
           bReturn = true;
@@ -214,11 +215,11 @@ bool  CDSMediaPortal::GetRecordingStreamURL(const CStdString& strRecordingId, CS
   return bReturn;
 }
 
-bool CDSMediaPortal::SendCommandToMPTVServer(const CStdString& strCommand, CStdString & strResponse)
+bool CDSMediaPortal::SendCommandToMPTVServer(const std::string& strCommand, std::string & strResponse)
 {
   bool bReturn = true;
   strResponse.clear();
-  CStdString strResponseMessage;
+  std::string strResponseMessage;
 
   if (!TCPClientIsConnected())
     bReturn = ConnectToMPTVServer();
@@ -235,7 +236,7 @@ bool CDSMediaPortal::SendCommandToMPTVServer(const CStdString& strCommand, CStdS
 bool CDSMediaPortal::ConnectToMPTVServer()
 { 
   bool bReturn = false;
-  CStdString strResponseMessage;
+  std::string strResponseMessage;
   
   bReturn = TCPClientConnect();
   if (bReturn)
@@ -263,7 +264,7 @@ bool CDSMediaPortal::ConnectToMPTVServer()
   return bReturn;
 }
 
-bool CDSMediaPortal::ConvertRtspStreamUrlToTimeShiftFilePath(const CStdString& strUrl, CStdString& strTimeShiftFile)
+bool CDSMediaPortal::ConvertRtspStreamUrlToTimeShiftFilePath(const std::string& strUrl, std::string& strTimeShiftFile)
 {
   /*
   "True|rtsp://HostName:554/stream5.2|\\\\HOSTNAME-PC\\Timeshift\\live5-2.ts.tsbuffer|ChannelInfo" - new version contains UNC timeshift path
@@ -272,9 +273,9 @@ bool CDSMediaPortal::ConvertRtspStreamUrlToTimeShiftFilePath(const CStdString& s
 
   bool bReturn = false;
   strTimeShiftFile.clear();
-  CStdString strResponse;
-  CStdString strRtspUrl;
-  CStdString strResolvedRtspUrl;
+  std::string strResponse;
+  std::string strRtspUrl;
+  std::string strResolvedRtspUrl;
 
   bReturn = SendCommandToMPTVServer("IsTimeshifting:\n", strResponse);
   if (bReturn && strResponse.find("True") != std::string::npos)
@@ -289,8 +290,8 @@ bool CDSMediaPortal::ConvertRtspStreamUrlToTimeShiftFilePath(const CStdString& s
       strRtspUrl = tokens[1];
       // From TVServerKodi: 
       // "Workaround for MP TVserver bug when using default port for rtsp => returns rtsp://ip:0"
-      strRtspUrl.Replace(":554", "");
-      strRtspUrl.Replace(":0", "");
+      StringUtils::Replace( strRtspUrl, ":554", "");
+      StringUtils::Replace(strRtspUrl, ":0", "");
 
       if (!ResolveHostName(strRtspUrl, strResolvedRtspUrl))
         strResolvedRtspUrl = "";
@@ -320,7 +321,7 @@ bool CDSMediaPortal::ConvertRtspStreamUrlToTimeShiftFilePath(const CStdString& s
 bool CDSMediaPortal::LoadCardSettings()
 {
   bool bReturn = false;
-  CStdString strResponseMessage;
+  std::string strResponseMessage;
 
   CLog::Log(LOGDEBUG, "%s Loading card settings from the MediaPortal TVServer", __FUNCTION__);
   
@@ -355,9 +356,9 @@ bool CDSMediaPortal::LoadCardSettings()
   return bReturn;
 }
 
-bool CDSMediaPortal::TranslatePathToUNC(const CStdString& strLocalFilePath, CStdString& strTranslatedFilePath)
+bool CDSMediaPortal::TranslatePathToUNC(const std::string& strLocalFilePath, std::string& strTranslatedFilePath)
 {
-  CStdString strFilePath = strLocalFilePath;
+  std::string strFilePath = strLocalFilePath;
   strTranslatedFilePath.clear();
 
   // Can we access the given file already?
@@ -388,7 +389,7 @@ bool CDSMediaPortal::TranslatePathToUNC(const CStdString& strLocalFilePath, CStd
         if (!it->TimeshiftFolderUNC.empty())
         {
           // Remove the original base path and replace it with the given path
-          strFilePath.Replace(it->TimeshiftFolder.c_str(), it->TimeshiftFolderUNC.c_str());
+          StringUtils::Replace(strFilePath, it->TimeshiftFolder.c_str(), it->TimeshiftFolderUNC.c_str());
           bFound = true;
           break;
         }
@@ -406,7 +407,7 @@ bool CDSMediaPortal::TranslatePathToUNC(const CStdString& strLocalFilePath, CStd
         if (!it->RecordingFolderUNC.empty())
         {
           // Remove the original base path and replace it with the given path
-          strFilePath.Replace(it->RecordingFolder.c_str(), it->RecordingFolderUNC.c_str());
+          StringUtils::Replace(strFilePath, it->RecordingFolder.c_str(), it->RecordingFolderUNC.c_str());
           bFound = true;
           break;
         }
@@ -470,6 +471,7 @@ bool CDSMediaPortalCards::ParseLines(vector<string>& lines)
       if (fields.size() < 17)
         return false;
 
+ 
       card.IdCard = atoi(fields[0].c_str());
       card.DevicePath = fields[1];
       card.Name = fields[2];

@@ -34,7 +34,7 @@
 #include "streams.h"
 #include <list>
 #include <tinyxml.h>
-#include "utils/StdString.h"
+#include "Utils/CharsetConverter.h"
 
 class CFGFilter
 {
@@ -47,12 +47,17 @@ public:
     VIDEORENDERER
   };
 
-  CFGFilter(const CLSID& clsid, Type type, CStdString name = L"");
+  CFGFilter(const CLSID& clsid, Type type, std::string name = "");
   CFGFilter(Type type) { m_type = type; };
   virtual ~CFGFilter() {};
 
   CLSID GetCLSID() { return m_clsid; }
-  CStdStringW GetName() { return m_name; }
+  std::string GetName() { return m_name; }
+  std::wstring GetNameW() { 
+    std::wstring nameW;
+    g_charsetConverter.utf8ToW(m_name, nameW);
+    return nameW; 
+  }
   Type GetType() const { return m_type; }
 
   void AddType(const GUID& majortype, const GUID& subtype);
@@ -60,7 +65,7 @@ public:
   virtual HRESULT Create(IBaseFilter** ppBF) = 0;
 protected:
   CLSID m_clsid;
-  CStdString m_name;
+  std::string m_name;
   Type m_type;
   std::list<GUID> m_types;
 };
@@ -68,17 +73,17 @@ protected:
 class CFGFilterRegistry : public CFGFilter
 {
 protected:
-  CStdString m_DisplayName;
+  std::string m_DisplayName;
   IMoniker* m_pMoniker;
 
   void ExtractFilterData(BYTE* p, UINT len);
 
 public:
   CFGFilterRegistry(IMoniker* pMoniker);
-  CFGFilterRegistry(CStdString DisplayName);
+  CFGFilterRegistry(std::string DisplayName);
   CFGFilterRegistry(const CLSID& clsid);
 
-  CStdString GetDisplayName() { return m_DisplayName; }
+  std::string GetDisplayName() { return m_DisplayName; }
   IMoniker* GetMoniker() { return m_pMoniker; }
 
   HRESULT Create(IBaseFilter** ppBF);
@@ -88,7 +93,7 @@ template<class T>
 class CFGFilterInternal : public CFGFilter
 {
 public:
-  CFGFilterInternal(CStdStringW name = L"")
+  CFGFilterInternal(std::string name = "")
     : CFGFilter(__uuidof(T), INTERNAL, name) {}
 
   HRESULT Create(IBaseFilter** ppBF)
@@ -109,21 +114,21 @@ public:
 class CFGFilterFile : public CFGFilter
 {
 protected:
-  CStdString m_path;
-  CStdString m_xFileType;
-  CStdString m_internalName;
+  std::string m_path;
+  std::string m_xFileType;
+  std::string m_internalName;
   HINSTANCE m_hInst;
   bool m_isDMO;
   CLSID m_catDMO;
 
 public:
-  CFGFilterFile(const CLSID& clsid, CStdString path, CStdStringW name = L"", CStdString filtername = "", CStdString filetype = "");
+  CFGFilterFile(const CLSID& clsid, std::string path, std::string name = "", std::string filtername = "", std::string filetype = "");
   CFGFilterFile(TiXmlElement *pFilter);
 
   HRESULT Create(IBaseFilter** ppBF);
-  CStdString GetXFileType() { return m_xFileType; };
-  CStdString GetInternalName() { return m_internalName; };
-  CStdString GetPath() { return m_path; }
+  std::string GetXFileType() { return m_xFileType; };
+  std::string GetInternalName() { return m_internalName; };
+  std::string GetPath() { return m_path; }
 };
 
 interface IDsRenderer;
@@ -132,7 +137,7 @@ class CDSGraph;
 class CFGFilterVideoRenderer : public CFGFilter
 {
 public:
-  CFGFilterVideoRenderer(const CLSID& clsid, CStdStringW name = L"");
+  CFGFilterVideoRenderer(const CLSID& clsid, std::string name = "");
   ~CFGFilterVideoRenderer();
 
   HRESULT Create(IBaseFilter** ppBF);

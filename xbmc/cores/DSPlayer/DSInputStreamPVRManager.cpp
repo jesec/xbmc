@@ -188,7 +188,7 @@ bool CDSInputStreamPVRManager::Open(const CFileItem& file)
       {
         if (m_pPVRBackend && m_pPVRBackend->SupportsStreamConversion(strTranslatedPVRFile))
         {
-          CStdString strTimeShiftFile;
+          std::string strTimeShiftFile;
           bReturnVal = m_pPVRBackend->ConvertStreamURLToTimeShiftFilePath(strTranslatedPVRFile, strTimeShiftFile);
           if (bReturnVal)
             strTranslatedPVRFile = strTimeShiftFile;
@@ -204,7 +204,7 @@ bool CDSInputStreamPVRManager::Open(const CFileItem& file)
       if (file.HasPVRRecordingInfoTag())
       {
         CPVRRecordingPtr recordingPtr = file.GetPVRRecordingInfoTag();
-        CStdString strRecordingUrl;
+        std::string strRecordingUrl;
         bReturnVal = m_pPVRBackend->GetRecordingStreamURL(recordingPtr->m_strRecordingId, strRecordingUrl, g_advancedSettings.m_bDSPlayerUseUNCPathsForLiveTV);
         if (bReturnVal)
           strTranslatedPVRFile = strRecordingUrl;
@@ -288,7 +288,7 @@ bool CDSInputStreamPVRManager::GetNewChannel(CFileItem& fileItem)
       // Convert Stream URL To TimeShift file
       if (g_advancedSettings.m_bDSPlayerUseUNCPathsForLiveTV && m_pPVRBackend && m_pPVRBackend->SupportsStreamConversion(strNewFile))
       {
-        CStdString timeShiftFile = "";
+        std::string timeShiftFile = "";
         if (m_pPVRBackend->ConvertStreamURLToTimeShiftFilePath(strNewFile, timeShiftFile))
           strNewFile = timeShiftFile;
       }

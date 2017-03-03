@@ -201,8 +201,8 @@ protected:
   int64_t                               m_LastFrameDuration;
   int64_t                               m_LastSampleTime;
 
-  CStdString                            m_strStatsMsg[10];
-  CStdString                            m_D3D9Device;
+  std::string                            m_strStatsMsg[10];
+  std::string                            m_D3D9Device;
 
   STDMETHODIMP_(void)                   SetTime(REFERENCE_TIME rtNow);
   uint32_t                              GetAdapter(IDirect3D9 *pD3D, bool GetAdapter = false);
@@ -222,7 +222,7 @@ protected:
   HRESULT                               TextureResizeBicubic2pass(Com::SmartPtr<IDirect3DTexture9> pTexture, Vector dst[4], const Com::SmartRect &SrcRect);
   HRESULT                               AlphaBlt(RECT* pSrc, RECT* pDst, Com::SmartPtr<IDirect3DTexture9> pTexture);
 
-  void                                  DrawText(const RECT &rc, const CStdString &strText, int _Priority);
+  void                                  DrawText(const RECT &rc, const std::string &strText, int _Priority);
   void                                  DrawStats();
   double                                GetFrameTime();
   double                                GetFrameRate();
@@ -253,7 +253,7 @@ protected:
   CFocusThread*                         m_FocusThread;
   HWND                                  m_hFocusWindow;
 
-  virtual HRESULT                       CreateDevice(CStdString &_Error);
+  virtual HRESULT                       CreateDevice(std::string &_Error);
   virtual HRESULT                       AllocSurfaces(D3DFORMAT Format = D3DFMT_A8R8G8B8);
   virtual void                          DeleteSurfaces();
   virtual void                          OnVBlankFinished(bool fAll, int64_t PerformanceCounter) {}
@@ -338,7 +338,7 @@ protected:
   }
 
 public:
-  CDX9AllocatorPresenter(HWND hWnd, HRESULT& hr, bool bIsEVR, CStdString &_Error);
+  CDX9AllocatorPresenter(HWND hWnd, HRESULT& hr, bool bIsEVR, std::string &_Error);
   ~CDX9AllocatorPresenter();
 
   // ISubPicAllocatorPresenter

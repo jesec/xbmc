@@ -193,7 +193,7 @@ static HRESULT DrawRect(IDirect3DDevice9* pD3DDev, MYD3DVERTEX<0> v[4])
 
 bool CDX9AllocatorPresenter::bPaintAll = true;
 
-CDX9AllocatorPresenter::CDX9AllocatorPresenter(HWND hWnd, HRESULT& hr, bool bIsEVR, CStdString &_Error)
+CDX9AllocatorPresenter::CDX9AllocatorPresenter(HWND hWnd, HRESULT& hr, bool bIsEVR, std::string &_Error)
   : ISubPicAllocatorPresenterImpl(hWnd, hr)
   , m_ScreenSize(0, 0)
   , m_RefreshRate(0)
@@ -240,7 +240,7 @@ CDX9AllocatorPresenter::CDX9AllocatorPresenter(HWND hWnd, HRESULT& hr, bool bIsE
 
   if (FAILED(hr))
   {
-    _Error += L"ISubPicAllocatorPresenterImpl failed\n";
+    _Error += "ISubPicAllocatorPresenterImpl failed\n";
     return;
   }
 
@@ -262,7 +262,7 @@ CDX9AllocatorPresenter::CDX9AllocatorPresenter(HWND hWnd, HRESULT& hr, bool bIsE
   }
   else
   {
-    _Error += L"No D3DX9 dll found. To enable stats, shaders and complex resizers, please make sure to install the latest DirectX End-User Runtime.\n";
+    _Error += "No D3DX9 dll found. To enable stats, shaders and complex resizers, please make sure to install the latest DirectX End-User Runtime.\n";
   }
 
   m_hD3D9 = LoadLibrary("d3d9.dll");
@@ -574,7 +574,7 @@ void CDX9AllocatorPresenter::SetTime(REFERENCE_TIME rtNow)
     CStreamsManager::Get()->SubtitleManager->SetTime(rtNow);
 }
 
-HRESULT CDX9AllocatorPresenter::CreateDevice(CStdString &_Error)
+HRESULT CDX9AllocatorPresenter::CreateDevice(std::string &_Error)
 {
   m_VBlankEndWait = 0;
   m_VBlankMin = 300000;
@@ -624,7 +624,7 @@ HRESULT CDX9AllocatorPresenter::CreateDevice(CStdString &_Error)
   D3DDISPLAYMODE d3ddm;
   if (FAILED(m_pD3D->GetAdapterDisplayMode(GetAdapter(m_pD3D), &d3ddm)))
   {
-    _Error += L"GetAdapterDisplayMode failed\n";
+    _Error += "GetAdapterDisplayMode failed\n";
     return E_UNEXPECTED;
   }
 
@@ -1074,9 +1074,9 @@ HRESULT CDX9AllocatorPresenter::InitResizers(float bicubicA, bool bNeedScreenSiz
 
   LPCSTR pProfile = m_caps.PixelShaderVersion >= D3DPS_VERSION(3, 0) ? "ps_3_0" : "ps_2_0";
 
-  CStdString str;
+  std::string str;
   XFILE::CFileStream file;
-  CStdString filename = "special://xbmc/system/players/dsplayer/Shaders/resizer.psh";
+  std::string filename = "special://xbmc/system/players/dsplayer/Shaders/resizer.psh";
   if (!file.Open(filename))
   {
     CLog::Log(LOGERROR, "CWinRenderer::LoadEffect - failed to open file %s", filename.c_str());
@@ -1087,18 +1087,18 @@ HRESULT CDX9AllocatorPresenter::InitResizers(float bicubicA, bool bNeedScreenSiz
   //if(!LoadResource(IDF_SHADER_RESIZER, str, _T("FILE")))
   //  return E_FAIL;
 
-  CStdStringA A;
-  A.Format("(%f)", bicubicA);
-  str.Replace("_The_Value_Of_A_Is_Set_Here_", A);
+  std::string A;
+  A = StringUtils::Format("(%f)", bicubicA);
+  StringUtils::Replace(str, "_The_Value_Of_A_Is_Set_Here_", A);
 
   LPCSTR pEntries[] = { "main_bilinear", "main_bicubic1pass", "main_bicubic2pass_pass1", "main_bicubic2pass_pass2" };
 
   ASSERT(countof(pEntries) == countof(m_pResizerPixelShader));
   for (int i = 0; i < countof(pEntries); i++)
   {
-    CStdString ErrorMessage;
-    CStdString DissAssembly;
-    hr = m_pPSC->CompileShader(str, pEntries[i], pProfile, 0, &m_pResizerPixelShader[i], &DissAssembly, &ErrorMessage);
+    std::string ErrorMessage;
+    std::string DissAssembly;
+    hr = m_pPSC->CompileShader(str.c_str(), pEntries[i], pProfile, 0, &m_pResizerPixelShader[i], &DissAssembly, &ErrorMessage);
     if (FAILED(hr))
     {
       //TRACE("%ws", ErrorMessage.GetString());
@@ -2244,7 +2244,7 @@ double CDX9AllocatorPresenter::GetFrameRate()
   return 10000000.0 / m_rtTimePerFrame;
 }
 
-void CDX9AllocatorPresenter::DrawText(const RECT &rc, const CStdString &strText, int _Priority)
+void CDX9AllocatorPresenter::DrawText(const RECT &rc, const std::string &strText, int _Priority)
 {
   if (_Priority < 1)
     return;
@@ -2258,29 +2258,29 @@ void CDX9AllocatorPresenter::DrawText(const RECT &rc, const CStdString &strText,
   else
     OffsetRect(&Rect2, -1, -1);
   if (Quality > 0)
-    m_pFont->DrawText(m_pSprite, strText, -1, &Rect2, DT_NOCLIP, Color0);
+    m_pFont->DrawText(m_pSprite, strText.c_str(), -1, &Rect2, DT_NOCLIP, Color0);
   OffsetRect(&Rect2, 1, 0);
   if (Quality > 3)
-    m_pFont->DrawText(m_pSprite, strText, -1, &Rect2, DT_NOCLIP, Color0);
+    m_pFont->DrawText(m_pSprite, strText.c_str(), -1, &Rect2, DT_NOCLIP, Color0);
   OffsetRect(&Rect2, 1, 0);
   if (Quality > 2)
-    m_pFont->DrawText(m_pSprite, strText, -1, &Rect2, DT_NOCLIP, Color0);
+    m_pFont->DrawText(m_pSprite, strText.c_str(), -1, &Rect2, DT_NOCLIP, Color0);
   OffsetRect(&Rect2, 0, 1);
   if (Quality > 3)
-    m_pFont->DrawText(m_pSprite, strText, -1, &Rect2, DT_NOCLIP, Color0);
+    m_pFont->DrawText(m_pSprite, strText.c_str(), -1, &Rect2, DT_NOCLIP, Color0);
   OffsetRect(&Rect2, 0, 1);
   if (Quality > 1)
-    m_pFont->DrawText(m_pSprite, strText, -1, &Rect2, DT_NOCLIP, Color0);
+    m_pFont->DrawText(m_pSprite, strText.c_str(), -1, &Rect2, DT_NOCLIP, Color0);
   OffsetRect(&Rect2, -1, 0);
   if (Quality > 3)
-    m_pFont->DrawText(m_pSprite, strText, -1, &Rect2, DT_NOCLIP, Color0);
+    m_pFont->DrawText(m_pSprite, strText.c_str(), -1, &Rect2, DT_NOCLIP, Color0);
   OffsetRect(&Rect2, -1, 0);
   if (Quality > 2)
-    m_pFont->DrawText(m_pSprite, strText, -1, &Rect2, DT_NOCLIP, Color0);
+    m_pFont->DrawText(m_pSprite, strText.c_str(), -1, &Rect2, DT_NOCLIP, Color0);
   OffsetRect(&Rect2, 0, -1);
   if (Quality > 3)
-    m_pFont->DrawText(m_pSprite, strText, -1, &Rect2, DT_NOCLIP, Color0);
-  m_pFont->DrawText(m_pSprite, strText, -1, &Rect1, DT_NOCLIP, Color1);
+    m_pFont->DrawText(m_pSprite, strText.c_str(), -1, &Rect2, DT_NOCLIP, Color0);
+  m_pFont->DrawText(m_pSprite, strText.c_str(), -1, &Rect1, DT_NOCLIP, Color1);
 }
 
 
@@ -2305,24 +2305,24 @@ void CDX9AllocatorPresenter::DrawStats()
     m_pSprite->Begin(D3DXSPRITE_ALPHABLEND);
     RECT      rc = { 700, 40, 0, 0 };
     rc.left = 40;
-    CStdString    strText;
+    std::string    strText;
     int TextHeight = lrint(25.0*m_TextScale);
     //    strText.Format("Frame rate   : %7.03f   (%7.3f ms = %.03f, %s)   (%7.3f ms = %.03f%s)    Clock: %7.3f ms %+1.4f %%  %+1.9f  %+1.9f", m_fAvrFps, double(m_rtTimePerFrame) / 10000.0, 10000000.0 / (double)(m_rtTimePerFrame), m_bInterlaced ? L"I" : L"P", GetFrameTime() * 1000.0, GetFrameRate(), m_DetectedLock ? L" L" : L"", m_ClockDiff/10000.0, m_ModeratedTimeSpeed*100.0 - 100.0, m_ModeratedTimeSpeedDiff, m_ClockDiffCalc/10000.0);
     if (bDetailedStats > 1)
     {
       if (m_bIsEVR)
-        strText.Format("Frame rate   : %7.03f   (%7.3f ms = %.03f, %s)   (%7.3f ms = %.03f%s, %2.03f StdDev)  Clock: %1.4f %%", m_fAvrFps, double(m_rtTimePerFrame) / 10000.0, 10000000.0 / (double)(m_rtTimePerFrame), m_bInterlaced ? L"I" : L"P", GetFrameTime() * 1000.0, GetFrameRate(), m_DetectedLock ? L" L" : L"", m_DetectedFrameTimeStdDev / 10000.0, m_ModeratedTimeSpeed*100.0);
+        strText = StringUtils::Format("Frame rate   : %7.03f   (%7.3f ms = %.03f, %s)   (%7.3f ms = %.03f%s, %2.03f StdDev)  Clock: %1.4f %%", m_fAvrFps, double(m_rtTimePerFrame) / 10000.0, 10000000.0 / (double)(m_rtTimePerFrame), m_bInterlaced ? L"I" : L"P", GetFrameTime() * 1000.0, GetFrameRate(), m_DetectedLock ? L" L" : L"", m_DetectedFrameTimeStdDev / 10000.0, m_ModeratedTimeSpeed*100.0);
       else
-        strText.Format("Frame rate   : %7.03f   (%7.3f ms = %.03f, %s)", m_fAvrFps, double(m_rtTimePerFrame) / 10000.0, 10000000.0 / (double)(m_rtTimePerFrame), m_bInterlaced ? L"I" : L"P");
+        strText = StringUtils::Format("Frame rate   : %7.03f   (%7.3f ms = %.03f, %s)", m_fAvrFps, double(m_rtTimePerFrame) / 10000.0, 10000000.0 / (double)(m_rtTimePerFrame), m_bInterlaced ? L"I" : L"P");
     }
     else
-      strText.Format("Frame rate   : %7.03f   (%.03f%s)", m_fAvrFps, GetFrameRate(), m_DetectedLock ? L" L" : L"");
+      strText = StringUtils::Format("Frame rate   : %7.03f   (%.03f%s)", m_fAvrFps, GetFrameRate(), m_DetectedLock ? L" L" : L"");
     DrawText(rc, strText, 1);
     OffsetRect(&rc, 0, TextHeight);
 
     if (bDetailedStats > 1)
     {
-      strText.Format("Settings     : ");
+      strText = StringUtils::Format("Settings     : ");
 
       if (m_bIsEVR)
         strText += "EVR ";
@@ -2352,7 +2352,7 @@ void CDX9AllocatorPresenter::DrawStats()
       if (g_dsSettings.pRendererSettings->vSyncAccurate)
         strText += "AccVS ";
       if (g_dsSettings.pRendererSettings->vSyncOffset)
-        strText.AppendFormat("VSOfst(%d)", g_dsSettings.pRendererSettings->vSyncOffset);
+        strText = StringUtils::Format("%s VSOfst(%d)", strText.c_str(), g_dsSettings.pRendererSettings->vSyncOffset);
 
       if (m_bIsEVR)
       {
@@ -2375,13 +2375,13 @@ void CDX9AllocatorPresenter::DrawStats()
 
     if (bDetailedStats > 1)
     {
-      strText.Format("Formats      : Surface %s    Backbuffer %s    Display %s     Device D3DDev", GetD3DFormatStr(m_SurfaceType), GetD3DFormatStr(D3DFMT_X8R8G8B8), GetD3DFormatStr(m_DisplayType));
+      strText = StringUtils::Format("Formats      : Surface %s    Backbuffer %s    Display %s     Device D3DDev", GetD3DFormatStr(m_SurfaceType), GetD3DFormatStr(D3DFMT_X8R8G8B8), GetD3DFormatStr(m_DisplayType));
       DrawText(rc, strText, 1);
       OffsetRect(&rc, 0, TextHeight);
 
       if (m_bIsEVR)
       {
-        strText.Format("Refresh rate : %.05f Hz    SL: %4d     (%3d Hz)      Last Duration: %10.6f      Corrected Frame Time: %s", m_DetectedRefreshRate, int(m_DetectedScanlinesPerFrame + 0.5), m_RefreshRate, double(m_LastFrameDuration) / 10000.0, m_bCorrectedFrameTime ? "Yes" : "No");
+        strText = StringUtils::Format("Refresh rate : %.05f Hz    SL: %4d     (%3d Hz)      Last Duration: %10.6f      Corrected Frame Time: %s", m_DetectedRefreshRate, int(m_DetectedScanlinesPerFrame + 0.5), m_RefreshRate, double(m_LastFrameDuration) / 10000.0, m_bCorrectedFrameTime ? "Yes" : "No");
         DrawText(rc, strText, 1);
         OffsetRect(&rc, 0, TextHeight);
       }
@@ -2390,16 +2390,16 @@ void CDX9AllocatorPresenter::DrawStats()
     if (m_bSyncStatsAvailable)
     {
       if (bDetailedStats > 1)
-        strText.Format("Sync offset  : min = %+8.3f ms, max = %+8.3f ms, StdDev = %7.3f ms, Avr = %7.3f ms, Mode = %d", (double(llMinSyncOffset) / 10000.0), (double(llMaxSyncOffset) / 10000.0), m_fSyncOffsetStdDev / 10000.0, m_fSyncOffsetAvr / 10000.0, m_VSyncMode);
+        strText = StringUtils::Format("Sync offset  : min = %+8.3f ms, max = %+8.3f ms, StdDev = %7.3f ms, Avr = %7.3f ms, Mode = %d", (double(llMinSyncOffset) / 10000.0), (double(llMaxSyncOffset) / 10000.0), m_fSyncOffsetStdDev / 10000.0, m_fSyncOffsetAvr / 10000.0, m_VSyncMode);
       else
-        strText.Format("Sync offset  : Mode = %d", m_VSyncMode);
+        strText = StringUtils::Format("Sync offset  : Mode = %d", m_VSyncMode);
       DrawText(rc, strText, 1);
       OffsetRect(&rc, 0, TextHeight);
     }
 
     if (bDetailedStats > 1)
     {
-      strText.Format("Jitter       : min = %+8.3f ms, max = %+8.3f ms, StdDev = %7.3f ms", (double(llMinJitter) / 10000.0), (double(llMaxJitter) / 10000.0), m_fJitterStdDev / 10000.0);
+      strText = StringUtils::Format("Jitter       : min = %+8.3f ms, max = %+8.3f ms, StdDev = %7.3f ms", (double(llMinJitter) / 10000.0), (double(llMaxJitter) / 10000.0), m_fJitterStdDev / 10000.0);
       DrawText(rc, strText, 1);
       OffsetRect(&rc, 0, TextHeight);
     }
@@ -2407,16 +2407,16 @@ void CDX9AllocatorPresenter::DrawStats()
     if (bDetailedStats > 1)
     {
       if (m_VBlankEndPresent == -100000)
-        strText.Format("VBlank Wait  : Start %4d   End %4d   Wait %7.3f ms   Lock %7.3f ms   Offset %4d   max %4d", m_VBlankStartWait, m_VBlankEndWait, (double(m_VBlankWaitTime) / 10000.0), (double(m_VBlankLockTime) / 10000.0), m_VBlankMin, m_VBlankMax - m_VBlankMin);
+        strText = StringUtils::Format("VBlank Wait  : Start %4d   End %4d   Wait %7.3f ms   Lock %7.3f ms   Offset %4d   max %4d", m_VBlankStartWait, m_VBlankEndWait, (double(m_VBlankWaitTime) / 10000.0), (double(m_VBlankLockTime) / 10000.0), m_VBlankMin, m_VBlankMax - m_VBlankMin);
       else
-        strText.Format("VBlank Wait  : Start %4d   End %4d   Wait %7.3f ms   Lock %7.3f ms   Offset %4d   max %4d   EndPresent %4d", m_VBlankStartWait, m_VBlankEndWait, (double(m_VBlankWaitTime) / 10000.0), (double(m_VBlankLockTime) / 10000.0), m_VBlankMin, m_VBlankMax - m_VBlankMin, m_VBlankEndPresent);
+        strText = StringUtils::Format("VBlank Wait  : Start %4d   End %4d   Wait %7.3f ms   Lock %7.3f ms   Offset %4d   max %4d   EndPresent %4d", m_VBlankStartWait, m_VBlankEndWait, (double(m_VBlankWaitTime) / 10000.0), (double(m_VBlankLockTime) / 10000.0), m_VBlankMin, m_VBlankMax - m_VBlankMin, m_VBlankEndPresent);
     }
     else
     {
       if (m_VBlankEndPresent == -100000)
-        strText.Format("VBlank Wait  : Start %4d   End %4d", m_VBlankStartWait, m_VBlankEndWait);
+        strText = StringUtils::Format("VBlank Wait  : Start %4d   End %4d", m_VBlankStartWait, m_VBlankEndWait);
       else
-        strText.Format("VBlank Wait  : Start %4d   End %4d   EP %4d", m_VBlankStartWait, m_VBlankEndWait, m_VBlankEndPresent);
+        strText = StringUtils::Format("VBlank Wait  : Start %4d   End %4d   EP %4d", m_VBlankStartWait, m_VBlankEndWait, m_VBlankEndPresent);
     }
     DrawText(rc, strText, 1);
     OffsetRect(&rc, 0, TextHeight);
@@ -2427,7 +2427,7 @@ void CDX9AllocatorPresenter::DrawStats()
 
     if (bDetailedStats > 1 && bDoVSyncInPresent)
     {
-      strText.Format("Present Wait : Wait %7.3f ms   min %7.3f ms   max %7.3f ms", (double(m_PresentWaitTime) / 10000.0), (double(m_PresentWaitTimeMin) / 10000.0), (double(m_PresentWaitTimeMax) / 10000.0));
+      strText = StringUtils::Format("Present Wait : Wait %7.3f ms   min %7.3f ms   max %7.3f ms", (double(m_PresentWaitTime) / 10000.0), (double(m_PresentWaitTimeMin) / 10000.0), (double(m_PresentWaitTimeMax) / 10000.0));
       DrawText(rc, strText, 1);
       OffsetRect(&rc, 0, TextHeight);
     }
@@ -2435,23 +2435,23 @@ void CDX9AllocatorPresenter::DrawStats()
     if (bDetailedStats > 1)
     {
       if (m_WaitForGPUTime)
-        strText.Format("Paint Time   : Draw %7.3f ms   min %7.3f ms   max %7.3f ms   GPU %7.3f ms", (double(m_PaintTime - m_WaitForGPUTime) / 10000.0), (double(m_PaintTimeMin) / 10000.0), (double(m_PaintTimeMax) / 10000.0), (double(m_WaitForGPUTime) / 10000.0));
+        strText = StringUtils::Format("Paint Time   : Draw %7.3f ms   min %7.3f ms   max %7.3f ms   GPU %7.3f ms", (double(m_PaintTime - m_WaitForGPUTime) / 10000.0), (double(m_PaintTimeMin) / 10000.0), (double(m_PaintTimeMax) / 10000.0), (double(m_WaitForGPUTime) / 10000.0));
       else
-        strText.Format("Paint Time   : Draw %7.3f ms   min %7.3f ms   max %7.3f ms", (double(m_PaintTime - m_WaitForGPUTime) / 10000.0), (double(m_PaintTimeMin) / 10000.0), (double(m_PaintTimeMax) / 10000.0));
+        strText = StringUtils::Format("Paint Time   : Draw %7.3f ms   min %7.3f ms   max %7.3f ms", (double(m_PaintTime - m_WaitForGPUTime) / 10000.0), (double(m_PaintTimeMin) / 10000.0), (double(m_PaintTimeMax) / 10000.0));
     }
     else
     {
       if (m_WaitForGPUTime)
-        strText.Format("Paint Time   : Draw %7.3f ms   GPU %7.3f ms", (double(m_PaintTime - m_WaitForGPUTime) / 10000.0), (double(m_WaitForGPUTime) / 10000.0));
+        strText = StringUtils::Format("Paint Time   : Draw %7.3f ms   GPU %7.3f ms", (double(m_PaintTime - m_WaitForGPUTime) / 10000.0), (double(m_WaitForGPUTime) / 10000.0));
       else
-        strText.Format("Paint Time   : Draw %7.3f ms", (double(m_PaintTime - m_WaitForGPUTime) / 10000.0));
+        strText = StringUtils::Format("Paint Time   : Draw %7.3f ms", (double(m_PaintTime - m_WaitForGPUTime) / 10000.0));
     }
     DrawText(rc, strText, 2);
     OffsetRect(&rc, 0, TextHeight);
 
     if (bDetailedStats > 1)
     {
-      strText.Format("Raster Status: Wait %7.3f ms   min %7.3f ms   max %7.3f ms", (double(m_RasterStatusWaitTime) / 10000.0), (double(m_RasterStatusWaitTimeMin) / 10000.0), (double(m_RasterStatusWaitTimeMax) / 10000.0));
+      strText = StringUtils::Format("Raster Status: Wait %7.3f ms   min %7.3f ms   max %7.3f ms", (double(m_RasterStatusWaitTime) / 10000.0), (double(m_RasterStatusWaitTimeMin) / 10000.0), (double(m_RasterStatusWaitTimeMax) / 10000.0));
       DrawText(rc, strText, 1);
       OffsetRect(&rc, 0, TextHeight);
     }
@@ -2459,18 +2459,18 @@ void CDX9AllocatorPresenter::DrawStats()
     if (bDetailedStats > 1)
     {
       if (m_bIsEVR)
-        strText.Format("Buffering    : Buffered %3d    Free %3d    Current Surface %3d", m_nUsedBuffer, m_nNbDXSurface - m_nUsedBuffer, m_nCurSurface, m_nVMR9Surfaces, m_iVMR9Surface);
+        strText = StringUtils::Format("Buffering    : Buffered %3d    Free %3d    Current Surface %3d", m_nUsedBuffer, m_nNbDXSurface - m_nUsedBuffer, m_nCurSurface, m_nVMR9Surfaces, m_iVMR9Surface);
       else
-        strText.Format("Buffering    : VMR9Surfaces %3d   VMR9Surface %3d", m_nVMR9Surfaces, m_iVMR9Surface);
+        strText = StringUtils::Format("Buffering    : VMR9Surfaces %3d   VMR9Surface %3d", m_nVMR9Surfaces, m_iVMR9Surface);
     }
     else
-      strText.Format("Buffered     : %3d", m_nUsedBuffer);
+      strText = StringUtils::Format("Buffered     : %3d", m_nUsedBuffer);
     DrawText(rc, strText, 1);
     OffsetRect(&rc, 0, TextHeight);
 
     if (bDetailedStats > 1)
     {
-      strText.Format("Video size   : %d x %d  (AR = %d x %d)", m_NativeVideoSize.cx, m_NativeVideoSize.cy, m_AspectRatio.cx, m_AspectRatio.cy);
+      strText = StringUtils::Format("Video size   : %d x %d  (AR = %d x %d)", m_NativeVideoSize.cx, m_NativeVideoSize.cy, m_AspectRatio.cx, m_AspectRatio.cy);
       DrawText(rc, strText, 1);
       OffsetRect(&rc, 0, TextHeight);
       if (m_pVideoTexture[0] || m_pVideoSurface[0])
@@ -2483,14 +2483,14 @@ void CDX9AllocatorPresenter::DrawStats()
 
         if (desc.Width != m_NativeVideoSize.cx || desc.Height != m_NativeVideoSize.cy)
         {
-          strText.Format("Texture size : %d x %d", desc.Width, desc.Height);
+          strText = StringUtils::Format("Texture size : %d x %d", desc.Width, desc.Height);
           DrawText(rc, strText, 1);
           OffsetRect(&rc, 0, TextHeight);
         }
       }
 
 
-      strText.Format("%-13s: %s", GetDXVAVersion(), GetDXVADecoderDescription());
+      strText = StringUtils::Format("%-13s: %s", GetDXVAVersion(), GetDXVADecoderDescription());
       DrawText(rc, strText, 1);
       OffsetRect(&rc, 0, TextHeight);
 
@@ -2501,7 +2501,7 @@ void CDX9AllocatorPresenter::DrawStats()
         OffsetRect(&rc, 0, TextHeight);
       }
 
-      strText.Format("DirectX SDK  : %d", g_dsSettings.GetDXSdkRelease());
+      strText = StringUtils::Format("DirectX SDK  : %d", g_dsSettings.GetDXSdkRelease());
       DrawText(rc, strText, 1);
       OffsetRect(&rc, 0, TextHeight);
 

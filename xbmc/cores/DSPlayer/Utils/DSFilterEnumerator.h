@@ -25,12 +25,11 @@
  */
 
 #include "threads/CriticalSection.h"
-#include "utils/StdString.h"
 
 struct DSFiltersInfo
 {
-  CStdString lpstrGuid;
-  CStdString lpstrName;
+  std::string lpstrGuid;
+  std::string lpstrName;
 };
 
 class CDSFilterEnumerator
@@ -41,7 +40,7 @@ public:
 
 private:
   CCriticalSection m_critSection;
-  void AddFilter(std::vector<DSFiltersInfo>& pFilters, CStdStringW lpGuid, CStdStringW lpName);
+  void AddFilter(std::vector<DSFiltersInfo>& pFilters, std::wstring lpGuid, std::wstring lpName);
   static bool compare_by_word(const DSFiltersInfo& lhs, const DSFiltersInfo& rhs);
 
 };

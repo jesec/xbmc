@@ -31,7 +31,6 @@
 #include "cores/IPlayer.h"
 #include "threads/Thread.h"
 #include "threads/SingleLock.h"
-#include "utils/StdString.h"
 #include "DSGraph.h"
 #include "DVDClock.h"
 #include "url.h"
@@ -238,7 +237,7 @@ public:
   static HWND m_hWnd;
   bool InitWindow(HWND &hWnd);
   void DeInitWindow();
-  CStdString m_className;
+  std::string m_className;
   HINSTANCE m_hInstance; 
   bool m_isMadvr;
 
