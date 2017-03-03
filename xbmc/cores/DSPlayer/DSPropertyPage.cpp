@@ -186,7 +186,7 @@ void CDSPropertyPage::Process()
     propSheet.dwFlags = PSH_PROPTITLE;
     propSheet.hwndParent = g_Windowing.GetHwnd();
 
-    CStdString filterName;
+    std::string filterName;
     g_charsetConverter.wToUTF8(GetFilterName(m_pBF), filterName);
     propSheet.pszCaption = filterName.c_str();
 
@@ -235,7 +235,7 @@ void CDSPropertyPage::Process()
       psp.pResource = (DLGTEMPLATE *)&opf[page].dialog;
       psp.lParam = (LPARAM)&opf[page];
 
-      CStdString strTitle = "";
+      std::string strTitle = "";
       g_charsetConverter.wToUTF8(pPageInfo.pszTitle, strTitle);
       psp.pszTitle = strTitle.c_str();
       hpsp[propSheet.nPages++] = CreatePropertySheetPage(&psp);

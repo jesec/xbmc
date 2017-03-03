@@ -84,8 +84,8 @@ void CGraphFilters::SetSanearSettings()
     if (FAILED(SaneAudioRenderer::Factory::CreateSettings(&sanear)))
       return;
 
-  CStdStringW adeviceW;
-  CStdString adevice = CSettings::GetInstance().GetString(CSettings::SETTING_DSPLAYER_SANEARDEVICES);  
+  std::wstring adeviceW;
+  std::string adevice = CSettings::GetInstance().GetString(CSettings::SETTING_DSPLAYER_SANEARDEVICES);  
   if (adevice == "System Default")
     adevice = "";
   g_charsetConverter.utf8ToW(adevice, adeviceW, false);
@@ -98,7 +98,7 @@ void CGraphFilters::SetSanearSettings()
 
   UINT32 buffer;
   sanear->GetOuputDevice(nullptr, nullptr, &buffer);
-  sanear->SetOuputDevice(adeviceW, bSanearExclusive, buffer);
+  sanear->SetOuputDevice(adeviceW.c_str(), bSanearExclusive, buffer);
   sanear->SetAllowBitstreaming(bSanearAllowbitstream);
   sanear->SetCrossfeedEnabled(bSanearStereoCrossfeed);
   sanear->SetCrossfeedSettings(iSanearCutoff, iSanearLevel);

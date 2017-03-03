@@ -34,19 +34,19 @@ class CDSMediaPortalCards;
 class CDSMediaPortal : public CDSPVRBackend
 {
 public:
-  CDSMediaPortal(const CStdString& strBackendBaseAddress, const CStdString& strBackendName);
+  CDSMediaPortal(const std::string& strBackendBaseAddress, const std::string& strBackendName);
   virtual ~CDSMediaPortal();
-  virtual bool          ConvertStreamURLToTimeShiftFilePath(const CStdString& strUrl, CStdString& strTimeShiftFile);
-  virtual bool          SupportsStreamConversion(const CStdString& strUrl) const { return true; };
+  virtual bool          ConvertStreamURLToTimeShiftFilePath(const std::string& strUrl, std::string& strTimeShiftFile);
+  virtual bool          SupportsStreamConversion(const std::string& strUrl) const { return true; };
   virtual bool          SupportsFastChannelSwitch() const { return true; };
-  virtual bool          GetRecordingStreamURL(const CStdString& strRecordingId, CStdString& strRecordingUrl, bool bGetUNCPath = false);
+  virtual bool          GetRecordingStreamURL(const std::string& strRecordingId, std::string& strRecordingUrl, bool bGetUNCPath = false);
 
 private:
-  bool                  SendCommandToMPTVServer(const CStdString& strCommand, CStdString & strResponse);
+  bool                  SendCommandToMPTVServer(const std::string& strCommand, std::string & strResponse);
   bool                  ConnectToMPTVServer();
-  bool                  ConvertRtspStreamUrlToTimeShiftFilePath(const CStdString& strUrl, CStdString& strTimeShiftFile);
+  bool                  ConvertRtspStreamUrlToTimeShiftFilePath(const std::string& strUrl, std::string& strTimeShiftFile);
   bool                  LoadCardSettings();
-  bool                  TranslatePathToUNC(const CStdString& strFilePath, CStdString& strTranslatedFilePath);
+  bool                  TranslatePathToUNC(const std::string& strFilePath, std::string& strTranslatedFilePath);
 
   CDSMediaPortalCards  *m_pCardsSettings;
 };

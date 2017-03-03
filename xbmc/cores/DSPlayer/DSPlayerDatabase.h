@@ -28,14 +28,13 @@
 #include "Filters/LavSettings.h"
 #include "dbwrappers/Database.h"
 #include "FileItem.h"
-#include "utils/StdString.h"
 
 class CEdition
 {
 public:
   CEdition();
 
-  CStdString editionName;
+  std::string editionName;
   int editionNumber;
   bool IsSet() const;
 };
@@ -50,13 +49,13 @@ public:
 
   virtual bool Open();
   bool GetResumeEdition(const CFileItem *item, CEdition &edition);
-  bool GetResumeEdition(const CStdString& strFilenameAndPath, CEdition &edition);
-  void GetEditionForFile(const CStdString& strFilenameAndPath, VECEDITIONS &ditions);
-  void AddEdition(const CStdString& strFilenameAndPath, const CEdition &edition);
-  void ClearEditionOfFile(const CStdString& strFilenameAndPath);
+  bool GetResumeEdition(const std::string& strFilenameAndPath, CEdition &edition);
+  void GetEditionForFile(const std::string& strFilenameAndPath, VECEDITIONS &ditions);
+  void AddEdition(const std::string& strFilenameAndPath, const CEdition &edition);
+  void ClearEditionOfFile(const std::string& strFilenameAndPath);
 
-  bool GetVideoSettings(const CStdString &strFilenameAndPath, CMadvrSettings &settings);
-  void SetVideoSettings(const CStdString &strFilenameAndPath, const CMadvrSettings &settings);
+  bool GetVideoSettings(const std::string &strFilenameAndPath, CMadvrSettings &settings);
+  void SetVideoSettings(const std::string &strFilenameAndPath, const CMadvrSettings &settings);
   void EraseVideoSettings();
 
   bool GetTvShowSettings(const std::string &tvShowName, CMadvrSettings &settings);

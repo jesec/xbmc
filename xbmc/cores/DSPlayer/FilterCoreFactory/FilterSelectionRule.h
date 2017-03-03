@@ -34,30 +34,29 @@ class TiXmlElement;
 class CFilterSelectionRule
 {
 public:
-  CFilterSelectionRule(TiXmlElement* rule, const CStdString &nodeName);
+  CFilterSelectionRule(TiXmlElement* rule, const std::string &nodeName);
   virtual ~CFilterSelectionRule();
 
-  void GetFilters(const CFileItem& item, std::vector<CStdString> &vecCores, bool dxva = false);
+  void GetFilters(const CFileItem& item, std::vector<std::string> &vecCores, bool dxva = false);
 
 private:
-  int GetTristate(const char* szValue) const;
-  bool CompileRegExp(const CStdString& str, CRegExp& regExp) const;
-  bool MatchesRegExp(const CStdString& str, CRegExp& regExp) const;
-  void Initialize(TiXmlElement* pRule, const CStdString &nodeName);
+  bool CompileRegExp(const std::string& str, CRegExp& regExp) const;
+  bool MatchesRegExp(const std::string& str, CRegExp& regExp) const;
+  void Initialize(TiXmlElement* pRule, const std::string &nodeName);
 
-  CStdString m_name;
+  std::string m_name;
 
-  CStdString m_mimeTypes;
-  CStdString m_fileName;
+  std::string m_mimeTypes;
+  std::string m_fileName;
 
-  CStdString m_audioCodec;
-  CStdString m_audioChannels;
-  CStdString m_videoCodec;
-  CStdString m_videoResolution;
-  CStdString m_videoAspect;
-  CStdString m_videoFourcc;
+  std::string m_audioCodec;
+  std::string m_audioChannels;
+  std::string m_videoCodec;
+  std::string m_videoResolution;
+  std::string m_videoAspect;
+  std::string m_videoFourcc;
 
-  CStdString m_filterName;
+  std::string m_filterName;
   bool m_bStreamDetails;
 
   std::vector<CFilterSelectionRule *> vecSubRules;

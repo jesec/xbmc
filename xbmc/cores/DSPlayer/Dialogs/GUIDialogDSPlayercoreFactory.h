@@ -24,7 +24,6 @@
  */
 
 #include "settings/dialogs/GUIDialogSettingsManualBase.h"
-#include "utils/stdstring.h"
 #include "GUIDialogDSManager.h"
 
 class CGUIDialogDSPlayercoreFactory : public CGUIDialogSettingsManualBase

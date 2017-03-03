@@ -33,6 +33,7 @@
 #include "utils/XMLUtils.h"
 #include "utils/SystemInfo.h"
 #include "PixelShaderList.h"
+#include "utils/StringUtils.h"
 
 using namespace XFILE;
 CDSSettings::CDSSettings(void)
@@ -53,7 +54,7 @@ CDSSettings::CDSSettings(void)
 
 void CDSSettings::Initialize()
 {
-  CStdString videoRender;
+  std::string videoRender;
   videoRender = CSettings::GetInstance().GetString(CSettings::SETTING_DSPLAYER_VIDEORENDERER);
 
   if (videoRender == "EVR")
@@ -84,7 +85,7 @@ CDSSettings::~CDSSettings(void)
 
 void CDSSettings::LoadConfig()
 {
-  CStdString strDsConfigFile = CProfilesManager::GetInstance().GetUserDataItem("dsplayer/renderersettings.xml");
+  std::string strDsConfigFile = CProfilesManager::GetInstance().GetUserDataItem("dsplayer/renderersettings.xml");
   if (!CFile::Exists(strDsConfigFile))
   {
     CLog::Log(LOGNOTICE, "No renderersettings.xml to load (%s)", strDsConfigFile.c_str());
@@ -190,8 +191,8 @@ if (m_hD3DX9Dll == NULL)
     // load latest compatible version of the DLL that is available
     for (int i=max_ver; i>=min_ver; i--)
     {
-      m_strD3DX9Version.Format(_T("d3dx9_%d.dll"), i);
-      m_hD3DX9Dll = LoadLibrary (m_strD3DX9Version);
+      m_strD3DX9Version = StringUtils::Format(_T("d3dx9_%d.dll"), i);
+      m_hD3DX9Dll = LoadLibrary (m_strD3DX9Version.c_str());
       if (m_hD3DX9Dll) 
       {
         m_nDXSdkRelease = i;

@@ -58,9 +58,9 @@
 
 namespace
 {
-  std::vector<std::pair<CStdString, CStdString>> GetDevices()
+  std::vector<std::pair<std::string, std::string>> GetDevices()
   {
-    std::vector<std::pair<CStdString, CStdString>> ret;
+    std::vector<std::pair<std::string, std::string>> ret;
 
     Com::SmartPtr<IMMDeviceEnumerator> enumerator;
     Com::SmartPtr<IMMDeviceCollection> collection;
@@ -82,7 +82,12 @@ namespace
           SUCCEEDED(device->OpenPropertyStore(STGM_READ, &devicePropertyStore)) &&
           SUCCEEDED(devicePropertyStore->GetValue(PKEY_Device_FriendlyName, &friendlyName))) {
 
-          ret.emplace_back(friendlyName.pwszVal, static_cast<LPWSTR>(id));
+          std::string sFriendlyName;
+          std::string sId;
+          g_charsetConverter.wToUTF8(friendlyName.pwszVal, sFriendlyName);
+          g_charsetConverter.wToUTF8(static_cast<LPWSTR>(id), sId);
+
+          ret.emplace_back(sFriendlyName, sId);
           PropVariantClear(&friendlyName);
           CoTaskMemFree(id);
         }
@@ -111,7 +116,7 @@ CFGLoader::~CFGLoader()
   CLog::Log(LOGDEBUG, "%s Ressources released", __FUNCTION__);
 }
 
-HRESULT CFGLoader::InsertSourceFilter(CFileItem& pFileItem, const CStdString& filterName)
+HRESULT CFGLoader::InsertSourceFilter(CFileItem& pFileItem, const std::string& filterName)
 {
 
   HRESULT hr = E_FAIL;
@@ -139,10 +144,10 @@ HRESULT CFGLoader::InsertSourceFilter(CFileItem& pFileItem, const CStdString& fi
   /* DVD NAVIGATOR */
   if (pFileItem.IsDVDFile())
   {
-    CStdString path = pFileItem.GetPath();
-    if ((path.Left(6)).Equals("smb://", false))
+    std::string path = pFileItem.GetPath();
+    if (StringUtils::EqualsNoCase(StringUtils::Left(path, 6), "smb://"))
     {
-      path.Replace("smb://", "//");
+      StringUtils::Replace(path, "smb://", "//");
       pFileItem.SetPath(path);
     }
 
@@ -157,8 +162,8 @@ HRESULT CFGLoader::InsertSourceFilter(CFileItem& pFileItem, const CStdString& fi
     }
 
     CGraphFilters::Get()->SetIsDVD(true);
-    CStdString dirA;
-    CStdStringW dirW;
+    std::string dirA;
+    std::wstring dirW;
     dirA = URIUtils::GetDirectory(pFileItem.GetPath());
     g_charsetConverter.utf8ToW(dirA, dirW);
 
@@ -172,7 +177,7 @@ HRESULT CFGLoader::InsertSourceFilter(CFileItem& pFileItem, const CStdString& fi
     return hr;
   }
 
-  if (filterName.Equals("internal_urlsource"))
+  if (StringUtils::EqualsNoCase(filterName, "internal_urlsource"))
   {
     //TODO
     //add IAMOpenProgress for requesting the status of stream without this interface the player failed if connection is too slow
@@ -185,7 +190,7 @@ HRESULT CFGLoader::InsertSourceFilter(CFileItem& pFileItem, const CStdString& fi
     {
       hr = g_dsGraph->pFilterGraph->AddFilter(CGraphFilters::Get()->Source.pBF, L"URLReader");
       CGraphFilters::Get()->Source.osdname = "URLReader";
-      CStdStringW strUrlW; g_charsetConverter.utf8ToW(pFileItem.GetPath(), strUrlW);
+      std::wstring strUrlW; g_charsetConverter.utf8ToW(pFileItem.GetPath(), strUrlW);
 
       if (pSourceUrl = pUnk)
         hr = pSourceUrl->Load(strUrlW.c_str(), NULL);
@@ -216,7 +221,7 @@ HRESULT CFGLoader::InsertSourceFilter(CFileItem& pFileItem, const CStdString& fi
   // number of output pin
   CURL url(pFileItem.GetPath());
 
-  CStdString pWinFilePath = url.Get();
+  std::string pWinFilePath = url.Get();
   /*
   * Convert SMB to windows UNC
   * SMB: smb://HOSTNAME/share/file.ts
@@ -226,9 +231,9 @@ HRESULT CFGLoader::InsertSourceFilter(CFileItem& pFileItem, const CStdString& fi
   pWinFilePath = CDSFile::SmbToUncPath(pWinFilePath);
 
   if (!pFileItem.IsInternetStream())
-    pWinFilePath.Replace("/", "\\");
+    StringUtils::Replace(pWinFilePath, "/", "\\");
 
-  CStdStringW strFileW;
+  std::wstring strFileW;
   g_charsetConverter.utf8ToW(pWinFilePath, strFileW, false);
   SFilterInfos infos;
   try // Load() may crash on bad designed codec. Prevent XBMC to hang
@@ -299,7 +304,7 @@ void CFGLoader::ParseStreamingType(CFileItem& pFileItem, IBaseFilter* pBF)
       if (pMT->majortype != MEDIATYPE_Stream)
         continue;
 
-      CStdString str;
+      std::string str;
       g_charsetConverter.wToUTF8(GetMediaTypeName(pMT->subtype), str);
       CLog::Log(LOGDEBUG, __FUNCTION__" Streaming output pin media tpye: %s", str.c_str());
       guid = pMT->subtype;
@@ -310,7 +315,7 @@ void CFGLoader::ParseStreamingType(CFileItem& pFileItem, IBaseFilter* pBF)
 
 }
 
-HRESULT CFGLoader::InsertSplitter(const CFileItem& pFileItem, const CStdString& filterName)
+HRESULT CFGLoader::InsertSplitter(const CFileItem& pFileItem, const std::string& filterName)
 {
   HRESULT hr = InsertFilter(filterName, CGraphFilters::Get()->Splitter);
 
@@ -325,11 +330,11 @@ HRESULT CFGLoader::InsertSplitter(const CFileItem& pFileItem, const CStdString& 
   return hr;
 }
 
-HRESULT CFGLoader::InsertAudioRenderer(const CStdString& filterName)
+HRESULT CFGLoader::InsertAudioRenderer(const std::string& filterName)
 {
   HRESULT hr = S_FALSE;
   CFGFilterRegistry* pFGF;
-  CStdString sAudioRenderName, sAudioRenderDisplayName;
+  std::string sAudioRenderName, sAudioRenderDisplayName;
   if (!filterName.empty())
   {
     if (SUCCEEDED(InsertFilter(filterName, CGraphFilters::Get()->AudioRenderer)))
@@ -345,12 +350,12 @@ HRESULT CFGLoader::InsertAudioRenderer(const CStdString& filterName)
   END_PERFORMANCE_COUNTER("Loaded audio renderer list");
 
   //see if there a config first 
-  const CStdString renderer = CSettings::GetInstance().GetString(CSettings::SETTING_DSPLAYER_AUDIORENDERER);
+  const std::string renderer = CSettings::GetInstance().GetString(CSettings::SETTING_DSPLAYER_AUDIORENDERER);
 
   if (renderer == CGraphFilters::INTERNAL_SANEAR)
   {
     struct SaneAudioRendererFilter : CFGFilter {
-      SaneAudioRendererFilter(CStdString name) :
+      SaneAudioRendererFilter(std::string name) :
         CFGFilter(SaneAudioRenderer::Factory::GetFilterGuid(), CFGFilter::FILE, name) {}
 
       HRESULT Create(IBaseFilter** ppBF) override {
@@ -387,7 +392,7 @@ HRESULT CFGLoader::InsertAudioRenderer(const CStdString& filterName)
     for (std::vector<DSFilterInfo>::const_iterator iter = deviceList.begin(); !renderer.empty() && (iter != deviceList.end()); ++iter)
     {
       DSFilterInfo dev = *iter;
-      if (renderer.Equals(dev.lpstrName))
+      if (StringUtils::EqualsNoCase(renderer, dev.lpstrName))
       {
         sAudioRenderName = dev.lpstrName;
         sAudioRenderDisplayName = dev.lpstrDisplayName;
@@ -405,7 +410,9 @@ HRESULT CFGLoader::InsertAudioRenderer(const CStdString& filterName)
         }
 
         START_PERFORMANCE_COUNTER
-          hr = g_dsGraph->pFilterGraph->AddFilter(CGraphFilters::Get()->AudioRenderer.pBF, AnsiToUTF16(dev.lpstrName));
+          std::wstring sNameW;
+        g_charsetConverter.utf8ToW(dev.lpstrName, sNameW);
+        hr = g_dsGraph->pFilterGraph->AddFilter(CGraphFilters::Get()->AudioRenderer.pBF, sNameW.c_str());
         END_PERFORMANCE_COUNTER("Added audio renderer to the graph");
 
         break;
@@ -425,23 +432,23 @@ HRESULT CFGLoader::InsertVideoRenderer()
 {
   HRESULT hr = S_OK;
 
-  CStdString videoRender;
+  std::string videoRender;
   videoRender = CSettings::GetInstance().GetString(CSettings::SETTING_DSPLAYER_VIDEORENDERER);
 
   if (videoRender == "EVR")
   { 
     g_application.m_pPlayer->SetCurrentRenderer(DIRECTSHOW_RENDERER_EVR);
-    m_pFGF = new CFGFilterVideoRenderer(CLSID_EVRAllocatorPresenter, L"Kodi EVR");
+    m_pFGF = new CFGFilterVideoRenderer(CLSID_EVRAllocatorPresenter, "Kodi EVR");
   }
   if (videoRender == "VMR9")
   { 
     g_application.m_pPlayer->SetCurrentRenderer(DIRECTSHOW_RENDERER_VMR9);
-    m_pFGF = new CFGFilterVideoRenderer(CLSID_VMR9AllocatorPresenter, L"Kodi VMR9");
+    m_pFGF = new CFGFilterVideoRenderer(CLSID_VMR9AllocatorPresenter, "Kodi VMR9");
   }
   if (videoRender == "madVR")
   {
     g_application.m_pPlayer->SetCurrentRenderer(DIRECTSHOW_RENDERER_MADVR);
-    m_pFGF = new CFGFilterVideoRenderer(CLSID_madVRAllocatorPresenter, L"Kodi madVR");
+    m_pFGF = new CFGFilterVideoRenderer(CLSID_madVRAllocatorPresenter, "Kodi madVR");
   }
 
   hr = m_pFGF->Create(&CGraphFilters::Get()->VideoRenderer.pBF);
@@ -450,7 +457,7 @@ HRESULT CFGLoader::InsertVideoRenderer()
     CLog::Log(LOGERROR, "%s Failed to create allocator presenter (hr = %X)", __FUNCTION__, hr);
     return hr;
   }
-  hr = g_dsGraph->pFilterGraph->AddFilter(CGraphFilters::Get()->VideoRenderer.pBF, m_pFGF->GetName());
+  hr = g_dsGraph->pFilterGraph->AddFilter(CGraphFilters::Get()->VideoRenderer.pBF, m_pFGF->GetNameW().c_str());
 
   /* Query IQualProp from the renderer */
   CGraphFilters::Get()->VideoRenderer.pBF->QueryInterface(IID_IQualProp, (void **)&CGraphFilters::Get()->VideoRenderer.pQualProp);
@@ -487,7 +494,7 @@ HRESULT CFGLoader::LoadFilterRules(const CFileItem& _pFileItem)
     return E_FAIL;
   }
 
-  CStdString filter = "";
+  std::string filter = "";
 
   START_PERFORMANCE_COUNTER
     CFilterCoreFactory::GetAudioRendererFilter(pFileItem, filter);
@@ -575,7 +582,7 @@ HRESULT CFGLoader::LoadFilterRules(const CFileItem& _pFileItem)
         );
     }
 
-    std::vector<CStdString> extras;
+    std::vector<std::string> extras;
     START_PERFORMANCE_COUNTER
       if (FAILED(CFilterCoreFactory::GetExtraFilters(pFileItem, extras, CGraphFilters::Get()->IsUsingDXVADecoder())))
       {
@@ -594,9 +601,9 @@ HRESULT CFGLoader::LoadFilterRules(const CFileItem& _pFileItem)
     {
       for (unsigned int i = 0; i < 3; i++)
       {
-        CStdString filter;
-        CStdString setting;
-        setting.Format("dsplayer.extrafilter%i", i);
+        std::string filter;
+        std::string setting;
+        setting = StringUtils::Format("dsplayer.extrafilter%i", i);
         filter = CSettings::GetInstance().GetString(setting);
         if (filter != "[null]")
         {
@@ -695,7 +702,7 @@ HRESULT CFGLoader::LoadConfig(FILTERSMAN_TYPE filterManager)
   return S_OK;
 }
 
-HRESULT CFGLoader::InsertFilter(const CStdString& filterName, SFilterInfos& f)
+HRESULT CFGLoader::InsertFilter(const std::string& filterName, SFilterInfos& f)
 {
   HRESULT hr = S_OK;
   f.pBF = NULL;
@@ -725,14 +732,14 @@ HRESULT CFGLoader::InsertFilter(const CStdString& filterName, SFilterInfos& f)
     if (filterName == CGraphFilters::INTERNAL_XYSUBFILTER || filterName == CGraphFilters::INTERNAL_XYVSFILTER)
       f.internalFilter = true;
 
-    g_charsetConverter.wToUTF8(filter->GetName(), f.osdname);
+    f.osdname = filter->GetName();
     if (filter->GetType() == CFGFilter::INTERNAL)
     {
       CLog::Log(LOGDEBUG, "%s Using an internal filter", __FUNCTION__);
       f.isinternal = true;
       f.pData = filter;
     }
-    if (SUCCEEDED(hr = g_dsGraph->pFilterGraph->AddFilter(f.pBF, filter->GetName().c_str())))
+    if (SUCCEEDED(hr = g_dsGraph->pFilterGraph->AddFilter(f.pBF, filter->GetNameW().c_str())))
       CLog::Log(LOGNOTICE, "%s Successfully added \"%s\" to the graph", __FUNCTION__, f.osdname.c_str());
     else
       CLog::Log(LOGERROR, "%s Failed to add \"%s\" to the graph", __FUNCTION__, f.osdname.c_str());
@@ -797,7 +804,7 @@ void CFGLoader::SettingOptionsSanearDevicesFiller(const CSetting *setting, std::
   }
 }
 
-bool CFGLoader::LoadFilterCoreFactorySettings(const CStdString& fileStr, ESettingsType type, bool clear, int iPriority)
+bool CFGLoader::LoadFilterCoreFactorySettings(const std::string& fileStr, ESettingsType type, bool clear, int iPriority)
 {
   if (clear)
   {

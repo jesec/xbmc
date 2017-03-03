@@ -28,7 +28,6 @@
 #error DSPlayer's header file included without HAS_DS_PLAYER defined
 #endif
 
-#include "utils/StdString.h"
 #include "utils/StringUtils.h"
 
 #include <dshow.h> //needed for CLSID_VideoRenderer
@@ -148,11 +147,11 @@ public:
   void SetVolume(float nVolume);
 
   /// @return General informations about filters
-  CStdString GetGeneralInfo();
+  std::string GetGeneralInfo();
   /// @return Informations about the current audio track
-  CStdString GetAudioInfo();
+  std::string GetAudioInfo();
   /// @return Informations about the current video track
-  CStdString GetVideoInfo();
+  std::string GetVideoInfo();
 
   Com::SmartPtr<IFilterGraph2> pFilterGraph;
 
@@ -182,7 +181,7 @@ private:
 
   CCriticalSection m_ObjectLock;
 
-  CStdString m_pStrCurrentFrameRate;
+  std::string m_pStrCurrentFrameRate;
   int m_iCurrentFrameRefreshCycle;
 
   IPlayerCallback& m_callback;

@@ -329,7 +329,7 @@ void CGUIDialogLAVSplitter::HideUnused()
   m_allowchange = true;
 }
 
-void CGUIDialogLAVSplitter::SetVisible(CStdString id, bool visible)
+void CGUIDialogLAVSplitter::SetVisible(std::string id, bool visible)
 {
   CSetting *setting = m_settingsManager->GetSetting(id);
   if (setting->IsVisible() && visible)

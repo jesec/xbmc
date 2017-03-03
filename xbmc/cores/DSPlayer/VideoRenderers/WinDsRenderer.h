@@ -27,7 +27,6 @@
 
 #if !defined(_LINUX) && !defined(HAS_GL) && defined(HAS_DS_PLAYER)
 
-#include "../DSPlayer/DSUtil/SmartPtr.h"
 #include "threads/CriticalSection.h"
 #include "guilib/D3DResource.h"
 #include "../VideoPlayer/VideoRenderers/RenderCapture.h"

@@ -28,7 +28,6 @@
 #include "filters/asyncrdr.h"
 #include "threads/CriticalSection.h"
 #include "filesystem/File.h"
-#include "utils/StdString.h"
 
 using namespace XFILE;
 class CXBMCASyncReader;
@@ -46,12 +45,12 @@ public:
   void Lock();
   void Unlock();
 
-  HRESULT Load(const CStdString& file);
+  HRESULT Load(const std::string& file);
 
 private:
   CCriticalSection  m_csLock;
   LONGLONG          m_llLength;
-  CStdString        m_pFileName;
+  std::string       m_pFileName;
   CFile             m_pFile;
 };
 

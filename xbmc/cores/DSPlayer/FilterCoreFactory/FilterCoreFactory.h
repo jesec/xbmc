@@ -30,16 +30,17 @@
 #include "globalfilterselectionrule.h"
 #include "dialogs/GUIDialogOK.h"
 #include "guilib/GUIWindowManager.h"
+#include "utils/StringUtils.h"
 
-typedef CFGFilter* (*InternalFilterConstructorPtr) (CStdStringW name);
-template< class T > CFGFilter* InternalFilterConstructor(CStdStringW name = L"") {
+typedef CFGFilter* (*InternalFilterConstructorPtr) (std::string name);
+template< class T > CFGFilter* InternalFilterConstructor(std::string name = "") {
   return new CFGFilterInternal<T>(name);
 };
 
 struct InternalFilters
 {
-  CStdString name;
-  CStdString osdname;
+  std::string name;
+  std::string osdname;
   InternalFilterConstructorPtr cst;
 };
 
@@ -51,16 +52,16 @@ public:
   static HRESULT LoadFiltersConfiguration(TiXmlElement* pConfig);
   static HRESULT LoadMediasConfiguration(TiXmlElement* pConfig, int iPriority);
 
-  static HRESULT GetSourceFilter(const CFileItem& pFileItem, CStdString& filter);
-  static HRESULT GetSplitterFilter(const CFileItem& pFileItem, CStdString& filter);
-  static HRESULT GetAudioRendererFilter(const CFileItem& pFileItem, CStdString& filter);
-  static HRESULT GetVideoFilter(const CFileItem& pFileItem, CStdString& filter, bool dxva = false);
-  static HRESULT GetAudioFilter(const CFileItem& pFileItem, CStdString& filter, bool dxva = false);
-  static HRESULT GetSubsFilter(const CFileItem& pFileItem, CStdString& filter, bool dxva = false);
-  static HRESULT GetExtraFilters(const CFileItem& pFileItem, std::vector<CStdString>& filters, bool dxva = false);
+  static HRESULT GetSourceFilter(const CFileItem& pFileItem, std::string& filter);
+  static HRESULT GetSplitterFilter(const CFileItem& pFileItem, std::string& filter);
+  static HRESULT GetAudioRendererFilter(const CFileItem& pFileItem, std::string& filter);
+  static HRESULT GetVideoFilter(const CFileItem& pFileItem, std::string& filter, bool dxva = false);
+  static HRESULT GetAudioFilter(const CFileItem& pFileItem, std::string& filter, bool dxva = false);
+  static HRESULT GetSubsFilter(const CFileItem& pFileItem, std::string& filter, bool dxva = false);
+  static HRESULT GetExtraFilters(const CFileItem& pFileItem, std::vector<std::string>& filters, bool dxva = false);
   static HRESULT GetShaders(const CFileItem& pFileItem, std::vector<uint32_t>& shaders, std::vector<uint32_t>& shadersStage, bool dxva = false);
 
-  static CFGFilter* GetFilterFromName(const CStdString& filter, bool showError = true);
+  static CFGFilter* GetFilterFromName(const std::string& filter, bool showError = true);
 
   static bool SomethingMatch(const CFileItem& pFileItem)
   {
@@ -87,9 +88,9 @@ public:
   }
 
 private:
-  static bool CompareCFGFilterFileToString(CFGFilterFile * f, CStdString s)
+  static bool CompareCFGFilterFileToString(CFGFilterFile * f, std::string s)
   {
-    return f->GetInternalName().Equals(s);
+    return StringUtils::EqualsNoCase(f->GetInternalName(),s);
   }
   static CGlobalFilterSelectionRule* GetGlobalFilterSelectionRule(const CFileItem& pFileItem, bool checkUrl = false);
 
@@ -97,8 +98,8 @@ private:
 
   static bool compare_by_word(CGlobalFilterSelectionRule* lhs, CGlobalFilterSelectionRule* rhs)
   {
-    CStdString strLine1 = lhs->GetPriority();
-    CStdString strLine2 = rhs->GetPriority();
+    std::string strLine1 = lhs->GetPriority();
+    std::string strLine2 = rhs->GetPriority();
     StringUtils::ToLower(strLine1);
     StringUtils::ToLower(strLine2);
     return strcmp(strLine1.c_str(), strLine2.c_str()) < 0;

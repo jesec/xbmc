@@ -55,30 +55,30 @@ enum HttpRequestMethod {
 class CDSPVRBackend
 {
 public:
-  CDSPVRBackend(const CStdString& strBackendBaseAddress, const CStdString& strBackendName);
+  CDSPVRBackend(const std::string& strBackendBaseAddress, const std::string& strBackendName);
   virtual ~CDSPVRBackend();
-  virtual bool        ConvertStreamURLToTimeShiftFilePath(const CStdString& strUrl, CStdString& strTimeShiftFile) = 0;
-  virtual bool        SupportsStreamConversion(const CStdString& strUrl) const = 0;
+  virtual bool        ConvertStreamURLToTimeShiftFilePath(const std::string& strUrl, std::string& strTimeShiftFile) = 0;
+  virtual bool        SupportsStreamConversion(const std::string& strUrl) const = 0;
   virtual bool        SupportsFastChannelSwitch() const = 0;
-  virtual bool        GetRecordingStreamURL(const CStdString& strRecordingId, CStdString& strRecordingUrl, bool bGetUNCPath) { return false; };
+  virtual bool        GetRecordingStreamURL(const std::string& strRecordingId, std::string& strRecordingUrl, bool bGetUNCPath) { return false; };
   
-  const CStdString&   GetBackendName() const { return m_strBackendName; };
+  const std::string&   GetBackendName() const { return m_strBackendName; };
 
 protected:
-  bool                JSONRPCSendCommand(HttpRequestMethod requestType, const CStdString& strCommand, const CStdString& strArguments, CVariant &json_response);
+  bool                JSONRPCSendCommand(HttpRequestMethod requestType, const std::string& strCommand, const std::string& strArguments, CVariant &json_response);
   bool                TCPClientIsConnected();
   bool                TCPClientConnect();
   bool                TCPClientDisconnect();
-  bool                TCPClientSendCommand(const CStdString& strCommand, CStdString & strResponse);
-  bool                IsFileExistAndAccessible(const CStdString& strFilePath);
-  bool                ResolveHostName(const CStdString& strUrl, CStdString& strResolvedUrl);
+  bool                TCPClientSendCommand(const std::string& strCommand, std::string & strResponse);
+  bool                IsFileExistAndAccessible(const std::string& strFilePath);
+  bool                ResolveHostName(const std::string& strUrl, std::string& strResolvedUrl);
                     
 private:              
-  bool                HttpRequestGET(const CStdString& strCommand, CStdString& strResponse);
-  bool                HttpRequestPOST(const CStdString& strCommand, const CStdString& strArguments, CStdString& strResponse);
+  bool                HttpRequestGET(const std::string& strCommand, std::string& strResponse);
+  bool                HttpRequestPOST(const std::string& strCommand, const std::string& strArguments, std::string& strResponse);
   
-  CStdString          m_strBaseURL;
-  CStdString          m_strBackendName;
+  std::string          m_strBaseURL;
+  std::string          m_strBackendName;
   CDSSocket          *m_tcpclient;
   CCriticalSection    m_ObjectLock;
 };

@@ -67,8 +67,8 @@ HRESULT CPixelShaderCompiler::CompileShader(
   LPCSTR pProfile,
   DWORD Flags,
   IDirect3DPixelShader9** ppPixelShader,
-  CStdString* disasm,
-  CStdString* errmsg)
+  std::string* disasm,
+  std::string* errmsg)
 {
   if (!m_pD3DXCompileShader || !m_pD3DXDisassembleShader)
     return E_FAIL;
@@ -82,12 +82,13 @@ HRESULT CPixelShaderCompiler::CompileShader(
   {
     if (errmsg)
     {
-      CStdStringA msg = "Unexpected compiler error";
-
+      std::string msg = "Unexpected compiler error";
       if (pErrorMsgs)
       {
         int len = pErrorMsgs->GetBufferSize();
-        memcpy(msg.GetBufferSetLength(len), pErrorMsgs->GetBufferPointer(), len);
+        char* buf = new char[len];
+        memcpy(buf, pErrorMsgs->GetBufferPointer(), len);
+        msg = buf;
       }
 
       *errmsg = msg;
@@ -107,7 +108,7 @@ HRESULT CPixelShaderCompiler::CompileShader(
   if (disasm)
   {
     hr = m_pD3DXDisassembleShader((DWORD*)pShader->GetBufferPointer(), FALSE, NULL, &pDisAsm);
-    if (SUCCEEDED(hr) && pDisAsm) *disasm = CStdStringA((const char*)pDisAsm->GetBufferPointer());
+    if (SUCCEEDED(hr) && pDisAsm) *disasm = std::string((const char*)pDisAsm->GetBufferPointer());
   }
 
   return S_OK;

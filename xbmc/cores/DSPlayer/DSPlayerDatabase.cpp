@@ -27,7 +27,6 @@
 #include "video/VideoInfoTag.h "
 #include "settings/AdvancedSettings.h"
 #include "utils/StringUtils.h"
-#include "utils/StdString.h"
 #include "Filters/LAVAudioSettings.h"
 #include "Filters/LAVVideoSettings.h"
 #include "Filters/LAVSplitterSettings.h"
@@ -80,7 +79,7 @@ void CDSPlayerDatabase::CreateTables()
   CLog::Log(LOGINFO, "create madvr settings for user table");
   m_pDS->exec("CREATE TABLE madvrUserSettings ( User integer, madvrJson txt)\n");
 
-  CStdString strSQL = "CREATE TABLE lavvideoSettings (id integer, bTrayIcon integer, dwStreamAR integer, dwNumThreads integer, ";
+  std::string strSQL = "CREATE TABLE lavvideoSettings (id integer, bTrayIcon integer, dwStreamAR integer, dwNumThreads integer, ";
   for (int i = 0; i < LAVOutPixFmt_NB; ++i)
     strSQL += PrepareSQL("bPixFmts%i integer, ", i);
   strSQL += "dwRGBRange integer, dwHWAccel integer, dwHWAccelDeviceIndex integer, ";
@@ -341,7 +340,7 @@ void CDSPlayerDatabase::UpdateTables(int version)
     //remove dwHWDeintHQ
 
     //create new lavvideo table
-    CStdString strSQL = "CREATE TABLE lavvideoSettings_new (id integer, bTrayIcon integer, dwStreamAR integer, dwNumThreads integer, ";
+    std::string strSQL = "CREATE TABLE lavvideoSettings_new (id integer, bTrayIcon integer, dwStreamAR integer, dwNumThreads integer, ";
     for (int i = 0; i < 18/*LAVOutPixFmt_NB*/; ++i)
       strSQL += PrepareSQL("bPixFmts%i integer, ", i);
     strSQL += "dwRGBRange integer, dwHWAccel integer, ";
@@ -917,7 +916,7 @@ void CDSPlayerDatabase::UpdateTables(int version)
 
   if (version < 20)
   {
-    CStdString strSQL;
+    std::string strSQL;
 
     //lavvideo
     m_pDS->exec("ALTER TABLE lavvideoSettings ADD bUseMSWMV9Decoder integer");
@@ -958,7 +957,7 @@ void CDSPlayerDatabase::UpdateTables(int version)
   }
 }
 
-bool CDSPlayerDatabase::GetResumeEdition(const CStdString& strFilenameAndPath, CEdition &edition)
+bool CDSPlayerDatabase::GetResumeEdition(const std::string& strFilenameAndPath, CEdition &edition)
 {
   VECEDITIONS editions;
   GetEditionForFile(strFilenameAndPath, editions);
@@ -972,21 +971,21 @@ bool CDSPlayerDatabase::GetResumeEdition(const CStdString& strFilenameAndPath, C
 
 bool CDSPlayerDatabase::GetResumeEdition(const CFileItem *item, CEdition &edition)
 {
-  CStdString strPath = item->GetPath();
+  std::string strPath = item->GetPath();
   if ((item->IsVideoDb() || item->IsDVD()) && item->HasVideoInfoTag())
     strPath = item->GetVideoInfoTag()->m_strFileNameAndPath;
 
   return GetResumeEdition(strPath, edition);
 }
 
-void CDSPlayerDatabase::GetEditionForFile(const CStdString& strFilenameAndPath, VECEDITIONS& editions)
+void CDSPlayerDatabase::GetEditionForFile(const std::string& strFilenameAndPath, VECEDITIONS& editions)
 {
   try
   {
     if (NULL == m_pDB.get()) return;
     if (NULL == m_pDS.get()) return;
 
-    CStdString strSQL = PrepareSQL("select * from edition where file='%s' order by editionNumber", strFilenameAndPath.c_str());
+    std::string strSQL = PrepareSQL("select * from edition where file='%s' order by editionNumber", strFilenameAndPath.c_str());
     m_pDS->query(strSQL.c_str());
     while (!m_pDS->eof())
     {
@@ -1006,7 +1005,7 @@ void CDSPlayerDatabase::GetEditionForFile(const CStdString& strFilenameAndPath, 
   }
 }
 
-void CDSPlayerDatabase::AddEdition(const CStdString& strFilenameAndPath, const CEdition &edition)
+void CDSPlayerDatabase::AddEdition(const std::string& strFilenameAndPath, const CEdition &edition)
 {
   try
   {
@@ -1014,7 +1013,7 @@ void CDSPlayerDatabase::AddEdition(const CStdString& strFilenameAndPath, const C
     if (NULL == m_pDB.get())    return;
     if (NULL == m_pDS.get())    return;
 
-    CStdString strSQL;
+    std::string strSQL;
     int idEdition = -1;
 
     strSQL = PrepareSQL("select idEdition from edition where file='%s'", strFilenameAndPath.c_str());
@@ -1038,14 +1037,14 @@ void CDSPlayerDatabase::AddEdition(const CStdString& strFilenameAndPath, const C
   }
 }
 
-void CDSPlayerDatabase::ClearEditionOfFile(const CStdString& strFilenameAndPath)
+void CDSPlayerDatabase::ClearEditionOfFile(const std::string& strFilenameAndPath)
 {
   try
   {
     if (NULL == m_pDB.get()) return;
     if (NULL == m_pDS.get()) return;
 
-    CStdString strSQL = PrepareSQL("delete from edition where file='%s'", strFilenameAndPath.c_str());
+    std::string strSQL = PrepareSQL("delete from edition where file='%s'", strFilenameAndPath.c_str());
     m_pDS->exec(strSQL.c_str());
   }
   catch (...)
@@ -1054,14 +1053,14 @@ void CDSPlayerDatabase::ClearEditionOfFile(const CStdString& strFilenameAndPath)
   }
 }
 
-bool CDSPlayerDatabase::GetVideoSettings(const CStdString &strFilenameAndPath, CMadvrSettings &settings)
+bool CDSPlayerDatabase::GetVideoSettings(const std::string &strFilenameAndPath, CMadvrSettings &settings)
 {
   try
   {
     if (NULL == m_pDB.get()) return false;
     if (NULL == m_pDS.get()) return false;
     // ok, now obtain the settings for this file
-    CStdString strSQL = PrepareSQL("select * from madvrFileSettings where file = '%s'", strFilenameAndPath.c_str());
+    std::string strSQL = PrepareSQL("select * from madvrFileSettings where file = '%s'", strFilenameAndPath.c_str());
 
     m_pDS->query(strSQL.c_str());
     if (m_pDS->num_rows() > 0)
@@ -1163,14 +1162,14 @@ bool CDSPlayerDatabase::GetTvShowSettings(const std::string &tvShowName, CMadvrS
 }
 
 /// \brief Sets the settings for a particular video file
-void CDSPlayerDatabase::SetVideoSettings(const CStdString& strFilenameAndPath, const CMadvrSettings &setting)
+void CDSPlayerDatabase::SetVideoSettings(const std::string& strFilenameAndPath, const CMadvrSettings &setting)
 {
   try
   {
     if (NULL == m_pDB.get()) return;
     if (NULL == m_pDS.get()) return;
 
-    CStdString strSQL = PrepareSQL("select * from madvrFileSettings where file='%s'", strFilenameAndPath.c_str());
+    std::string strSQL = PrepareSQL("select * from madvrFileSettings where file='%s'", strFilenameAndPath.c_str());
     std::string strJson = CJSONVariantWriter::Write(setting.m_db, true);
 
     m_pDS->query(strSQL.c_str());
@@ -1389,7 +1388,7 @@ bool CDSPlayerDatabase::GetLAVVideoSettings(CLavSettings &settings)
     if (NULL == m_pDB.get()) return false;
     if (NULL == m_pDS.get()) return false;
     // ok, now obtain the settings for this file
-    CStdString strSQL = PrepareSQL("select * from lavvideoSettings where id = 0");
+    std::string strSQL = PrepareSQL("select * from lavvideoSettings where id = 0");
 
     m_pDS->query(strSQL.c_str());
     if (m_pDS->num_rows() > 0)
@@ -1437,7 +1436,7 @@ bool CDSPlayerDatabase::GetLAVAudioSettings(CLavSettings &settings)
     if (NULL == m_pDB.get()) return false;
     if (NULL == m_pDS.get()) return false;
     // ok, now obtain the settings for this file
-    CStdString strSQL = PrepareSQL("select * from lavaudioSettings where id = 0");
+    std::string strSQL = PrepareSQL("select * from lavaudioSettings where id = 0");
 
     m_pDS->query(strSQL.c_str());
     if (m_pDS->num_rows() > 0)
@@ -1489,7 +1488,7 @@ bool CDSPlayerDatabase::GetLAVSplitterSettings(CLavSettings &settings)
     if (NULL == m_pDB.get()) return false;
     if (NULL == m_pDS.get()) return false;
     // ok, now obtain the settings for this file
-    CStdString strSQL = PrepareSQL("select * from lavsplitterSettings where id = 0");
+    std::string strSQL = PrepareSQL("select * from lavsplitterSettings where id = 0");
 
     m_pDS->query(strSQL.c_str());
     if (m_pDS->num_rows() > 0)
@@ -1537,7 +1536,7 @@ void CDSPlayerDatabase::SetLAVVideoSettings(CLavSettings &settings)
     if (NULL == m_pDB.get()) return;
     if (NULL == m_pDS.get()) return;
 
-    CStdString strSQL = PrepareSQL("select * from lavvideoSettings where id = 0");
+    std::string strSQL = PrepareSQL("select * from lavvideoSettings where id = 0");
     m_pDS->query(strSQL.c_str());
     if (m_pDS->num_rows() > 0)
     {
@@ -1627,7 +1626,7 @@ void CDSPlayerDatabase::SetLAVAudioSettings(CLavSettings &settings)
     if (NULL == m_pDB.get()) return;
     if (NULL == m_pDS.get()) return;
 
-    CStdString strSQL = PrepareSQL("select * from lavaudioSettings where id = 0");
+    std::string strSQL = PrepareSQL("select * from lavaudioSettings where id = 0");
     m_pDS->query(strSQL.c_str());
     if (m_pDS->num_rows() > 0)
     {
@@ -1726,7 +1725,7 @@ void CDSPlayerDatabase::SetLAVSplitterSettings(CLavSettings &settings)
     if (NULL == m_pDS.get()) return;
 
     std::string str;
-    CStdString strSQL = PrepareSQL("select * from lavsplitterSettings where id = 0");
+    std::string strSQL = PrepareSQL("select * from lavsplitterSettings where id = 0");
     m_pDS->query(strSQL.c_str());
     if (m_pDS->num_rows() > 0)
     {

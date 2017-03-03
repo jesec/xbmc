@@ -389,7 +389,7 @@ void CGUIDialogLAVAudio::HideUnused()
   m_allowchange = true;
 }
 
-void CGUIDialogLAVAudio::SetVisible(CStdString id, bool visible)
+void CGUIDialogLAVAudio::SetVisible(std::string id, bool visible)
 {
   CSetting *setting = m_settingsManager->GetSetting(id);
   if (setting->IsEnabled() && visible)

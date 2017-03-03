@@ -23,11 +23,12 @@
 
 #include "ExternalPixelShader.h"
 #include "PixelShaderCompiler.h"
-#include "utils/StdString.h"
 #include "FileSystem\File.h"
 #include "utils/XMLUtils.h"
 #include "profiles/ProfilesManager.h"
 #include "utils/log.h"
+#include "Utils/StringUtils.h"
+#include "Utils/DSFileUtils.h"
 
 HRESULT CExternalPixelShader::Compile(CPixelShaderCompiler *pCompiler)
 {
@@ -39,8 +40,8 @@ HRESULT CExternalPixelShader::Compile(CPixelShaderCompiler *pCompiler)
     if (!Load())
       return E_FAIL;
   }
-  CStdString errorMsg;
-  HRESULT hr = pCompiler->CompileShader(m_SourceData, "main", m_SourceTarget, 0, &m_pPixelShader, NULL, &errorMsg);
+  std::string errorMsg;
+  HRESULT hr = pCompiler->CompileShader(m_SourceData.c_str(), "main", m_SourceTarget.c_str(), 0, &m_pPixelShader, NULL, &errorMsg);
   if (FAILED(hr))
   {
     CLog::Log(LOGERROR, "%s Shader's compilation failed : %s", __FUNCTION__, errorMsg.c_str());
@@ -48,7 +49,7 @@ HRESULT CExternalPixelShader::Compile(CPixelShaderCompiler *pCompiler)
   }
 
   // Delete buffer
-  m_SourceData.SetBuf(0);
+  m_SourceData = "";
 
   CLog::Log(LOGINFO, "Pixel shader \"%s\" compiled", m_name.c_str());
   return S_OK;
@@ -57,8 +58,8 @@ HRESULT CExternalPixelShader::Compile(CPixelShaderCompiler *pCompiler)
 CExternalPixelShader::CExternalPixelShader(TiXmlElement* xml)
   : m_id(-1), m_valid(false), m_enabled(false)
 {
-  m_name = xml->Attribute("name");
-  xml->Attribute("id", &m_id);
+  m_name = CDSXMLUtils::GetString(xml, "name");
+  CDSXMLUtils::GetInt(xml, "id", &m_id);
 
   if (!XMLUtils::GetString(xml, "path", m_SourceFile))
     return;
@@ -68,7 +69,7 @@ CExternalPixelShader::CExternalPixelShader(TiXmlElement* xml)
 
   if (!XFILE::CFile::Exists(m_SourceFile))
   {
-    CStdString originalFile = m_SourceFile;
+    std::string originalFile = m_SourceFile;
     m_SourceFile = CProfilesManager::GetInstance().GetUserDataItem("dsplayer/shaders/" + originalFile);
     if (!XFILE::CFile::Exists(m_SourceFile))
     {
@@ -81,22 +82,26 @@ CExternalPixelShader::CExternalPixelShader(TiXmlElement* xml)
     }
   }
 
-  m_SourceTarget.ToLower();
-  if (!m_SourceTarget.Equals("ps_1_1") && !m_SourceTarget.Equals("ps_1_2") && !m_SourceTarget.Equals("ps_1_3")
-    && !m_SourceTarget.Equals("ps_1_4") && !m_SourceTarget.Equals("ps_2_0") && !m_SourceTarget.Equals("ps_2_a")
-    && !m_SourceTarget.Equals("ps_2_b") && !m_SourceTarget.Equals("ps_3_0"))
+  if (!StringUtils::EqualsNoCase(m_SourceTarget,"ps_1_1") 
+    && !StringUtils::EqualsNoCase(m_SourceTarget, "ps_1_2") 
+    && !StringUtils::EqualsNoCase(m_SourceTarget, "ps_1_3")
+    && !StringUtils::EqualsNoCase(m_SourceTarget, "ps_1_4") 
+    && !StringUtils::EqualsNoCase(m_SourceTarget, "ps_2_0") 
+    && !StringUtils::EqualsNoCase(m_SourceTarget, "ps_2_a")
+    && !StringUtils::EqualsNoCase(m_SourceTarget, "ps_2_b") 
+    && !StringUtils::EqualsNoCase(m_SourceTarget, "ps_3_0"))
     return;
 
   m_valid = true;
 }
 
-CExternalPixelShader::CExternalPixelShader(CStdString strFile, CStdString strProfile)
+CExternalPixelShader::CExternalPixelShader(std::string strFile, std::string strProfile)
   : m_id(-1), m_valid(false), m_enabled(false), m_SourceFile(strFile),
   m_SourceTarget(strProfile)
 {
   if (!XFILE::CFile::Exists(m_SourceFile))
   {
-    CStdString originalFile = m_SourceFile;
+    std::string originalFile = m_SourceFile;
     m_SourceFile = CProfilesManager::GetInstance().GetUserDataItem("dsplayer/shaders/" + originalFile);
     if (!XFILE::CFile::Exists(m_SourceFile))
     {
@@ -109,10 +114,14 @@ CExternalPixelShader::CExternalPixelShader(CStdString strFile, CStdString strPro
     }
   }
 
-  m_SourceTarget.ToLower();
-  if (!m_SourceTarget.Equals("ps_1_1") && !m_SourceTarget.Equals("ps_1_2") && !m_SourceTarget.Equals("ps_1_3")
-    && !m_SourceTarget.Equals("ps_1_4") && !m_SourceTarget.Equals("ps_2_0") && !m_SourceTarget.Equals("ps_2_a")
-    && !m_SourceTarget.Equals("ps_2_b") && !m_SourceTarget.Equals("ps_3_0"))
+  if (!StringUtils::EqualsNoCase(m_SourceTarget, "ps_1_1")
+    && !StringUtils::EqualsNoCase(m_SourceTarget, "ps_1_2")
+    && !StringUtils::EqualsNoCase(m_SourceTarget, "ps_1_3")
+    && !StringUtils::EqualsNoCase(m_SourceTarget, "ps_1_4")
+    && !StringUtils::EqualsNoCase(m_SourceTarget, "ps_2_0")
+    && !StringUtils::EqualsNoCase(m_SourceTarget, "ps_2_a")
+    && !StringUtils::EqualsNoCase(m_SourceTarget, "ps_2_b")
+    && !StringUtils::EqualsNoCase(m_SourceTarget, "ps_3_0"))
     return;
 
   m_valid = true;
@@ -125,14 +134,15 @@ bool CExternalPixelShader::Load()
     return false;
 
   int64_t length = file.GetLength();
-  m_SourceData.SetBuf((int)length);
+  char* buf = new char[length];
 
-  if (file.Read(m_SourceData.GetBuffer((int)length), length) != length)
+  if (file.Read(buf, length) != length)
   {
-    m_SourceData.Empty();
+    m_SourceData = "";
     return false;
   }
 
+  m_SourceData = buf;
   return true;
 }
 

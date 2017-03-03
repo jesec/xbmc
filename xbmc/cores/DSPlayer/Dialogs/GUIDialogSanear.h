@@ -24,7 +24,6 @@
  */
 
 #include "settings/dialogs/GUIDialogSettingsManualBase.h"
-#include "utils/stdstring.h"
 
 class CGUIDialogSanear : public CGUIDialogSettingsManualBase
 {
@@ -48,7 +47,7 @@ protected:
   virtual void SetupView();
 
   void HideUnused();
-  void SetVisible(CStdString id, bool visible);
+  void SetVisible(std::string id, bool visible);
 
   bool m_allowchange;
 };

@@ -42,6 +42,7 @@
 #include "utils/XMLUtils.h"
 #include "Filters/RendererSettings.h"
 #include "PixelShaderList.h"
+#include "utils/DSFileUtils.h"
 
 #define SETTING_RULE_SAVE                     "rule.save"
 #define SETTING_RULE_ADD                      "rule.add"
@@ -91,7 +92,7 @@ void CGUIDialogDSRules::SetupView()
   SET_CONTROL_LABEL(CONTROL_SETTINGS_CANCEL_BUTTON, 15067);
 }
 
-void CGUIDialogDSRules::SetVisible(CStdString id, bool visible, ConfigType subType, bool isChild /* = false */)
+void CGUIDialogDSRules::SetVisible(std::string id, bool visible, ConfigType subType, bool isChild /* = false */)
 {
   CSetting *setting = m_settingsManager->GetSetting(id);
   if (setting->IsVisible() && visible)
@@ -154,12 +155,12 @@ void CGUIDialogDSRules::HideUnused(ConfigType type, ConfigType subType)
   }
 }
 
-bool CGUIDialogDSRules::NodeHasAttr(TiXmlElement *pNode, CStdString attr)
+bool CGUIDialogDSRules::NodeHasAttr(TiXmlElement *pNode, std::string attr)
 {
   if (pNode)
   {
-    CStdString value = "";
-    value = pNode->Attribute(attr.c_str());
+    std::string value = "";
+    value = CDSXMLUtils::GetString(pNode, attr.c_str());
     return (value != "");
   }
 
@@ -287,11 +288,11 @@ void CGUIDialogDSRules::InitializeSettings()
       for (const auto &it : m_ruleList)
       {
         if (it->m_configType == EDITATTR || it->m_configType == SPINNERATTR)
-          it->m_value = pRule->Attribute(it->m_attr.c_str());
+          it->m_value = CDSXMLUtils::GetString(pRule, it->m_attr.c_str());
 
         if (it->m_configType == BOOLATTR)
         {
-          it->m_value = pRule->Attribute(it->m_attr.c_str());
+          it->m_value = CDSXMLUtils::GetString(pRule, it->m_attr.c_str());
           if (it->m_value == "")
             it->m_value = "false";
         }
@@ -300,7 +301,7 @@ void CGUIDialogDSRules::InitializeSettings()
         {
           TiXmlElement *pFilter = pRule->FirstChildElement(it->m_nodeName.c_str());
           if (pFilter)
-            it->m_value = pFilter->Attribute(it->m_attr.c_str());
+            it->m_value = CDSXMLUtils::GetString(pFilter, it->m_attr.c_str());
         }
 
         if (it->m_configType == EXTRAFILTER
@@ -316,7 +317,7 @@ void CGUIDialogDSRules::InitializeSettings()
           if (pFilter && NodeHasAttr(pFilter, it->m_attr))
           {
             if (it->m_subNode == 0)
-              it->m_value = pFilter->Attribute(it->m_attr.c_str());
+              it->m_value = CDSXMLUtils::GetString(pFilter, it->m_attr.c_str());
 
             continue;
           }
@@ -329,7 +330,7 @@ void CGUIDialogDSRules::InitializeSettings()
             while (pSubExtra)
             {
               if (it->m_subNode == countsize)
-                it->m_value = pSubExtra->Attribute(it->m_attr.c_str());
+                it->m_value = CDSXMLUtils::GetString(pSubExtra, it->m_attr.c_str());
 
               pSubExtra = pSubExtra->NextSiblingElement(it->m_nodeName.c_str());
               countsize++;
@@ -528,7 +529,7 @@ void CGUIDialogDSRules::ShowDSRulesList()
   if (!pRules)
     return;
 
-  CStdString strRule;
+  std::string strRule;
   int selectedId = -1;
   int selected = -1;
   int count = 0;
@@ -546,14 +547,13 @@ void CGUIDialogDSRules::ShowDSRulesList()
   {
     CRules *rule = new CRules();
 
-    rule->strName = pRule->Attribute("name");
-    rule->strfileTypes = pRule->Attribute("filetypes");
-    rule->strfileName = pRule->Attribute("filename");
-    rule->strVideoCodec = pRule->Attribute("videocodec");
-    rule->strAudioCodec = pRule->Attribute("audiocodec");
-    rule->strProtocols = pRule->Attribute("protocols");
-    rule->strPriority = pRule->Attribute("priority");
-    if (rule->strPriority.length() <= 0)
+    rule->strName = CDSXMLUtils::GetString(pRule, "name");
+    rule->strfileTypes = CDSXMLUtils::GetString(pRule, "filetypes");
+    rule->strfileName = CDSXMLUtils::GetString(pRule, "filename");
+    rule->strVideoCodec = CDSXMLUtils::GetString(pRule, "videocodec");
+    rule->strAudioCodec = CDSXMLUtils::GetString(pRule, "audiocodec");
+    rule->strProtocols = CDSXMLUtils::GetString(pRule, "protocols");
+    if (!CDSXMLUtils::GetString(pRule, "priority", &rule->strPriority))
       rule->strPriority = "0";
 
     rule->id = id;
@@ -568,30 +568,30 @@ void CGUIDialogDSRules::ShowDSRulesList()
   {
 
     if (rules[i]->strfileTypes != "")
-      rules[i]->strfileTypes.Format("Filetypes=%s", rules[i]->strfileTypes);
+      rules[i]->strfileTypes = StringUtils::Format("Filetypes=%s", rules[i]->strfileTypes.c_str());
     if (rules[i]->strfileName != "")
-      rules[i]->strfileName.Format("Filename=%s", rules[i]->strfileName);
+      rules[i]->strfileName = StringUtils::Format("Filename=%s", rules[i]->strfileName.c_str());
     if (rules[i]->strVideoCodec != "")
-      rules[i]->strVideoCodec.Format("Videocodec=%s", rules[i]->strVideoCodec);
+      rules[i]->strVideoCodec = StringUtils::Format("Videocodec=%s", rules[i]->strVideoCodec.c_str());
     if (rules[i]->strVideoCodec != "")
-      rules[i]->strVideoCodec.Format("Audiocodec=%s", rules[i]->strAudioCodec);
+      rules[i]->strVideoCodec = StringUtils::Format("Audiocodec=%s", rules[i]->strAudioCodec.c_str());
     if (rules[i]->strProtocols != "")
-      rules[i]->strProtocols.Format("Protocols=%s", rules[i]->strProtocols);
+      rules[i]->strProtocols = StringUtils::Format("Protocols=%s", rules[i]->strProtocols.c_str());
 
     if (rules[i]->strName != "")
       strRule = rules[i]->strName;
     else
     {
-      strRule.Format("%s %s %s %s %s", rules[i]->strfileTypes, rules[i]->strfileName, rules[i]->strVideoCodec, rules[i]->strAudioCodec, rules[i]->strProtocols);
-      strRule.Trim();
+      strRule = StringUtils::Format("%s %s %s %s %s", rules[i]->strfileTypes.c_str(), rules[i]->strfileName.c_str(), rules[i]->strVideoCodec.c_str(), rules[i]->strAudioCodec.c_str(), rules[i]->strProtocols.c_str());
+      StringUtils::Trim(strRule);
     }
 
     if (rules[i]->strPriority != "")
     {
-      strRule.Format("%s (%s)", strRule, rules[i]->strPriority);
+      strRule = StringUtils::Format("%s (%s)", strRule.c_str(), rules[i]->strPriority.c_str());
     }
 
-    strRule.Format("Rule:   %s", strRule);
+    strRule = StringUtils::Format("Rule:   %s", strRule.c_str());
     pDlg->Add(strRule);
     count++;
   }

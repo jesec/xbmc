@@ -27,8 +27,9 @@
 #include "utils/StreamDetails.h"
 #include "settings/Settings.h"
 #include "utils/log.h"
+#include "utils/DSFileUtils.h"
 
-CFilterSelectionRule::CFilterSelectionRule(TiXmlElement* pRule, const CStdString &nodeName)
+CFilterSelectionRule::CFilterSelectionRule(TiXmlElement* pRule, const std::string &nodeName)
 {
   Initialize(pRule, nodeName);
 }
@@ -36,26 +37,26 @@ CFilterSelectionRule::CFilterSelectionRule(TiXmlElement* pRule, const CStdString
 CFilterSelectionRule::~CFilterSelectionRule()
 {}
 
-void CFilterSelectionRule::Initialize(TiXmlElement* pRule, const CStdString &nodeName)
+void CFilterSelectionRule::Initialize(TiXmlElement* pRule, const std::string &nodeName)
 {
   if (!pRule)
     return;
 
-  m_name = pRule->Attribute("name");
-  if (!m_name || m_name.IsEmpty())
+  ;
+  if (!CDSXMLUtils::GetString(pRule, "name", &m_name))
     m_name = "un-named";
 
-  m_dxva = GetTristate(pRule->Attribute("dxva"));
+  CDSXMLUtils::GetTristate(pRule, "dxva", &m_dxva);
 
-  m_mimeTypes = pRule->Attribute("mimetypes");
-  m_fileName = pRule->Attribute("filename");
+  m_mimeTypes = CDSXMLUtils::GetString(pRule, "mimetypes");
+  m_fileName = CDSXMLUtils::GetString(pRule, "filename");
 
-  m_audioCodec = pRule->Attribute("audiocodec");
-  m_audioChannels = pRule->Attribute("audiochannels");
-  m_videoCodec = pRule->Attribute("videocodec");
-  m_videoResolution = pRule->Attribute("videoresolution");
-  m_videoAspect = pRule->Attribute("videoaspect");
-  m_videoFourcc = pRule->Attribute("fourcc");
+  m_audioCodec = CDSXMLUtils::GetString(pRule, "audiocodec");
+  m_audioChannels = CDSXMLUtils::GetString(pRule, "audiochannels");
+  m_videoCodec = CDSXMLUtils::GetString(pRule, "videocodec");
+  m_videoResolution = CDSXMLUtils::GetString(pRule, "videoresolution");
+  m_videoAspect = CDSXMLUtils::GetString(pRule, "videoaspect");
+  m_videoFourcc = CDSXMLUtils::GetString(pRule, "fourcc");
 
   m_bStreamDetails = m_audioCodec.length() > 0 || m_audioChannels.length() > 0 || m_videoFourcc.length() > 0 ||
     m_videoCodec.length() > 0 || m_videoResolution.length() > 0 || m_videoAspect.length() > 0;
@@ -65,7 +66,7 @@ void CFilterSelectionRule::Initialize(TiXmlElement* pRule, const CStdString &nod
     CLog::Log(LOGWARNING, "CFilterSelectionRule::Initialize: rule: %s needs media flagging, which is disabled", m_name.c_str());
   }
 
-  m_filterName = pRule->Attribute("filter");
+  m_filterName = CDSXMLUtils::GetString(pRule, "filter");
 
   TiXmlElement* pSubRule = pRule->FirstChildElement(nodeName);
   while (pSubRule)
@@ -75,31 +76,22 @@ void CFilterSelectionRule::Initialize(TiXmlElement* pRule, const CStdString &nod
   }
 }
 
-int CFilterSelectionRule::GetTristate(const char* szValue) const
-{
-  if (szValue)
-  {
-    if (stricmp(szValue, "true") == 0) return 1;
-    if (stricmp(szValue, "false") == 0) return 0;
-  }
-  return -1;
-}
-
-bool CFilterSelectionRule::CompileRegExp(const CStdString& str, CRegExp& regExp) const
+bool CFilterSelectionRule::CompileRegExp(const std::string& str, CRegExp& regExp) const
 {
   return str.length() > 0 && regExp.RegComp(str.c_str());
 }
 
-bool CFilterSelectionRule::MatchesRegExp(const CStdString& str, CRegExp& regExp) const
+bool CFilterSelectionRule::MatchesRegExp(const std::string& str, CRegExp& regExp) const
 {
   return regExp.RegFind(str, 0) != -1; // Need more testing
 }
 
-void CFilterSelectionRule::GetFilters(const CFileItem& item, std::vector<CStdString> &vecCores, bool dxva)
+void CFilterSelectionRule::GetFilters(const CFileItem& item, std::vector<std::string> &vecCores, bool dxva)
 {
   //CLog::Log(LOGDEBUG, "CFilterSelectionRule::GetFilters: considering rule: %s", m_name.c_str());
 
-  if (m_bStreamDetails && (!item.HasVideoInfoTag())) return;
+  if (m_bStreamDetails && (!item.HasVideoInfoTag())) 
+    return;
   /*
   if (m_tAudio >= 0 && (m_tAudio > 0) != item.IsAudio()) return;
   if (m_tVideo >= 0 && (m_tVideo > 0) != item.IsVideo()) return;

@@ -25,6 +25,7 @@
 #include "XBMCFileSource.h"
 #include "utils/log.h"
 #include "threads/SingleLock.h"
+#include "utils/CharsetConverter.h"
 
 CXBMCAsyncStream::CXBMCAsyncStream()
   : m_llLength(0)
@@ -32,7 +33,7 @@ CXBMCAsyncStream::CXBMCAsyncStream()
 
 }
 
-HRESULT CXBMCAsyncStream::Load(const CStdString& file)
+HRESULT CXBMCAsyncStream::Load(const std::string& file)
 {
   m_pFileName = file;
 
@@ -114,7 +115,9 @@ HRESULT STDMETHODCALLTYPE CXBMCASyncReader::Load(
   /* [annotation][unique][in] */ 
   __in_opt  const AM_MEDIA_TYPE *pmt)
 {
-  return m_pAsyncStream.Load(pszFileName);
+  std::string s;
+  g_charsetConverter.wToUTF8(pszFileName, s);
+  return m_pAsyncStream.Load(s);
 }
 
 STDMETHODIMP CXBMCASyncReader::NonDelegatingQueryInterface(REFIID riid, void** ppv)

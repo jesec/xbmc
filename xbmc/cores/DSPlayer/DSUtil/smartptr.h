@@ -2,7 +2,6 @@
 #ifndef _SMARTPTR_H
 #define _SMARTPTR_H
 #include "threads/platform/win/CriticalSection.h"
-#include "utils/StdString.h"
 
 
 

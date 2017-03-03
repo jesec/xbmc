@@ -26,6 +26,7 @@
 #error DSPlayer's header file included without HAS_DS_PLAYER defined
 #endif
 
+#include "utils/XBMCTinyXML.h"
 
 class CDSFile
 {
@@ -46,4 +47,14 @@ public:
   static int64_t GetPerfCounter();
 };
 
+
+class CDSXMLUtils
+{
+public:
+  static bool GetInt(TiXmlElement *pElement, const std::string &attr, int *iValue);
+  static bool GetFloat(TiXmlElement *pElement, const std::string &attr, float *fValue);
+  static bool GetString(TiXmlElement *pElement, const std::string &attr, std::string *sValue);
+  static std::string GetString(TiXmlElement *pElement, const std::string &attr);
+  static bool GetTristate(TiXmlElement *pElement, const std::string &attr, int *iValue);
+};
 #endif

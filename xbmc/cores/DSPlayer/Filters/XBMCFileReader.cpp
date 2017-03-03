@@ -29,7 +29,7 @@
 #include "DSUtil/DSUtil.h"
 
 
-CXBMCFileStream::CXBMCFileStream(CStdString filepath, HRESULT& hr)
+CXBMCFileStream::CXBMCFileStream(std::string filepath, HRESULT& hr)
 	: CUnknown(NAME("CXBMCFileStream"), NULL, &hr),
 	  m_llLength(-1),
 	  m_hBreakEvent(NULL),

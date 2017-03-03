@@ -43,6 +43,7 @@
 #include "Filters/RendererSettings.h"
 #include "PixelShaderList.h"
 #include "cores/playercorefactory/PlayerCoreFactory.h"
+#include "utils/DSFileUtils.h"
 
 
 #define SETTING_RULE_SAVE                   "dsplayercore.save"
@@ -154,11 +155,11 @@ void CGUIDialogDSPlayercoreFactory::InitializeSettings()
       for (const auto &it : m_ruleList)
       {
         if (it->m_configType == EDITATTR)
-          it->m_value = pRule->Attribute(it->m_attr.c_str());
+          it->m_value = CDSXMLUtils::GetString(pRule, it->m_attr.c_str());
 
         if (it->m_configType == BOOLATTR)
         {
-          it->m_value = pRule->Attribute(it->m_attr.c_str());
+          it->m_value = CDSXMLUtils::GetString(pRule, it->m_attr.c_str());
           if (it->m_value == "")
             it->m_value = "false";
         }
@@ -300,16 +301,16 @@ void CGUIDialogDSPlayercoreFactory::ShowDSPlayercoreFactory()
     "internetstream", "remote", "audio", "video", "dvd", "dvdimage", "dvdfile", "mimetypes"
   };
 
-  CStdString value;
-  CStdString strLabel;
+  std::string value;
+  std::string strLabel;
 
   TiXmlElement *pRule = pRules->FirstChildElement("rule");
   while (pRule)
   {
     strLabel = "Rule: ";
-    value = pRule->Attribute("name");
+    value = CDSXMLUtils::GetString(pRule, "name");
     if (value != "")
-      strLabel.Format("%s%s ", strLabel.c_str(), value.c_str());
+      strLabel = StringUtils::Format("%s%s ", strLabel.c_str(), value.c_str());
 
     else
     {
@@ -317,10 +318,10 @@ void CGUIDialogDSPlayercoreFactory::ShowDSPlayercoreFactory()
       for (const auto &it : vecAttr)
       {
 
-        value = pRule->Attribute(it.c_str());
+        value = CDSXMLUtils::GetString(pRule, it.c_str());
         if (value != "")
         {
-          strLabel.Format("%s %s=%s ", strLabel.c_str(), it.c_str(), value.c_str());
+          strLabel = StringUtils::Format("%s %s=%s ", strLabel.c_str(), it.c_str(), value.c_str());
           countAttr++;
         }
         if (countAttr > 1)
@@ -329,8 +330,9 @@ void CGUIDialogDSPlayercoreFactory::ShowDSPlayercoreFactory()
     }
 
     // Load only VideoPlayer rules
-    value = pRule->Attribute("player");
-    if (value.ToLower() == "videoplayer")
+    value = CDSXMLUtils::GetString(pRule, "player");
+    StringUtils::ToLower(value);
+    if (value == "videoplayer")
       pDlg->Add(strLabel);
 
     pRule = pRule->NextSiblingElement("rule");

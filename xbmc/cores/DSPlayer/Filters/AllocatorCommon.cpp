@@ -51,7 +51,7 @@ HRESULT CreateAP9(const CLSID& clsid, HWND hWnd, ISubPicAllocatorPresenter** ppA
   *ppAP = NULL;
 
   HRESULT hr = E_FAIL;
-  CStdString Error;
+  std::string Error;
   if (clsid == CLSID_VMR9AllocatorPresenter && !(*ppAP = DNew CVMR9AllocatorPresenter(hWnd, hr, Error)))
     return E_OUTOFMEMORY;
 
@@ -69,7 +69,7 @@ HRESULT CreateAP9(const CLSID& clsid, HWND hWnd, ISubPicAllocatorPresenter** ppA
     (*ppAP)->Release();
     *ppAP = NULL;
   }
-  else if (!Error.IsEmpty())
+  else if (!Error.empty())
   {
     CLog::Log(LOGWARNING, "%s %s", __FUNCTION__, Error.c_str());
   }
@@ -82,7 +82,7 @@ HRESULT CreateEVR(const CLSID& clsid, HWND hWnd, ISubPicAllocatorPresenter** ppA
   HRESULT    hr = E_FAIL;
   if (clsid == CLSID_EVRAllocatorPresenter)
   {
-    CStdString Error;
+    std::string Error;
     *ppAP = DNew CEVRAllocatorPresenter(hWnd, hr, Error);
     (*ppAP)->AddRef();
 
@@ -94,7 +94,7 @@ HRESULT CreateEVR(const CLSID& clsid, HWND hWnd, ISubPicAllocatorPresenter** ppA
       (*ppAP)->Release();
       *ppAP = NULL;
     }
-    else if (!Error.IsEmpty())
+    else if (!Error.empty())
     {
       CLog::Log(LOGWARNING, "%s %s", __FUNCTION__, Error.c_str());
     }
@@ -109,7 +109,7 @@ HRESULT CreateMadVR(const CLSID& clsid, HWND hWnd, ISubPicAllocatorPresenter** p
   HRESULT    hr = E_FAIL;
   if (clsid == CLSID_madVRAllocatorPresenter)
   {
-    CStdString Error;
+    std::string Error;
     *ppAP  = DNew CmadVRAllocatorPresenter(hWnd, hr, Error);
     (*ppAP)->AddRef();
 
@@ -121,7 +121,7 @@ HRESULT CreateMadVR(const CLSID& clsid, HWND hWnd, ISubPicAllocatorPresenter** p
       (*ppAP)->Release();
       *ppAP = NULL;
     }
-    else if (!Error.IsEmpty())
+    else if (!Error.empty())
     {
       CLog::Log(LOGWARNING, "%s %s", __FUNCTION__, Error.c_str());
     }
@@ -130,7 +130,7 @@ HRESULT CreateMadVR(const CLSID& clsid, HWND hWnd, ISubPicAllocatorPresenter** p
   return hr;
 }
 
-CStdString GetWindowsErrorMessage(HRESULT _Error, HMODULE _Module)
+std::string GetWindowsErrorMessage(HRESULT _Error, HMODULE _Module)
 {
 
   switch (_Error)
@@ -166,7 +166,7 @@ CStdString GetWindowsErrorMessage(HRESULT _Error, HMODULE _Module)
   case D3DERR_DEVICEHUNG: return _T("D3DERR_DEVICEHUNG");
   }
 
-  CStdString errmsg;
+  std::string errmsg;
   LPVOID lpMsgBuf;
   if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_HMODULE,
     _Module, _Error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&lpMsgBuf, 0, NULL))
@@ -174,8 +174,8 @@ CStdString GetWindowsErrorMessage(HRESULT _Error, HMODULE _Module)
     errmsg = (LPCTSTR)lpMsgBuf;
     LocalFree(lpMsgBuf);
   }
-  CStdString Temp;
-  Temp.Format("0x%08x ", _Error);
+  std::string Temp;
+  Temp = StringUtils::Format("0x%08x ", _Error);
   return Temp + errmsg;
 }
 

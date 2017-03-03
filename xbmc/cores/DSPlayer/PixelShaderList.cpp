@@ -47,7 +47,7 @@ CPixelShaderList::~CPixelShaderList()
 
 void CPixelShaderList::SaveXML()
 {
-  CStdString userDataDSPlayer = URIUtils::AddFileToFolder(CProfilesManager::GetInstance().GetUserDataFolder(), "dsplayer");
+  std::string userDataDSPlayer = URIUtils::AddFileToFolder(CProfilesManager::GetInstance().GetUserDataFolder(), "dsplayer");
   if (!XFILE::CDirectory::Exists(userDataDSPlayer))
   {
     if (!XFILE::CDirectory::Create(userDataDSPlayer))
@@ -57,7 +57,7 @@ void CPixelShaderList::SaveXML()
     }
   }
 
-  CStdString xmlFile = URIUtils::AddFileToFolder(userDataDSPlayer, "shaders.xml");
+  std::string xmlFile = URIUtils::AddFileToFolder(userDataDSPlayer, "shaders.xml");
   if (XFILE::CFile::Exists(xmlFile))
     XFILE::CFile::Delete(xmlFile);
 
@@ -81,7 +81,7 @@ void CPixelShaderList::Load()
   LoadXMLFile("special://xbmc/system/players/dsplayer/shaders/shaders.xml");
 }
 
-bool CPixelShaderList::LoadXMLFile(const CStdString& xmlFile)
+bool CPixelShaderList::LoadXMLFile(const std::string& xmlFile)
 {
   CLog::Log(LOGNOTICE, "Loading pixel shaders list from %s", xmlFile.c_str());
   if (!XFILE::CFile::Exists(xmlFile))

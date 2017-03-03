@@ -24,7 +24,6 @@
  */
 
 #include "settings/dialogs/GUIDialogSettingsManualBase.h"
-#include "utils/stdstring.h"
 
 class CGUIDialogLAVAudio : public CGUIDialogSettingsManualBase
 {
@@ -48,7 +47,7 @@ protected:
   virtual void SetupView();
 
   void HideUnused();
-  void SetVisible(CStdString id, bool visible);
+  void SetVisible(std::string id, bool visible);
 
   void FlagsToBool(int flags);
   int BoolToFlags();

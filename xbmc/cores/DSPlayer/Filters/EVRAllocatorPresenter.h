@@ -74,7 +74,7 @@ class CEVRAllocatorPresenter :
   */
 {
 public:
-  CEVRAllocatorPresenter(HWND hWnd, HRESULT& hr, CStdString &_Error);
+  CEVRAllocatorPresenter(HWND hWnd, HRESULT& hr, std::string &_Error);
   ~CEVRAllocatorPresenter(void);
 
   DECLARE_IUNKNOWN;

@@ -152,7 +152,7 @@ HRESULT CDSGraph::SetFile(const CFileItem& file, const CPlayerOptions &options)
 
   m_VideoInfo.isDVD = CGraphFilters::Get()->IsDVD();
 
-  CStdString filterName;
+  std::string filterName;
   BeginEnumFilters(pFilterGraph, pEF, pBF)
   {
     if (IsVideoRenderer(pBF)) {
@@ -169,7 +169,7 @@ HRESULT CDSGraph::SetFile(const CFileItem& file, const CPlayerOptions &options)
       m_pAMOpenProgress = pBF;
     }
 
-    if (!CGraphFilters::Get()->AudioRenderer.osdname.IsEmpty() && !CGraphFilters::Get()->VideoRenderer.osdname.IsEmpty() && m_pAMOpenProgress)
+    if (!CGraphFilters::Get()->AudioRenderer.osdname.empty() && !CGraphFilters::Get()->VideoRenderer.osdname.empty() && m_pAMOpenProgress)
       break;
   }
   EndEnumFilters
@@ -458,7 +458,8 @@ HRESULT CDSGraph::HandleGraphEvent()
     case EC_ERRORABORTEX:
       if (evParam2)
       {
-        CStdString error = (CStdString)((BSTR)evParam2);
+        std::string error;
+        g_charsetConverter.wToUTF8((std::wstring)((BSTR)evParam2), error);
         CLog::Log(LOGDEBUG, "%s EC_ERRORABORT. Error code: 0x%X; Error message: %s", __FUNCTION__, evParam1, error.c_str());
       }
       else
@@ -493,7 +494,7 @@ HRESULT CDSGraph::HandleGraphEvent()
     case EC_DVD_DOMAIN_CHANGE:
     {
       m_pDvdStatus.DvdDomain = (DVD_DOMAIN)evParam1;
-      CStdString Domain("-");
+      std::string Domain("-");
 
       switch (m_pDvdStatus.DvdDomain)
       {
@@ -545,7 +546,7 @@ HRESULT CDSGraph::HandleGraphEvent()
         m_DvdState.isInMenu = true;
         break;
       case DVD_DOMAIN_Title:
-        Domain.Format("Title %d", m_pDvdStatus.DvdTitleId);
+        Domain = StringUtils::Format("Title %d", m_pDvdStatus.DvdTitleId);
         //left menu
         m_DvdState.isInMenu = false;
         m_pDvdStatus.DvdTitleId = (ULONG)evParam2;
@@ -847,9 +848,9 @@ float CDSGraph::GetCachePercentage()
   return (m_State.cache_offset * 100) - GetPercentage();
 }
 
-CStdString CDSGraph::GetGeneralInfo()
+std::string CDSGraph::GetGeneralInfo()
 {
-  CStdString generalInfo, info;
+  std::string generalInfo, info;
 
   BeginEnumFilters(g_dsGraph->pFilterGraph, pEF, pBF)
   {
@@ -869,9 +870,9 @@ CStdString CDSGraph::GetGeneralInfo()
     return generalInfo;
 }
 
-CStdString CDSGraph::GetAudioInfo()
+std::string CDSGraph::GetAudioInfo()
 {
-  CStdString audioInfo;
+  std::string audioInfo;
   CStreamsManager *c = CStreamsManager::Get();
 
   if (!c)
@@ -880,32 +881,32 @@ CStdString CDSGraph::GetAudioInfo()
   if (!CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_SHOWSPLITTERDETAIL) ||
       CGraphFilters::Get()->UsingMediaPortalTsReader())
   {
-    audioInfo.Format("Audio: (%s, %d Hz, %d Channels) | Renderer: %s",
-      c->GetAudioCodecDisplayName(g_application.m_pPlayer->GetAudioStream()),
+    audioInfo = StringUtils::Format("Audio: (%s, %d Hz, %d Channels) | Renderer: %s",
+      c->GetAudioCodecDisplayName(g_application.m_pPlayer->GetAudioStream()).c_str(),
       c->GetSampleRate(g_application.m_pPlayer->GetAudioStream()),
       c->GetChannels(g_application.m_pPlayer->GetAudioStream()),
-      CGraphFilters::Get()->AudioRenderer.osdname);
+      CGraphFilters::Get()->AudioRenderer.osdname.c_str());
   }
   else
   {
-    CStdString strStreamName;
+    std::string strStreamName;
     c->GetAudioStreamName(g_application.m_pPlayer->GetAudioStream(),strStreamName);
-    audioInfo.Format("Audio: (%s) | Renderer: %s",
-      strStreamName,
-      CGraphFilters::Get()->AudioRenderer.osdname);
+    audioInfo = StringUtils::Format("Audio: (%s) | Renderer: %s",
+      strStreamName.c_str(),
+      CGraphFilters::Get()->AudioRenderer.osdname.c_str());
   }
 
   int iAudioDelay = round(-CStreamsManager::Get()->GetAVDelay() * 1000.0f);
-  audioInfo.Format("%s | Delay: %ims",
-    audioInfo,
+  audioInfo = StringUtils::Format("%s | Delay: %ims",
+    audioInfo.c_str(),
     iAudioDelay);
 
   return audioInfo;
 }
 
-CStdString CDSGraph::GetVideoInfo()
+std::string CDSGraph::GetVideoInfo()
 {
-  CStdString videoInfo = "";
+  std::string videoInfo = "";
   CStreamsManager *c = CStreamsManager::Get();
 
   if (!c)
@@ -914,25 +915,25 @@ CStdString CDSGraph::GetVideoInfo()
   if (!CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_SHOWSPLITTERDETAIL) ||
       CGraphFilters::Get()->UsingMediaPortalTsReader())
   {
-    videoInfo.Format("Video: (%s, %dx%d) | Renderer: %s",
-      c->GetVideoCodecDisplayName(),
+    videoInfo = StringUtils::Format("Video: (%s, %dx%d) | Renderer: %s",
+      c->GetVideoCodecDisplayName().c_str(),
       c->GetPictureWidth(),
       c->GetPictureHeight(),
-      CGraphFilters::Get()->VideoRenderer.osdname);
+      CGraphFilters::Get()->VideoRenderer.osdname.c_str());
   } 
   else
   {
-    CStdString strStreamName;
+    std::string strStreamName;
     c->GetVideoStreamName(strStreamName);
-    videoInfo.Format("Video: (%s) | Renderer: %s", 
-      strStreamName, 
-      CGraphFilters::Get()->VideoRenderer.osdname);
+    videoInfo = StringUtils::Format("Video: (%s) | Renderer: %s",
+      strStreamName.c_str(), 
+      CGraphFilters::Get()->VideoRenderer.osdname.c_str());
   }
 
   if (!m_pStrCurrentFrameRate.empty())
     videoInfo += m_pStrCurrentFrameRate.c_str();
 
-  CStdString strDXVA;
+  std::string strDXVA;
   if (!g_application.m_pPlayer->UsingDS(DIRECTSHOW_RENDERER_MADVR))
     strDXVA = GetDXVADecoderDescription();
 

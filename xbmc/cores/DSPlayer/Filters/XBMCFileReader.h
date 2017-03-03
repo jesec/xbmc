@@ -28,7 +28,6 @@
 #include "filters/asyncrdr.h"
 #include "threads/CriticalSection.h"
 #include "filesystem/File.h"
-#include "utils/StdString.h"
 using namespace XFILE;
 
 [uuid("6DDB4EE7-45A0-4459-A508-BD77B32C91B2")]
@@ -53,14 +52,14 @@ protected:
 	HANDLE            m_hBreakEvent;
   LONG              m_lOsError;
   //file reference 
-  CStdString        m_strCurrentFile;
+  std::string        m_strCurrentFile;
   REFERENCE_TIME*   m_pCurrentPTSOffset;
   ULONGLONG         m_llTotalLength;
   CCritSec  m_csLock;
   __int64           m_llLength;
   CFile             m_pFile;
 public:
-  CXBMCFileStream(CStdString filepath, HRESULT& hr);
+  CXBMCFileStream(std::string filepath, HRESULT& hr);
 
   DECLARE_IUNKNOWN;
 	STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);

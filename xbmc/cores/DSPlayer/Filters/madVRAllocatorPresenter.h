@@ -114,7 +114,7 @@ class CmadVRAllocatorPresenter
 
 public:
 
-  CmadVRAllocatorPresenter(HWND hWnd, HRESULT& hr, CStdString &_Error);
+  CmadVRAllocatorPresenter(HWND hWnd, HRESULT& hr, std::string &_Error);
   virtual ~CmadVRAllocatorPresenter();
 
   static void __stdcall ExclusiveCallback(LPVOID context, int event);

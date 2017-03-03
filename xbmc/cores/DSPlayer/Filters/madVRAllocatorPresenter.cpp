@@ -41,7 +41,7 @@ extern bool g_bExternalSubtitleTime;
 // CmadVRAllocatorPresenter
 //
 
-CmadVRAllocatorPresenter::CmadVRAllocatorPresenter(HWND hWnd, HRESULT& hr, CStdString& _Error)
+CmadVRAllocatorPresenter::CmadVRAllocatorPresenter(HWND hWnd, HRESULT& hr, std::string& _Error)
   : ISubPicAllocatorPresenterImpl(hWnd, hr)
   , m_ScreenSize(0, 0)
   , m_bIsFullscreen(false)
@@ -58,7 +58,7 @@ CmadVRAllocatorPresenter::CmadVRAllocatorPresenter(HWND hWnd, HRESULT& hr, CStdS
   m_frameCount = 0;
   
   if (FAILED(hr)) {
-    _Error += L"ISubPicAllocatorPresenterImpl failed\n";
+    _Error += "%s ISubPicAllocatorPresenterImpl failed\n";
     return;
   }
 
@@ -512,7 +512,7 @@ void CmadVRAllocatorPresenter::SetPixelShader()
 {
   g_dsSettings.pixelShaderList->UpdateActivatedList();
   m_shaderStage = 0;
-  CStdString strStage;
+  std::string strStage;
   PixelShaderVector& psVec = g_dsSettings.pixelShaderList->GetActivatedPixelShaders();
 
   for (PixelShaderVector::iterator it = psVec.begin();
@@ -522,7 +522,7 @@ void CmadVRAllocatorPresenter::SetPixelShader()
     Shader->Load();
     m_shaderStage = Shader->GetStage();
     m_shaderStage == 0 ? strStage = "Pre-Resize" : strStage = "Post-Resize";
-    SetPixelShader(Shader->GetSourceData(), nullptr);
+    SetPixelShader(Shader->GetSourceData().c_str(), nullptr);
     Shader->DeleteSourceData();
 
     CLog::Log(LOGDEBUG, "%s Set PixelShader: %s applied: %s", __FUNCTION__, Shader->GetName().c_str(), strStage.c_str());

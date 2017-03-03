@@ -339,7 +339,7 @@ void CGUIDialogLAVVideo::HideUnused()
   m_allowchange = true;
 }
 
-void CGUIDialogLAVVideo::SetVisible(CStdString id, bool visible)
+void CGUIDialogLAVVideo::SetVisible(std::string id, bool visible)
 {
   CSetting *setting = m_settingsManager->GetSetting(id);
   if (setting->IsEnabled() && visible)

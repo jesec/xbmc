@@ -31,7 +31,6 @@
 #endif
 
 #include "..\Subtitles\libsubs\ISubManager.h"
-#include "utils\StdString.h"
 
 class CPixelShaderList;
 
@@ -164,10 +163,10 @@ public:
 class CDSSettings
 {
 public:
-  CStdString    m_strD3DX9Version;
-  HINSTANCE     m_hD3DX9Dll;
-  int           m_nDXSdkRelease;
-  CStdStringW   D3D9RenderDevice;
+  std::string    m_strD3DX9Version;
+  HINSTANCE      m_hD3DX9Dll;
+  int            m_nDXSdkRelease;
+  std::wstring   D3D9RenderDevice;
 
   CRendererSettings* pRendererSettings;
   std::auto_ptr<CPixelShaderList> pixelShaderList;

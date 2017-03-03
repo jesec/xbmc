@@ -333,7 +333,7 @@ public:
 
 #define MY_USER_ID 0x6ABE51
 
-CVMR9AllocatorPresenter::CVMR9AllocatorPresenter(HWND hWnd, HRESULT& hr, CStdString &_Error)
+CVMR9AllocatorPresenter::CVMR9AllocatorPresenter(HWND hWnd, HRESULT& hr, std::string &_Error)
   : CDX9AllocatorPresenter(hWnd, hr, false, _Error)
   , m_fUseInternalTimer(false)
   , m_rtPrevStart(-1)
@@ -352,7 +352,7 @@ STDMETHODIMP CVMR9AllocatorPresenter::NonDelegatingQueryInterface(REFIID riid, v
     __super::NonDelegatingQueryInterface(riid, ppv);
 }
 
-HRESULT CVMR9AllocatorPresenter::CreateDevice(CStdString &_Error)
+HRESULT CVMR9AllocatorPresenter::CreateDevice(std::string &_Error)
 {
   HRESULT hr = __super::CreateDevice(_Error);
   if (FAILED(hr))
@@ -363,7 +363,7 @@ HRESULT CVMR9AllocatorPresenter::CreateDevice(CStdString &_Error)
     HMONITOR hMonitor = m_pD3D->GetAdapterMonitor(GetAdapter(m_pD3D));
     if (FAILED(hr = m_pIVMRSurfAllocNotify->ChangeD3DDevice(m_pD3DDev, hMonitor)))
     {
-      _Error += L"m_pIVMRSurfAllocNotify->ChangeD3DDevice failed";
+      _Error += "%s m_pIVMRSurfAllocNotify->ChangeD3DDevice failed \n";
     }
   }
 

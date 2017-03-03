@@ -33,13 +33,13 @@
 class CDSArgusTV : public CDSPVRBackend
 {
 public:
-  CDSArgusTV(const CStdString& strBackendBaseAddress, const CStdString& strBackendName);
+  CDSArgusTV(const std::string& strBackendBaseAddress, const std::string& strBackendName);
   virtual ~CDSArgusTV();
-  virtual bool        ConvertStreamURLToTimeShiftFilePath(const CStdString& strUrl, CStdString& strTimeShiftFile);
-  virtual bool        SupportsStreamConversion(const CStdString& strUrl) const { return ((strUrl.Left(7)).Equals("rtsp://", true)); };
+  virtual bool        ConvertStreamURLToTimeShiftFilePath(const std::string& strUrl, std::string& strTimeShiftFile);
+  virtual bool        SupportsStreamConversion(const std::string& strUrl) const { return StringUtils::EqualsNoCase(StringUtils::Left(strUrl, 7), "rtsp://"); };
   virtual bool        SupportsFastChannelSwitch() const { return true; };
 
 private:          
-  bool                SendCommandToArgusTV_GET(const CStdString& strCommand, CVariant &json_response);
-  bool                SendCommandToArgusTV_POST(const CStdString& strCommand, const CStdString& strArguments, CVariant &json_response);
+  bool                SendCommandToArgusTV_GET(const std::string& strCommand, CVariant &json_response);
+  bool                SendCommandToArgusTV_POST(const std::string& strCommand, const std::string& strArguments, CVariant &json_response);
 };

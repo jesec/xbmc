@@ -28,7 +28,6 @@
 
 #include "utils/Variant.h"
 #include "utils/XBMCTinyXML.h"
-#include "utils/StdString.h"
 #include "settings/Settings.h"
 #include "settings/lib/Setting.h"
 #include "settings/lib/SettingsManager.h"
@@ -110,10 +109,6 @@ private:
   std::string NameToId(const std::string &str);
 
   bool GetVariant(TiXmlElement *pElement, const std::string &attr, const std::string &type, CVariant *variant);
-  bool GetInt(TiXmlElement *pElement, const std::string &attr, int *iValue);
-  bool GetFloat(TiXmlElement *pElement, const std::string &attr, float *fValue);
-  bool GetString(TiXmlElement *pElement, const std::string &attr, std::string *sValue);
-  
   std::string GetVersionSuffix(const std::string &path);
 
   int m_iSubSectionId;

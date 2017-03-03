@@ -31,7 +31,6 @@
 #include "FgFilter.h"
 #include "FileItem.h"
 #include "DSUtil/SmartPtr.h"
-#include "Utils/StdString.h"
 
 enum ESettingsType
 {
@@ -47,22 +46,21 @@ public:
 
   HRESULT    LoadConfig(FILTERSMAN_TYPE filterManager = NOFILTERMAN);
   bool	     IsAutoRender(){ return m_bIsAutoRender; };
-  bool       LoadFilterCoreFactorySettings(const CStdString& item, ESettingsType type, bool clear, int iPriority = 0);
+  bool       LoadFilterCoreFactorySettings(const std::string& item, ESettingsType type, bool clear, int iPriority = 0);
 
   HRESULT    LoadFilterRules(const CFileItem& pFileItem);
-  HRESULT    InsertSourceFilter(CFileItem& pFileItem, const CStdString& filterName);
-  HRESULT    InsertSplitter(const CFileItem& pFileItem, const CStdString& filterName);
-  HRESULT    InsertAudioRenderer(const CStdString& filterName);
+  HRESULT    InsertSourceFilter(CFileItem& pFileItem, const std::string& filterName);
+  HRESULT    InsertSplitter(const CFileItem& pFileItem, const std::string& filterName);
+  HRESULT    InsertAudioRenderer(const std::string& filterName);
   HRESULT    InsertVideoRenderer();
-  HRESULT    InsertAutoLoad();
-  HRESULT    InsertFilter(const CStdString& filterName, SFilterInfos& f);
+  HRESULT    InsertFilter(const std::string& filterName, SFilterInfos& f);
 
   static void SettingOptionsDSVideoRendererFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data);
   static void SettingOptionsDSAudioRendererFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data);
   static void SettingOptionsSanearDevicesFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data);
 
 protected:
-  CStdString                m_xbmcConfigFilePath;
+  std::string                m_xbmcConfigFilePath;
   CFGFilterVideoRenderer*   m_pFGF;
   bool					    m_bIsAutoRender;
 

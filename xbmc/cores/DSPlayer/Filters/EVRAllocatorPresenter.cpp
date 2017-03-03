@@ -318,7 +318,7 @@ COuterEVR::~COuterEVR()
 {
 }
 
-CEVRAllocatorPresenter::CEVRAllocatorPresenter(HWND hWnd, HRESULT& hr, CStdString &_Error)
+CEVRAllocatorPresenter::CEVRAllocatorPresenter(HWND hWnd, HRESULT& hr, std::string &_Error)
   : CDX9AllocatorPresenter(hWnd, hr, true, _Error)
   , m_SampleFreeCallback(this, &CEVRAllocatorPresenter::OnSampleFree)
 {
@@ -1054,7 +1054,7 @@ HRESULT CEVRAllocatorPresenter::SetMediaType(IMFMediaType* pType)
 {
   HRESULT        hr;
   AM_MEDIA_TYPE*    pAMMedia = NULL;
-  CStdString        strTemp;
+  std::string        strTemp;
   m_pMediaType = NULL;
   CheckPointer(pType, E_POINTER);
   CheckHR(pType->GetRepresentation(FORMAT_VideoInfo2, (void**)&pAMMedia));
@@ -1063,9 +1063,9 @@ HRESULT CEVRAllocatorPresenter::SetMediaType(IMFMediaType* pType)
   if (SUCCEEDED(hr))
   {
     m_pMediaType = pType;
-    strTemp = GetMediaTypeName(pAMMedia->subtype);
-    strTemp.Replace("MEDIASUBTYPE_", "");
-    m_strStatsMsg[MSG_MIXEROUT].Format("Mixer output : %s", strTemp);
+    g_charsetConverter.wToUTF8(GetMediaTypeName(pAMMedia->subtype), strTemp);
+    StringUtils::Replace(strTemp, "MEDIASUBTYPE_", "");
+    m_strStatsMsg[MSG_MIXEROUT] = StringUtils::Format("Mixer output : %s", strTemp.c_str());
   }
 
   pType->FreeRepresentation(FORMAT_VideoInfo2, (void*)pAMMedia);

@@ -513,7 +513,7 @@ bool CDSPlayer::CloseFile(bool reopen)
 void CDSPlayer::GetVideoStreamInfo(int streamId, SPlayerVideoStreamInfo &info)
 {
   CSingleLock lock(m_StateSection);
-  CStdString strStreamName;
+  std::string strStreamName;
 
   if (CStreamsManager::Get()) CStreamsManager::Get()->GetVideoStreamName(strStreamName);
   info.name = strStreamName;
@@ -535,9 +535,9 @@ void CDSPlayer::GetAudioStreamInfo(int index, SPlayerAudioStreamInfo &info)
 
   CSingleLock lock(m_StateSection);
 
-  CStdString strStreamName;
-  CStdString label;
-  CStdString codecname;
+  std::string strStreamName;
+  std::string label;
+  std::string codecname;
 
   info.bitrate = (CStreamsManager::Get()) ? CStreamsManager::Get()->GetBitsPerSample(index) : 0;
   info.audioCodecName = (CStreamsManager::Get()) ? CStreamsManager::Get()->GetAudioCodecName(index) : "";
@@ -551,7 +551,7 @@ void CDSPlayer::GetAudioStreamInfo(int index, SPlayerAudioStreamInfo &info)
   if (!CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_SHOWSPLITTERDETAIL) ||
       CGraphFilters::Get()->UsingMediaPortalTsReader())
   { 
-    label.Format("%s - (%s, %d Hz, %i Channels)", strStreamName, codecname, info.samplerate, info.channels);
+    label = StringUtils::Format("%s - (%s, %d Hz, %i Channels)", strStreamName.c_str(), codecname.c_str(), info.samplerate, info.channels);
     info.name = label;
   }
   else
@@ -560,7 +560,7 @@ void CDSPlayer::GetAudioStreamInfo(int index, SPlayerAudioStreamInfo &info)
 
 void CDSPlayer::GetSubtitleStreamInfo(int index, SPlayerSubtitleStreamInfo &info)
 {
-  CStdString strStreamName;
+  std::string strStreamName;
  if (CStreamsManager::Get()) CStreamsManager::Get()->GetSubtitleName(index, strStreamName);
   
   info.language = strStreamName;
@@ -1219,19 +1219,19 @@ void CDSPlayer::LoadMadvrSettings(int id)
     CDSPlayerDatabase dspdb;
     if (!dspdb.Open())
       return;
-    CStdString sId;
+    std::string sId;
 
     if (id < MADVR_RES_SD)
     {
       dspdb.GetUserSettings(id, madvrSettings);
-      sId.Format("User settings #%i", id);
+      sId = StringUtils::Format("User settings #%i", id);
     }
     else
     {
       dspdb.GetResSettings(id, madvrSettings);
-      sId.Format("Resolution settings %ip", id);
+      sId = StringUtils::Format("Resolution settings %ip", id);
       if (id == MADVR_RES_SD)
-        sId.Format("Resolution settings SD", id);
+        sId = StringUtils::Format("Resolution settings SD", id);
     }
 
     g_application.m_pPlayer->RestoreSettings();
@@ -1455,10 +1455,10 @@ void CDSPlayer::UpdateProcessInfo(int index)
   if (index == CURRENT_STREAM)
     index = g_application.m_pPlayer->GetAudioStream();
 
-  CStdString info;
+  std::string info;
 
   //Renderers in dsplayer
-  info.Format("%s, %s", CGraphFilters::Get()->VideoRenderer.osdname, CGraphFilters::Get()->AudioRenderer.osdname);
+  info = StringUtils::Format("%s, %s", CGraphFilters::Get()->VideoRenderer.osdname.c_str(), CGraphFilters::Get()->AudioRenderer.osdname.c_str());
   m_processInfo->SetVideoPixelFormat(info);
   //filters in dsplayer
   m_processInfo->SetVideoDeintMethod(g_dsGraph->GetGeneralInfo());
@@ -1466,9 +1466,9 @@ void CDSPlayer::UpdateProcessInfo(int index)
   //AUDIO
 
   //add visible track number
-  info.Format("%i %s", CStreamsManager::Get() ? CStreamsManager::Get()->GetChannels(index) : 0, g_localizeStrings.Get(14301));
+  info = StringUtils::Format("%i %s", CStreamsManager::Get() ? CStreamsManager::Get()->GetChannels(index) : 0, g_localizeStrings.Get(14301).c_str());
   if (GetAudioStreamCount() > 1)
-    info.Format("(%i/%i) %s ", index + 1, GetAudioStreamCount(), info);
+    info = StringUtils::Format("(%i/%i) %s ", index + 1, GetAudioStreamCount(), info.c_str());
   m_processInfo->SetAudioChannels(info);
 
   m_processInfo->SetAudioBitsPerSample(CStreamsManager::Get() ? CStreamsManager::Get()->GetBitsPerSample(index) : 0);
@@ -1494,9 +1494,9 @@ void CDSPlayer::SetAudioCodeDelayInfo(int index)
   if (index == CURRENT_STREAM)
     index = g_application.m_pPlayer->GetAudioStream();
 
-  CStdString info;
+  std::string info;
   int iAudioDelay = CStreamsManager::Get() ? CStreamsManager::Get()->GetLastAVDelay() : 0;
-  info.Format("%s, %ims delay", CStreamsManager::Get() ? CStreamsManager::Get()->GetAudioCodecDisplayName(index) : "", iAudioDelay);
+  info = StringUtils::Format("%s, %ims delay", CStreamsManager::Get() ? CStreamsManager::Get()->GetAudioCodecDisplayName(index).c_str() : "", iAudioDelay);
 
   m_processInfo->SetAudioDecoderName(info);
 
