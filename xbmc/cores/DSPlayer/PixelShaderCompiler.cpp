@@ -98,8 +98,6 @@ HRESULT CPixelShaderCompiler::CompileShader(
 
   if (ppPixelShader)
   {
-    //todo dx11
-    
     if (!CGraphFilters::Get()->GetD3DDevice()) return E_FAIL;
     hr = CGraphFilters::Get()->GetD3DDevice()->CreatePixelShader((DWORD*)pShader->GetBufferPointer(), ppPixelShader);
     

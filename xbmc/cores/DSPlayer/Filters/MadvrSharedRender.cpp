@@ -31,7 +31,6 @@
 CMadvrSharedRender::CMadvrSharedRender()
 {
   g_application.m_pPlayer->Register(this);
-  m_bSkipRender = false;
   m_bWaitKodiRendering = !g_advancedSettings.m_bNotWaitKodiRendering;
 }
 
@@ -87,8 +86,6 @@ void CMadvrSharedRender::BeginRender()
 
 void CMadvrSharedRender::RenderToTexture(DS_RENDER_LAYER layer)
 {
-  if (CheckSkipRender())
-    return;
 
   g_application.m_pPlayer->SetCurrentVideoLayer(layer);
 
@@ -111,15 +108,4 @@ void CMadvrSharedRender::EndRender()
 
   // Unlock madVR rendering
   m_dsWait.Unlock();
-}
-
-bool CMadvrSharedRender::CheckSkipRender()
-{
-  if (m_bSkipRender)
-  {
-    if (g_graphicsContext.IsFullScreenVideo())
-      m_bSkipRender = false;
-  }
-  
-  return m_bSkipRender;
 }

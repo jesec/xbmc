@@ -68,7 +68,6 @@ enum DSPLAYER_STATE
   DSPLAYER_ERROR
 };
 
-
 class CDSInputStreamPVRManager;
 class CDSPlayer;
 class CDSGraphThread : public CThread
@@ -116,7 +115,7 @@ protected:
 class CDSPlayer : public IPlayer, public CThread, public IDispResource, public IRenderDSMsg
 {
 public:
-  //IPlayer
+  // IPlayer
   CDSPlayer(IPlayerCallback& callback);
   virtual ~CDSPlayer();
   virtual bool OpenFile(const CFileItem& file, const CPlayerOptions &options) override;
@@ -170,13 +169,12 @@ public:
   virtual bool OnAction(const CAction &action) override;
   virtual bool HasMenu() const override { return g_dsGraph->IsDvd(); };
   bool IsInMenu() const override { return g_dsGraph->IsInMenu(); };
-
   virtual void GetAudioStreamInfo(int index, SPlayerAudioStreamInfo &info) override;
 
   virtual bool SwitchChannel(const PVR::CPVRChannelPtr &channel) override;
 
+  // RenderManager
   virtual void FrameMove() override;
-
   virtual void Render(bool clear, uint32_t alpha = 255, bool gui = true) override;
   virtual void FlushRenderer() override;
   virtual void SetRenderViewMode(int mode) override;
@@ -215,8 +213,6 @@ public:
   static CFileItem currentFileItem;
   static CGUIDialogBoxBase* errorWindow;
   CPlayerOptions m_PlayerOptions;
-  CEvent m_hDSGraphEvent;
-  HRESULT m_hDSGraph;
 
   CCriticalSection m_StateSection;
   CCriticalSection m_CleanSection;
@@ -232,6 +228,7 @@ public:
   void UpdateApplication();
   void UpdateChannelSwitchSettings();
   void LoadVideoSettings(const CFileItem& file);
+  void SetPosition();
 
   void UpdateProcessInfo(int index = CURRENT_STREAM);
   void SetAudioCodeDelayInfo(int index = CURRENT_STREAM);
@@ -245,28 +242,10 @@ public:
   HINSTANCE m_hInstance; 
   bool m_isMadvr;
 
+  HRESULT m_hDSGraph;
+  CEvent m_hDSGraphEvent;
+
   CProcessInfo *m_processInfo;
-  
-  static void PostGraphMessage(CDSMsg *msg, bool wait = true)
-  {
-    if (!m_threadID)
-    {
-      msg->Release();
-      return;
-    }
-
-    if (wait)
-      msg->Acquire();
-
-    CLog::Log(LOGDEBUG, "%s Message posted : %d on thread 0x%X", __FUNCTION__, msg->GetMessageType(), m_threadID);
-    PostThreadMessage(CDSGraphThread::m_threadID, WM_GRAPHMESSAGE, msg->GetMessageType(), (LPARAM)msg);
-
-    if (wait)
-    {
-      msg->Wait();
-      msg->Release();
-    }
-  }
 
   static void PostMessage(CDSMsg *msg, bool wait = true)
   {
@@ -281,6 +260,27 @@ public:
 
     CLog::Log(LOGDEBUG, "%s Message posted : %d on thread 0x%X", __FUNCTION__, msg->GetMessageType(), m_threadID);
     PostThreadMessage(m_threadID, WM_GRAPHMESSAGE, msg->GetMessageType(), (LPARAM)msg);
+
+    if (wait)
+    {
+      msg->Wait();
+      msg->Release();
+    }
+  }
+
+  static void PostGraphMessage(CDSMsg *msg, bool wait = true)
+  {
+    if (!CDSGraphThread::m_threadID)
+    {
+      msg->Release();
+      return;
+    }
+
+    if (wait)
+      msg->Acquire();
+
+    CLog::Log(LOGDEBUG, "%s Graph Message posted : %d on thread 0x%X", __FUNCTION__, msg->GetMessageType(), CDSGraphThread::m_threadID);
+    PostThreadMessage(CDSGraphThread::m_threadID, WM_GRAPHMESSAGE, msg->GetMessageType(), (LPARAM)msg);
 
     if (wait)
     {
@@ -318,7 +318,6 @@ protected:
   static ThreadIdentifier m_threadID;
   bool m_bEof;
 
-
   bool SelectChannel(bool bNext);
   bool SwitchChannel(unsigned int iChannelNumber);
   void LoadMadvrSettings(int id);
@@ -336,6 +335,9 @@ protected:
   CRenderDSManager m_renderManager;
 
   float m_fps;
+  CRect m_sourceRect;
+  CRect m_videoRect;
+  CRect m_viewRect;
 
   void SetVisibleScreenArea(CRect activeVideoRect);
   int VideoDimsToResolution(int iWidth, int iHeight);
@@ -345,7 +347,7 @@ protected:
   bool UsingDS(DIRECTSHOW_RENDERER renderer = DIRECTSHOW_RENDERER_UNDEF);
   bool ReadyDS(DIRECTSHOW_RENDERER renderer = DIRECTSHOW_RENDERER_UNDEF);
   bool GetRenderOnDS() { return m_renderOnDs; }
-  void SetRenderOnDS(bool b) { m_renderOnDs = b; }
+  void SetRenderOnDS(bool b);
   void SetCurrentVideoLayer(DS_RENDER_LAYER layer) { m_currentVideoLayer = layer; }
   void IncRenderCount();
   void ResetRenderCount();
@@ -359,9 +361,10 @@ protected:
   void EnableExclusive(bool bEnable);
   void SetPixelShader();
   void SetResolution();
+  void SetPosition(CRect sourceRect, CRect videoRect, CRect viewRect);
   bool ParentWindowProc(HWND hWnd, UINT uMsg, WPARAM *wParam, LPARAM *lParam, LRESULT *ret);
   // IDSRendererAllocatorCallback (EVR)
-  void Reset();
+  void Reset(bool bForceWindowed);
   void Register(IDSRendererAllocatorCallback* pAllocatorCallback) { m_pAllocatorCallback = pAllocatorCallback; }
   void Unregister(IDSRendererAllocatorCallback* pAllocatorCallback) { m_pAllocatorCallback = nullptr; }
 

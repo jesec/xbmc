@@ -37,9 +37,11 @@
 #include "settings/DisplaySettings.h"
 #include "settings/MediaSettings.h"
 #include "guilib\GraphicContext.h"
+#include "Application.h"
 
-CWinDsRenderer::CWinDsRenderer():
-  m_bConfigured(false), m_paintCallback(NULL)
+CWinDsRenderer::CWinDsRenderer(): 
+  m_bConfigured(false)
+  , m_oldVideoRect(0, 0, 0, 0)
 {
 }
 
@@ -183,6 +185,13 @@ void CWinDsRenderer::Render(DWORD flags)
     return;*/
 
   CSingleLock lock(g_graphicsContext);
+  if (m_oldVideoRect != m_destRect)
+  {
+    g_application.m_pPlayer->SetPosition(m_sourceRect, m_destRect, m_viewRect);
+    m_oldVideoRect = m_destRect;
+  }
+
+  
 }
 
 bool CWinDsRenderer::Supports(ESCALINGMETHOD method)

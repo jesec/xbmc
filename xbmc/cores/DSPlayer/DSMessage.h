@@ -40,6 +40,7 @@ public:
 
     // General messages
     GENERAL_SET_WINDOW_POS,
+    SET_WINDOW_POS,
 
     // Player messages
     PLAYER_SEEK_TIME,

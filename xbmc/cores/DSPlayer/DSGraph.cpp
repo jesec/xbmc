@@ -74,13 +74,17 @@ using namespace KODI::MESSAGING;
 CDSGraph* g_dsGraph = NULL;
 
 CDSGraph::CDSGraph(IPlayerCallback& callback)
-  : m_pGraphBuilder(NULL),
-  m_iCurrentFrameRefreshCycle(0),
-  m_callback(callback),
-  m_canSeek(-1),
-  m_currentVolume(-1.0f),
-  m_bPerformStop(false)
+  : m_pGraphBuilder(NULL)
+  , m_iCurrentFrameRefreshCycle(0)
+  , m_callback(callback)
+  , m_canSeek(-1)
+  , m_currentVolume(-1.0f)
+  , m_bPerformStop(false)
+  , m_bPerformPause(false)
+
 {
+  m_DvdState.Clear();
+  m_VideoInfo.Clear();
 }
 
 CDSGraph::~CDSGraph()

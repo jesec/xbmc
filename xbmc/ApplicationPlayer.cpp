@@ -926,6 +926,15 @@ void CApplicationPlayer::SetResolution()
   }
 }
 
+void CApplicationPlayer::SetPosition(CRect sourceRect, CRect videoRect, CRect viewRect)
+{
+  std::shared_ptr<IPlayer> player = GetInternal();
+  if (player)
+  {
+    player->SetPosition(sourceRect, videoRect, viewRect);
+  }
+}
+
 bool CApplicationPlayer::ParentWindowProc(HWND hWnd, UINT uMsg, WPARAM *wParam, LPARAM *lParam, LRESULT *ret)
 {
   std::shared_ptr<IPlayer> player = GetInternal();
@@ -938,12 +947,12 @@ bool CApplicationPlayer::ParentWindowProc(HWND hWnd, UINT uMsg, WPARAM *wParam, 
 }
 
 // IDSRendererAllocatorCallback (EVR)
-void CApplicationPlayer::Reset()
+void CApplicationPlayer::Reset(bool bForceWindowed)
 {
   std::shared_ptr<IPlayer> player = GetInternal();
   if (player)
   {
-    player->Reset();
+    player->Reset(bForceWindowed);
   }
 }
 

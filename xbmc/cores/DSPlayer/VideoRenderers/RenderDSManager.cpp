@@ -47,6 +47,7 @@ CRenderDSManager::CRenderDSManager(IRenderDSMsg *player) :
   m_pRenderer(nullptr),
   m_bTriggerUpdateResolution(false),
   m_renderDebug(false),
+  m_bWaitingForRenderOnDS(true),
   m_renderState(STATE_UNCONFIGURED),
   m_displayLatency(0.0),
   m_width(0),
@@ -106,6 +107,7 @@ bool CRenderDSManager::Configure(unsigned int width, unsigned int height, unsign
     m_flags = flags;
     m_renderState = STATE_CONFIGURING;
     m_stateEvent.Reset();
+    m_bWaitingForRenderOnDS = true;
   }
 
   if (!m_stateEvent.WaitMSec(1000))
@@ -207,6 +209,11 @@ void CRenderDSManager::FrameMove()
     {
       CApplicationMessenger::GetInstance().PostMsg(TMSG_SWITCHTOFULLSCREEN);
     }
+  }
+  if (m_renderState == STATE_CONFIGURED && m_bWaitingForRenderOnDS && g_graphicsContext.IsFullScreenVideo())
+  {
+    m_bWaitingForRenderOnDS = false;
+    g_application.m_pPlayer->SetRenderOnDS(true);
   }
 }
 

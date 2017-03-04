@@ -110,6 +110,7 @@ protected:
   };
   ERENDERSTATE m_renderState;
   CEvent m_stateEvent;
+  bool m_bWaitingForRenderOnDS;
 
   double m_displayLatency;
   void UpdateDisplayLatency();
