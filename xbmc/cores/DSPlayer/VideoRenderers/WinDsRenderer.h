@@ -37,7 +37,6 @@
 #define AUTOSOURCE -1
 
 class CBaseTexture;
-class IPaintCallback;
 
 class CWinDsRenderer : public CBaseRenderer
 {
@@ -74,9 +73,9 @@ protected:
   virtual void         Render(DWORD flags);
 
   bool                 m_bConfigured;
-  IPaintCallback*      m_paintCallback;
   DWORD                m_clearColour;
   unsigned int         m_flags;
+  CRect                m_oldVideoRect;
 };
 
 #else

@@ -445,6 +445,7 @@ const std::string CSettings::SETTING_DSPLAYER_LASTTVSHOWSELECT = "videolibrary.l
 const std::string CSettings::SETTING_DSPLAYER_MANAGEMADVRWITHKODI = "dsplayer.madvrsettingswithkodi";
 const std::string CSettings::SETTING_DSPLAYER_DELAYMADVRPLAYBACK = "dsplayer.delaymadvrplayback";
 const std::string CSettings::SETTING_DSPLAYER_EXCLUSIVEMODE = "dsplayer.exclusivemode";
+const std::string CSettings::SETTING_DSPLAYER_EXCLUSIVEMODE_EVR = "dsplayer.exclusivemodeevr";
 const std::string CSettings::SETTING_DSPLAYER_EXITMADVRFULLSCREEN = "dsplayer.exitmadvrfullscreen";
 const std::string CSettings::SETTING_DSPLAYER_D3DPRESNTATION = "dsplayer.d3dpresentation";
 const std::string CSettings::SETTING_DSPLAYER_NUMPRESENTWINDOWED = "dsplayer.numpresentwindowed";
@@ -1211,6 +1212,9 @@ void CSettings::InitializeISettingCallbacks()
 
   settingSet.clear();
   settingSet.insert(CSettings::SETTING_VIDEOSCREEN_FAKEFULLSCREEN);
+#ifdef HAS_DS_PLAYER
+  settingSet.insert(CSettings::SETTING_DSPLAYER_EXCLUSIVEMODE_EVR);
+#endif
   m_settingsManager->RegisterCallback(&g_graphicsContext, settingSet);
 
   settingSet.clear();

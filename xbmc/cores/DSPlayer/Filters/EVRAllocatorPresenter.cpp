@@ -39,6 +39,9 @@
 #include "windowing/WindowingFactory.h"
 #include "utils/log.h"
 #include "utils/DSFileUtils.h"
+#include "DSPlayer.h"
+#include "guilib/IDirtyRegionSolver.h"
+#include "settings/AdvancedSettings.h"
 
 #if (0)    // Set to 1 to activate EVR traces
 #define TRACE_EVR(x)    CLog::Log(0,x)
@@ -582,11 +585,6 @@ STDMETHODIMP CEVRAllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
 
 STDMETHODIMP_(bool) CEVRAllocatorPresenter::Paint(bool fAll)
 {
-  CRect sourceRect, viewRect, videoRect;
-  g_application.m_pPlayer->GetVideoRect(sourceRect, videoRect, viewRect);
-  
-  __super::OnPaint(videoRect);
-
   m_pD3DDev->BeginScene();
   m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET, 0, 1.0f, 0);
   m_pEvrShared->Render(RENDER_LAYER_UNDER);
@@ -1729,12 +1727,12 @@ void CEVRAllocatorPresenter::GetMixerThread()
         m_fps = (float)(10000000.0 / m_rtTimePerFrame);
         if (!g_application.m_pPlayer->IsRenderingVideo())
         {
-
           g_application.m_pPlayer->Configure(m_NativeVideoSize.cx, m_NativeVideoSize.cy, m_AspectRatio.cx, m_AspectRatio.cy, m_fps, CONF_FLAGS_FULLSCREEN);
           CLog::Log(LOGDEBUG, "%s Render manager configured (FPS: %f)", __FUNCTION__, m_fps);
+
+          g_advancedSettings.m_guiAlgorithmDirtyRegions = DIRTYREGION_SOLVER_FILL_VIEWPORT_ALWAYS;
         }
       }
-
     }
     break;
     }

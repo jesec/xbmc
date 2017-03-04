@@ -208,9 +208,10 @@ public:
   void EnableExclusive(bool bEnable);
   void SetPixelShader();
   void SetResolution();
+  void SetPosition(CRect sourceRect, CRect videoRect, CRect viewRect);
   bool ParentWindowProc(HWND hWnd, UINT uMsg, WPARAM *wParam, LPARAM *lParam, LRESULT *ret);
   // IDSRendererAllocatorCallback (EVR)
-  void Reset();
+  void Reset(bool bForceWindowed);
   void Register(IDSRendererAllocatorCallback* pAllocatorCallback);
   void Unregister(IDSRendererAllocatorCallback* pAllocatorCallback);
 

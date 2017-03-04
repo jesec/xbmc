@@ -5,6 +5,7 @@ set(SOURCES AllocatorCommon.cpp
             DX9AllocatorPresenter.cpp
             EVRAllocatorPresenter.cpp
             EvrSharedRender.cpp
+            FocusThread.cpp
             LavSettings.cpp
             madVRAllocatorPresenter.cpp
             MadvrSettings.cpp
@@ -24,6 +25,7 @@ set(HEADERS AllocatorCommon.h
             EVRAllocatorPresenter.h
             EvrSharedRender.h
             ffdshow_constants.h
+            FocusThread.h
             IDirectVobSub.h
             IffDecoder.h
             IffdshowBase.h

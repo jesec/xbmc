@@ -142,8 +142,8 @@ public:
   virtual void EnableExclusive(bool bEnable);
   virtual void SetPixelShader();
   virtual void SetResolution();
+  virtual void SetPosition(CRect sourceRect, CRect videoRect, CRect viewRect);
   virtual bool ParentWindowProc(HWND hWnd, UINT uMsg, WPARAM *wParam, LPARAM *lParam, LRESULT *ret);
-  virtual void SetPosition();
   virtual CRect GetActiveVideoRect() { return m_activeVideoRect; };
 
 private:
@@ -162,7 +162,6 @@ private:
   CMadvrSharedRender *m_pMadvrShared;
   CMadvrSettingsManager *m_pSettingsManager;
   CRect m_activeVideoRect;
-  CRect m_oldVideoRect;
   int m_frameCount;
 };
 

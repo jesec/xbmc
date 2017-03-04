@@ -44,6 +44,7 @@
 #include "utils/DSFileUtils.h"
 #include "guilib/IDirtyRegionSolver.h"
 #include "settings/AdvancedSettings.h"
+#include "FocusThread.h"
 
 #ifndef TRACE
 #define TRACE(x)
@@ -218,18 +219,16 @@ CDX9AllocatorPresenter::CDX9AllocatorPresenter(HWND hWnd, HRESULT& hr, bool bIsE
   , m_bPaintWasCalled(false)
   , m_bNeedCheckSample(true)
   , m_bscShader("contrast_brightness.psh", "ps_2_0")
+  , m_FocusThread(nullptr)
+  , m_hFocusWindow(nullptr)
+  , m_useWindowedDX(true)
+  , m_ForceWindowedDX(false)
 {
-
-
   g_application.m_pPlayer->Register(this);
   m_pEvrShared = DNew CEvrSharedRender();
-  m_firstBoot = true;
   g_Windowing.Register(this);
   m_bIsFullscreen = g_dsSettings.IsD3DFullscreen();
-
-  m_hDeviceWnd = CDSPlayer::m_hWnd;
   m_devType = D3DDEVTYPE_HAL;
-  m_useWindowedDX = true;
   m_nBackBufferWidth = 0;
   m_nBackBufferHeight = 0;
   m_bVSync = false;
@@ -312,8 +311,15 @@ CDX9AllocatorPresenter::CDX9AllocatorPresenter(HWND hWnd, HRESULT& hr, bool bIsE
   m_bSyncStatsAvailable = false;
 }
 
+
 CDX9AllocatorPresenter::~CDX9AllocatorPresenter()
 {
+  if (m_FocusThread)
+  {
+    m_FocusThread->StopThread(false);
+    SAFE_DELETE(m_FocusThread);
+  }
+
   SAFE_DELETE(m_pEvrShared);
   g_Windowing.Unregister(this);
   g_application.m_pPlayer->Unregister(this);
@@ -336,6 +342,7 @@ CDX9AllocatorPresenter::~CDX9AllocatorPresenter()
     FreeLibrary(m_hD3D9);
     m_hD3D9 = NULL;
   }
+
 }
 
 void ModerateFloat(double& Value, double Target, double& ValuePrim, double ChangeSpeed);
@@ -605,13 +612,8 @@ HRESULT CDX9AllocatorPresenter::CreateDevice(CStdString &_Error)
   ZeroMemory(m_TimeChangeHistory, sizeof(m_TimeChangeHistory));
   ZeroMemory(m_ClockChangeHistory, sizeof(m_ClockChangeHistory));
   m_ClockTimeChangeHistoryPos = 0;
-  //todo dx11
-  /*
-  m_pD3DDev = g_Windowing.Get3DDevice();
-  m_pD3D = g_Windowing.Get3DObject();
-  */
 
-  HRESULT hr =InitD3D9(CDSPlayer::m_hWnd);
+  HRESULT hr =InitD3D9();
   m_pEvrShared->CreateTextures(g_Windowing.Get3D11Device(), (IDirect3DDevice9Ex*)m_pD3DDev, m_ScreenSize.cx, m_ScreenSize.cy);
 
   m_pResizerPixelShader[0] = 0;
@@ -744,16 +746,34 @@ void CDX9AllocatorPresenter::SetMonitor(HMONITOR monitor)
   }
 }
 
+void CDX9AllocatorPresenter::Reset(bool bForceWindowed)
+{
+  m_ForceWindowedDX = bForceWindowed;
+  ResetRenderParam();
+}
+
+HRESULT CDX9AllocatorPresenter::ResetRenderParam()
+{
+  BuildPresentParameters();
+
+  HRESULT hr = ((IDirect3DDevice9Ex*)m_pD3DDev)->ResetEx(&m_D3DPP, m_D3DPP.Windowed ? NULL : &m_D3DDMEX);
+
+  return hr;
+}
+
 void CDX9AllocatorPresenter::BuildPresentParameters()
 {
   g_Windowing.GetParamsForDSPlayer(m_useWindowedDX, m_nBackBufferWidth, m_nBackBufferHeight, m_bVSync, m_fRefreshRate, m_interlaced);
 
-  // todo fullscreen exclusive mode
-  m_useWindowedDX = true;
+  if (m_ForceWindowedDX)
+    m_useWindowedDX = true;
 
-  if (m_hDeviceWnd != NULL)
+  //todo evrfullscreen
+  //SetWindowLongPtr(m_hWnd, GWL_STYLE, WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_VISIBLE);
+
+  if (m_hWnd != NULL)
   {
-    HMONITOR hMonitor = MonitorFromWindow(m_hDeviceWnd, MONITOR_DEFAULTTONULL);
+    HMONITOR hMonitor = MonitorFromWindow(m_hWnd, MONITOR_DEFAULTTONULL);
     if (hMonitor)
       SetMonitor(hMonitor);
   }
@@ -766,7 +786,7 @@ void CDX9AllocatorPresenter::BuildPresentParameters()
   else
     m_D3DPP.BackBufferCount = 3;
 
-  m_D3DPP.hDeviceWindow = m_hDeviceWnd;
+  m_D3DPP.hDeviceWindow = m_hWnd;
   m_D3DPP.BackBufferWidth = m_nBackBufferWidth;
   m_D3DPP.BackBufferHeight = m_nBackBufferHeight;
   m_D3DPP.Flags = D3DPRESENTFLAG_VIDEO;
@@ -799,9 +819,15 @@ void CDX9AllocatorPresenter::BuildPresentParameters()
   m_D3DDMEX.RefreshRate = m_D3DPP.FullScreen_RefreshRateInHz;
   m_D3DDMEX.Format = m_D3DPP.BackBufferFormat;
   m_D3DDMEX.ScanLineOrdering = m_interlaced ? D3DSCANLINEORDERING_INTERLACED : D3DSCANLINEORDERING_PROGRESSIVE;
+
+ // todo evrfullscreen
+ /*
+ if (!m_useWindowedDX)
+   SetWindowLongPtr(m_hWnd, GWL_STYLE, WS_POPUP | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_VISIBLE);
+ */
 }
 
-HRESULT CDX9AllocatorPresenter::InitD3D9(HWND hWnd)
+HRESULT CDX9AllocatorPresenter::InitD3D9()
 {
   HRESULT hr;
   Direct3DCreate9Ex(D3D_SDK_VERSION, &m_pD3D);
@@ -816,7 +842,7 @@ HRESULT CDX9AllocatorPresenter::InitD3D9(HWND hWnd)
     m_ScreenSize.SetSize(mi.rcMonitor.right - mi.rcMonitor.left, mi.rcMonitor.bottom - mi.rcMonitor.top);
   }
 
-  if (m_hDeviceWnd == NULL)
+  if (m_hWnd == NULL)
     return false;
 
   CLog::Log(LOGDEBUG, __FUNCTION__" on adapter %d", m_adapter);
@@ -844,11 +870,18 @@ HRESULT CDX9AllocatorPresenter::InitD3D9(HWND hWnd)
     CLog::Log(LOGDEBUG, __FUNCTION__" - using software vertex processing");
   }
 
+  if (CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_EXCLUSIVEMODE_EVR))
+  {
+    m_FocusThread = DNew CFocusThread();
+    m_FocusThread->Create();
+    m_hFocusWindow = m_FocusThread->GetFocusWindow();
+  }
+
   hr = m_pD3D->CreateDeviceEx(
     m_adapter,
     m_devType,
-    NULL,
-    D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_MULTITHREADED,
+    m_hFocusWindow,
+    VertexProcessingFlags | D3DCREATE_MULTITHREADED,
     &m_D3DPP,
     m_D3DPP.Windowed ? NULL : &m_D3DDMEX,
     (IDirect3DDevice9Ex**)&m_pD3DDev);
@@ -890,10 +923,6 @@ HRESULT CDX9AllocatorPresenter::AllocSurfaces(D3DFORMAT Format)
       if (FAILED(hr = m_pVideoTexture[i]->GetSurfaceLevel(0, &m_pVideoSurface[i])))
         return hr;
     }
-
-
-    //todo dx11
-    //g_Windowing.GetBackbufferSize(width, height);    
 
     // Rendering target
     if (FAILED(hr = m_pD3DDev->CreateTexture(m_ScreenSize.cx, m_ScreenSize.cy, 1, D3DUSAGE_RENDERTARGET, Format,
@@ -2616,11 +2645,6 @@ void CDX9AllocatorPresenter::BeforeDeviceReset()
 
 void CDX9AllocatorPresenter::AfterDeviceReset()
 {
-  //todo dx11
-  /*
-  m_pD3DDev = g_Windowing.Get3DDevice();
-  m_pD3D = g_Windowing.Get3DObject();
-  */
   AllocSurfaces();
 
   if (CStreamsManager::Get()->SubtitleManager)
@@ -2654,34 +2678,13 @@ void CDX9AllocatorPresenter::OnResetDevice()
   AfterDeviceReset();
 }
 
-void CDX9AllocatorPresenter::Reset()
-{
-  ResetRenderParam();
-}
 
-HRESULT CDX9AllocatorPresenter::ResetRenderParam()
-{
-  BuildPresentParameters();
-     
-  HRESULT hr = ((IDirect3DDevice9Ex*)m_pD3DDev)->ResetEx(&m_D3DPP, m_D3DPP.Windowed ? NULL : &m_D3DDMEX);
-
-  return hr;
-}
-
-void CDX9AllocatorPresenter::OnPaint(CRect destRect)
-{
-  if (m_firstBoot)
-  {
-    CDSPlayer::SetDsWndVisible(true);
-    g_application.m_pPlayer->SetRenderOnDS(true);
-    g_advancedSettings.m_guiAlgorithmDirtyRegions = DIRTYREGION_SOLVER_FILL_VIEWPORT_ALWAYS;
-    m_firstBoot = false;
-  }
-
-  m_VideoRect.top = (long)destRect.y1;
-  m_VideoRect.bottom = (long)destRect.y2; 
-  m_VideoRect.left = (long)destRect.x1;
-  m_VideoRect.right = (long)destRect.x2;
+void CDX9AllocatorPresenter::SetPosition(CRect sourceRect, CRect videoRect, CRect viewRect)
+{  
+  m_VideoRect.top = (long)videoRect.y1;
+  m_VideoRect.bottom = (long)videoRect.y2;
+  m_VideoRect.left = (long)videoRect.x1;
+  m_VideoRect.right = (long)videoRect.x2;
 
   RENDER_STEREO_MODE stereoMode = g_graphicsContext.GetStereoMode();
   switch (stereoMode)

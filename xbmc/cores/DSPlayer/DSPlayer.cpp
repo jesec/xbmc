@@ -461,11 +461,17 @@ bool CDSPlayer::CloseFile(bool reopen)
 {
   CSingleLock lock(m_CleanSection);
 
-  if (!ReadyDS())
+  if (PlayerState == DSPLAYER_LOADING)
   {
     g_dsGraph->QueueStop();
     return false;
   }
+
+  //todo evrfullscreen
+  /*
+  if (UsingDS(DIRECTSHOW_RENDERER_EVR))
+  PostMessage(new CDSMsgBool(CDSMsg::RESET_DEVICE, true), false);
+  */
 
   // zoom
   if (m_pAllocatorCallback)
@@ -630,6 +636,104 @@ void CDSPlayer::SetSubTitleDelay(float fValue)
     CStreamsManager::Get()->SetSubTitleDelay(fValue);
 }
 
+bool CDSPlayer::InitWindow(HWND &hWnd)
+{
+  m_hInstance = (HINSTANCE)GetModuleHandle(NULL);
+  if (m_hInstance == NULL)
+    CLog::Log(LOGDEBUG, "%s : GetModuleHandle failed with %d", __FUNCTION__, GetLastError());
+
+  RESOLUTION_INFO res = CDisplaySettings::GetInstance().GetCurrentResolutionInfo();
+  int nWidth = res.iWidth;
+  int nHeight = res.iHeight;
+  m_className = "Kodi:DSPlayer";
+
+  // Register the windows class
+  WNDCLASS wndClass;
+
+  wndClass.style = CS_HREDRAW | CS_VREDRAW | CS_NOCLOSE;
+  wndClass.lpfnWndProc = WndProc;
+  wndClass.cbClsExtra = 0;
+  wndClass.cbWndExtra = 0;
+  wndClass.hInstance = m_hInstance;
+  wndClass.hIcon = NULL;
+  wndClass.hCursor = NULL;
+  wndClass.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
+  wndClass.lpszMenuName = NULL;
+  wndClass.lpszClassName = m_className.c_str();
+
+  if (!RegisterClass(&wndClass))
+  {
+    CLog::Log(LOGERROR, "%s : RegisterClass failed with %d", __FUNCTION__, GetLastError());
+    return false;
+  }
+
+  hWnd = CreateWindow(m_className.c_str(), m_className.c_str(),
+    WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
+    0, 0, nWidth, nHeight, 
+    g_hWnd, NULL, m_hInstance, NULL);
+  if (hWnd == NULL)
+  {
+    CLog::Log(LOGERROR, "%s : CreateWindow failed with %d", __FUNCTION__, GetLastError());
+    return false;
+  }
+
+  if (hWnd)
+    SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
+
+  return true;
+}
+
+void CDSPlayer::DeInitWindow()
+{
+  // remove ourself as user data to ensure we're not called anymore
+  SetWindowLongPtr(m_hWnd, GWLP_USERDATA, 0);
+
+  // destroy the hidden window
+  DestroyWindow(m_hWnd);
+
+  // unregister the window class
+  UnregisterClass(m_className.c_str(), m_hInstance);
+
+  // reset the hWnd
+  m_hWnd = NULL;
+}
+
+void CDSPlayer::SetDsWndVisible(bool bVisible)
+{
+  int cmd;
+  bVisible ? cmd = SW_SHOW : cmd = SW_HIDE;
+  ShowWindow(m_hWnd, cmd);
+  UpdateWindow(m_hWnd);
+}
+
+LRESULT CALLBACK CDSPlayer::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+  switch (uMsg)
+  {
+  case WM_MOUSEMOVE:
+  case WM_LBUTTONDOWN:
+  case WM_MBUTTONDOWN:
+  case WM_RBUTTONDOWN:
+  case WM_LBUTTONUP:
+  case WM_MBUTTONUP:
+  case WM_RBUTTONUP:
+  case WM_MOUSEWHEEL:
+  case WM_KEYDOWN:
+  case WM_KEYUP:
+  case WM_SYSKEYUP:
+  case WM_SYSKEYDOWN:
+  case WM_APPCOMMAND:
+  case WM_SETFOCUS:
+    ::PostMessage(g_hWnd, uMsg, wParam, lParam);
+    return(0);
+  case WM_SIZE:
+    SetWindowPos(hWnd, 0, 0, 0, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOZORDER);
+    PostGraphMessage(new CDSMsgBool(CDSMsg::RESET_DEVICE, true), false);
+    return(0);
+  }
+  return DefWindowProc(hWnd, uMsg, wParam, lParam);
+}
+
 //CThread
 void CDSPlayer::OnStartup()
 {
@@ -678,9 +782,6 @@ void CDSPlayer::Process()
 
   m_pGraphThread.SetCurrentRate(1);
   m_pGraphThread.Create();
-
-  CLog::Log(LOGNOTICE, "%s - Successfully creating DS Graph", __FUNCTION__);
-
   UpdateApplication();
 
   g_dsSettings.pRendererSettings->bAllowFullscreen = m_PlayerOptions.fullscreen;
@@ -695,231 +796,147 @@ void CDSPlayer::Process()
     HandleMessages();
 }
 
-void CDSPlayer::DeInitWindow()
-{
-  // remove ourself as user data to ensure we're not called anymore
-  SetWindowLongPtr(m_hWnd, GWLP_USERDATA, 0);
-
-  // destroy the hidden window
-  DestroyWindow(m_hWnd);
-
-  // unregister the window class
-  UnregisterClass(m_className.c_str(), m_hInstance);
-
-  // reset the hWnd
-  m_hWnd = NULL;
-}
-
-bool CDSPlayer::InitWindow(HWND &hWnd)
-{
-  m_hInstance = (HINSTANCE)GetModuleHandle(NULL);
-  if (m_hInstance == NULL)
-    CLog::Log(LOGDEBUG, "%s : GetModuleHandle failed with %d", __FUNCTION__, GetLastError());
-
-  RESOLUTION_INFO res = CDisplaySettings::GetInstance().GetCurrentResolutionInfo();
-  int nWidth = res.iWidth;
-  int nHeight = res.iHeight;
-  m_className = "Kodi:DSPlayer";
-
-  // Register the windows class
-  WNDCLASS wndClass;
-
-  wndClass.style = CS_HREDRAW | CS_VREDRAW | CS_NOCLOSE;
-  wndClass.lpfnWndProc = CDSPlayer::WndProc;
-  wndClass.cbClsExtra = 0;
-  wndClass.cbWndExtra = 0;
-  wndClass.hInstance = m_hInstance;
-  wndClass.hIcon = NULL;
-  wndClass.hCursor = NULL;
-  wndClass.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
-  wndClass.lpszMenuName = NULL;
-  wndClass.lpszClassName = m_className.c_str();
-
-  if (!RegisterClass(&wndClass))
-  {
-    CLog::Log(LOGERROR, "%s : RegisterClass failed with %d", __FUNCTION__, GetLastError());
-    return false;
-  }
-
-  hWnd = CreateWindow(m_className.c_str(), m_className.c_str(),
-    WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
-    0, 0, nWidth, nHeight, 
-    g_hWnd, NULL, m_hInstance, NULL);
-  if (hWnd == NULL)
-  {
-    CLog::Log(LOGERROR, "%s : CreateWindow failed with %d", __FUNCTION__, GetLastError());
-    return false;
-  }
-
-  if (hWnd)
-    SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
-
-  return true;
-}
-
-void CDSPlayer::SetDsWndVisible(bool bVisible)
-{
-  int cmd;
-  bVisible ? cmd = SW_SHOW : cmd = SW_HIDE;
-  ShowWindow(m_hWnd, cmd);
-  UpdateWindow(m_hWnd);
-}
-
-LRESULT CALLBACK CDSPlayer::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-  switch (uMsg)
-  {
-  case WM_MOUSEMOVE:
-  case WM_LBUTTONDOWN:
-  case WM_MBUTTONDOWN:
-  case WM_RBUTTONDOWN:
-  case WM_LBUTTONUP:
-  case WM_MBUTTONUP:
-  case WM_RBUTTONUP:
-  case WM_MOUSEWHEEL:
-    ::PostMessage(g_hWnd, uMsg, wParam, lParam);
-    return(0);
-  case WM_SIZE:
-    SetWindowPos(hWnd, 0, 0, 0, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOZORDER);
-    PostGraphMessage(new CDSMsg(CDSMsg::RESET_DEVICE), false);
-    return(0);
-  }
-  return DefWindowProc(hWnd, uMsg, wParam, lParam);
-}
-
 void CDSPlayer::HandleMessages()
 {
   MSG msg;
-  while (GetMessage(&msg, (HWND)-1, 0, 0) != 0 && msg.message == WM_GRAPHMESSAGE)
+  while (GetMessage(&msg, NULL, 0, 0) != 0)
   {
-    CDSMsg* pMsg = reinterpret_cast<CDSMsg *>(msg.lParam);
-    CLog::Log(LOGDEBUG, "%s Message received : %d on thread 0x%X", __FUNCTION__, pMsg->GetMessageType(), m_threadID);
-
-    if (CDSPlayer::PlayerState == DSPLAYER_CLOSED || CDSPlayer::PlayerState == DSPLAYER_LOADING)
+    if (msg.message == WM_GRAPHMESSAGE)
     {
+      CDSMsg* pMsg = reinterpret_cast<CDSMsg *>(msg.lParam);
+      CLog::Log(LOGDEBUG, "%s Message received : %d on thread 0x%X", __FUNCTION__, pMsg->GetMessageType(), m_threadID);
+
+      if (CDSPlayer::PlayerState == DSPLAYER_CLOSED || CDSPlayer::PlayerState == DSPLAYER_LOADING)
+      {
+        pMsg->Set();
+        pMsg->Release();
+        break;
+      }
+      if (pMsg->IsType(CDSMsg::GENERAL_SET_WINDOW_POS))
+      {
+        g_dsGraph->UpdateWindowPosition();
+      }
+      if (pMsg->IsType(CDSMsg::SET_WINDOW_POS))
+      {
+        SetPosition();
+      }
+      else if (pMsg->IsType(CDSMsg::PLAYER_SEEK_TIME))
+      {
+        CDSMsgPlayerSeekTime* speMsg = reinterpret_cast<CDSMsgPlayerSeekTime *>(pMsg);
+        g_dsGraph->Seek(speMsg->GetTime(), speMsg->GetFlags(), speMsg->ShowPopup());
+      }
+      else if (pMsg->IsType(CDSMsg::PLAYER_SEEK))
+      {
+        CDSMsgPlayerSeek* speMsg = reinterpret_cast<CDSMsgPlayerSeek*>(pMsg);
+        g_dsGraph->Seek(speMsg->Forward(), speMsg->LargeStep());
+      }
+      else if (pMsg->IsType(CDSMsg::PLAYER_SEEK_PERCENT))
+      {
+        CDSMsgDouble * speMsg = reinterpret_cast<CDSMsgDouble *>(pMsg);
+        g_dsGraph->SeekPercentage((float)speMsg->m_value);
+      }
+      else if (pMsg->IsType(CDSMsg::PLAYER_PAUSE))
+      {
+        g_dsGraph->Pause();
+      }
+      else if (pMsg->IsType(CDSMsg::PLAYER_STOP))
+      {
+        CDSMsgBool* speMsg = reinterpret_cast<CDSMsgBool *>(pMsg);
+        g_dsGraph->Stop(speMsg->m_value);
+      }
+      else if (pMsg->IsType(CDSMsg::PLAYER_PLAY))
+      {
+        CDSMsgBool* speMsg = reinterpret_cast<CDSMsgBool *>(pMsg);
+        g_dsGraph->Play(speMsg->m_value);
+      }
+      else if (pMsg->IsType(CDSMsg::PLAYER_UPDATE_TIME))
+      {
+        g_dsGraph->UpdateTime();
+      }
+
+      /*DVD COMMANDS*/
+      if (pMsg->IsType(CDSMsg::PLAYER_DVD_MOUSE_MOVE))
+      {
+        CDSMsgInt* speMsg = reinterpret_cast<CDSMsgInt *>(pMsg);
+        //TODO make the xbmc gui stay hidden when moving mouse over menu
+        POINT pt;
+        pt.x = GET_X_LPARAM(speMsg->m_value);
+        pt.y = GET_Y_LPARAM(speMsg->m_value);
+        ULONG pButtonIndex;
+        /**** Didnt found really where VideoPlayer are doing it exactly so here it is *****/
+        XBMC_Event newEvent;
+        newEvent.type = XBMC_MOUSEMOTION;
+        newEvent.motion.x = (uint16_t)pt.x;
+        newEvent.motion.y = (uint16_t)pt.y;
+        g_application.OnEvent(newEvent);
+        /*CGUIMessage pMsg(GUI_MSG_VIDEO_MENU_STARTED, 0, 0);
+        g_windowManager.SendMessage(pMsg);*/
+        /**** End of ugly hack ***/
+        if (SUCCEEDED(CGraphFilters::Get()->DVD.dvdInfo->GetButtonAtPosition(pt, &pButtonIndex)))
+          CGraphFilters::Get()->DVD.dvdControl->SelectButton(pButtonIndex);
+      }
+      else if (pMsg->IsType(CDSMsg::PLAYER_DVD_MOUSE_CLICK))
+      {
+        CDSMsgInt* speMsg = reinterpret_cast<CDSMsgInt *>(pMsg);
+        POINT pt;
+        pt.x = GET_X_LPARAM(speMsg->m_value);
+        pt.y = GET_Y_LPARAM(speMsg->m_value);
+        ULONG pButtonIndex;
+        if (SUCCEEDED(CGraphFilters::Get()->DVD.dvdInfo->GetButtonAtPosition(pt, &pButtonIndex)))
+          CGraphFilters::Get()->DVD.dvdControl->SelectAndActivateButton(pButtonIndex);
+      }
+      else if (pMsg->IsType(CDSMsg::PLAYER_DVD_NAV_UP))
+      {
+        CGraphFilters::Get()->DVD.dvdControl->SelectRelativeButton(DVD_Relative_Upper);
+      }
+      else if (pMsg->IsType(CDSMsg::PLAYER_DVD_NAV_DOWN))
+      {
+        CGraphFilters::Get()->DVD.dvdControl->SelectRelativeButton(DVD_Relative_Lower);
+      }
+      else if (pMsg->IsType(CDSMsg::PLAYER_DVD_NAV_LEFT))
+      {
+        CGraphFilters::Get()->DVD.dvdControl->SelectRelativeButton(DVD_Relative_Left);
+      }
+      else if (pMsg->IsType(CDSMsg::PLAYER_DVD_NAV_RIGHT))
+      {
+        CGraphFilters::Get()->DVD.dvdControl->SelectRelativeButton(DVD_Relative_Right);
+      }
+      else if (pMsg->IsType(CDSMsg::PLAYER_DVD_MENU_ROOT))
+      {
+        CGUIMessage _msg(GUI_MSG_VIDEO_MENU_STARTED, 0, 0);
+        g_windowManager.SendMessage(_msg);
+        CGraphFilters::Get()->DVD.dvdControl->ShowMenu(DVD_MENU_Root, DVD_CMD_FLAG_Block | DVD_CMD_FLAG_Flush, NULL);
+      }
+      else if (pMsg->IsType(CDSMsg::PLAYER_DVD_MENU_EXIT))
+      {
+        CGraphFilters::Get()->DVD.dvdControl->Resume(DVD_CMD_FLAG_Block | DVD_CMD_FLAG_Flush, NULL);
+      }
+      else if (pMsg->IsType(CDSMsg::PLAYER_DVD_MENU_BACK))
+      {
+        CGraphFilters::Get()->DVD.dvdControl->ReturnFromSubmenu(DVD_CMD_FLAG_Block | DVD_CMD_FLAG_Flush, NULL);
+      }
+      else if (pMsg->IsType(CDSMsg::PLAYER_DVD_MENU_SELECT))
+      {
+        CGraphFilters::Get()->DVD.dvdControl->ActivateButton();
+      }
+      else if (pMsg->IsType(CDSMsg::PLAYER_DVD_MENU_TITLE))
+      {
+        CGraphFilters::Get()->DVD.dvdControl->ShowMenu(DVD_MENU_Title, DVD_CMD_FLAG_Block | DVD_CMD_FLAG_Flush, NULL);
+      }
+      else if (pMsg->IsType(CDSMsg::PLAYER_DVD_MENU_SUBTITLE))
+      {
+      }
+      else if (pMsg->IsType(CDSMsg::PLAYER_DVD_MENU_AUDIO))
+      {
+      }
+      else if (pMsg->IsType(CDSMsg::PLAYER_DVD_MENU_ANGLE))
+      {
+      }
       pMsg->Set();
       pMsg->Release();
-      break;
     }
-
-    if (pMsg->IsType(CDSMsg::GENERAL_SET_WINDOW_POS))
-    {
-      g_dsGraph->UpdateWindowPosition();
-    }
-    else if (pMsg->IsType(CDSMsg::PLAYER_SEEK_TIME))
-    {
-      CDSMsgPlayerSeekTime* speMsg = reinterpret_cast<CDSMsgPlayerSeekTime *>(pMsg);
-      g_dsGraph->Seek(speMsg->GetTime(), speMsg->GetFlags(), speMsg->ShowPopup());
-    }
-    else if (pMsg->IsType(CDSMsg::PLAYER_SEEK))
-    {
-      CDSMsgPlayerSeek* speMsg = reinterpret_cast<CDSMsgPlayerSeek*>(pMsg);
-      g_dsGraph->Seek(speMsg->Forward(), speMsg->LargeStep());
-    }
-    else if (pMsg->IsType(CDSMsg::PLAYER_SEEK_PERCENT))
-    {
-      CDSMsgDouble * speMsg = reinterpret_cast<CDSMsgDouble *>(pMsg);
-      g_dsGraph->SeekPercentage((float)speMsg->m_value);
-    }
-    else if (pMsg->IsType(CDSMsg::PLAYER_PAUSE))
-    {
-      g_dsGraph->Pause();
-    }
-    else if (pMsg->IsType(CDSMsg::PLAYER_STOP))
-    {
-      CDSMsgBool* speMsg = reinterpret_cast<CDSMsgBool *>(pMsg);
-      g_dsGraph->Stop(speMsg->m_value);
-    }
-    else if (pMsg->IsType(CDSMsg::PLAYER_PLAY))
-    {
-      CDSMsgBool* speMsg = reinterpret_cast<CDSMsgBool *>(pMsg);
-      g_dsGraph->Play(speMsg->m_value);
-    }
-    else if (pMsg->IsType(CDSMsg::PLAYER_UPDATE_TIME))
-    {
-      g_dsGraph->UpdateTime();
-    }
-
-    /*DVD COMMANDS*/
-    if (pMsg->IsType(CDSMsg::PLAYER_DVD_MOUSE_MOVE))
-    {
-      CDSMsgInt* speMsg = reinterpret_cast<CDSMsgInt *>(pMsg);
-      //TODO make the xbmc gui stay hidden when moving mouse over menu
-      POINT pt;
-      pt.x = GET_X_LPARAM(speMsg->m_value);
-      pt.y = GET_Y_LPARAM(speMsg->m_value);
-      ULONG pButtonIndex;
-      /**** Didnt found really where VideoPlayer are doing it exactly so here it is *****/
-      XBMC_Event newEvent;
-      newEvent.type = XBMC_MOUSEMOTION;
-      newEvent.motion.x = (uint16_t)pt.x;
-      newEvent.motion.y = (uint16_t)pt.y;
-      g_application.OnEvent(newEvent);
-      /*CGUIMessage pMsg(GUI_MSG_VIDEO_MENU_STARTED, 0, 0);
-      g_windowManager.SendMessage(pMsg);*/
-      /**** End of ugly hack ***/
-      if (SUCCEEDED(CGraphFilters::Get()->DVD.dvdInfo->GetButtonAtPosition(pt, &pButtonIndex)))
-        CGraphFilters::Get()->DVD.dvdControl->SelectButton(pButtonIndex);
-    }
-    else if (pMsg->IsType(CDSMsg::PLAYER_DVD_MOUSE_CLICK))
-    {
-      CDSMsgInt* speMsg = reinterpret_cast<CDSMsgInt *>(pMsg);
-      POINT pt;
-      pt.x = GET_X_LPARAM(speMsg->m_value);
-      pt.y = GET_Y_LPARAM(speMsg->m_value);
-      ULONG pButtonIndex;
-      if (SUCCEEDED(CGraphFilters::Get()->DVD.dvdInfo->GetButtonAtPosition(pt, &pButtonIndex)))
-        CGraphFilters::Get()->DVD.dvdControl->SelectAndActivateButton(pButtonIndex);
-    }
-    else if (pMsg->IsType(CDSMsg::PLAYER_DVD_NAV_UP))
-    {
-      CGraphFilters::Get()->DVD.dvdControl->SelectRelativeButton(DVD_Relative_Upper);
-    }
-    else if (pMsg->IsType(CDSMsg::PLAYER_DVD_NAV_DOWN))
-    {
-      CGraphFilters::Get()->DVD.dvdControl->SelectRelativeButton(DVD_Relative_Lower);
-    }
-    else if (pMsg->IsType(CDSMsg::PLAYER_DVD_NAV_LEFT))
-    {
-      CGraphFilters::Get()->DVD.dvdControl->SelectRelativeButton(DVD_Relative_Left);
-    }
-    else if (pMsg->IsType(CDSMsg::PLAYER_DVD_NAV_RIGHT))
-    {
-      CGraphFilters::Get()->DVD.dvdControl->SelectRelativeButton(DVD_Relative_Right);
-    }
-    else if (pMsg->IsType(CDSMsg::PLAYER_DVD_MENU_ROOT))
-    {
-      CGUIMessage _msg(GUI_MSG_VIDEO_MENU_STARTED, 0, 0);
-      g_windowManager.SendMessage(_msg);
-      CGraphFilters::Get()->DVD.dvdControl->ShowMenu(DVD_MENU_Root, DVD_CMD_FLAG_Block | DVD_CMD_FLAG_Flush, NULL);
-    }
-    else if (pMsg->IsType(CDSMsg::PLAYER_DVD_MENU_EXIT))
-    {
-      CGraphFilters::Get()->DVD.dvdControl->Resume(DVD_CMD_FLAG_Block | DVD_CMD_FLAG_Flush, NULL);
-    }
-    else if (pMsg->IsType(CDSMsg::PLAYER_DVD_MENU_BACK))
-    {
-      CGraphFilters::Get()->DVD.dvdControl->ReturnFromSubmenu(DVD_CMD_FLAG_Block | DVD_CMD_FLAG_Flush, NULL);
-    }
-    else if (pMsg->IsType(CDSMsg::PLAYER_DVD_MENU_SELECT))
-    {
-      CGraphFilters::Get()->DVD.dvdControl->ActivateButton();
-    }
-    else if (pMsg->IsType(CDSMsg::PLAYER_DVD_MENU_TITLE))
-    {
-      CGraphFilters::Get()->DVD.dvdControl->ShowMenu(DVD_MENU_Title, DVD_CMD_FLAG_Block | DVD_CMD_FLAG_Flush, NULL);
-    }
-    else if (pMsg->IsType(CDSMsg::PLAYER_DVD_MENU_SUBTITLE))
-    {
-    }
-    else if (pMsg->IsType(CDSMsg::PLAYER_DVD_MENU_AUDIO))
-    {
-    }
-    else if (pMsg->IsType(CDSMsg::PLAYER_DVD_MENU_ANGLE))
-    {
-    }
-    pMsg->Set();
-    pMsg->Release();
+    TranslateMessage(&msg);
+    DispatchMessage(&msg);
   }
 }
 
@@ -930,7 +947,7 @@ void CDSPlayer::Stop()
 
 void CDSPlayer::Pause()
 {
-  if (!ReadyDS())
+  if (PlayerState == DSPLAYER_LOADING)
   {
     g_dsGraph->QueuePause();
     return;
@@ -938,7 +955,7 @@ void CDSPlayer::Pause()
 
   g_dsGraph->UpdateState();
 
-  if (PlayerState == DSPLAYER_LOADING || PlayerState == DSPLAYER_LOADED)
+  if (PlayerState == DSPLAYER_LOADING || PlayerState == DSPLAYER_LOADED || PlayerState == DSPLAYER_CLOSING)
     return;
 
   m_pGraphThread.SetSpeedChanged(true);
@@ -1486,159 +1503,6 @@ void CDSPlayer::SetAudioCodeDelayInfo(int index)
   CServiceBroker::GetDataCacheCore().SignalAudioInfoChange();
 }
 
-void CDSGraphThread::Process()
-{
-  START_PERFORMANCE_COUNTER
-    m_pPlayer->m_hDSGraph = g_dsGraph->SetFile(m_pPlayer->currentFileItem, m_pPlayer->m_PlayerOptions);
-  END_PERFORMANCE_COUNTER("Loading file");
-  m_pPlayer->m_hDSGraphEvent.Set();
-
-  while (!m_bStop && CDSPlayer::PlayerState != DSPLAYER_CLOSED && CDSPlayer::PlayerState != DSPLAYER_LOADING)
-    HandleMessages();
-}
-
-void CDSGraphThread::HandleMessages()
-{
-  MSG msg;
-  while (GetMessage(&msg, NULL, 0, 0) != 0)
-  {
-    if (msg.message == WM_GRAPHMESSAGE)
-    {
-      CDSMsg* pMsg = reinterpret_cast<CDSMsg *>(msg.lParam);
-
-      if (CDSPlayer::PlayerState == DSPLAYER_CLOSED || CDSPlayer::PlayerState == DSPLAYER_LOADING)
-      {
-        pMsg->Set();
-        pMsg->Release();
-        break;
-      }
-
-      if (pMsg->IsType(CDSMsg::RESET_DEVICE))
-      {
-        g_application.m_pPlayer->Reset();
-      }
-      pMsg->Set();
-      pMsg->Release();
-      break;
-    }
-
-    TranslateMessage(&msg);
-    DispatchMessage(&msg);
-  }
-}
-
-CDSGraphThread::CDSGraphThread(CDSPlayer * pPlayer)
-  : m_pPlayer(pPlayer), CThread("CDSGraphThread thread")
-{
-  CoInitializeEx(NULL, COINIT_MULTITHREADED);
-}
-
-//CThread
-void CDSGraphThread::OnStartup()
-{
-  m_threadID = CThread::GetCurrentThreadId();
-}
-
-void CDSGraphThread::OnExit()
-{
-  // In case of, set the ready event
-  // Prevent a dead loop
-  m_pPlayer->m_hDSGraphEvent.Set();
-  m_bStop = true;
-  m_threadID = 0;
-  CoUninitialize();
-  CLog::Log(LOGNOTICE, "thread end: CDSGraphThread::OnExit()");
-}
-
-CGraphManagementThread::CGraphManagementThread(CDSPlayer * pPlayer)
-  : m_pPlayer(pPlayer), m_bSpeedChanged(false), CThread("CGraphManagementThread thread")
-{
-}
-
-void CGraphManagementThread::OnStartup()
-{
-}
-
-void CGraphManagementThread::Process()
-{
-
-  while (!this->m_bStop)
-  {
-
-    if (CDSPlayer::PlayerState == DSPLAYER_CLOSED)
-      break;
-    if (m_bSpeedChanged)
-    {
-      m_pPlayer->GetClock().SetSpeed(m_currentRate * 1000);
-      m_clockStart = m_pPlayer->GetClock().GetClock();
-      m_bSpeedChanged = false;
-
-      if (m_currentRate == 1)
-        g_dsGraph->Play();
-
-    }
-    if (CDSPlayer::PlayerState == DSPLAYER_CLOSED)
-      break;
-    // Handle Rewind or Fast Forward
-    if (m_currentRate != 1)
-    {
-      if (g_dsGraph->SetSpeed(m_currentRate))
-      {
-        if (g_dsGraph->GetTime() >= g_dsGraph->GetTotalTime()
-          || g_dsGraph->GetTotalTime() <= 0)
-        {
-          m_currentRate = 1;
-          m_pPlayer->GetPlayerCallback().OnPlayBackSpeedChanged(1);
-          m_bSpeedChanged = true;
-        }
-      }
-      else
-      {
-        double clock = m_pPlayer->GetClock().GetClock() - m_clockStart; // Time elapsed since the rate change
-                                                                        // Only seek if elapsed time is greater than 250 ms
-        if (abs(DS_TIME_TO_MSEC(clock)) >= 250)
-        {
-          //CLog::Log(LOGDEBUG, "Seeking time : %f", DS_TIME_TO_MSEC(clock));
-
-          // New position
-          uint64_t newPos = g_dsGraph->GetTime() + (uint64_t)clock;
-          //CLog::Log(LOGDEBUG, "New position : %f", DS_TIME_TO_SEC(newPos));
-
-          // Check boundaries
-          if (newPos <= 0)
-          {
-            newPos = 0;
-            m_currentRate = 1;
-            m_pPlayer->GetPlayerCallback().OnPlayBackSpeedChanged(1);
-            m_bSpeedChanged = true;
-          }
-          else if (newPos >= g_dsGraph->GetTotalTime())
-          {
-            CApplicationMessenger::GetInstance().SendMsg(TMSG_MEDIA_STOP);
-            break;
-          }
-
-          g_dsGraph->Seek(newPos);
-
-          m_clockStart = m_pPlayer->GetClock().GetClock();
-        }
-      }
-    }
-    if (CDSPlayer::PlayerState == DSPLAYER_CLOSED)
-      break;
-
-    // Handle rare graph event
-    g_dsGraph->HandleGraphEvent();
-
-    // Update displayed time
-    g_dsGraph->UpdateTime();
-
-    Sleep(250);
-    if (CDSPlayer::PlayerState == DSPLAYER_CLOSED)
-      break;
-  }
-}
-
 void CDSPlayer::IncRenderCount()
 {
   if (!ReadyDS())
@@ -1729,6 +1593,14 @@ bool CDSPlayer::ReadyDS(DIRECTSHOW_RENDERER renderer)
   return (m_pAllocatorCallback != NULL && m_renderOnDs && m_CurrentRenderer == renderer);
 }
 
+void CDSPlayer::SetRenderOnDS(bool b)
+{
+  if (b)
+    CDSPlayer::SetDsWndVisible(b);
+
+  m_renderOnDs = b;
+}
+
 void CDSPlayer::SetVisibleScreenArea(CRect activeVideoRect)
 {
   if (CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_OSDINTOACTIVEAREA)
@@ -1780,6 +1652,27 @@ void CDSPlayer::SetResolution()
     m_pAllocatorCallback->SetResolution();
 }
 
+void CDSPlayer::SetPosition(CRect sourceRect, CRect videoRect, CRect viewRect)
+{
+  m_sourceRect = sourceRect;
+  m_videoRect = videoRect;
+  m_viewRect = viewRect;
+
+  if (!CDSPlayer::IsCurrentThread())
+  {
+    CDSPlayer::PostMessage(new CDSMsg(CDSMsg::SET_WINDOW_POS), false);
+    return;
+  }
+  else
+    SetPosition();
+}
+
+void CDSPlayer::SetPosition()
+{
+  if (UsingDS())
+    m_pAllocatorCallback->SetPosition(m_sourceRect, m_videoRect, m_viewRect);
+}
+
 bool CDSPlayer::ParentWindowProc(HWND hWnd, UINT uMsg, WPARAM *wParam, LPARAM *lParam, LRESULT *ret)
 {
   if (UsingDS(DIRECTSHOW_RENDERER_MADVR))
@@ -1788,10 +1681,10 @@ bool CDSPlayer::ParentWindowProc(HWND hWnd, UINT uMsg, WPARAM *wParam, LPARAM *l
   return false;
 }
 
-void CDSPlayer::Reset()
+void CDSPlayer::Reset(bool bForceWindowed)
 {
   if (UsingDS(DIRECTSHOW_RENDERER_EVR))
-    m_pAllocatorCallback->Reset();
+    m_pAllocatorCallback->Reset(bForceWindowed);
 }
 
 // IDSRendererPaintCallback
@@ -1847,6 +1740,157 @@ void CDSPlayer::ListSettings(const std::string &path)
 {
   if (m_pSettingCallback)
     m_pSettingCallback->ListSettings(path);
+}
+
+CDSGraphThread::CDSGraphThread(CDSPlayer * pPlayer)
+  : m_pPlayer(pPlayer), CThread("CDSGraphThread thread")
+{
+  CoInitializeEx(NULL, COINIT_MULTITHREADED);
+}
+
+void CDSGraphThread::OnStartup()
+{
+  m_threadID = CThread::GetCurrentThreadId();
+}
+
+void CDSGraphThread::Process()
+{
+  START_PERFORMANCE_COUNTER
+    m_pPlayer->m_hDSGraph = g_dsGraph->SetFile(m_pPlayer->currentFileItem, m_pPlayer->m_PlayerOptions);
+  END_PERFORMANCE_COUNTER("Loading file");
+  m_pPlayer->m_hDSGraphEvent.Set();
+
+  while (!m_bStop && CDSPlayer::PlayerState != DSPLAYER_CLOSED && CDSPlayer::PlayerState != DSPLAYER_LOADING)
+    HandleMessages();
+}
+
+void CDSGraphThread::HandleMessages()
+{
+  MSG msg;
+  while (GetMessage(&msg, NULL, 0, 0) != 0)
+  {
+    if (msg.message == WM_GRAPHMESSAGE)
+    {
+      CDSMsg* pMsg = reinterpret_cast<CDSMsg *>(msg.lParam);
+
+      if (CDSPlayer::PlayerState == DSPLAYER_CLOSED || CDSPlayer::PlayerState == DSPLAYER_LOADING)
+      {
+        pMsg->Set();
+        pMsg->Release();
+        break;
+      }
+      if (pMsg->IsType(CDSMsg::RESET_DEVICE))
+      {
+        CDSMsgBool* speMsg = reinterpret_cast<CDSMsgBool *>(pMsg);
+        g_application.m_pPlayer->Reset(speMsg->m_value);
+      }
+      pMsg->Set();
+      pMsg->Release();
+      break;
+    }
+
+    TranslateMessage(&msg);
+    DispatchMessage(&msg);
+  }
+}
+
+void CDSGraphThread::OnExit()
+{
+  // In case of, set the ready event
+  // Prevent a dead loop
+  m_pPlayer->m_hDSGraphEvent.Set();
+  m_bStop = true;
+  m_threadID = 0;
+  CoUninitialize();
+  CLog::Log(LOGNOTICE, "thread end: CDSGraphThread::OnExit()");
+}
+
+CGraphManagementThread::CGraphManagementThread(CDSPlayer * pPlayer)
+  : m_pPlayer(pPlayer), m_bSpeedChanged(false), CThread("CGraphManagementThread thread")
+{
+}
+
+void CGraphManagementThread::OnStartup()
+{
+}
+
+void CGraphManagementThread::Process()
+{
+  while (!this->m_bStop)
+  {
+
+    if (CDSPlayer::PlayerState == DSPLAYER_CLOSED)
+      break;
+    if (m_bSpeedChanged)
+    {
+      m_pPlayer->GetClock().SetSpeed(m_currentRate * 1000);
+      m_clockStart = m_pPlayer->GetClock().GetClock();
+      m_bSpeedChanged = false;
+
+      if (m_currentRate == 1)
+        g_dsGraph->Play();
+
+    }
+    if (CDSPlayer::PlayerState == DSPLAYER_CLOSED)
+      break;
+    // Handle Rewind or Fast Forward
+    if (m_currentRate != 1)
+    {
+      if (g_dsGraph->SetSpeed(m_currentRate))
+      {
+        if (g_dsGraph->GetTime() >= g_dsGraph->GetTotalTime()
+          || g_dsGraph->GetTotalTime() <= 0)
+        {
+          m_currentRate = 1;
+          m_pPlayer->GetPlayerCallback().OnPlayBackSpeedChanged(1);
+          m_bSpeedChanged = true;
+        }
+      }
+      else
+      {
+        double clock = m_pPlayer->GetClock().GetClock() - m_clockStart; // Time elapsed since the rate change
+                                                                        // Only seek if elapsed time is greater than 250 ms
+        if (abs(DS_TIME_TO_MSEC(clock)) >= 250)
+        {
+          //CLog::Log(LOGDEBUG, "Seeking time : %f", DS_TIME_TO_MSEC(clock));
+
+          // New position
+          uint64_t newPos = g_dsGraph->GetTime() + (uint64_t)clock;
+          //CLog::Log(LOGDEBUG, "New position : %f", DS_TIME_TO_SEC(newPos));
+
+          // Check boundaries
+          if (newPos <= 0)
+          {
+            newPos = 0;
+            m_currentRate = 1;
+            m_pPlayer->GetPlayerCallback().OnPlayBackSpeedChanged(1);
+            m_bSpeedChanged = true;
+          }
+          else if (newPos >= g_dsGraph->GetTotalTime())
+          {
+            CApplicationMessenger::GetInstance().SendMsg(TMSG_MEDIA_STOP);
+            break;
+          }
+
+          g_dsGraph->Seek(newPos);
+
+          m_clockStart = m_pPlayer->GetClock().GetClock();
+        }
+      }
+    }
+    if (CDSPlayer::PlayerState == DSPLAYER_CLOSED)
+      break;
+
+    // Handle rare graph event
+    g_dsGraph->HandleGraphEvent();
+
+    // Update displayed time
+    g_dsGraph->UpdateTime();
+
+    Sleep(250);
+    if (CDSPlayer::PlayerState == DSPLAYER_CLOSED)
+      break;
+  }
 }
 
 #endif

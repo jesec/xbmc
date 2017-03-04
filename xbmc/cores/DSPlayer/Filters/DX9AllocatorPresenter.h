@@ -62,6 +62,7 @@ public:
 
 #define NB_JITTER          126
 
+class CFocusThread;
 class CDX9AllocatorPresenter
   : public ISubPicAllocatorPresenterImpl,
   public ID3DResource,
@@ -227,8 +228,8 @@ protected:
   double                                GetFrameRate();
 
   //D3D9Device
-
-  HRESULT                               InitD3D9(HWND hwnd);
+  void                                  SetPosition(CRect sourceRect, CRect videoRect, CRect viewRect);
+  HRESULT                               InitD3D9();
   void                                  BuildPresentParameters();
   HRESULT                               ResetRenderParam();
   void                                  SetMonitor(HMONITOR monitor);
@@ -238,9 +239,8 @@ protected:
   D3DPRESENT_PARAMETERS		              m_D3DPP;
   D3DDISPLAYMODEEX                      m_D3DDMEX;
   CEvrSharedRender*                     m_pEvrShared;
-  bool                                  m_firstBoot;
   bool                                  m_useWindowedDX;
-  HWND                                  m_hDeviceWnd;
+  bool                                  m_ForceWindowedDX;
   unsigned int                          m_nBackBufferWidth;
   unsigned int                          m_nBackBufferHeight;
   bool                                  m_bVSync;
@@ -250,6 +250,8 @@ protected:
   int                                   m_kodiGuiDirtyAlgo;
 
   CRect                                 m_activeVideoRect;
+  CFocusThread*                         m_FocusThread;
+  HWND                                  m_hFocusWindow;
 
   virtual HRESULT                       CreateDevice(CStdString &_Error);
   virtual HRESULT                       AllocSurfaces(D3DFORMAT Format = D3DFMT_A8R8G8B8);
@@ -350,9 +352,8 @@ public:
   virtual void                        OnCreateDevice();
   virtual void                        OnResetDevice();
 
-  void                                OnPaint(CRect destRect);
   virtual void                        AfterPresent();
-  virtual void                        Reset();
+  virtual void                        Reset(bool bForceWindowed);
 
   // IEvrAllocatorCallback
   virtual CRect GetActiveVideoRect() { return m_activeVideoRect; };

@@ -35,9 +35,4 @@ public:
   virtual void EndRender();
 
   HRESULT Render(DS_RENDER_LAYER layer);
-  void SkipRender(bool bSkip){ m_bSkipRender = bSkip; };
-
-private:
-  bool CheckSkipRender();
-  bool m_bSkipRender;
 };

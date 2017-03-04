@@ -40,6 +40,9 @@
 #include <d3d10umddi.h>
 #pragma warning(default: 4091)
 #include <algorithm>
+#ifdef HAS_DS_PLAYER
+#include "DSPlayer.h"
+#endif
 
 #ifndef _M_X64
 #pragma comment(lib, "EasyHook32.lib")
@@ -105,6 +108,10 @@ void CRenderSystemDX::SetRenderParams(unsigned int width, unsigned int height, b
   m_nBackBufferHeight = height;
   m_bFullScreenDevice = fullScreen;
   m_refreshRate       = refreshRate;
+#ifdef HAS_DS_PLAYER
+  //todo evrfullscreen
+  //CDSPlayer::PostGraphMessage(new CDSMsgBool(CDSMsg::RESET_DEVICE, false), false);
+#endif
 }
 
 void CRenderSystemDX::SetMonitor(HMONITOR monitor)

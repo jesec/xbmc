@@ -55,7 +55,6 @@ CmadVRAllocatorPresenter::CmadVRAllocatorPresenter(HWND hWnd, HRESULT& hr, CStdS
   m_kodiGuiDirtyAlgo = g_advancedSettings.m_guiAlgorithmDirtyRegions;
   m_pMadvrShared = DNew CMadvrSharedRender();
   m_activeVideoRect.SetRect(0, 0, 0, 0);
-  m_oldVideoRect.SetRect(0, 0, 0, 0);
   m_frameCount = 0;
   
   if (FAILED(hr)) {
@@ -130,7 +129,6 @@ void CmadVRAllocatorPresenter::SetResolution()
   {
     RESOLUTION bestRes = CResolutionUtils::ChooseBestResolution(fps, nativeVideoSize.cx, false);
     CDSPlayer::SetDsWndVisible(true);
-    m_pMadvrShared->SkipRender(true);
     g_graphicsContext.SetVideoResolution(bestRes);
   }
   else
@@ -306,7 +304,6 @@ HRESULT CmadVRAllocatorPresenter::Render( REFERENCE_TIME rtStart, REFERENCE_TIME
   Com::SmartRect videoRect(left, top, right, bottom);
 
   __super::SetPosition(wndRect, videoRect);
-  SetPosition();
 
   if (!g_bExternalSubtitleTime) {
     SetTime(rtStart);
@@ -324,10 +321,6 @@ HRESULT CmadVRAllocatorPresenter::Render( REFERENCE_TIME rtStart, REFERENCE_TIME
     // Configure Render Manager
     g_application.m_pPlayer->Configure(m_NativeVideoSize.cx, m_NativeVideoSize.cy, m_AspectRatio.cx, m_AspectRatio.cy, m_fps, CONF_FLAGS_FULLSCREEN);
     CLog::Log(LOGDEBUG, "%s Render manager configured (FPS: %f) %i %i %i %i", __FUNCTION__, m_fps, m_NativeVideoSize.cx, m_NativeVideoSize.cy, m_AspectRatio.cx, m_AspectRatio.cy);
-
-    // Begin Render Kodi 
-    CDSPlayer::SetDsWndVisible(true);
-    g_application.m_pPlayer->SetRenderOnDS(true);
 
     // Update Display Latency for madVR (sets differents delay for each refresh as configured in advancedsettings)
     if (m_updateDisplayLatencyForMadvr)
@@ -439,18 +432,11 @@ STDMETHODIMP CmadVRAllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
   return S_OK;
 }
 
-void CmadVRAllocatorPresenter::SetPosition()
+void CmadVRAllocatorPresenter::SetPosition(CRect sourceRect, CRect videoRect, CRect viewRect)
 {
-  CRect sourceRect, viewRect, videoRect;
-  g_application.m_pPlayer->GetVideoRect(sourceRect, videoRect, viewRect);
-
   Com::SmartRect wndR(viewRect.x1, viewRect.y1, viewRect.x2, viewRect.y2);
   Com::SmartRect videoR(videoRect.x1, videoRect.y1, videoRect.x2, videoRect.y2);
-  if (m_oldVideoRect != videoRect)
-  {
-    SetPosition(wndR, videoR);
-    m_oldVideoRect = videoRect;
-  }
+  SetPosition(wndR, videoR);
 }
 
 STDMETHODIMP_(void) CmadVRAllocatorPresenter::SetPosition(RECT w, RECT v)

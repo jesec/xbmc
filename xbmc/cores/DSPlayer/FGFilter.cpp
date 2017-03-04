@@ -455,7 +455,7 @@ HRESULT CFGFilterVideoRenderer::Create(IBaseFilter** ppBF)
   if (m_clsid == CLSID_VMR9AllocatorPresenter)
     CreateAP9(m_clsid, g_hWnd, &pCAP);
   else if (m_clsid == CLSID_EVRAllocatorPresenter)
-    CreateEVR(m_clsid, g_hWnd, &pCAP);
+    CreateEVR(m_clsid, CDSPlayer::GetDShWnd(), &pCAP);
   else if (m_clsid == CLSID_madVRAllocatorPresenter)
     CreateMadVR(m_clsid, g_hWnd, &pCAP);
 

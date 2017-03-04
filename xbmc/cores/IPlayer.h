@@ -441,9 +441,10 @@ public:
   virtual void EnableExclusive(bool bEnable) {};
   virtual void SetPixelShader() {};
   virtual void SetResolution() {};
+  virtual void SetPosition(CRect sourceRect, CRect videoRect, CRect viewRect) {};
   virtual bool ParentWindowProc(HWND hWnd, UINT uMsg, WPARAM *wParam, LPARAM *lParam, LRESULT *ret) { return false; };
   // IDSRendererAllocatorCallback (EVR)
-  virtual void Reset() {};
+  virtual void Reset(bool bForceWindowed) {};
   virtual void Register(IDSRendererAllocatorCallback* pAllocatorCallback) {};
   virtual void Unregister(IDSRendererAllocatorCallback* pAllocatorCallback) {};
 

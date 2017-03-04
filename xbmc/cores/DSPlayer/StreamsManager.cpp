@@ -1593,7 +1593,6 @@ void CSubtitleManager::Initialize()
   // Log manager for the DLL
   m_Log.reset(new ILogImpl());
 
-  //todo dx11
   m_dll.CreateSubtitleManager(CGraphFilters::Get()->GetD3DDevice(), s, m_Log.get(), g_dsSettings.pRendererSettings->subtitlesSettings, &pManager);
 
   if (!pManager)
@@ -1668,7 +1667,6 @@ void CSubtitleManager::StopThread()
 
 void CSubtitleManager::StartThread()
 {
-  //todo dx11
   if (!m_subtitleStreams.empty() && m_pManager)
     m_pManager->StartThread(CGraphFilters::Get()->GetD3DDevice());
 }
