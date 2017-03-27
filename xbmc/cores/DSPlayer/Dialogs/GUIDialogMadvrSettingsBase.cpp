@@ -46,8 +46,8 @@
 #include "addons/Skin.h"
 #include "DSPlayerDatabase.h"
 
-#define SETTING_VIDEO_MAKE_DEFAULT        "video.save"
-#define SETTING_VIDEO_LOAD                "video.load"
+#define SETTING_VIDEO_SAVE                "dsvideo.save"
+#define SETTING_VIDEO_LOAD                "dsvideo.load"
 
 using namespace std;
 
@@ -119,7 +119,7 @@ void CGUIDialogMadvrSettingsBase::InitializeSettings()
       AddButton(groupMadvrSave, SETTING_VIDEO_LOAD, 70611, 0);
 
       //SAVE SETTINGS...
-      AddButton(groupMadvrSave, SETTING_VIDEO_MAKE_DEFAULT, 70600, 0);
+      AddButton(groupMadvrSave, SETTING_VIDEO_SAVE, 70600, 0);
     }
   }
 
@@ -205,14 +205,14 @@ void CGUIDialogMadvrSettingsBase::OnSettingAction(const CSetting *setting)
   if (it != madvrSettings.m_gui[m_iSectionId].end())
   {
     if ((*it)->type == "button_section")
-    {  
+    {
       if (m_iSectionId == MADVR_VIDEO_ROOT)
-      { 
+      {
         SetSection((*it)->sectionId, (*it)->label);
         g_windowManager.ActivateWindow(WINDOW_DIALOG_MADVR);
       }
       else
-      {    
+      {
         SetSection((*it)->sectionId, (*it)->label);
         SaveControlStates();
         Close();
@@ -224,6 +224,11 @@ void CGUIDialogMadvrSettingsBase::OnSettingAction(const CSetting *setting)
       g_application.m_pPlayer->ListSettings((*it)->value);
     }
   }
+
+  if (settingId == SETTING_VIDEO_SAVE)
+    SaveMadvrSettings();
+  else if (settingId == SETTING_VIDEO_LOAD)
+    LoadMadvrSettings();
 }
 
 void CGUIDialogMadvrSettingsBase::LoadMadvrSettings()

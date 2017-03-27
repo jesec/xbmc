@@ -320,6 +320,9 @@ bool CDSPlayer::OpenFileInternal(const CFileItem& file)
       if (CStreamsManager::Get()) CStreamsManager::Get()->SelectBestSubtitle(file.GetPath());
       if (CStreamsManager::Get()) CStreamsManager::Get()->SetSubTitleDelay(fValue);
 
+      // Subtitle On/Off
+      SetSubtitleVisible(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_SubtitleOn);
+
       // Get Audio Interface LAV AUDIO/FFDSHOW to setting Delay
       if (CStreamsManager::Get())
       {
