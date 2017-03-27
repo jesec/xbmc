@@ -69,7 +69,6 @@
 #ifdef HAS_DS_PLAYER
 #define VIDEO_SETTINGS_DS_STATS           "video.dsstats"
 #define VIDEO_SETTINGS_DS_FILTERS         "video.dsfilters"
-#define SETTING_VIDEO_LOAD                "video.load"
 #endif
 
 #define SETTING_VIDEO_STEREOSCOPICMODE    "video.stereoscopicmode"
@@ -223,13 +222,7 @@ void CGUIDialogVideoSettings::OnSettingAction(const CSetting *setting)
   }
   //! @todo implement
   else if (settingId == SETTING_VIDEO_MAKE_DEFAULT)
-#ifdef HAS_DS_PLAYER
-    m_bMadvr ? SaveMadvrSettings() : Save();
-  else if (settingId == SETTING_VIDEO_LOAD)
-    LoadMadvrSettings();
-#else
     Save();
-#endif
 
 #ifdef HAS_DS_PLAYER
   else if (settingId == VIDEO_SETTINGS_DS_FILTERS)
@@ -539,12 +532,7 @@ void CGUIDialogVideoSettings::InitializeSettings()
   AddToggle(groupStereoscopic, SETTING_VIDEO_STEREOSCOPICINVERT, 36536, 0, videoSettings.m_StereoInvert);
 
   // general settings
-#ifdef HAS_DS_PLAYER
-  if (!m_bMadvr)
-    AddButton(groupSaveAsDefault, SETTING_VIDEO_MAKE_DEFAULT, 12376, 0);
-#else
   AddButton(groupSaveAsDefault, SETTING_VIDEO_MAKE_DEFAULT, 12376, 0);
-#endif
   AddButton(groupSaveAsDefault, SETTING_VIDEO_CALIBRATION, 214, 0);
 }
 
