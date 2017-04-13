@@ -444,6 +444,12 @@ bool CDSPlayer::OpenFile(const CFileItem& file, const CPlayerOptions &options)
   m_PlayerOptions = options;
   m_canTempo = true;
 
+  if (file.IsVideoDb())
+  {
+    fileItem.SetPath(file.GetVideoInfoTag()->m_strFileNameAndPath);
+    fileItem.SetProperty("original_listitem_url", file.GetPath());
+  }
+
   if (fileItem.IsInternetStream())
   {
     CURL url(fileItem.GetPath());
