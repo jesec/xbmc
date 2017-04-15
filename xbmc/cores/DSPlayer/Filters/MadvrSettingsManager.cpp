@@ -219,61 +219,57 @@ void CMadvrSettingsManager::ListSettings(const std::string &path)
   std::vector<std::string> paths = StringUtils::Split(path, "|");
   for (const auto &currentPath : paths)
   {
-    std::vector<std::string> groups;
-    std::vector<std::string> profiles;
-    std::vector<CMadvrEnum> folders;
-    std::vector<CMadvrEnum> values;
-
     CLog::Log(LOGDEBUG, "[madVR debug][Path   ] ################################################################");
     CLog::Log(LOGDEBUG, "[madVR debug][Path   ] %s", currentPath.c_str());
     CLog::Log(LOGDEBUG, "[madVR debug][Path   ] ################################################################");
 
-    EnumFolders(currentPath, &folders);
-    for (const auto &folder : folders)
-    {
-      if (folder.type == "profileRoot")
-        continue;
+    ListFolders(currentPath);
+  }
+}
 
-      CLog::Log(LOGDEBUG, "[madVR debug][Folder ] --------------------------------------------------------------");
-      CLog::Log(LOGDEBUG, "[madVR debug][Folder ] %s - %s %s", folder.id.c_str(), folder.name.c_str(), folder.type.c_str());
-      CLog::Log(LOGDEBUG, "[madVR debug][Folder ] --------------------------------------------------------------");
+void CMadvrSettingsManager::ListFolders(const std::string &path)
+{
+  std::vector<CMadvrEnum> folders;
+  
+  EnumFolders(path, &folders);
+  for (const auto &folder : folders)
+  {
+    std::string subPath = path + "\\" + folder.id;
 
-      EnumValues(currentPath + "\\" + folder.id, &values);
-      for (const auto &value : values)
-      {
-        std::string path = currentPath + "\\" + folder.id + "\\" + value.id;
-        CLog::Log(LOGDEBUG, "[madVR debug][Value  ] %s = %s (%s)    %s", value.id.c_str(), GetValueForDebug(path, value.type).c_str(), value.type.c_str(), value.name.c_str());
-      }
-    }
-
-    EnumGroups(currentPath, &groups);
-    for (const auto &group : groups)
+    if (folder.type == "profileRoot")
     {
       CLog::Log(LOGDEBUG, "[madVR debug][Group  ] ==============================================================");
-      CLog::Log(LOGDEBUG, "[madVR debug][Group  ] %s", group.c_str());
-
-      EnumProfiles(currentPath + "\\" + group, &profiles);
-      for (const auto &profile : profiles)
-      {
-        CLog::Log(LOGDEBUG, "[madVR debug][Profile] %s", profile.c_str());
-        CLog::Log(LOGDEBUG, "[madVR debug][Profile] ==============================================================");
-
-        EnumFolders(currentPath + "\\" + group + "\\" + profile, &folders);
-        for (const auto &folder : folders)
-        {
-          CLog::Log(LOGDEBUG, "[madVR debug][Folder ] --------------------------------------------------------------");
-          CLog::Log(LOGDEBUG, "[madVR debug][Folder ] %s - %s %s", folder.id.c_str(), folder.name.c_str(), folder.type.c_str());
-          CLog::Log(LOGDEBUG, "[madVR debug][Folder ] --------------------------------------------------------------");
-
-          EnumValues(currentPath + "\\" + group + "\\" + profile + "\\" + folder.id, &values);
-          for (const auto &value : values)
-          {
-            std::string path = currentPath + "\\" + group + "\\" + profile + "\\" + folder.id + "\\" + value.id;
-            CLog::Log(LOGDEBUG, "[madVR debug][Value  ] %s = %s (%s)    %s", value.id.c_str(), GetValueForDebug(path, value.type).c_str(), value.type.c_str(), value.name.c_str());
-          }
-        }
-      }
+      CLog::Log(LOGDEBUG, "[madVR debug][Group  ] %s", folder.name.c_str());
+      ListFolders(subPath);
     }
+    else if (folder.type == "profile")
+    {
+      CLog::Log(LOGDEBUG, "[madVR debug][Profile] %s", folder.name.c_str());
+      CLog::Log(LOGDEBUG, "[madVR debug][Profile] ==============================================================");
+      ListFolders(subPath);
+    }
+    else
+    {
+      CLog::Log(LOGDEBUG, "[madVR debug][Folder ] --------------------------------------------------------------");
+      CLog::Log(LOGDEBUG, "[madVR debug][Folder ] %s - %s %s", folder.id.c_str(), folder.name.c_str(), folder.type.c_str());
+      ListFolders(subPath);
+      ListValues(subPath);
+    } 
+  }
+}
+
+void CMadvrSettingsManager::ListValues(const std::string &path)
+{
+  std::vector<CMadvrEnum> values;
+
+  EnumValues(path, &values);
+  if (!values.empty())
+    CLog::Log(LOGDEBUG, "[madVR debug][Folder ] --------------------------------------------------------------");
+
+  for (const auto &value : values)
+  {
+    std::string subPath = path + "\\" + value.id;
+    CLog::Log(LOGDEBUG, "[madVR debug][Value  ] %s = %s (%s)    %s", value.id.c_str(), GetValueForDebug(subPath, value.type).c_str(), value.type.c_str(), value.name.c_str());
   }
 }
 
