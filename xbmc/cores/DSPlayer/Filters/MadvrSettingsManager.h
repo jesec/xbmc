@@ -63,7 +63,6 @@ public:
   void SetBool(const std::string &path, bool bValue, bool bNegate = false, const std::string &type = "");
   void SetInt(const std::string &path, int iValue, const std::string &type = "");
 private:
-
   BOOL GetSettings(MADVR_SETTINGS_TYPE type, LPCWSTR path, int enumIndex, LPCWSTR sValue, BOOL* bValue, int* iValue, int *bufSize);
   BOOL GetSettings2(MADVR_SETTINGS_TYPE mType, LPCWSTR path, int enumIndex, LPCWSTR id, LPCWSTR type, LPCWSTR name, int *idBufSize, int *nameBufSize, int *typeBufSize);
   BOOL SetSettings(MADVR_SETTINGS_TYPE type, LPCWSTR path, LPCWSTR sValue, BOOL bValue, int iValue);
@@ -91,6 +90,8 @@ private:
   void        SetBoolStr(const std::string &path, const std::string &path2, const std::string &sValue, bool bNegate, const std::string &type);
   void        SetCustom(const std::string &path, const std::string &sValue, const std::string &type);
 
+  void ListFolders(const std::string &path);
+  void ListValues(const std::string &path);
   const std::string GetValueForDebug(const std::string &path, const std::string &type);
 
   bool IsProfileActive(const std::string &path, const std::string &profile);
