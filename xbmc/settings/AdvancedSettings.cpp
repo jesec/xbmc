@@ -374,6 +374,7 @@ void CAdvancedSettings::Initialize()
   m_bDSPlayerFastChannelSwitching = true;
   m_bDSPlayerUseUNCPathsForLiveTV = false;
   m_bIgnoreSystemAppcommand = false;
+  m_bDisableMadvrLowLatency = false;
   m_bNotWaitKodiRendering = false;
 #endif
 
@@ -1208,6 +1209,7 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
     XMLUtils::GetBoolean(pElement, "fastchannelswitching", m_bDSPlayerFastChannelSwitching);
     XMLUtils::GetBoolean(pElement, "useuncpathsforlivetv", m_bDSPlayerUseUNCPathsForLiveTV);
     XMLUtils::GetBoolean(pElement, "ignoresystemappcommand", m_bIgnoreSystemAppcommand);
+    XMLUtils::GetBoolean(pElement, "disablemadvrlowlatency", m_bDisableMadvrLowLatency);
     XMLUtils::GetBoolean(pElement, "notwaitkodirendering", m_bNotWaitKodiRendering);
   }
 #endif
