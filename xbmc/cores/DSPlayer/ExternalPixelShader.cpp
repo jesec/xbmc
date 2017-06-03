@@ -129,20 +129,20 @@ CExternalPixelShader::CExternalPixelShader(std::string strFile, std::string strP
 
 bool CExternalPixelShader::Load()
 {
-  XFILE::CFile file;
+  XFILE::CFileStream file;
   if (!file.Open(m_SourceFile))
     return false;
 
-  int64_t length = file.GetLength();
-  char* buf = new char[length];
+  std::string str;
+  getline(file, str, '\0');
 
-  if (file.Read(buf, length) != length)
+  if (str.empty())
   {
     m_SourceData = "";
     return false;
   }
 
-  m_SourceData = buf;
+  m_SourceData = str;
   return true;
 }
 
