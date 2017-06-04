@@ -51,7 +51,7 @@ HRESULT CFGManager2::RenderFileXbmc(const CFileItem& pFileItem)
   bool hasStreamDetails = false;
   if (CSettings::GetInstance().GetBool(CSettings::SETTING_MYVIDEOS_EXTRACTFLAGS) && FileItem.HasVideoInfoTag() && !FileItem.GetVideoInfoTag()->HasStreamDetails())
   {
-    CLog::Log(LOGDEBUG, "%s - trying to extract filestream details from video file %s", __FUNCTION__, FileItem.GetPath().c_str());
+    CLog::Log(LOGDEBUG, "%s - trying to extract filestream details from video file %s", __FUNCTION__, CURL::GetRedacted(FileItem.GetPath()).c_str());
     hasStreamDetails = CDVDFileInfo::GetFileStreamDetails(&FileItem);
   }
   else{
