@@ -230,7 +230,7 @@ HRESULT CFGLoader::InsertSourceFilter(CFileItem& pFileItem, const std::string& f
   */
   pWinFilePath = CDSFile::SmbToUncPath(pWinFilePath);
 
-  if (!pFileItem.IsInternetStream())
+  if (!pFileItem.IsInternetStream(true))
     StringUtils::Replace(pWinFilePath, "/", "\\");
 
   std::wstring strFileW;
@@ -511,7 +511,7 @@ HRESULT CFGLoader::LoadFilterRules(const CFileItem& _pFileItem)
   if (CSettings::GetInstance().GetBool(CSettings::SETTING_MYVIDEOS_EXTRACTFLAGS) &&
     pFileItem.HasVideoInfoTag() && !pFileItem.GetVideoInfoTag()->HasStreamDetails())
   {
-    CLog::Log(LOGDEBUG, "%s - trying to extract filestream details from video file %s", __FUNCTION__, pFileItem.GetPath().c_str());
+    CLog::Log(LOGDEBUG, "%s - trying to extract filestream details from video file %s", __FUNCTION__, CURL::GetRedacted(pFileItem.GetPath()).c_str());
     hasStreamDetails = CDVDFileInfo::GetFileStreamDetails(&pFileItem);
   }
   else
