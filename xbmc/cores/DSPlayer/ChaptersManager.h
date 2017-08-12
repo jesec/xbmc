@@ -112,5 +112,7 @@ private:
   /// Pointer to the IAMExtendedSeeking interface
   Com::SmartQIPtr<IAMExtendedSeeking, &IID_IAMExtendedSeeking> m_pIAMExtendedSeeking;
 
+  bool m_bCheckForChapters;
+
   CCriticalSection m_lock;
 };
