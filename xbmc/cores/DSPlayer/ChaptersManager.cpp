@@ -29,7 +29,8 @@
 CChaptersManager *CChaptersManager::m_pSingleton = NULL;
 
 CChaptersManager::CChaptersManager(void)
-  : m_currentChapter(-1)
+  : m_currentChapter(-1),
+  m_bCheckForChapters(true)
 {
 }
 
@@ -98,7 +99,7 @@ void CChaptersManager::GetChapterName(std::string& strChapterName, int chapterId
 
 void CChaptersManager::UpdateChapters(int64_t current_time)
 {
-  if (m_chapters.empty())
+  if (m_chapters.empty() && m_bCheckForChapters)
     LoadChapters();
 
   if (!m_chapters.empty())
@@ -135,38 +136,39 @@ bool CChaptersManager::LoadChapters()
   CSingleLock lock(m_lock);
   if (!m_chapters.empty())
     FlushChapters();
-  std::string splitterName = CGraphFilters::Get()->Splitter.osdname;
+  
   if (!m_pIAMExtendedSeeking)
     LoadInterface();
+
   if (m_pIAMExtendedSeeking)
   {
     long chaptersCount = -1;
-    m_pIAMExtendedSeeking->get_MarkerCount(&chaptersCount);
-    if (chaptersCount <= 0)
+    if (FAILED(m_pIAMExtendedSeeking->get_MarkerCount(&chaptersCount)) || chaptersCount <= 0)
     {
-      m_pIAMExtendedSeeking.Release();
+      m_bCheckForChapters = false;
       return false;
     }
 
-    SChapterInfos *infos = NULL;
-    BSTR chapterName;
+    SChapterInfos *infos = nullptr;
     for (int i = 1; i <= chaptersCount; i++)
     {
-      infos = new SChapterInfos();
-      infos->name = ""; infos->starttime = 0; infos->endtime = 0;
-
-      if (SUCCEEDED(m_pIAMExtendedSeeking->GetMarkerName(i, &chapterName)))
-      {
-        g_charsetConverter.wToUTF8(chapterName, infos->name);
-        SysFreeString(chapterName);
-      }
-      else
-        infos->name = "Unknown chapter";
-
       double starttime = 0;
-      m_pIAMExtendedSeeking->GetMarkerTime(i, &starttime);
+      if (FAILED(m_pIAMExtendedSeeking->GetMarkerTime(i, &starttime)))
+        continue;
 
-      infos->starttime = (uint64_t)(starttime * 1000.0); // To ms
+      BSTR chapterName = nullptr;
+      if (FAILED(m_pIAMExtendedSeeking->GetMarkerName(i, &chapterName)))
+        continue;
+
+      infos = new SChapterInfos();
+      infos->starttime = (uint64_t)(starttime * 1000.0); // To ms; 
+      infos->endtime = 0;
+      infos->name = "";
+      if (chapterName != nullptr)
+        g_charsetConverter.wToUTF8(chapterName, infos->name);
+
+      SysFreeString(chapterName);
+
       CLog::Log(LOGNOTICE, "%s Chapter \"%s\" found. Start time: %" PRId64, __FUNCTION__, infos->name.c_str(), infos->starttime);
       m_chapters.insert(std::pair<long, SChapterInfos *>(i, infos));
     }
@@ -177,6 +179,7 @@ bool CChaptersManager::LoadChapters()
   }
   else
   {
+    std::string splitterName = CGraphFilters::Get()->Splitter.osdname;
     CLog::Log(LOGERROR, "%s The splitter \"%s\" doesn't support chapters", __FUNCTION__, splitterName.c_str());
     return false;
   }
