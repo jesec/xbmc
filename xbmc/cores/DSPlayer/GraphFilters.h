@@ -33,6 +33,7 @@
 #include "utils/CharsetConverter.h"
 #include "system.h"
 #include "Filters/Sanear/Interfaces.h"
+#include "settings/lib/SettingDefinitions.h"
 
 static const std::string XYSUBFILTER_FILTERSTR = "XySubFilter";
 static const std::string MADVR_FILTERSTR = "madVR";
@@ -191,6 +192,8 @@ public:
   bool LoadLavSettings(const std::string &type);
   bool SaveLavSettings(const std::string &type);
   void EraseLavSetting(const std::string &type);
+  std::string GetActiveDecoderName();
+  void GetHWDeviceList(DWORD dwHWAccel, DynamicIntegerSettingOptions &list) { list = m_mapHWAccelDeviceInfo[dwHWAccel];};
 
   void SetSanearSettings();
 
@@ -221,6 +224,8 @@ private:
   bool m_auxAudioDelay;
 
   bool m_bDialogProcessInfo = false;
+  
+  std::map<int, DynamicIntegerSettingOptions> m_mapHWAccelDeviceInfo;
 
   Com::SmartPtr<IBaseFilter> m_pBF;
   IDirect3DDevice9 * m_pD3DDevice;

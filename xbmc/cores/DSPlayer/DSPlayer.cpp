@@ -1491,7 +1491,18 @@ void CDSPlayer::UpdateProcessInfo(int index)
   unsigned int width = GetPictureWidth();
   unsigned int heigth = GetPictureHeight();
   m_processInfo->SetVideoDimensions(width, heigth);
-  m_processInfo->SetVideoDecoderName(CStreamsManager::Get() ? CStreamsManager::Get()->GetVideoCodecName() : "", CStreamsManager::Get()->GetHWAccel() > 0);
+
+  info = CStreamsManager::Get() ? CStreamsManager::Get()->GetVideoCodecName() : "";
+
+  // add active decoder info
+  if (CGraphFilters::Get()->Video.internalFilter)
+  {
+    std::string activeDecoderName = CGraphFilters::Get()->GetActiveDecoderName();
+    if (!activeDecoderName.empty())
+      info += " (" + activeDecoderName + ")";
+  }
+
+  m_processInfo->SetVideoDecoderName(info, CStreamsManager::Get()->GetHWAccel() > 0);
   m_processInfo->SetVideoDAR((float)width / (float)heigth);
   m_processInfo->SetVideoFps(m_fps);
 

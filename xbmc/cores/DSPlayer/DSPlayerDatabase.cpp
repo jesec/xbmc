@@ -82,7 +82,9 @@ void CDSPlayerDatabase::CreateTables()
   std::string strSQL = "CREATE TABLE lavvideoSettings (id integer, bTrayIcon integer, dwStreamAR integer, dwNumThreads integer, ";
   for (int i = 0; i < LAVOutPixFmt_NB; ++i)
     strSQL += PrepareSQL("bPixFmts%i integer, ", i);
-  strSQL += "dwRGBRange integer, dwHWAccel integer, dwHWAccelDeviceIndex integer, ";
+  strSQL += "dwRGBRange integer, dwHWAccel integer, ";
+  for (int i = 0; i < HWAccel_NB; ++i)
+    strSQL += PrepareSQL("dwHWAccelDeviceIndex%i integer, ", i);
   for (int i = 0; i < HWCodec_NB; ++i)
     strSQL += PrepareSQL("bHWFormats%i integer, ", i);
   for (int i = 0; i < Codec_VideoNB; ++i)
@@ -138,7 +140,7 @@ void CDSPlayerDatabase::CreateAnalytics()
 
 int CDSPlayerDatabase::GetSchemaVersion() const
 { 
-  return 20; 
+  return 21; 
 }
 
 void CDSPlayerDatabase::UpdateTables(int version)
@@ -955,6 +957,63 @@ void CDSPlayerDatabase::UpdateTables(int version)
       }
     }
   }
+  if (version < 21)
+  {
+    std::string strSQL;
+
+    strSQL = "CREATE TABLE lavvideoSettings_new (id integer, bTrayIcon integer, dwStreamAR integer, dwNumThreads integer, ";
+    for (int i = 0; i < 18 /* LAVOutPixFmt_NB */; ++i)
+      strSQL += PrepareSQL("bPixFmts%i integer, ", i);
+    strSQL += "dwRGBRange integer, dwHWAccel integer, ";
+    for (int i = 0; i < 8 /* HWCodec_NB */; ++i)
+      strSQL += PrepareSQL("bHWFormats%i integer, ", i);
+    for (int i = 0; i < 59 /* Codec_VideoNB */; ++i)
+      strSQL += PrepareSQL("bVideoFormats%i integer, ", i);
+    strSQL += "dwHWAccelResFlags integer, dwHWDeintMode integer, dwHWDeintOutput integer, dwDeintFieldOrder integer, deintMode integer, dwSWDeintMode integer, "
+      "dwSWDeintOutput integer, dwDitherMode integer, bUseMSWMV9Decoder integer, bDVDVideoSupport integer"
+      ")\n";
+    m_pDS->exec(strSQL);
+
+    strSQL = "INSERT INTO lavvideoSettings_new (id, bTrayIcon, dwStreamAR, dwNumThreads, ";
+    for (int i = 0; i < 18 /* LAVOutPixFmt_NB */; ++i)
+      strSQL += PrepareSQL("bPixFmts%i, ", i);
+    strSQL += "dwRGBRange, dwHWAccel, ";
+    for (int i = 0; i < 8 /* HWCodec_NB */; ++i)
+      strSQL += PrepareSQL("bHWFormats%i, ", i);
+    for (int i = 0; i < 59 /* Codec_VideoNB*/; ++i)
+      strSQL += PrepareSQL("bVideoFormats%i, ", i);
+    strSQL += "dwHWAccelResFlags, dwHWDeintMode, dwHWDeintOutput, dwDeintFieldOrder, deintMode, dwSWDeintMode, "
+      "dwSWDeintOutput, dwDitherMode, bUseMSWMV9Decoder, bDVDVideoSupport"
+      ") SELECT ";
+    strSQL += "id, bTrayIcon, dwStreamAR, dwNumThreads, ";
+    for (int i = 0; i < 18 /*LAVOutPixFmt_NB */; ++i)
+      strSQL += PrepareSQL("bPixFmts%i, ", i);
+    strSQL += "dwRGBRange, dwHWAccel, ";
+    for (int i = 0; i < 8 /* HWCodec_NB */; ++i)
+      strSQL += PrepareSQL("bHWFormats%i, ", i);
+    for (int i = 0; i < 59 /* Codec_VideoNB */; ++i)
+      strSQL += PrepareSQL("bVideoFormats%i, ", i);
+    strSQL += "dwHWAccelResFlags, dwHWDeintMode, dwHWDeintOutput, dwDeintFieldOrder, deintMode, dwSWDeintMode, "
+      "dwSWDeintOutput, dwDitherMode, bUseMSWMV9Decoder, bDVDVideoSupport "
+      "FROM lavvideoSettings";
+    m_pDS->exec(strSQL);
+
+    m_pDS->exec("DROP TABLE lavvideoSettings");
+    m_pDS->exec("ALTER TABLE lavvideoSettings_new RENAME TO lavvideoSettings");
+
+    for (int i = 0; i < 6 /* HWAccel_NB */; ++i)
+    {
+      strSQL = PrepareSQL("ALTER TABLE lavvideoSettings ADD dwHWAccelDeviceIndex%i interger ", i);    
+      m_pDS->exec(strSQL);
+      m_pDS->query("SELECT * FROM lavvideoSettings");
+      if (m_pDS->num_rows() > 0)
+      {
+        m_pDS->close();
+        strSQL = PrepareSQL("UPDATE lavvideoSettings SET dwHWAccelDeviceIndex%i=-1", i);
+        m_pDS->exec(strSQL);
+      }
+    }
+  }
 }
 
 bool CDSPlayerDatabase::GetResumeEdition(const std::string& strFilenameAndPath, CEdition &edition)
@@ -1401,7 +1460,8 @@ bool CDSPlayerDatabase::GetLAVVideoSettings(CLavSettings &settings)
         settings.video_bPixFmts[i] = m_pDS->fv(PrepareSQL("bPixFmts%i", i).c_str()).get_asInt();
       settings.video_dwRGBRange = m_pDS->fv("dwRGBRange").get_asInt();
       settings.video_dwHWAccel = m_pDS->fv("dwHWAccel").get_asInt();
-      settings.video_dwHWAccelDeviceIndex = m_pDS->fv("dwHWAccelDeviceIndex").get_asInt();
+      for (int i = 0; i < HWAccel_NB; ++i)
+        settings.video_dwHWAccelDeviceIndex[i] = m_pDS->fv(PrepareSQL("dwHWAccelDeviceIndex%i", i).c_str()).get_asInt();
       for (int i = 0; i < HWCodec_NB; ++i)
         settings.video_bHWFormats[i] = m_pDS->fv(PrepareSQL("bHWFormats%i", i).c_str()).get_asInt();
       for (int i = 0; i < Codec_VideoNB; ++i)
@@ -1551,7 +1611,8 @@ void CDSPlayerDatabase::SetLAVVideoSettings(CLavSettings &settings)
         strSQL += PrepareSQL("bPixFmts%i=%i, ", i, settings.video_bPixFmts[i]);
       strSQL += PrepareSQL("dwRGBRange=%i, ", settings.video_dwRGBRange);
       strSQL += PrepareSQL("dwHWAccel=%i, ", settings.video_dwHWAccel);
-      strSQL += PrepareSQL("dwHWAccelDeviceIndex=%i, ", settings.video_dwHWAccelDeviceIndex);
+      for (int i = 0; i < HWAccel_NB; ++i)
+        strSQL += PrepareSQL("dwHWAccelDeviceIndex%i=%i, ", i, settings.video_dwHWAccelDeviceIndex[i]);
       for (int i = 0; i < HWCodec_NB; ++i)
         strSQL += PrepareSQL("bHWFormats%i=%i, ", i, settings.video_bHWFormats[i]);
       for (int i = 0; i < Codec_VideoNB; ++i)
@@ -1577,7 +1638,9 @@ void CDSPlayerDatabase::SetLAVVideoSettings(CLavSettings &settings)
       strSQL = "INSERT INTO lavvideoSettings (id, bTrayIcon, dwStreamAR, dwNumThreads, ";
       for (int i = 0; i < LAVOutPixFmt_NB; ++i)
         strSQL += PrepareSQL("bPixFmts%i, ", i);
-      strSQL += "dwRGBRange, dwHWAccel, dwHWAccelDeviceIndex, ";
+      strSQL += "dwRGBRange, dwHWAccel, ";
+      for (int i = 0; i < HWAccel_NB; ++i)
+        strSQL += PrepareSQL("dwHWAccelDeviceIndex%i, ", i);
       for (int i = 0; i < HWCodec_NB; ++i)
         strSQL += PrepareSQL("bHWFormats%i, ", i);
       for (int i = 0; i < Codec_VideoNB; ++i)
@@ -1593,7 +1656,8 @@ void CDSPlayerDatabase::SetLAVVideoSettings(CLavSettings &settings)
         strSQL += PrepareSQL("%i, ", settings.video_bPixFmts[i]);
       strSQL += PrepareSQL("%i, ", settings.video_dwRGBRange);
       strSQL += PrepareSQL("%i, ", settings.video_dwHWAccel);
-      strSQL += PrepareSQL("%i, ", settings.video_dwHWAccelDeviceIndex);
+      for (int i = 0; i < HWAccel_NB; ++i)
+        strSQL += PrepareSQL("%i, ", settings.video_dwHWAccelDeviceIndex[i]);
       for (int i = 0; i < HWCodec_NB; ++i)
         strSQL += PrepareSQL("%i, ", settings.video_bHWFormats[i]);
       for (int i = 0; i < Codec_VideoNB; ++i)

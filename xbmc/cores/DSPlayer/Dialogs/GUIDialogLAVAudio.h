@@ -36,7 +36,6 @@ protected:
   // implementations of ISettingCallback
   virtual void OnSettingChanged(const CSetting *setting);
   virtual void OnSettingAction(const CSetting *setting);
-  virtual void OnInitWindow();
 
   // specialization of CGUIDialogSettingsBase
   virtual bool AllowResettingSettings() const { return false; }
@@ -46,17 +45,6 @@ protected:
   virtual void InitializeSettings();
   virtual void SetupView();
 
-  void HideUnused();
-  void SetVisible(std::string id, bool visible);
-
-  void FlagsToBool(int flags);
-  int BoolToFlags();
   float DWToFloat(int i) { return (i <= 0) ? 0.0f : (float)i / 10000.0f;};
   int FloatToDw(float f) { return round(f * 10000.0f); };
-
-  bool m_allowchange;
-  bool m_dontMix;
-  bool m_normalize;
-  bool m_clip;
-
 };

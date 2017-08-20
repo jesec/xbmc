@@ -30,13 +30,16 @@ class CGUIDialogLAVVideo : public CGUIDialogSettingsManualBase
 public:
   CGUIDialogLAVVideo();
   virtual ~CGUIDialogLAVVideo();
+  
+  static void HWAccellIndexFiller(const CSetting *setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data);
+  static void CodecsFiller(const CSetting *setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data);
+  static void ResolutionsFiller(const CSetting *setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data);
 
 protected:
 
   // implementations of ISettingCallback
   virtual void OnSettingChanged(const CSetting *setting);
   virtual void OnSettingAction(const CSetting *setting);
-  virtual void OnInitWindow();
 
   // specialization of CGUIDialogSettingsBase
   virtual bool AllowResettingSettings() const { return false; }
@@ -45,9 +48,4 @@ protected:
   // specialization of CGUIDialogSettingsManualBase
   virtual void InitializeSettings();
   virtual void SetupView();
-
-  void HideUnused();
-  void SetVisible(std::string id, bool visible);
-
-  bool m_allowchange;
 };
