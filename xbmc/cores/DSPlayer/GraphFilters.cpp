@@ -62,6 +62,7 @@ CGraphFilters::CGraphFilters() :
   m_pD3DDevice(nullptr),
   sanear(nullptr)
 {
+  m_mapHWAccelDeviceInfo.clear();
 }
 
 CGraphFilters::~CGraphFilters()
@@ -280,6 +281,8 @@ bool CGraphFilters::GetLavSettings(const std::string &type, IBaseFilter* pBF)
     if (!pLAVVideoSettings)
       return false;
 
+    m_mapHWAccelDeviceInfo.clear();
+
     lavSettings.video_bTrayIcon = pLAVVideoSettings->GetTrayIcon();
     lavSettings.video_dwStreamAR = pLAVVideoSettings->GetStreamAR();
     lavSettings.video_dwNumThreads = pLAVVideoSettings->GetNumThreads();
@@ -293,7 +296,33 @@ bool CGraphFilters::GetLavSettings(const std::string &type, IBaseFilter* pBF)
       lavSettings.video_bPixFmts[i] = pLAVVideoSettings->GetPixelFormat((LAVOutPixFmts)i);
     }
     lavSettings.video_dwHWAccel = pLAVVideoSettings->GetHWAccel();
-    lavSettings.video_dwHWAccelDeviceIndex = pLAVVideoSettings->GetHWAccelDeviceIndex((LAVHWAccel)lavSettings.video_dwHWAccel, 0);
+    for (int i = 0; i < HWAccel_NB; ++i) {
+
+      if ( i == HWAccel_D3D11)
+        m_mapHWAccelDeviceInfo[i].emplace_back("Automatic (Native)", -1);
+      else
+        m_mapHWAccelDeviceInfo[i].emplace_back("Automatic", -1);
+
+      int iDevices;
+      iDevices = pLAVVideoSettings->GetHWAccelNumDevices((LAVHWAccel)i);
+      if (iDevices > 0)
+      {
+        lavSettings.video_dwHWAccelDeviceIndex[(LAVHWAccel)i] = pLAVVideoSettings->GetHWAccelDeviceIndex((LAVHWAccel)i, 0);
+       
+        for (int index = 0; index < iDevices; ++index) {
+          BSTR deviceInfo;
+          std::string sDeviceInfo;
+          pLAVVideoSettings->GetHWAccelDeviceInfo((LAVHWAccel)i, index, &deviceInfo, 0);
+          if (deviceInfo != nullptr)
+          {
+            g_charsetConverter.wToUTF8(deviceInfo, sDeviceInfo);
+            SysFreeString(deviceInfo);
+          }
+          m_mapHWAccelDeviceInfo[i].emplace_back(sDeviceInfo, index);
+        }
+      }
+    }
+
     for (int i = 0; i < HWCodec_NB; ++i) {
       lavSettings.video_bHWFormats[i] = pLAVVideoSettings->GetHWAccelCodec((LAVVideoHWCodec)i);
     }
@@ -304,7 +333,7 @@ bool CGraphFilters::GetLavSettings(const std::string &type, IBaseFilter* pBF)
     lavSettings.video_dwHWDeintMode = pLAVVideoSettings->GetHWAccelDeintMode();
     lavSettings.video_dwHWDeintOutput = pLAVVideoSettings->GetHWAccelDeintOutput();
     lavSettings.video_bUseMSWMV9Decoder = pLAVVideoSettings->GetUseMSWMV9Decoder();
-    lavSettings.video_bDVDVideoSupport = pLAVVideoSettings->GetDVDVideoSupport();
+    lavSettings.video_bDVDVideoSupport = pLAVVideoSettings->GetDVDVideoSupport();   
   } 
   if (type == INTERNAL_LAVAUDIO)
   {
@@ -416,7 +445,15 @@ bool CGraphFilters::SetLavSettings(const std::string &type, IBaseFilter* pBF)
       pLAVVideoSettings->SetPixelFormat((LAVOutPixFmts)i, lavSettings.video_bPixFmts[i]);
     }
     pLAVVideoSettings->SetHWAccel((LAVHWAccel)lavSettings.video_dwHWAccel);
-    pLAVVideoSettings->SetHWAccelDeviceIndex((LAVHWAccel)lavSettings.video_dwHWAccel,lavSettings.video_dwHWAccelDeviceIndex, 0);
+    for (int i = 0; i < HWAccel_NB; ++i)
+    {
+      int iDevices;
+      iDevices = pLAVVideoSettings->GetHWAccelNumDevices((LAVHWAccel)i);
+      if (iDevices > 0)
+      {
+        pLAVVideoSettings->SetHWAccelDeviceIndex((LAVHWAccel)i, lavSettings.video_dwHWAccelDeviceIndex[(LAVHWAccel)i], 0);
+      }
+    }
     for (int i = 0; i < HWCodec_NB; ++i) {
       pLAVVideoSettings->SetHWAccelCodec((LAVVideoHWCodec)i, lavSettings.video_bHWFormats[i]);
     }
@@ -572,6 +609,38 @@ void CGraphFilters::EraseLavSetting(const std::string &type)
 
     dsdbs.Close();
   }
+}
+
+std::string CGraphFilters::GetActiveDecoderName()
+{
+  if (!Video.internalFilter)
+    return "";
+
+  if (Com::SmartQIPtr<ILAVVideoStatus> pLAVFStatus = Video.pBF)
+  {
+    if (pLAVFStatus->GetActiveDecoderName() != NULL)
+    {
+      const WCHAR *activeDecoderNameW = pLAVFStatus->GetActiveDecoderName();
+      if (activeDecoderNameW != nullptr)
+      {
+        std::map<std::wstring, std::string> userFriendlyDecoderNames;
+        userFriendlyDecoderNames[L"avcodec"] = "FFMpeg";
+        userFriendlyDecoderNames[L"dxva2n"] = "DXVA2 Native";
+        userFriendlyDecoderNames[L"dxva2cb"] = "DXVA2 Copy-back";
+        userFriendlyDecoderNames[L"dxva2cb direct"] = "DXVA2 Copy-back Direct";
+        userFriendlyDecoderNames[L"cuvid"] = "NVIDIA CUVID";
+        userFriendlyDecoderNames[L"quicksync"] = "Intel QuickSync";
+        userFriendlyDecoderNames[L"d3d11 cb direct"] = "D3D11 Copy-back Direct";
+        userFriendlyDecoderNames[L"d3d11 cb"] = "D3D11 Copy-back";
+        userFriendlyDecoderNames[L"d3d11 native"] = "D3D11 Native";
+
+        if (!userFriendlyDecoderNames[activeDecoderNameW].empty())
+          return userFriendlyDecoderNames[activeDecoderNameW];
+      }
+    }
+  }
+
+  return "";
 }
 
 void CGraphFilters::SetAuxAudioDelay()

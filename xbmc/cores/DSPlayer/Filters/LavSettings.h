@@ -42,7 +42,7 @@ public:
   BOOL video_bPixFmts[LAVOutPixFmt_NB];
   DWORD video_dwRGBRange;
   DWORD video_dwHWAccel;
-  DWORD video_dwHWAccelDeviceIndex;
+  DWORD video_dwHWAccelDeviceIndex[HWAccel_NB];
   BOOL video_bHWFormats[HWCodec_NB];
   BOOL video_bVideoFormats[Codec_VideoNB];
   DWORD video_dwHWAccelResFlags;

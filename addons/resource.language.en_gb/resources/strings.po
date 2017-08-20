@@ -20472,19 +20472,19 @@ msgid "Hardware/GPU deinterlacing (CUVID/QS only)"
 msgstr ""
 
 msgctxt "#80007"
-msgid "- output mode"
+msgid "Output mode"
 msgstr ""
 
 msgctxt "#80008"
-msgid "- high quality processing"
+msgid ""
 msgstr ""
 
 msgctxt "#80009"
-msgid "Field Order"
+msgid "Field order"
 msgstr ""
 
 msgctxt "#80010"
-msgid "Deinterlacing Mode"
+msgid "Deinterlacing mode"
 msgstr ""
 
 msgctxt "#80011"
@@ -20497,6 +20497,18 @@ msgstr ""
 
 msgctxt "#80013"
 msgid "Open property page"
+msgstr ""
+
+msgctxt "#80014"
+msgid "Device to use"
+msgstr ""
+
+msgctxt "#80015"
+msgid "Resolutions"
+msgstr ""
+
+msgctxt "#80016"
+msgid "Codecs"
 msgstr ""
 
 msgctxt "#80100"
@@ -20647,12 +20659,20 @@ msgctxt "#80219"
 msgid "Weston Three Field (complex)"
 msgstr ""
 
+msgctxt "#80220"
+msgid "No software deinterlacing"
+msgstr ""
+
+msgctxt "#80221"
+msgid "D3D11"
+msgstr ""
+
 msgctxt "#81001"
 msgid "Dynamic range compression (AC3, EAC3)"
 msgstr ""
 
 msgctxt "#81002"
-msgid "- level"
+msgid "Level"
 msgstr ""
 
 msgctxt "#81003"
@@ -20700,7 +20720,7 @@ msgid "Enable mixing"
 msgstr ""
 
 msgctxt "#81014"
-msgid "- output speaker configuration"
+msgid "Output speaker configuration"
 msgstr "
 
 msgctxt "#81015"
@@ -20728,15 +20748,15 @@ msgid "7.1"
 msgstr "
 
 msgctxt "#81021"
-msgid "- center mix level"
+msgid "Center mix level"
 msgstr ""
 
 msgctxt "#81022"
-msgid "- surround mix level"
+msgid "Surround mix level"
 msgstr ""
 
 msgctxt "#81023"
-msgid "- lfe mix level"
+msgid "LFE mix level"
 msgstr ""
 
 msgctxt "#81024"

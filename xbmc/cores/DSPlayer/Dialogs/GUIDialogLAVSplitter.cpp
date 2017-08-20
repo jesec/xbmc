@@ -76,17 +76,10 @@ using namespace std;
 CGUIDialogLAVSplitter::CGUIDialogLAVSplitter()
   : CGUIDialogSettingsManualBase(WINDOW_DIALOG_LAVSPLITTER, "DialogSettings.xml")
 {
-  m_allowchange = true;
 }
 
 CGUIDialogLAVSplitter::~CGUIDialogLAVSplitter()
-{ }
-
-void CGUIDialogLAVSplitter::OnInitWindow()
-{
-  CGUIDialogSettingsManualBase::OnInitWindow();
-
-  HideUnused();
+{ 
 }
 
 void CGUIDialogLAVSplitter::SetupView()
@@ -187,20 +180,40 @@ void CGUIDialogLAVSplitter::InitializeSettings()
   AddToggle(group, LAVSPLITTER_TRAYICON, 80001, 0, lavSettings.splitter_bTrayIcon);
 
   // PREFLANG
+
+  // dependencies
+  CSettingDependency dependencyPrefSubLangVisible(SettingDependencyTypeVisible, m_settingsManager);
+  dependencyPrefSubLangVisible.Or()
+    ->Add(CSettingDependencyConditionPtr(new CSettingDependencyCondition(LAVSPLITTER_SUBMODE, "3", SettingDependencyOperatorEquals, true, m_settingsManager)));
+  SettingDependencies depsPrefSubLangVisible;
+  depsPrefSubLangVisible.push_back(dependencyPrefSubLangVisible);
+
+  CSettingDependency dependencyPrefSubAdvVisible(SettingDependencyTypeVisible, m_settingsManager);
+  dependencyPrefSubAdvVisible.Or()
+    ->Add(CSettingDependencyConditionPtr(new CSettingDependencyCondition(LAVSPLITTER_SUBMODE, "3", SettingDependencyOperatorEquals, false, m_settingsManager)));
+  SettingDependencies depsPrefSubAdvVisible;
+  depsPrefSubAdvVisible.push_back(dependencyPrefSubAdvVisible);
+
   std::string str;
   g_charsetConverter.wToUTF8(lavSettings.splitter_prefAudioLangs, str, false);
   AddEdit(groupPreflang, LAVSPLITTER_PREFAUDIOLANG, 82001, 0, str, true);
+  
   g_charsetConverter.wToUTF8(lavSettings.splitter_prefSubLangs , str, false);
-  AddEdit(groupPreflang, LAVSPLITTER_PREFSUBLANG, 82002, 0, str, true);
+  CSetting *settingPrefSubLang;
+  settingPrefSubLang = AddEdit(groupPreflang, LAVSPLITTER_PREFSUBLANG, 82002, 0, str, true);
+  settingPrefSubLang->SetDependencies(depsPrefSubLangVisible);
+
   g_charsetConverter.wToUTF8(lavSettings.splitter_subtitleAdvanced, str, false);
-  AddEdit(groupPreflang, LAVSPLITTER_PREFSUBADVANCED, 82016, 0, str, true);
+  CSetting *settingPrefSubAdv;
+  settingPrefSubAdv = AddEdit(groupPreflang, LAVSPLITTER_PREFSUBADVANCED, 82016, 0, str, true);
+  settingPrefSubAdv->SetDependencies(depsPrefSubAdvVisible);
 
   //SUBMODE
   entries.clear();
-  entries.emplace_back(82004, 0);
-  entries.emplace_back(82005, 1);
-  entries.emplace_back(82006, 2);
-  entries.emplace_back(82007, 3);
+  entries.emplace_back(82004, LAVSubtitleMode_NoSubs);
+  entries.emplace_back(82005, LAVSubtitleMode_ForcedOnly);
+  entries.emplace_back(82006, LAVSubtitleMode_Default);
+  entries.emplace_back(82007, LAVSubtitleMode_Advanced);
   AddList(groupSubmode, LAVSPLITTER_SUBMODE, 82003, 0, lavSettings.splitter_subtitleMode, entries, 82003);
 
   //BLURAYSUB
@@ -270,8 +283,6 @@ void CGUIDialogLAVSplitter::OnSettingChanged(const CSetting *setting)
   if (settingId == LAVSPLITTER_IMPAIREDAUDIO)
     lavSettings.splitter_bImpairedAudio = static_cast<BOOL>(static_cast<const CSettingBool*>(setting)->GetValue());
 
-  HideUnused();
-
   // Get current running filter
   IBaseFilter *pBF;
   CGraphFilters::Get()->GetInternalFilter(CGraphFilters::INTERNAL_LAVSPLITTER, &pBF);
@@ -307,34 +318,3 @@ void CGUIDialogLAVSplitter::OnSettingAction(const CSetting *setting)
   }
 }
 
-void CGUIDialogLAVSplitter::HideUnused()
-{
-  if (!m_allowchange)
-    return;
-
-  m_allowchange = false;
-
-  int iValue;
-
-  CSetting *setting;
-
-  // HIDE / SHOW
-
-  // SUBTITLE LANG
-  setting = m_settingsManager->GetSetting(LAVSPLITTER_SUBMODE);
-  iValue = (LAVSubtitleMode)static_cast<int>(static_cast<const CSettingInt*>(setting)->GetValue());;
-  SetVisible(LAVSPLITTER_PREFSUBADVANCED, iValue == 3);
-  SetVisible(LAVSPLITTER_PREFSUBLANG, iValue < 3);
-
-  m_allowchange = true;
-}
-
-void CGUIDialogLAVSplitter::SetVisible(std::string id, bool visible)
-{
-  CSetting *setting = m_settingsManager->GetSetting(id);
-  if (setting->IsVisible() && visible)
-    return;
-
-  setting->SetVisible(visible);
-  setting->SetEnabled(visible);
-}

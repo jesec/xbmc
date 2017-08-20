@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2010-2016 Hendrik Leppkes
+ *      Copyright (C) 2010-2017 Hendrik Leppkes
  *      http://www.1f0.de
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -124,6 +124,7 @@ typedef enum LAVHWAccel {
   HWAccel_DXVA2,
   HWAccel_DXVA2CopyBack = HWAccel_DXVA2,
   HWAccel_DXVA2Native,
+  HWAccel_D3D11,
   HWAccel_NB,              // Number of HWAccels
 } LAVHWAccel;
 
@@ -303,7 +304,7 @@ interface __declspec(uuid("FA40D6E9-4D38-4761-ADD2-71A9EC5FD32F")) ILAVVideoSett
   // Get the deinterlacing output for the hardware decoder
   STDMETHOD_(LAVDeintOutput, GetHWAccelDeintOutput)() = 0;
 
-  // deprecated. HQ deint is always used when available depending on platform and codec
+  // deprecated. HQ mode is only supported by NVIDIA CUVID/NVDEC and officially deprecated by NVIDIA
   STDMETHOD(SetHWAccelDeintHQ)(BOOL bHQ) = 0;
   STDMETHOD_(BOOL, GetHWAccelDeintHQ)() = 0;
 
