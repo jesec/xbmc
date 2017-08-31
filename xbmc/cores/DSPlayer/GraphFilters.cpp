@@ -94,6 +94,7 @@ void CGraphFilters::SetSanearSettings()
   bool bSanearExclusive = CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_SANEAREXCLUSIVE);
   bool bSanearAllowbitstream = CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_SANEARALLOWBITSTREAM);
   bool bSanearStereoCrossfeed = CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_SANEARSTEREOCROSSFEED);
+  bool bSanearIgnoreSystemChannelMixer = CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_SANEARIGNORESYSTEMCHANNELMIXER);
   int iSanearCutoff = CSettings::GetInstance().GetInt(CSettings::SETTING_DSPLAYER_SANEARCUTOFF);
   int iSanearLevel = CSettings::GetInstance().GetInt(CSettings::SETTING_DSPLAYER_SANEARLEVEL);
 
@@ -102,6 +103,7 @@ void CGraphFilters::SetSanearSettings()
   sanear->SetOuputDevice(adeviceW.c_str(), bSanearExclusive, buffer);
   sanear->SetAllowBitstreaming(bSanearAllowbitstream);
   sanear->SetCrossfeedEnabled(bSanearStereoCrossfeed);
+  sanear->SetIgnoreSystemChannelMixer(bSanearIgnoreSystemChannelMixer);
   sanear->SetCrossfeedSettings(iSanearCutoff, iSanearLevel);
 }
 

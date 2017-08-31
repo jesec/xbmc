@@ -412,6 +412,7 @@ public:
   static const std::string CSettings::SETTING_DSPLAYER_SANEAREXCLUSIVE;
   static const std::string CSettings::SETTING_DSPLAYER_SANEARALLOWBITSTREAM;
   static const std::string CSettings::SETTING_DSPLAYER_SANEARSTEREOCROSSFEED;
+  static const std::string CSettings::SETTING_DSPLAYER_SANEARIGNORESYSTEMCHANNELMIXER;
   static const std::string CSettings::SETTING_DSPLAYER_SANEARCMOY;
   static const std::string CSettings::SETTING_DSPLAYER_SANEARJMEIER;
   static const std::string CSettings::SETTING_DSPLAYER_SANEARCUTOFF;

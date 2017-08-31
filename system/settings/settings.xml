@@ -1045,6 +1045,15 @@
           <default>true</default>
           <dependencies>
             <dependency type="visible" setting="dsplayer.audiorenderer" operator="is">sanear_internal</dependency>
+            <dependency type="enable" setting="dsplayer.sanearexclusive" operator="is">true</dependency>
+          </dependencies>
+          <control type="toggle" />
+        </setting>
+        <setting id="dsplayer.sanearignoresystemchannelmixer" parent="dsplayer.audiorenderer" type="boolean" label="55133" help="">
+          <level>0</level>
+          <default>true</default>
+          <dependencies>
+            <dependency type="visible" setting="dsplayer.audiorenderer" operator="is">sanear_internal</dependency>
           </dependencies>
           <control type="toggle" />
         </setting>

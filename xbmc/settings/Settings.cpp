@@ -460,6 +460,7 @@ const std::string CSettings::SETTING_DSPLAYER_SANEARDEVICES = "dsplayer.sanearde
 const std::string CSettings::SETTING_DSPLAYER_SANEAREXCLUSIVE = "dsplayer.sanearexclusive";
 const std::string CSettings::SETTING_DSPLAYER_SANEARALLOWBITSTREAM = "dsplayer.sanearallowbitstream";
 const std::string CSettings::SETTING_DSPLAYER_SANEARSTEREOCROSSFEED = "dsplayer.sanearstereocrossfeed";
+const std::string CSettings::SETTING_DSPLAYER_SANEARIGNORESYSTEMCHANNELMIXER = "dsplayer.sanearignoresystemchannelmixer";
 const std::string CSettings::SETTING_DSPLAYER_SANEARCMOY = "dsplayer.sanearcmoy";
 const std::string CSettings::SETTING_DSPLAYER_SANEARJMEIER = "dsplayer.sanearjmeier";
 const std::string CSettings::SETTING_DSPLAYER_SANEARCUTOFF = "dsplayer.sanearcutoff";
@@ -1118,6 +1119,7 @@ void CSettings::InitializeISettingCallbacks()
   settingSet.insert(CSettings::SETTING_DSPLAYER_SANEAREXCLUSIVE);
   settingSet.insert(CSettings::SETTING_DSPLAYER_SANEARALLOWBITSTREAM);
   settingSet.insert(CSettings::SETTING_DSPLAYER_SANEARSTEREOCROSSFEED);
+  settingSet.insert(CSettings::SETTING_DSPLAYER_SANEARIGNORESYSTEMCHANNELMIXER);
   settingSet.insert(CSettings::SETTING_DSPLAYER_SANEARCMOY);
   settingSet.insert(CSettings::SETTING_DSPLAYER_SANEARJMEIER);
   settingSet.insert(CSettings::SETTING_DSPLAYER_SANEARCUTOFF);

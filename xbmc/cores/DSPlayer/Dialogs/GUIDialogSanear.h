@@ -36,7 +36,6 @@ protected:
   // implementations of ISettingCallback
   virtual void OnSettingChanged(const CSetting *setting);
   virtual void OnSettingAction(const CSetting *setting);
-  virtual void OnInitWindow();
 
   // specialization of CGUIDialogSettingsBase
   virtual bool AllowResettingSettings() const { return false; }
@@ -45,9 +44,4 @@ protected:
   // specialization of CGUIDialogSettingsManualBase
   virtual void InitializeSettings();
   virtual void SetupView();
-
-  void HideUnused();
-  void SetVisible(std::string id, bool visible);
-
-  bool m_allowchange;
 };
