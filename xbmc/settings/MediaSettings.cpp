@@ -315,6 +315,7 @@ void CMediaSettings::OnSettingChanged(const CSetting *setting)
     || settingId == CSettings::SETTING_DSPLAYER_SANEAREXCLUSIVE
     || settingId == CSettings::SETTING_DSPLAYER_SANEARALLOWBITSTREAM
     || settingId == CSettings::SETTING_DSPLAYER_SANEARSTEREOCROSSFEED
+    || settingId == CSettings::SETTING_DSPLAYER_SANEARIGNORESYSTEMCHANNELMIXER
     || settingId == CSettings::SETTING_DSPLAYER_SANEARCUTOFF
     || settingId == CSettings::SETTING_DSPLAYER_SANEARLEVEL
     )
