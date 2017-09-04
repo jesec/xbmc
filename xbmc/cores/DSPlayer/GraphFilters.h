@@ -192,7 +192,7 @@ public:
   bool LoadLavSettings(const std::string &type);
   bool SaveLavSettings(const std::string &type);
   void EraseLavSetting(const std::string &type);
-  std::string GetActiveDecoderName();
+  void GetActiveDecoder(std::pair<std::string, bool> &activeDecoder);
   void GetHWDeviceList(DWORD dwHWAccel, DynamicIntegerSettingOptions &list) { list = m_mapHWAccelDeviceInfo[dwHWAccel];};
 
   void SetSanearSettings();

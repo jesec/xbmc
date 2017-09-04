@@ -1495,14 +1495,13 @@ void CDSPlayer::UpdateProcessInfo(int index)
   info = CStreamsManager::Get() ? CStreamsManager::Get()->GetVideoCodecName() : "";
 
   // add active decoder info
-  if (CGraphFilters::Get()->Video.internalFilter)
-  {
-    std::string activeDecoderName = CGraphFilters::Get()->GetActiveDecoderName();
-    if (!activeDecoderName.empty())
-      info += " (" + activeDecoderName + ")";
-  }
+  std::pair<std::string, bool> activeDecoder;
+  CGraphFilters::Get()->GetActiveDecoder(activeDecoder);
 
-  m_processInfo->SetVideoDecoderName(info, CStreamsManager::Get()->GetHWAccel() > 0);
+  if (!activeDecoder.first.empty())
+    info += " (" + activeDecoder.first + ")";
+
+  m_processInfo->SetVideoDecoderName(info, activeDecoder.second);
   m_processInfo->SetVideoDAR((float)width / (float)heigth);
   m_processInfo->SetVideoFps(m_fps);
 
