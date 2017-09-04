@@ -179,8 +179,8 @@ void CGUIDialogDSRules::InitializeSettings()
   }
 
   // get all necessary setting groups
-  CSettingGroup *groupName = AddGroup(category);
-  if (groupName == NULL)
+  CSettingGroup *groupPriority = AddGroup(category);
+  if (groupPriority == NULL)
   {
     CLog::Log(LOGERROR, "CGUIDialogDSRules: unable to setup settings");
     return;
@@ -220,8 +220,8 @@ void CGUIDialogDSRules::InitializeSettings()
   if (m_ruleList.size() == 0)
   {
     // RULE
-    m_dsmanager->InitConfig(m_ruleList, EDITATTR, "rules.name", 60002, "name");
     m_dsmanager->InitConfig(m_ruleList, SPINNERATTR, "rules.priority", 60024, "priority", "", m_dsmanager->PriorityOptionFiller);
+    m_dsmanager->InitConfig(m_ruleList, EDITATTR, "rules.name", 60002, "name"); 
     m_dsmanager->InitConfig(m_ruleList, EDITATTR, "rules.filetypes", 60003, "filetypes");
     m_dsmanager->InitConfig(m_ruleList, EDITATTR, "rules.filename", 60004, "filename");
     m_dsmanager->InitConfig(m_ruleList, EDITATTR, "rules.videocodec", 60020, "videocodec");
@@ -350,18 +350,15 @@ void CGUIDialogDSRules::InitializeSettings()
       || it->m_configType == EDITATTREXTRA
       || it->m_configType == EDITATTRSHADER)
     {
-      if (it->m_attr == "name")
-        groupTmp = groupName;
-      else
-        groupTmp = groupRule;
-
       if (it->m_configType == EDITATTREXTRA || it->m_configType == EDITATTRSHADER)
         groupTmp = groupExtra;
+      else
+        groupTmp = groupRule;
 
       AddEdit(groupTmp, it->m_setting, it->m_label, 0, it->m_value.c_str(), true);
     }
     if (it->m_configType == SPINNERATTR)
-      AddList(groupName, it->m_setting, it->m_label, 0, it->m_value, it->m_filler, it->m_label);
+      AddList(groupPriority, it->m_setting, it->m_label, 0, it->m_value, it->m_filler, it->m_label);
 
     if (it->m_configType == SPINNERATTRSHADER)
       AddSpinner(groupExtra, it->m_setting, it->m_label, 0, it->m_value, it->m_filler);

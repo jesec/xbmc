@@ -307,6 +307,7 @@ bool CGraphFilters::GetLavSettings(const std::string &type, IBaseFilter* pBF)
 
       int iDevices;
       iDevices = pLAVVideoSettings->GetHWAccelNumDevices((LAVHWAccel)i);
+      lavSettings.video_dwHWAccelDeviceIndex[(LAVHWAccel)i] = -1;
       if (iDevices > 0)
       {
         lavSettings.video_dwHWAccelDeviceIndex[(LAVHWAccel)i] = pLAVVideoSettings->GetHWAccelDeviceIndex((LAVHWAccel)i, 0);
@@ -613,36 +614,43 @@ void CGraphFilters::EraseLavSetting(const std::string &type)
   }
 }
 
-std::string CGraphFilters::GetActiveDecoderName()
-{
-  if (!Video.internalFilter)
-    return "";
+void CGraphFilters::GetActiveDecoder(std::pair<std::string, bool> &activeDecoder)
+{  
+  activeDecoder.first = "";
+  activeDecoder.second = false;
 
   if (Com::SmartQIPtr<ILAVVideoStatus> pLAVFStatus = Video.pBF)
   {
-    if (pLAVFStatus->GetActiveDecoderName() != NULL)
-    {
-      const WCHAR *activeDecoderNameW = pLAVFStatus->GetActiveDecoderName();
-      if (activeDecoderNameW != nullptr)
-      {
-        std::map<std::wstring, std::string> userFriendlyDecoderNames;
-        userFriendlyDecoderNames[L"avcodec"] = "FFMpeg";
-        userFriendlyDecoderNames[L"dxva2n"] = "DXVA2 Native";
-        userFriendlyDecoderNames[L"dxva2cb"] = "DXVA2 Copy-back";
-        userFriendlyDecoderNames[L"dxva2cb direct"] = "DXVA2 Copy-back Direct";
-        userFriendlyDecoderNames[L"cuvid"] = "NVIDIA CUVID";
-        userFriendlyDecoderNames[L"quicksync"] = "Intel QuickSync";
-        userFriendlyDecoderNames[L"d3d11 cb direct"] = "D3D11 Copy-back Direct";
-        userFriendlyDecoderNames[L"d3d11 cb"] = "D3D11 Copy-back";
-        userFriendlyDecoderNames[L"d3d11 native"] = "D3D11 Native";
+    const WCHAR *activeDecoderNameW = pLAVFStatus->GetActiveDecoderName();
 
-        if (!userFriendlyDecoderNames[activeDecoderNameW].empty())
-          return userFriendlyDecoderNames[activeDecoderNameW];
+    if (activeDecoderNameW != nullptr)
+    {
+      std::map<std::wstring, std::pair<std::string, bool> > decoderList;
+      decoderList[L"avcodec"] = std::make_pair("FFMpeg", false);
+      decoderList[L"dxva2n"] = std::make_pair("DXVA2 Native", true);
+      decoderList[L"dxva2cb"] = std::make_pair("DXVA2 Copy-back", true);
+      decoderList[L"dxva2cb direct"] = std::make_pair("DXVA2 Copy-back Direct", true);
+      decoderList[L"cuvid"] = std::make_pair("NVIDIA CUVID", true);
+      decoderList[L"quicksync"] = std::make_pair("Intel QuickSync", true);
+      decoderList[L"d3d11 cb direct"] = std::make_pair("D3D11 Copy-back Direct", true);
+      decoderList[L"d3d11 cb"] = std::make_pair("D3D11 Copy-back", true);
+      decoderList[L"d3d11 native"] = std::make_pair("D3D11 Native", true);
+
+      if (!decoderList[activeDecoderNameW].first.empty())
+      {
+        activeDecoder = decoderList[activeDecoderNameW];
+      }
+      else 
+      {
+        Com::SmartQIPtr<ILAVVideoSettings> pLAVVideoSettings = Video.pBF;
+        if (!pLAVVideoSettings)
+          return;
+
+        g_charsetConverter.wToUTF8(activeDecoderNameW, activeDecoder.first);
+        activeDecoder.second = pLAVVideoSettings->GetHWAccel() > 0;
       }
     }
   }
-
-  return "";
 }
 
 void CGraphFilters::SetAuxAudioDelay()
