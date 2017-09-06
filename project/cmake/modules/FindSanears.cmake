@@ -22,8 +22,11 @@ set(SOUNDTOUCH_LIBRARY_RELEASE "${CORE_SOURCE_DIR}/xbmc/cores/DSPlayer/Libs/Sane
 set(SOXR_LIBRARY_DEBUG "${CORE_SOURCE_DIR}/xbmc/cores/DSPlayer/Libs/Sanear/Debug${DS_PLATFORM}/soxr.lib" )
 set(SOXR_LIBRARY_RELEASE "${CORE_SOURCE_DIR}/xbmc/cores/DSPlayer/Libs/Sanear/Release${DS_PLATFORM}/soxr.lib" )
 
-set(ZITARESAMPLER_LIBRARY_DEBUG "${CORE_SOURCE_DIR}/xbmc/cores/DSPlayer/Libs/Sanear/Debug${DS_PLATFORM}/zita-resampler.lib" )
-set(ZITARESAMPLER_LIBRARY_RELEASE "${CORE_SOURCE_DIR}/xbmc/cores/DSPlayer/Libs/Sanear/Release${DS_PLATFORM}/zita-resampler.lib" )
+set(RUBBERBAND_LIBRARY_DEBUG "${CORE_SOURCE_DIR}/xbmc/cores/DSPlayer/Libs/Sanear/Debug${DS_PLATFORM}/rubberband.lib" )
+set(RUBBERBAND_LIBRARY_RELEASE "${CORE_SOURCE_DIR}/xbmc/cores/DSPlayer/Libs/Sanear/Release${DS_PLATFORM}/rubberband.lib" )
+
+set(FFTW_LIBRARY_DEBUG "${CORE_SOURCE_DIR}/xbmc/cores/DSPlayer/Libs/Sanear/Debug${DS_PLATFORM}/fftw.lib" )
+set(FFTW_LIBRARY_RELEASE "${CORE_SOURCE_DIR}/xbmc/cores/DSPlayer/Libs/Sanear/Release${DS_PLATFORM}/fftw.lib" )
 
 set(SANEARS_FOUND 1)
 
@@ -32,8 +35,9 @@ select_library_configurations(BS2B)
 select_library_configurations(SANEAR)
 select_library_configurations(SOUNDTOUCH)
 select_library_configurations(SOXR)
-select_library_configurations(ZITARESAMPLER)
+select_library_configurations(RUBBERBAND)
+select_library_configurations(FFTW)
 
-set(SANEARS_LIBRARIES ${BS2B_LIBRARY} ${SANEAR_LIBRARY} ${SOUNDTOUCH_LIBRARY} ${SOXR_LIBRARY} ${ZITARESAMPLER_LIBRARY} )
+set(SANEARS_LIBRARIES ${BS2B_LIBRARY} ${SANEAR_LIBRARY} ${SOUNDTOUCH_LIBRARY} ${SOXR_LIBRARY} ${RUBBERBAND_LIBRARY} ${FFTW_LIBRARY})
 
-mark_as_advanced(SANEARS_FOUND BS2B_LIBRARY SANEAR_LIBRARY SOUNDTOUCH_LIBRARY SOXR_LIBRARY ZITARESAMPLER_LIBRARY )
+mark_as_advanced(SANEARS_FOUND BS2B_LIBRARY SANEAR_LIBRARY SOUNDTOUCH_LIBRARY SOXR_LIBRARY RUBBERBAND_LIBRARY FFTW_LIBRARY)
