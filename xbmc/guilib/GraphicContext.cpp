@@ -76,7 +76,10 @@ void CGraphicContext::OnSettingChanged(const CSetting *setting)
 
   const std::string &settingId = setting->GetId();
 #ifdef HAS_DS_PLAYER
-  if (settingId == CSettings::SETTING_VIDEOSCREEN_FAKEFULLSCREEN || settingId == CSettings::SETTING_DSPLAYER_EXCLUSIVEMODE_EVR)
+  if (settingId == CSettings::SETTING_VIDEOSCREEN_FAKEFULLSCREEN)
+    /* todo evr
+    || settingId == CSettings::SETTING_DSPLAYER_EXCLUSIVEMODE_EVR)
+    */
 #else
   if (settingId == CSettings::SETTING_VIDEOSCREEN_FAKEFULLSCREEN)
 #endif

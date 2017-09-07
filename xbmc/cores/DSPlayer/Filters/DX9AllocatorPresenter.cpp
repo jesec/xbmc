@@ -870,12 +870,14 @@ HRESULT CDX9AllocatorPresenter::InitD3D9()
     CLog::Log(LOGDEBUG, __FUNCTION__" - using software vertex processing");
   }
 
+  /* todo evr
   if (CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_EXCLUSIVEMODE_EVR))
   {
     m_FocusThread = DNew CFocusThread();
     m_FocusThread->Create();
     m_hFocusWindow = m_FocusThread->GetFocusWindow();
   }
+  */
 
   hr = m_pD3D->CreateDeviceEx(
     m_adapter,
