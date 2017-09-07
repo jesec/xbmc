@@ -23,11 +23,13 @@
 #include "EvrSharedRender.h"
 #include "guilib/GraphicContext.h"
 #include "windowing/WindowingFactory.h"
+#include "settings/AdvancedSettings.h"
 #include "Application.h"
 
 CEvrSharedRender::CEvrSharedRender()
 {
   g_application.m_pPlayer->Register(this);
+  m_bWaitKodiRendering = !g_advancedSettings.m_bNotWaitKodiRendering;
 }
 
 CEvrSharedRender::~CEvrSharedRender()

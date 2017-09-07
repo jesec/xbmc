@@ -137,6 +137,7 @@ static INT_PTR CALLBACK prop_sheet_proc(HWND hwnd, UINT msg, WPARAM wparam,
 void CDSPropertyPage::Process()
 {
   bool wasFullscreen = false;
+  /* todo evr
   if (g_Windowing.IsFullScreen() 
     && CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_EXCLUSIVEMODE_EVR) 
     && g_application.m_pPlayer->ReadyDS(DIRECTSHOW_RENDERER_EVR)
@@ -145,7 +146,7 @@ void CDSPropertyPage::Process()
     CDSPlayer::PostGraphMessage(new CDSMsgBool(CDSMsg::RESET_DEVICE, true), false);
     wasFullscreen = true;
   }
-
+  */
   HRESULT hr;
   Com::SmartQIPtr<ISpecifyPropertyPages> pProp = m_pBF;
   CAUUID pPages;
