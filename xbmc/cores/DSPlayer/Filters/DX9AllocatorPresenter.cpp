@@ -223,9 +223,10 @@ CDX9AllocatorPresenter::CDX9AllocatorPresenter(HWND hWnd, HRESULT& hr, bool bIsE
   , m_hFocusWindow(nullptr)
   , m_useWindowedDX(true)
   , m_ForceWindowedDX(false)
+  , m_pEvrShared(nullptr)
+  , m_pD3DDev(nullptr)
 {
   g_application.m_pPlayer->Register(this);
-  m_pEvrShared = DNew CEvrSharedRender();
   g_Windowing.Register(this);
   m_bIsFullscreen = g_dsSettings.IsD3DFullscreen();
   m_devType = D3DDEVTYPE_HAL;
@@ -614,6 +615,7 @@ HRESULT CDX9AllocatorPresenter::CreateDevice(std::string &_Error)
   m_ClockTimeChangeHistoryPos = 0;
 
   HRESULT hr =InitD3D9();
+  m_pEvrShared = DNew CEvrSharedRender();
   m_pEvrShared->CreateTextures(g_Windowing.Get3D11Device(), (IDirect3DDevice9Ex*)m_pD3DDev, m_ScreenSize.cx, m_ScreenSize.cy);
 
   m_pResizerPixelShader[0] = 0;
@@ -825,6 +827,29 @@ void CDX9AllocatorPresenter::BuildPresentParameters()
  if (!m_useWindowedDX)
    SetWindowLongPtr(m_hWnd, GWL_STYLE, WS_POPUP | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_VISIBLE);
  */
+}
+
+void CDX9AllocatorPresenter::DisplayChange(bool bExternalChange)
+{
+  CAutoLock lock(&m_DisplayChangeLock);
+
+  if (g_Windowing.Get3D11Device() == nullptr || m_pD3DDev == nullptr)
+    return;
+
+  CLog::Log(LOGDEBUG, "%s need to re-create the shared textures", __FUNCTION__);
+
+  if (m_pEvrShared != nullptr)
+    SAFE_DELETE(m_pEvrShared);
+
+  MONITORINFO mi;
+  mi.cbSize = sizeof(MONITORINFO);
+  if (GetMonitorInfo(MonitorFromWindow(m_hWnd, MONITOR_DEFAULTTONEAREST), &mi)) {
+    m_ScreenSize.SetSize(mi.rcMonitor.right - mi.rcMonitor.left, mi.rcMonitor.bottom - mi.rcMonitor.top);
+    m_activeVideoRect.SetRect(0, 0, m_ScreenSize.cx, m_ScreenSize.cy);
+  }
+
+  m_pEvrShared = DNew CEvrSharedRender();
+  m_pEvrShared->CreateTextures(g_Windowing.Get3D11Device(), (IDirect3DDevice9Ex*)m_pD3DDev, (int)m_ScreenSize.cx, (int)m_ScreenSize.cy);
 }
 
 HRESULT CDX9AllocatorPresenter::InitD3D9()

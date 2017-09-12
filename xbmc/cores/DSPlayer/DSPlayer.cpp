@@ -708,7 +708,7 @@ void CDSPlayer::DeInitWindow()
   m_hWnd = NULL;
 }
 
-void CDSPlayer::SetDsWndVisible(bool bVisible)
+void CDSPlayer::SetDSWndVisible(bool bVisible)
 {
   int cmd;
   bVisible ? cmd = SW_SHOW : cmd = SW_HIDE;
@@ -1442,11 +1442,6 @@ bool CDSPlayer::Configure(unsigned int width, unsigned int height, unsigned int 
   return m_renderManager.Configure(width, height, d_width, d_height, fps, flags);
 }
 
-void CDSPlayer::UpdateDisplayLatencyForMadvr(float refresh)
-{
-  m_renderManager.UpdateDisplayLatencyForMadvr(refresh);
-}
-
 void CDSPlayer::GetVideoRect(CRect &source, CRect &dest, CRect &view)
 {
   m_renderManager.GetVideoRect(source, dest, view);
@@ -1555,6 +1550,14 @@ bool CDSPlayer::GuiVisible(DS_RENDER_LAYER layer)
   return result;
 }
 
+void CDSPlayer::DisplayChange(bool bExternalChange)
+{
+  m_renderManager.DisplayChange(bExternalChange);
+
+  if (UsingDS())
+    m_pAllocatorCallback->DisplayChange(bExternalChange);
+}
+
 int CDSPlayer::VideoDimsToResolution(int iWidth, int iHeight)
 {
   int res = 0;
@@ -1615,10 +1618,10 @@ bool CDSPlayer::ReadyDS(DIRECTSHOW_RENDERER renderer)
 
 void CDSPlayer::SetRenderOnDS(bool b)
 {
-  if (b)
-    CDSPlayer::SetDsWndVisible(b);
-
   m_renderOnDs = b;
+
+  if (b)
+    SetDSWndVisible(b);
 }
 
 void CDSPlayer::SetVisibleScreenArea(CRect activeVideoRect)
@@ -1722,6 +1725,8 @@ void CDSPlayer::RenderToTexture(DS_RENDER_LAYER layer)
 
 void CDSPlayer::EndRender()
 {
+  m_renderManager.EndRender();
+
   if (m_pPaintCallback && ReadyDS())
     m_pPaintCallback->EndRender();
 }

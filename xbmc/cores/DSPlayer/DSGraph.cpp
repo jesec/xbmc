@@ -219,7 +219,6 @@ void CDSGraph::CloseFile()
 
     if (CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_EXITMADVRFULLSCREEN))
     {
-      CDSPlayer::SetDsWndVisible(false);
       g_application.m_pPlayer->EnableExclusive(false);
     }
 

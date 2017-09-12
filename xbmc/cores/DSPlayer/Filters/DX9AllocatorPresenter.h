@@ -229,6 +229,7 @@ protected:
 
   //D3D9Device
   void                                  SetPosition(CRect sourceRect, CRect videoRect, CRect viewRect);
+  void                                  DisplayChange(bool bExternalChange);
   HRESULT                               InitD3D9();
   void                                  BuildPresentParameters();
   HRESULT                               ResetRenderParam();
@@ -252,6 +253,8 @@ protected:
   CRect                                 m_activeVideoRect;
   CFocusThread*                         m_FocusThread;
   HWND                                  m_hFocusWindow;
+
+  CCritSec                              m_DisplayChangeLock;
 
   virtual HRESULT                       CreateDevice(std::string &_Error);
   virtual HRESULT                       AllocSurfaces(D3DFORMAT Format = D3DFMT_A8R8G8B8);

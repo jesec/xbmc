@@ -187,7 +187,6 @@ public:
   void ShowEditionDlg(bool playStart);
 
   bool Configure(unsigned int width, unsigned int height, unsigned int d_width, unsigned int d_height, float fps, unsigned flags);
-  void UpdateDisplayLatencyForMadvr(float refresh);
   void GetVideoRect(CRect &source, CRect &dest, CRect &view);
 
   // IDSPlayer
@@ -200,7 +199,7 @@ public:
   void ResetRenderCount();
   bool GuiVisible(DS_RENDER_LAYER layer = RENDER_LAYER_ALL);
   DIRECTSHOW_RENDERER GetCurrentRenderer();
-  void SetCurrentRenderer(DIRECTSHOW_RENDERER renderer);;
+  void SetCurrentRenderer(DIRECTSHOW_RENDERER renderer);
 
   // IDSRendererAllocatorCallback (madVR)
   CRect GetActiveVideoRect();
@@ -212,6 +211,7 @@ public:
   bool ParentWindowProc(HWND hWnd, UINT uMsg, WPARAM *wParam, LPARAM *lParam, LRESULT *ret);
   // IDSRendererAllocatorCallback (EVR)
   void Reset(bool bForceWindowed);
+  void DisplayChange(bool bExternalChange);
   void Register(IDSRendererAllocatorCallback* pAllocatorCallback);
   void Unregister(IDSRendererAllocatorCallback* pAllocatorCallback);
 

@@ -102,7 +102,9 @@ public:
   static void SettingOptionsCmsWhitepointsFiller(const CSetting *setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data);
   static void SettingOptionsCmsPrimariesFiller(const CSetting *setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data);
   static void SettingOptionsCmsGammaModesFiller(const CSetting *setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data);
-  
+#ifdef HAS_DS_PLAYER
+  static RESOLUTION GetResolutionFromString(const std::string &strResolution);
+#endif
 
 protected:
   CDisplaySettings();
@@ -111,8 +113,9 @@ protected:
   virtual ~CDisplaySettings();
 
   DisplayMode GetCurrentDisplayMode() const;
-
+#ifndef HAS_DS_PLAYER
   static RESOLUTION GetResolutionFromString(const std::string &strResolution);
+#endif
   static std::string GetStringFromResolution(RESOLUTION resolution, float refreshrate = 0.0f);
   static RESOLUTION GetResolutionForScreen();
 

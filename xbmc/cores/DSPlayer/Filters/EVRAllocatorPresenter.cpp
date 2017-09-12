@@ -585,14 +585,18 @@ STDMETHODIMP CEVRAllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
 
 STDMETHODIMP_(bool) CEVRAllocatorPresenter::Paint(bool fAll)
 {
+  CAutoLock lock(&m_DisplayChangeLock);
+
   m_pD3DDev->BeginScene();
   m_pD3DDev->Clear(0, NULL, D3DCLEAR_TARGET, 0, 1.0f, 0);
-  m_pEvrShared->Render(RENDER_LAYER_UNDER);
+  if (m_pEvrShared != nullptr)
+    m_pEvrShared->Render(RENDER_LAYER_UNDER);
 
   //Need to be true for vsync
   bool bResult = __super::Paint(fAll);
 
-  m_pEvrShared->Render(RENDER_LAYER_OVER);
+  if (m_pEvrShared != nullptr)
+    m_pEvrShared->Render(RENDER_LAYER_OVER);
 
   m_pD3DDev->EndScene();
   m_pD3DDev->Present(NULL, NULL, NULL, NULL);

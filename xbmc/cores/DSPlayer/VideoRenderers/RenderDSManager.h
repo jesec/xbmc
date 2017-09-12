@@ -41,6 +41,7 @@ class IRenderDSMsg
 {
   friend CRenderDSManager;
 protected:
+  virtual void SetDSWndVisible(bool bVisible) = 0;
   virtual void VideoParamsChange() = 0;
   virtual void GetDebugInfo(std::string &audio, std::string &video, std::string &general) = 0;
 };
@@ -78,7 +79,8 @@ public:
   double GetDisplayLatency() { return m_displayLatency; }
 
   bool Configure(unsigned int width, unsigned int height, unsigned int d_width, unsigned int d_height, float fps, unsigned flags);
-  void UpdateDisplayLatencyForMadvr(float fps);
+  void DisplayChange(bool bExternalChange);
+  void EndRender();
 
 protected:
 
@@ -93,6 +95,7 @@ protected:
   CCriticalSection m_statelock;
   CCriticalSection m_datalock;
   bool m_bTriggerUpdateResolution;
+  bool m_bTriggerDisplayChange;
   
   bool m_renderDebug;
   XbmcThreads::EndTime m_debugTimer;
@@ -111,12 +114,14 @@ protected:
   ERENDERSTATE m_renderState;
   CEvent m_stateEvent;
   bool m_bWaitingForRenderOnDS;
+  RESOLUTION m_Resolution;
 
   double m_displayLatency;
   void UpdateDisplayLatency();
   unsigned int m_width, m_height, m_dwidth, m_dheight;
   unsigned int m_flags;
   float m_fps;
+  bool m_bPreInit;
 
   CEvent m_flushEvent;
   IRenderDSMsg *m_playerPort;
