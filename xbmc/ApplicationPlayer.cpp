@@ -770,15 +770,6 @@ bool CApplicationPlayer::Configure(unsigned int width, unsigned int height, unsi
     return false;
 }
 
-void CApplicationPlayer::UpdateDisplayLatencyForMadvr(float refresh)
-{
-  std::shared_ptr<IPlayer> player = GetInternal();
-  if (player)
-  {
-    player->UpdateDisplayLatencyForMadvr(refresh);
-  }
-}
-
 void CApplicationPlayer::GetVideoRect(CRect &source, CRect &dest, CRect &view)
 {
   std::shared_ptr<IPlayer> player = GetInternal();
@@ -886,6 +877,15 @@ void CApplicationPlayer::SetCurrentRenderer(DIRECTSHOW_RENDERER renderer)
   if (player)
   {
     player->SetCurrentRenderer(renderer);
+  }
+}
+
+void CApplicationPlayer::DisplayChange(bool bExternalChange)
+{
+  std::shared_ptr<IPlayer> player = GetInternal();
+  if (player)
+  {
+    player->DisplayChange(bExternalChange);
   }
 }
 

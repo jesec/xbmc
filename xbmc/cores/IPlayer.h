@@ -416,7 +416,6 @@ public:
   virtual void ShowEditionDlg(bool playStart) {};
 
   virtual bool Configure(unsigned int width, unsigned int height, unsigned int d_width, unsigned int d_height, float fps, unsigned flags) { return false; };
-  virtual void UpdateDisplayLatencyForMadvr(float refresh) {};
   virtual void GetVideoRect(CRect &source, CRect &dest, CRect &view) {};  
   
   // IDSPlayer
@@ -431,7 +430,7 @@ public:
   virtual DIRECTSHOW_RENDERER GetCurrentRenderer() { return DIRECTSHOW_RENDERER_UNDEF; };
   virtual void SetCurrentRenderer(DIRECTSHOW_RENDERER renderer) {};
 
-  // IDSRendererAllocatorCallback (madVR)
+  // IDSRendererAllocatorCallback
   virtual CRect GetActiveVideoRect() { return CRect(0, 0, 0, 0); };
   virtual bool IsEnteringExclusive() { return false; };
   virtual void EnableExclusive(bool bEnable) {};
@@ -439,8 +438,8 @@ public:
   virtual void SetResolution() {};
   virtual void SetPosition(CRect sourceRect, CRect videoRect, CRect viewRect) {};
   virtual bool ParentWindowProc(HWND hWnd, UINT uMsg, WPARAM *wParam, LPARAM *lParam, LRESULT *ret) { return false; };
-  // IDSRendererAllocatorCallback (EVR)
   virtual void Reset(bool bForceWindowed) {};
+  virtual void DisplayChange(bool bExternalChange) {};
   virtual void Register(IDSRendererAllocatorCallback* pAllocatorCallback) {};
   virtual void Unregister(IDSRendererAllocatorCallback* pAllocatorCallback) {};
 

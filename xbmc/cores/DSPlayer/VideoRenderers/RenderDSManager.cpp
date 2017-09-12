@@ -31,6 +31,7 @@
 #include "Application.h"
 #include "messaging/ApplicationMessenger.h"
 #include "settings/AdvancedSettings.h"
+#include "settings/DisplaySettings.h"
 #include "settings/MediaSettings.h"
 #include "settings/Settings.h"
 #include "guilib/GraphicContext.h"
@@ -42,13 +43,18 @@
 
 #include "utils/CPUInfo.h"
 
+#include "windowing/WindowingFactory.h"
+
 using namespace KODI::MESSAGING;
 
 CRenderDSManager::CRenderDSManager(IRenderDSMsg *player) :
   m_pRenderer(nullptr),
   m_bTriggerUpdateResolution(false),
+  m_bTriggerDisplayChange(false),
   m_renderDebug(false),
   m_bWaitingForRenderOnDS(true),
+  m_bPreInit(false),
+  m_Resolution(RES_INVALID),
   m_renderState(STATE_UNCONFIGURED),
   m_displayLatency(0.0),
   m_width(0),
@@ -214,8 +220,15 @@ void CRenderDSManager::FrameMove()
   if (m_renderState == STATE_CONFIGURED && m_bWaitingForRenderOnDS && g_graphicsContext.IsFullScreenVideo())
   {
     m_bWaitingForRenderOnDS = false;
+    m_bPreInit = false;
     g_application.m_pPlayer->SetRenderOnDS(true);
   }
+}
+
+void CRenderDSManager::EndRender()
+{
+  if (m_renderState == STATE_CONFIGURED && !g_application.m_pPlayer->ReadyDS())
+    g_graphicsContext.Clear(0);
 }
 
 void CRenderDSManager::PreInit()
@@ -232,6 +245,8 @@ void CRenderDSManager::PreInit()
     CreateRenderer();
 
   UpdateDisplayLatency();
+
+  m_bPreInit = true;
 }
 
 void CRenderDSManager::UnInit()
@@ -411,18 +426,6 @@ void CRenderDSManager::PresentSingle(bool clear, DWORD flags, DWORD alpha)
   m_pRenderer->RenderUpdate(clear, flags, alpha);
 }
 
-void CRenderDSManager::UpdateDisplayLatencyForMadvr(float fps)
-{
-  float refresh = fps;
-  m_displayLatency = (double)g_advancedSettings.GetDisplayLatency(refresh);
-  
-  if (CGraphFilters::Get()->GetAuxAudioDelay())    
-    m_displayLatency += (double)g_advancedSettings.GetDisplayAuxDelay(refresh);
-
-  CLog::Log(LOGDEBUG, "CRenderDSManager::UpdateDisplayLatencyForMadvr - Latency set to %1.0f msec", m_displayLatency * 1000.0f);
-  g_application.m_pPlayer->SetAVDelay(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_AudioDelay);
-}
-
 void CRenderDSManager::UpdateDisplayLatency()
 {
   float refresh = g_graphicsContext.GetFPS();
@@ -440,19 +443,84 @@ void CRenderDSManager::UpdateDisplayLatency()
 
 void CRenderDSManager::UpdateResolution()
 {
+  if (m_bTriggerDisplayChange)
+  {
+    if (m_Resolution != RES_INVALID)
+    {      
+      CLog::Log(LOGDEBUG, "%s gui resolution updated by external display change event", __FUNCTION__);
+      g_graphicsContext.SetVideoResolution(m_Resolution);
+      UpdateDisplayLatency();
+    }
+    m_bTriggerDisplayChange = false;
+    m_playerPort->VideoParamsChange();
+  }
   if (m_bTriggerUpdateResolution)
   {
     if (g_graphicsContext.IsFullScreenVideo() && g_graphicsContext.IsFullScreenRoot())
     {
       if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) != ADJUST_REFRESHRATE_OFF && m_fps > 0.0f)
       {
-        RESOLUTION res = CResolutionUtils::ChooseBestResolution(m_fps, m_width, CONF_FLAGS_STEREO_MODE_MASK(m_flags));
-        g_graphicsContext.SetVideoResolution(res);
+        if (m_Resolution == RES_INVALID)
+          m_Resolution = CResolutionUtils::ChooseBestResolution(m_fps, m_width, CONF_FLAGS_STEREO_MODE_MASK(m_flags) != 0);
+
+        g_graphicsContext.SetVideoResolution(m_Resolution);
         UpdateDisplayLatency();
       }
       m_bTriggerUpdateResolution = false;
     }
     m_playerPort->VideoParamsChange();
+  }
+}
+
+void CRenderDSManager::DisplayChange(bool bExternalChange)
+{
+  // Get Current Display settings
+  MONITORINFOEX mi;
+  mi.cbSize = sizeof(MONITORINFOEX);
+  GetMonitorInfo(MonitorFromWindow(g_hWnd, MONITOR_DEFAULTTONEAREST), &mi);
+
+  DEVMODE dm;
+  ZeroMemory(&dm, sizeof(dm));
+  dm.dmSize = sizeof(dm);
+  if (EnumDisplaySettingsEx(mi.szDevice, ENUM_CURRENT_SETTINGS, &dm, 0) == FALSE)
+    EnumDisplaySettingsEx(mi.szDevice, ENUM_REGISTRY_SETTINGS, &dm, 0);
+
+  int width = dm.dmPelsWidth;
+  int height = dm.dmPelsHeight;
+  bool bInterlaced = (dm.dmDisplayFlags & DM_INTERLACED) ? true : false;
+  int iRefreshRate = dm.dmDisplayFrequency;
+  float refreshRate;
+  if (iRefreshRate == 59 || iRefreshRate == 29 || iRefreshRate == 23)
+    refreshRate = static_cast<float>(iRefreshRate + 1) / 1.001f;
+  else
+    refreshRate = static_cast<float>(iRefreshRate);
+
+  // Convert Current Resolution to Kodi Res
+  std::string sRes = StringUtils::Format("%1i%05i%05i%09.5f%s", g_Windowing.GetCurrentScreen(), width, height, refreshRate, bInterlaced ? "istd" : "pstd");
+  RESOLUTION res = CDisplaySettings::GetResolutionFromString(sRes);
+  RESOLUTION_INFO res_info = CDisplaySettings::GetInstance().GetResolutionInfo(res);
+
+  if (bExternalChange)
+  {
+    if (m_bPreInit)
+    {
+      m_bPreInit = false;
+      m_playerPort->SetDSWndVisible(true);
+      CLog::Log(LOGDEBUG, "%s showing dsplayer window", __FUNCTION__);
+    }
+
+    m_Resolution = res;
+    m_bTriggerDisplayChange = true;
+    CLog::Log(LOGDEBUG, "%s external display change event update resolution to %s", __FUNCTION__, res_info.strMode.c_str());
+  }
+  else
+  {
+    CLog::Log(LOGDEBUG, "%s internal display change event update resolution to %s", __FUNCTION__, res_info.strMode.c_str());
+    if (m_bTriggerDisplayChange)
+    {  
+      m_bTriggerDisplayChange = false;
+      CLog::Log(LOGDEBUG, "%s requested gui resolution update by external display change event dropped", __FUNCTION__);
+    }
   }
 }
 

@@ -187,7 +187,6 @@ public:
   virtual bool Supports(ERENDERFEATURE feature) override;
   
   virtual bool Configure(unsigned int width, unsigned int height, unsigned int d_width, unsigned int d_height, float fps, unsigned flags) override;
-  virtual void UpdateDisplayLatencyForMadvr(float refresh) override;
   virtual void GetVideoRect(CRect &source, CRect &dest, CRect &view) override;
 
   // IDispResource interface
@@ -290,7 +289,7 @@ public:
 
   static bool IsCurrentThread() { return CThread::IsCurrentThread(m_threadID); }
   static HWND GetDShWnd(){ return m_hWnd; }
-  static void SetDsWndVisible(bool bVisible);
+  void SetDSWndVisible(bool bVisible);
 
 protected:
   virtual void VideoParamsChange() override { };
@@ -354,7 +353,7 @@ protected:
   DIRECTSHOW_RENDERER GetCurrentRenderer() { return m_CurrentRenderer; }
   void SetCurrentRenderer(DIRECTSHOW_RENDERER renderer) { m_CurrentRenderer = renderer; }
 
-  // IDSRendererAllocatorCallback (madVR)
+  // IDSRendererAllocatorCallback
   CRect GetActiveVideoRect();
   bool IsEnteringExclusive();
   void EnableExclusive(bool bEnable);
@@ -362,8 +361,8 @@ protected:
   void SetResolution();
   void SetPosition(CRect sourceRect, CRect videoRect, CRect viewRect);
   bool ParentWindowProc(HWND hWnd, UINT uMsg, WPARAM *wParam, LPARAM *lParam, LRESULT *ret);
-  // IDSRendererAllocatorCallback (EVR)
   void Reset(bool bForceWindowed);
+  void DisplayChange(bool bExternalChange);
   void Register(IDSRendererAllocatorCallback* pAllocatorCallback) { m_pAllocatorCallback = pAllocatorCallback; }
   void Unregister(IDSRendererAllocatorCallback* pAllocatorCallback) { m_pAllocatorCallback = nullptr; }
 

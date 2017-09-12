@@ -101,6 +101,7 @@ public:
   virtual void SetPosition(CRect sourceRect, CRect videoRect, CRect viewRect) {};
   virtual bool ParentWindowProc(HWND hWnd, UINT uMsg, WPARAM *wParam, LPARAM *lParam, LRESULT *ret) { return false; };
   virtual void Reset(bool bForceWindowed) {};
+  virtual void DisplayChange(bool bExternalChange) {};
   virtual void Register(IDSRendererAllocatorCallback* pAllocatorCallback) {};
   virtual void Unregister(IDSRendererAllocatorCallback* pAllocatorCallback) {};
 };

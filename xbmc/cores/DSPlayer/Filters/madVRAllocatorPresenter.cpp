@@ -25,11 +25,13 @@
 #include "RendererSettings.h"
 #include "guilib/GUIWindowManager.h"
 #include "settings/Settings.h"
+#include "settings/DisplaySettings.h"
 #include "settings/AdvancedSettings.h"
 #include "cores/DSPlayer/Filters/MadvrSettings.h"
 #include "PixelShaderList.h"
 #include "DSPlayer.h"
 #include "utils/log.h"
+#include "utils/SystemInfo.h"
 
 using namespace KODI::MESSAGING;
 
@@ -46,15 +48,15 @@ CmadVRAllocatorPresenter::CmadVRAllocatorPresenter(HWND hWnd, HRESULT& hr, std::
   : ISubPicAllocatorPresenterImpl(hWnd, hr)
   , m_ScreenSize(0, 0)
   , m_bIsFullscreen(false)
+  , m_pMadvrShared(nullptr)
+  , m_pD3DDev(nullptr)
 {
 
   //Init Variable
   m_exclusiveCallback = ExclusiveCallback;
   m_firstBoot = true;
   m_isEnteringExclusive = false;
-  m_updateDisplayLatencyForMadvr = false;
   m_kodiGuiDirtyAlgo = g_advancedSettings.m_guiAlgorithmDirtyRegions;
-  m_pMadvrShared = DNew CMadvrSharedRender();
   m_activeVideoRect.SetRect(0, 0, 0, 0);
   m_frameCount = 0;
   
@@ -81,10 +83,6 @@ CmadVRAllocatorPresenter::~CmadVRAllocatorPresenter()
   // Unregister madVR Exclusive Callback
   if (Com::SmartQIPtr<IMadVRExclusiveModeCallback> pEXL = m_pDXR)
     pEXL->Unregister(m_exclusiveCallback, this);
-
-  // Let's madVR restore original display mode (when adjust refresh it's handled by madVR)
-  if (Com::SmartQIPtr<IMadVRCommand> pMadVrCmd = m_pDXR)
-    pMadVrCmd->SendCommand("restoreDisplayModeNow");
 
   g_advancedSettings.m_guiAlgorithmDirtyRegions = m_kodiGuiDirtyAlgo;
   
@@ -124,16 +122,12 @@ void CmadVRAllocatorPresenter::SetResolution()
 
   SIZE nativeVideoSize = GetVideoSize(false);
 
-  if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) != ADJUST_REFRESHRATE_OFF
-    && (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_CHANGEREFRESHWITH) == ADJUST_REFRESHRATE_WITH_BOTH || CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_CHANGEREFRESHWITH) == ADJUST_REFRESHRATE_WITH_DSPLAYER)
-    && g_graphicsContext.IsFullScreenRoot())
+  if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) != ADJUST_REFRESHRATE_OFF && g_graphicsContext.IsFullScreenRoot())
   {
-    RESOLUTION bestRes = CResolutionUtils::ChooseBestResolution(fps, nativeVideoSize.cx, false);
-    CDSPlayer::SetDsWndVisible(true);
-    g_graphicsContext.SetVideoResolution(bestRes);
+    RESOLUTION res = CResolutionUtils::ChooseBestResolution(fps, nativeVideoSize.cx, false);   
+    bool bChanged = SetResolutionInternal(res);
+    CLog::Log(LOGDEBUG, "%s change resolution %s", __FUNCTION__, bChanged ?  "<success>" : "<failed>");
   }
-  else
-    m_updateDisplayLatencyForMadvr = true;
 }
 
 void CmadVRAllocatorPresenter::ExclusiveCallback(LPVOID context, int event)
@@ -223,17 +217,50 @@ bool CmadVRAllocatorPresenter::ParentWindowProc(HWND hWnd, UINT uMsg, WPARAM *wP
     return false;
 }
 
+void CmadVRAllocatorPresenter::DisplayChange(bool bExternalChange)
+{
+  CAutoLock cAutoLock(this);
+
+  if (g_Windowing.Get3D11Device() == nullptr || m_pD3DDev == nullptr)
+    return;
+
+  CLog::Log(LOGDEBUG, "%s need to re-create the shared textures", __FUNCTION__);
+
+  if (m_pMadvrShared != nullptr)
+    SAFE_DELETE(m_pMadvrShared);
+
+  MONITORINFO mi;
+  mi.cbSize = sizeof(MONITORINFO);
+  if (GetMonitorInfo(MonitorFromWindow(m_hWnd, MONITOR_DEFAULTTONEAREST), &mi)) {
+    m_ScreenSize.SetSize(mi.rcMonitor.right - mi.rcMonitor.left, mi.rcMonitor.bottom - mi.rcMonitor.top);
+    m_activeVideoRect.SetRect(0, 0, m_ScreenSize.cx, m_ScreenSize.cy);
+  }
+
+  m_pMadvrShared = DNew CMadvrSharedRender();
+  m_pMadvrShared->CreateTextures(g_Windowing.Get3D11Device(), m_pD3DDev, (int)m_ScreenSize.cx, (int)m_ScreenSize.cy);
+}
+
 STDMETHODIMP CmadVRAllocatorPresenter::ClearBackground(LPCSTR name, REFERENCE_TIME frameStart, RECT *fullOutputRect, RECT *activeVideoRect)
 {
-  return m_pMadvrShared->Render(RENDER_LAYER_UNDER);
+  CAutoLock cAutoLock(this);
+
+  if (m_pMadvrShared != nullptr)
+    return m_pMadvrShared->Render(RENDER_LAYER_UNDER);
+  else
+    return CALLBACK_INFO_DISPLAY;
 }
 
 STDMETHODIMP CmadVRAllocatorPresenter::RenderOsd(LPCSTR name, REFERENCE_TIME frameStart, RECT *fullOutputRect, RECT *activeVideoRect)
 {
+  CAutoLock cAutoLock(this);
+
   if (g_graphicsContext.IsFullScreenVideo())
     m_activeVideoRect.SetRect(activeVideoRect->left, activeVideoRect->top, activeVideoRect->right, activeVideoRect->bottom);
 
-  return m_pMadvrShared->Render(RENDER_LAYER_OVER);
+  if (m_pMadvrShared != nullptr)
+    return m_pMadvrShared->Render(RENDER_LAYER_OVER);
+  else
+    return CALLBACK_INFO_DISPLAY;
 }
 
 STDMETHODIMP CmadVRAllocatorPresenter::SetDeviceOsd(IDirect3DDevice9* pD3DDev)
@@ -259,9 +286,19 @@ HRESULT CmadVRAllocatorPresenter::SetDevice(IDirect3DDevice9* pD3DDev)
     return S_OK;
   }
 
+  m_pD3DDev = (IDirect3DDevice9Ex*)pD3DDev;
+
   if (m_firstBoot)
-  { 
-    m_pMadvrShared->CreateTextures(g_Windowing.Get3D11Device(), (IDirect3DDevice9Ex*)pD3DDev, (int)m_ScreenSize.cx, (int)m_ScreenSize.cy);
+  {
+    MONITORINFO mi;
+    mi.cbSize = sizeof(MONITORINFO);
+    if (GetMonitorInfo(MonitorFromWindow(m_hWnd, MONITOR_DEFAULTTONEAREST), &mi)) {
+      m_ScreenSize.SetSize(mi.rcMonitor.right - mi.rcMonitor.left, mi.rcMonitor.bottom - mi.rcMonitor.top);
+      m_activeVideoRect.SetRect(0, 0, m_ScreenSize.cx, m_ScreenSize.cy);
+    }
+
+    m_pMadvrShared = DNew CMadvrSharedRender();
+    m_pMadvrShared->CreateTextures(g_Windowing.Get3D11Device(), m_pD3DDev, (int)m_ScreenSize.cx, (int)m_ScreenSize.cy);
 
     m_firstBoot = false;
     g_advancedSettings.m_guiAlgorithmDirtyRegions = DIRTYREGION_SOLVER_FILL_VIEWPORT_ALWAYS;
@@ -322,17 +359,6 @@ HRESULT CmadVRAllocatorPresenter::Render( REFERENCE_TIME rtStart, REFERENCE_TIME
     // Configure Render Manager
     g_application.m_pPlayer->Configure(m_NativeVideoSize.cx, m_NativeVideoSize.cy, m_AspectRatio.cx, m_AspectRatio.cy, m_fps, CONF_FLAGS_FULLSCREEN);
     CLog::Log(LOGDEBUG, "%s Render manager configured (FPS: %f) %i %i %i %i", __FUNCTION__, m_fps, m_NativeVideoSize.cx, m_NativeVideoSize.cy, m_AspectRatio.cx, m_AspectRatio.cy);
-
-    // Update Display Latency for madVR (sets differents delay for each refresh as configured in advancedsettings)
-    if (m_updateDisplayLatencyForMadvr)
-    { 
-      if (Com::SmartQIPtr<IMadVRInfo> pInfo = m_pDXR)
-      { 
-        double refreshRate;
-        pInfo->GetDouble("refreshRate", &refreshRate);
-        g_application.m_pPlayer->UpdateDisplayLatencyForMadvr(refreshRate);
-      }
-    }
   }
 
   // Reset madVR Stats at start (after 50 frames)
@@ -422,13 +448,6 @@ STDMETHODIMP CmadVRAllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
   g_application.m_pPlayer->Register(this);
 
   (*ppRenderer = (IUnknown*)(INonDelegatingUnknown*)(this))->AddRef();
-
-  MONITORINFO mi;
-  mi.cbSize = sizeof(MONITORINFO);
-  if (GetMonitorInfo(MonitorFromWindow(m_hWnd, MONITOR_DEFAULTTONEAREST), &mi)) {
-    m_ScreenSize.SetSize(mi.rcMonitor.right - mi.rcMonitor.left, mi.rcMonitor.bottom - mi.rcMonitor.top);
-    m_activeVideoRect.SetRect(0, 0, m_ScreenSize.cx, m_ScreenSize.cy);
-  }
 
   return S_OK;
 }
@@ -542,4 +561,92 @@ STDMETHODIMP CmadVRAllocatorPresenter::SetPixelShader(LPCSTR pSrcData, LPCSTR pT
     }
   }
   return hr;
+}
+
+bool CmadVRAllocatorPresenter::SetResolutionInternal(const RESOLUTION res, bool forceChange /*= false*/)
+{
+  MONITORINFOEX mi;
+  mi.cbSize = sizeof(MONITORINFOEX);
+  GetMonitorInfo(MonitorFromWindow(g_hWnd, MONITOR_DEFAULTTONEAREST), &mi);
+
+  DEVMODE sDevMode;
+  ZeroMemory(&sDevMode, sizeof(sDevMode));
+  sDevMode.dmSize = sizeof(sDevMode);
+
+  RESOLUTION_INFO res_info = CDisplaySettings::GetInstance().GetResolutionInfo(res);
+  CLog::Log(LOGDEBUG, "%s set system resolution to %s", __FUNCTION__, res_info.strMode.c_str());
+
+  // If we can't read the current resolution or any detail of the resolution is different than res
+  if (!EnumDisplaySettings(mi.szDevice, ENUM_CURRENT_SETTINGS, &sDevMode) ||
+    sDevMode.dmPelsWidth != res_info.iWidth || sDevMode.dmPelsHeight != res_info.iHeight ||
+    sDevMode.dmDisplayFrequency != static_cast<int>(res_info.fRefreshRate) ||
+    ((sDevMode.dmDisplayFlags & DM_INTERLACED) && !(res_info.dwFlags & D3DPRESENTFLAG_INTERLACED)) ||
+    (!(sDevMode.dmDisplayFlags & DM_INTERLACED) && (res_info.dwFlags & D3DPRESENTFLAG_INTERLACED))
+    || forceChange)
+  {
+    ZeroMemory(&sDevMode, sizeof(sDevMode));
+    sDevMode.dmSize = sizeof(sDevMode);
+    sDevMode.dmDriverExtra = 0;
+    sDevMode.dmPelsWidth = res_info.iWidth;
+    sDevMode.dmPelsHeight = res_info.iHeight;
+    sDevMode.dmDisplayFrequency = static_cast<int>(res_info.fRefreshRate);
+    sDevMode.dmDisplayFlags = (res_info.dwFlags & D3DPRESENTFLAG_INTERLACED) ? DM_INTERLACED : 0;
+    sDevMode.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT | DM_DISPLAYFREQUENCY | DM_DISPLAYFLAGS;
+
+    LONG rc;
+    bool bResChanged = false;
+
+    // Windows 8 refresh rate workaround for 24.0, 48.0 and 60.0 Hz
+    if (CSysInfo::IsWindowsVersionAtLeast(CSysInfo::WindowsVersionWin8) && (res_info.fRefreshRate == 24.0 || res_info.fRefreshRate == 48.0 || res_info.fRefreshRate == 60.0))
+    {
+      CLog::Log(LOGDEBUG, "%s : Using Windows 8+ workaround for refresh rate %d Hz", __FUNCTION__, static_cast<int>(res_info.fRefreshRate));
+
+      // Get current resolution stored in registry
+      DEVMODE sDevModeRegistry;
+      ZeroMemory(&sDevModeRegistry, sizeof(sDevModeRegistry));
+      sDevModeRegistry.dmSize = sizeof(sDevModeRegistry);
+      if (EnumDisplaySettings(mi.szDevice, ENUM_REGISTRY_SETTINGS, &sDevModeRegistry))
+      {
+        // Set requested mode in registry without actually changing resolution
+        rc = ChangeDisplaySettingsEx(mi.szDevice, &sDevMode, nullptr, CDS_UPDATEREGISTRY | CDS_NORESET, nullptr);
+        if (rc == DISP_CHANGE_SUCCESSFUL)
+        {
+          // Change resolution based on registry setting
+          rc = ChangeDisplaySettingsEx(mi.szDevice, nullptr, nullptr, CDS_FULLSCREEN, nullptr);
+          if (rc == DISP_CHANGE_SUCCESSFUL)
+            bResChanged = true;
+          else
+            CLog::Log(LOGERROR, "%s : ChangeDisplaySettingsEx (W8+ change resolution) failed with %d, using fallback", __FUNCTION__, rc);
+
+          // Restore registry with original values
+          sDevModeRegistry.dmSize = sizeof(sDevModeRegistry);
+          sDevModeRegistry.dmDriverExtra = 0;
+          sDevModeRegistry.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT | DM_DISPLAYFREQUENCY | DM_DISPLAYFLAGS;
+          rc = ChangeDisplaySettingsEx(mi.szDevice, &sDevModeRegistry, nullptr, CDS_UPDATEREGISTRY | CDS_NORESET, nullptr);
+          if (rc != DISP_CHANGE_SUCCESSFUL)
+            CLog::Log(LOGERROR, "%s : ChangeDisplaySettingsEx (W8+ restore registry) failed with %d", __FUNCTION__, rc);
+        }
+        else
+          CLog::Log(LOGERROR, "%s : ChangeDisplaySettingsEx (W8+ set registry) failed with %d, using fallback", __FUNCTION__, rc);
+      }
+      else
+        CLog::Log(LOGERROR, "%s : Unable to retrieve registry settings for Windows 8+ workaround, using fallback", __FUNCTION__);
+    }
+
+    // Standard resolution change/fallback for Windows 8+ workaround
+    if (!bResChanged)
+    {
+      // CDS_FULLSCREEN is for temporary fullscreen mode and prevents icons and windows from moving
+      // to fit within the new dimensions of the desktop
+      rc = ChangeDisplaySettingsEx(mi.szDevice, &sDevMode, nullptr, CDS_FULLSCREEN, nullptr);
+      if (rc == DISP_CHANGE_SUCCESSFUL)
+        bResChanged = true;
+      else
+        CLog::Log(LOGERROR, "%s : ChangeDisplaySettingsEx failed with %d", __FUNCTION__, rc);
+    }
+    return bResChanged;
+  }
+
+  // nothing to do, return success
+  return true;
 }
