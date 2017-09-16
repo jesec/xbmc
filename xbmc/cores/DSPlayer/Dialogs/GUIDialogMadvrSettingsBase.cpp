@@ -132,42 +132,42 @@ void CGUIDialogMadvrSettingsBase::InitializeSettings()
   {
     CSetting *setting;
 
-    if (groups[it->group] == NULL)
+    if (groups[it.group] == NULL)
     {
-      groups[it->group] = AddGroup(m_category);
-      if (groups[it->group] == NULL)
+      groups[it.group] = AddGroup(m_category);
+      if (groups[it.group] == NULL)
       {
         CLog::Log(LOGERROR, "CGUIDialogMadvrSettings: unable to setup settings");
         return;
       }
     }
 
-    if (it->type.find("button_") != std::string::npos)
+    if (it.type.find("button_") != std::string::npos)
     {
-      setting = AddButton(groups[it->group], it->dialogId, it->label, 0);
+      setting = AddButton(groups[it.group], it.dialogId, it.label, 0);
     }
-    else if (it->type == "bool")
+    else if (it.type == "bool")
     {
-      setting = AddToggle(groups[it->group], it->dialogId, it->label, 0, madvrSettings.m_db[it->name].asBoolean());
+      setting = AddToggle(groups[it.group], it.dialogId, it.label, 0, madvrSettings.m_db[it.name].asBoolean());
     }
-    else if (it->type == "float")
+    else if (it.type == "float")
     {
-      setting = AddSlider(groups[it->group], it->dialogId, it->label, 0, madvrSettings.m_db[it->name].asFloat(),
-        it->slider->format, it->slider->min, it->slider->step, it->slider->max, it->slider->parentLabel, usePopup);
+      setting = AddSlider(groups[it.group], it.dialogId, it.label, 0, madvrSettings.m_db[it.name].asFloat(),
+        it.slider.format, it.slider.min, it.slider.step, it.slider.max, it.slider.parentLabel, usePopup);
     }
-    else if (it->type.find("list_") != std::string::npos)
+    else if (it.type.find("list_") != std::string::npos)
     {
-      if (!it->optionsInt.empty())
-        setting = AddList(groups[it->group], it->dialogId, it->label, 0, madvrSettings.m_db[it->name].asInteger(), it->optionsInt, it->label);
+      if (!it.optionsInt.empty())
+        setting = AddList(groups[it.group], it.dialogId, it.label, 0, madvrSettings.m_db[it.name].asInteger(), it.optionsInt, it.label);
       else
-        setting = AddList(groups[it->group], it->dialogId, it->label, 0, madvrSettings.m_db[it->name].asString(), MadvrSettingsOptionsString, it->label);
+        setting = AddList(groups[it.group], it.dialogId, it.label, 0, madvrSettings.m_db[it.name].asString(), MadvrSettingsOptionsString, it.label);
     }
 
-    if (!it->dependencies.empty() && setting)
-      g_application.m_pPlayer->AddDependencies(it->dependencies, m_settingsManager, setting);
+    if (!it.dependencies.empty() && setting)
+      g_application.m_pPlayer->AddDependencies(it.dependencies, m_settingsManager, setting);
 
-    if (!it->parent.empty() && setting)
-      setting->SetParent(it->parent);
+    if (!it.parent.empty() && setting)
+      setting->SetParent(it.parent);
   }
 }
 
@@ -199,30 +199,30 @@ void CGUIDialogMadvrSettingsBase::OnSettingAction(const CSetting *setting)
   const std::string &settingId = setting->GetId();
 
   auto it = std::find_if(madvrSettings.m_gui[m_iSectionId].begin(), madvrSettings.m_gui[m_iSectionId].end(),
-    [settingId](const CMadvrListSettings* setting){
-    return setting->dialogId == settingId;
+    [settingId](const MadvrListSettings setting){
+    return setting.dialogId == settingId;
   });
 
   if (it != madvrSettings.m_gui[m_iSectionId].end())
   {
-    if ((*it)->type == "button_section")
+    if (it->type == "button_section")
     {
       if (m_iSectionId == MADVR_VIDEO_ROOT)
       {
-        SetSection((*it)->sectionId, (*it)->label);
+        SetSection(it->sectionId, it->label);
         g_windowManager.ActivateWindow(WINDOW_DIALOG_MADVR);
       }
       else
       {
-        SetSection((*it)->sectionId, (*it)->label);
+        SetSection(it->sectionId, it->label);
         SaveControlStates();
         Close();
         Open();
       }
     }
-    else if ((*it)->type == "button_debug")
+    else if (it->type == "button_debug")
     {
-      g_application.m_pPlayer->ListSettings((*it)->value);
+      g_application.m_pPlayer->ListSettings(it->value);
     }
   }
 
@@ -488,13 +488,13 @@ void CGUIDialogMadvrSettingsBase::MadvrSettingsOptionsString(const CSetting *set
   const std::string &settingId = setting->GetId();
 
   auto it = std::find_if(madvrSettings.m_gui[m_iSectionId].begin(), madvrSettings.m_gui[m_iSectionId].end(),
-    [settingId](const CMadvrListSettings* setting){
-    return setting->dialogId == settingId;
+    [settingId](const MadvrListSettings setting){
+    return setting.dialogId == settingId;
   });
 
   if (it != madvrSettings.m_gui[m_iSectionId].end())
   {
-    for (const auto &option : (*it)->optionsString)
+    for (const auto &option : it->optionsString)
       list.emplace_back(g_localizeStrings.Get(option.first), option.second);
   }
 }

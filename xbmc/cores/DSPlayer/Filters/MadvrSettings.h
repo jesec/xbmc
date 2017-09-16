@@ -39,24 +39,21 @@ enum MADVR_DEFAULT_SECTION
   MADVR_SECTION_SUB = 10
 };
 
-class CMadvrSection
+struct MadvrSection
 {
-public:
   int label;
   int parentId;
 };
 
-class CMadvrSlider
+struct MadvrSlider
 {
- public:
   std::string format;
   int parentLabel;
   float min,max,step;
 };
 
-class CMadvrListSettings
+struct MadvrListSettings
 {
-public:
   int group = -1;
   std::string name = "";
   std::string type = "";
@@ -66,7 +63,7 @@ public:
   std::string parent = "";
   bool negate = false;
   int label = 0;
-  CMadvrSlider *slider;
+  MadvrSlider slider;
   int sectionId = 0;
   std::vector< std::pair<int, int> > optionsInt;
   std::vector< std::pair<int, std::string> > optionsString;
@@ -86,9 +83,10 @@ public:
 
   CVariant m_db;
   
-  std::map<int, CMadvrSection> m_sections;
-  std::map<int, std::vector<CMadvrListSettings*> > m_gui;
+  std::map<int, MadvrSection> m_sections;
+  std::map<int, std::vector<MadvrListSettings> > m_gui;
   std::map<std::string, std::string> m_profiles;
+  std::map<std::string, std::vector<CVariant> > m_options;
 
   int m_Resolution;
   std::string m_TvShowName;

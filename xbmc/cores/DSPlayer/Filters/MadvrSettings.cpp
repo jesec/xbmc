@@ -207,28 +207,26 @@ void CMadvrSettings::AddButton(TiXmlNode *pNode, int iSectionId, int iGroupId, i
 {
   TiXmlElement *pSetting = pNode->ToElement();
 
-  CMadvrListSettings *button = new CMadvrListSettings();
+  MadvrListSettings button;
 
-  button->group = iGroupId;
-  button->name = name;
-  button->dialogId = NameToId(button->name);
-  button->type = type;
+  button.group = iGroupId;
+  button.name = name;
+  button.dialogId = NameToId(button.name);
+  button.type = type;
   
-  if (!CDSXMLUtils::GetInt(pSetting, "label",&button->label))
-    CLog::Log(LOGERROR, "%s missing attritube (label) for button %s", __FUNCTION__, button->name.c_str());
+  if (!CDSXMLUtils::GetInt(pSetting, "label",&button.label))
+    CLog::Log(LOGERROR, "%s missing attritube (label) for button %s", __FUNCTION__, button.name.c_str());
 
-  if (button->type == "button_section")
+  if (button.type == "button_section")
   {
-    button->sectionId = iSubSectionId;
-    CMadvrSection section;
-    section.label = button->label;
-    section.parentId = iSectionId;
-    m_sections[iSubSectionId] = section;
+    button.sectionId = iSubSectionId;
+    m_sections[iSubSectionId].label = button.label;
+    m_sections[iSubSectionId].parentId = iSectionId;
   }
-  else if (button->type == "button_debug")
+  else if (button.type == "button_debug")
   {
-    if (!CDSXMLUtils::GetString(pSetting,"path",&button->value))
-      CLog::Log(LOGERROR, "%s missing attritube (path) for button %s", __FUNCTION__, button->name.c_str());
+    if (!CDSXMLUtils::GetString(pSetting,"path",&button.value))
+      CLog::Log(LOGERROR, "%s missing attritube (path) for button %s", __FUNCTION__, button.name.c_str());
   }
 
   m_gui[iSectionId].emplace_back(std::move(button));
@@ -238,36 +236,36 @@ void CMadvrSettings::AddSetting(TiXmlNode *pNode, int iSectionId, int iGroupId)
 {
   TiXmlElement *pSetting = pNode->ToElement();
 
-  CMadvrListSettings *setting = new CMadvrListSettings();
+  MadvrListSettings setting;
   CVariant default;
 
-  setting->group = iGroupId;
+  setting.group = iGroupId;
 
   //GET NAME, TYPE
-  if (!CDSXMLUtils::GetString(pSetting, "name", &setting->name)
-    ||!CDSXMLUtils::GetString(pSetting, "type", &setting->type))
+  if (!CDSXMLUtils::GetString(pSetting, "name", &setting.name)
+    ||!CDSXMLUtils::GetString(pSetting, "type", &setting.type))
   {
-    CLog::Log(LOGERROR, "%s missing attritube (name, type) for setting name=%s type=%s", __FUNCTION__, setting->name.c_str(), setting->type.c_str());
+    CLog::Log(LOGERROR, "%s missing attritube (name, type) for setting name=%s type=%s", __FUNCTION__, setting.name.c_str(), setting.type.c_str());
   }
-  if (StringUtils::StartsWith(setting->type, "!"))
+  if (StringUtils::StartsWith(setting.type, "!"))
   {
-    StringUtils::Replace(setting->type, "!", "");
-    setting->negate = true;
+    StringUtils::Replace(setting.type, "!", "");
+    setting.negate = true;
   }  
 
   // GET VALUE, PARENT
-  CDSXMLUtils::GetString(pSetting, "value", &setting->value);
-  CDSXMLUtils::GetString(pSetting, "parent", &setting->parent);
-  setting->parent = NameToId(setting->parent);
-  setting->dialogId = NameToId(setting->name);
+  CDSXMLUtils::GetString(pSetting, "value", &setting.value);
+  CDSXMLUtils::GetString(pSetting, "parent", &setting.parent);
+  setting.parent = NameToId(setting.parent);
+  setting.dialogId = NameToId(setting.name);
 
   // GET LABEL
-  if (!CDSXMLUtils::GetInt(pSetting, "label", &setting->label))
-    CLog::Log(LOGERROR, "%s missing attritube (label) for setting name=%s", __FUNCTION__, setting->name.c_str());
+  if (!CDSXMLUtils::GetInt(pSetting, "label", &setting.label))
+    CLog::Log(LOGERROR, "%s missing attritube (label) for setting name=%s", __FUNCTION__, setting.name.c_str());
 
   // GET DEFAULT VALUE
-  if (!GetVariant(pSetting, "default", setting->type, &default))
-    CLog::Log(LOGERROR, "%s missing attritube (default) for setting name=%s", __FUNCTION__, setting->name.c_str());
+  if (!GetVariant(pSetting, "default", setting.type, &default))
+    CLog::Log(LOGERROR, "%s missing attritube (default) for setting name=%s", __FUNCTION__, setting.name.c_str());
 
   // GET DEPENDENCIES
   TiXmlElement *pDependencies = pSetting->FirstChildElement(SETTING_XML_ELM_DEPENDENCIES);
@@ -275,11 +273,11 @@ void CMadvrSettings::AddSetting(TiXmlNode *pNode, int iSectionId, int iGroupId)
   { 
     TiXmlPrinter print;
     pDependencies->Accept(&print);
-    setting->dependencies = DependenciesNameToId(print.CStr());
+    setting.dependencies = DependenciesNameToId(print.CStr());
   }
 
   // GET OPTIONS
-  if (setting->type.find("list_") != std::string::npos)
+  if (setting.type.find("list_") != std::string::npos)
   {
     TiXmlElement *pOption = pSetting->FirstChildElement("option");
     while (pOption)
@@ -287,41 +285,42 @@ void CMadvrSettings::AddSetting(TiXmlNode *pNode, int iSectionId, int iGroupId)
       int iLabel;
       CVariant value;
       if (!CDSXMLUtils::GetInt(pOption, "label", &iLabel))
-        CLog::Log(LOGERROR, "%s missing attritube (label) for setting option name=%s", __FUNCTION__, setting->name.c_str());
+        CLog::Log(LOGERROR, "%s missing attritube (label) for setting option name=%s", __FUNCTION__, setting.name.c_str());
 
-      if (!GetVariant(pOption, "value", setting->type, &value))
-        CLog::Log(LOGERROR, "%s missing attritube (value) for setting option name=%s", __FUNCTION__, setting->name.c_str());
+      if (!GetVariant(pOption, "value", setting.type, &value))
+        CLog::Log(LOGERROR, "%s missing attritube (value) for setting option name=%s", __FUNCTION__, setting.name.c_str());
 
       if (value.isInteger())
-        setting->optionsInt.emplace_back(iLabel, value.asInteger());
+        setting.optionsInt.emplace_back(iLabel, value.asInteger());
       else
-        setting->optionsString.emplace_back(iLabel, value.asString());
+        setting.optionsString.emplace_back(iLabel, value.asString());
+
+      // add options list
+      m_options[setting.name].emplace_back(std::move(value));
 
       pOption = pOption->NextSiblingElement("option");
     }   
   }
   //GET FLOAT
-  else if (setting->type == "float")
+  else if (setting.type == "float")
   {
-    setting->slider = new CMadvrSlider();
+    if (!CDSXMLUtils::GetString(pSetting,"format",&setting.slider.format))
+      CLog::Log(LOGERROR, "%s missing attribute (format) for setting name=%s", __FUNCTION__, setting.name.c_str());
 
-    if (!CDSXMLUtils::GetString(pSetting,"format",&setting->slider->format))
-      CLog::Log(LOGERROR, "%s missing attribute (format) for setting name=%s", __FUNCTION__, setting->name.c_str());
-
-    if ( !CDSXMLUtils::GetInt(pSetting, "parentlabel", &setting->slider->parentLabel)
-      || !CDSXMLUtils::GetFloat(pSetting, "min", &setting->slider->min)
-      || !CDSXMLUtils::GetFloat(pSetting, "max", &setting->slider->max)
-      || !CDSXMLUtils::GetFloat(pSetting, "step", &setting->slider->step))
+    if ( !CDSXMLUtils::GetInt(pSetting, "parentlabel", &setting.slider.parentLabel)
+      || !CDSXMLUtils::GetFloat(pSetting, "min", &setting.slider.min)
+      || !CDSXMLUtils::GetFloat(pSetting, "max", &setting.slider.max)
+      || !CDSXMLUtils::GetFloat(pSetting, "step", &setting.slider.step))
     {
-      CLog::Log(LOGERROR, "%s missing attritube (parentLabel, min, max, step) for setting name=%s", __FUNCTION__, setting->name.c_str());
+      CLog::Log(LOGERROR, "%s missing attritube (parentLabel, min, max, step) for setting name=%s", __FUNCTION__, setting.name.c_str());
     }
   }
 
+   // ADD DATABASE
+  m_db[setting.name] = default;
+
   // ADD GUI
   m_gui[iSectionId].emplace_back(std::move(setting));
-
-  // ADD DATABASE
-  m_db[setting->name] = default;
 }
 
 void CMadvrSettings::StoreAtStartSettings()

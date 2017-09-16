@@ -667,25 +667,25 @@ void CMadvrSettingsManager::RestoreSettings()
   {
     for (const auto &it : madvrSettings.m_gui[section.first])
     {
-      if (it->type.find("button_") != std::string::npos)
+      if (it.type.find("button_") != std::string::npos)
         continue;
 
-      if (it->type == "list_string")
-        SetStr(it->name, madvrSettings.m_db[it->name].asString(), it->type);
-      else if (it->type == "list_int")
-        SetInt(it->name, madvrSettings.m_db[it->name].asInteger(), it->type);
-      else if (it->type == "list_boolint")
-        SetBoolInt(it->name, it->value, madvrSettings.m_db[it->name].asInteger(), it->negate, it->type);
-      else if (it->type == "list_boolbool")
-        SetBoolBool(it->name, it->value, madvrSettings.m_db[it->name].asInteger(), it->negate, it->type);
-      else if (it->type == "list_boolstring")
-        SetBoolStr(it->name, it->value, madvrSettings.m_db[it->name].asString(), it->negate, it->type);
-      else if (it->type == "bool")
-        SetBool(it->name, madvrSettings.m_db[it->name].asBoolean(), it->negate, it->type);
-      else if (it->type == "float")
-        SetFloat(it->name, madvrSettings.m_db[it->name].asFloat(), it->slider->format, it->type);
+      if (it.type == "list_string")
+        SetStr(it.name, madvrSettings.m_db[it.name].asString(), it.type);
+      else if (it.type == "list_int")
+        SetInt(it.name, madvrSettings.m_db[it.name].asInteger(), it.type);
+      else if (it.type == "list_boolint")
+        SetBoolInt(it.name, it.value, madvrSettings.m_db[it.name].asInteger(), it.negate, it.type);
+      else if (it.type == "list_boolbool")
+        SetBoolBool(it.name, it.value, madvrSettings.m_db[it.name].asInteger(), it.negate, it.type);
+      else if (it.type == "list_boolstring")
+        SetBoolStr(it.name, it.value, madvrSettings.m_db[it.name].asString(), it.negate, it.type);
+      else if (it.type == "bool")
+        SetBool(it.name, madvrSettings.m_db[it.name].asBoolean(), it.negate, it.type);
+      else if (it.type == "float")
+        SetFloat(it.name, madvrSettings.m_db[it.name].asFloat(), it.slider.format, it.type);
       else
-        SetCustom(it->name, madvrSettings.m_db[it->name].asString(), it->type);
+        SetCustom(it.name, madvrSettings.m_db[it.name].asString(), it.type);
     }
   }
 }
@@ -699,22 +699,22 @@ void CMadvrSettingsManager::LoadSettings(int iSectionId)
 
   for (const auto &it : madvrSettings.m_gui[iSectionId])
   {
-    if (it->type == "list_string")
-      madvrSettings.m_db[it->name] = GetStr(it->name, it->type);
-    else if (it->type == "list_int")
-      madvrSettings.m_db[it->name] = GetInt(it->name, it->type);
-    else if (it->type == "list_boolint")
-      madvrSettings.m_db[it->name] = GetBoolInt(it->name, it->value, it->negate, it->type);
-    else if (it->type == "list_boolbool")
-      madvrSettings.m_db[it->name] = GetBoolBool(it->name, it->value, it->negate, it->type);
-    else if (it->type == "list_boolstring")
-      madvrSettings.m_db[it->name] = GetBoolStr(it->name, it->value, it->negate, it->type);
-    else if (it->type == "bool")
-      madvrSettings.m_db[it->name] = GetBool(it->name, it->negate, it->type);
-    else if (it->type == "float")
-      madvrSettings.m_db[it->name] = GetFloat(it->name, it->slider->format, it->type);
+    if (it.type == "list_string")
+      madvrSettings.m_db[it.name] = GetStr(it.name, it.type);
+    else if (it.type == "list_int")
+      madvrSettings.m_db[it.name] = GetInt(it.name, it.type);
+    else if (it.type == "list_boolint")
+      madvrSettings.m_db[it.name] = GetBoolInt(it.name, it.value, it.negate, it.type);
+    else if (it.type == "list_boolbool")
+      madvrSettings.m_db[it.name] = GetBoolBool(it.name, it.value, it.negate, it.type);
+    else if (it.type == "list_boolstring")
+      madvrSettings.m_db[it.name] = GetBoolStr(it.name, it.value, it.negate, it.type);
+    else if (it.type == "bool")
+      madvrSettings.m_db[it.name] = GetBool(it.name, it.negate, it.type);
+    else if (it.type == "float")
+      madvrSettings.m_db[it.name] = GetFloat(it.name, it.slider.format, it.type);
     else
-      madvrSettings.m_db[it->name] = GetCustom(it->name, it->type);
+      madvrSettings.m_db[it.name] = GetCustom(it.name, it.type);
   }
 }
 
@@ -728,51 +728,51 @@ void CMadvrSettingsManager::OnSettingChanged(int iSectionId, CSettingsManager* s
   const std::string &settingId = setting->GetId();
 
   auto it = std::find_if(madvrSettings.m_gui[iSectionId].begin(), madvrSettings.m_gui[iSectionId].end(),
-    [settingId](const CMadvrListSettings* setting){
-    return setting->dialogId == settingId;
+    [settingId](const MadvrListSettings setting){
+    return setting.dialogId == settingId;
   });
 
   if (it != madvrSettings.m_gui[iSectionId].end())
   { 
-    if ((*it)->type == "list_string")
+    if (it->type == "list_string")
     {
-      madvrSettings.m_db[(*it)->name] = static_cast<const CSettingString*>(setting)->GetValue();
-      SetStr((*it)->name, madvrSettings.m_db[(*it)->name].asString(), (*it)->type);
+      madvrSettings.m_db[it->name] = static_cast<const CSettingString*>(setting)->GetValue();
+      SetStr(it->name, madvrSettings.m_db[it->name].asString(), it->type);
     }
-    else if ((*it)->type == "list_int")
+    else if (it->type == "list_int")
     {
-      madvrSettings.m_db[(*it)->name] = static_cast<int>(static_cast<const CSettingInt*>(setting)->GetValue());
-      SetInt((*it)->name, madvrSettings.m_db[(*it)->name].asInteger(), (*it)->type);
+      madvrSettings.m_db[it->name] = static_cast<int>(static_cast<const CSettingInt*>(setting)->GetValue());
+      SetInt(it->name, madvrSettings.m_db[it->name].asInteger(), it->type);
     }
-    else if ((*it)->type == "list_boolint")
+    else if (it->type == "list_boolint")
     {
-      madvrSettings.m_db[(*it)->name] = static_cast<int>(static_cast<const CSettingInt*>(setting)->GetValue());
-      SetBoolInt((*it)->name, (*it)->value, madvrSettings.m_db[(*it)->name].asInteger(), (*it)->negate, (*it)->type);
+      madvrSettings.m_db[it->name] = static_cast<int>(static_cast<const CSettingInt*>(setting)->GetValue());
+      SetBoolInt(it->name, it->value, madvrSettings.m_db[it->name].asInteger(), it->negate, it->type);
     }
-    else if ((*it)->type == "list_boolbool")
+    else if (it->type == "list_boolbool")
     {
-      madvrSettings.m_db[(*it)->name] = static_cast<int>(static_cast<const CSettingInt*>(setting)->GetValue());
-      SetBoolBool((*it)->name, (*it)->value, madvrSettings.m_db[(*it)->name].asInteger(), (*it)->negate, (*it)->type);
+      madvrSettings.m_db[it->name] = static_cast<int>(static_cast<const CSettingInt*>(setting)->GetValue());
+      SetBoolBool(it->name, it->value, madvrSettings.m_db[it->name].asInteger(), it->negate, it->type);
     }
-    else if ((*it)->type == "list_boolstring")
+    else if (it->type == "list_boolstring")
     {
-      madvrSettings.m_db[(*it)->name] = static_cast<const CSettingString*>(setting)->GetValue();
-      SetBoolStr((*it)->name, (*it)->value, madvrSettings.m_db[(*it)->name].asString(), (*it)->negate, (*it)->type);
+      madvrSettings.m_db[it->name] = static_cast<const CSettingString*>(setting)->GetValue();
+      SetBoolStr(it->name, it->value, madvrSettings.m_db[it->name].asString(), it->negate, it->type);
     }
-    else if ((*it)->type == "bool")
+    else if (it->type == "bool")
     {
-      madvrSettings.m_db[(*it)->name] = static_cast<const CSettingBool*>(setting)->GetValue();
-      SetBool((*it)->name, madvrSettings.m_db[(*it)->name].asBoolean(), (*it)->negate, (*it)->type);
+      madvrSettings.m_db[it->name] = static_cast<const CSettingBool*>(setting)->GetValue();
+      SetBool(it->name, madvrSettings.m_db[it->name].asBoolean(), it->negate, it->type);
     }
-    else if ((*it)->type == "float")
+    else if (it->type == "float")
     {
-      madvrSettings.m_db[(*it)->name] = static_cast<float>(static_cast<const CSettingNumber*>(setting)->GetValue());
-      SetFloat((*it)->name, madvrSettings.m_db[(*it)->name].asFloat(), (*it)->slider->format, (*it)->type);
+      madvrSettings.m_db[it->name] = static_cast<float>(static_cast<const CSettingNumber*>(setting)->GetValue());
+      SetFloat(it->name, madvrSettings.m_db[it->name].asFloat(), it->slider.format, it->type);
     }
     else
     {
-      madvrSettings.m_db[(*it)->name] = static_cast<const CSettingString*>(setting)->GetValue();
-      SetCustom((*it)->name, madvrSettings.m_db[(*it)->name].asString(), (*it)->type);
+      madvrSettings.m_db[it->name] = static_cast<const CSettingString*>(setting)->GetValue();
+      SetCustom(it->name, madvrSettings.m_db[it->name].asString(), it->type);
     }
     
     UpdateSettings(settingId, settingsManager);
