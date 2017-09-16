@@ -2006,10 +2006,35 @@ std::string CDSPlayerDatabase::GetSubtitleExtTrackName(const std::string &strFil
 void CDSPlayerDatabase::JsonToVariant(const std::string &strJson, CMadvrSettings &settings)
 {
   CVariant tmp = CJSONVariantParser::Parse(reinterpret_cast<const unsigned char*>(strJson.c_str()), strJson.size());
-  for (auto it = settings.m_db.begin_map(); it != settings.m_db.end_map(); it++)
+  for (auto setting = settings.m_db.begin_map(); setting != settings.m_db.end_map(); setting++)
   {
-    if (!tmp.isMember(it->first))
-      tmp[it->first] = it->second;
+    if (!tmp.isMember(setting->first))
+    {
+      // if there isn't a value stored for this setting than assign the default value
+      tmp[setting->first] = setting->second;
+      
+      continue;
+    }
+
+    auto option = settings.m_options.find(setting->first);
+    if (option != settings.m_options.end())
+    {
+      // if the stored value for this setting is invalid than assign the default value
+      const CVariant &value = tmp[setting->first];
+      auto it = std::find_if(settings.m_options[setting->first].begin(), settings.m_options[setting->first].end(),
+        [value](const CVariant option) {
+        if (value.isInteger())
+          return option.asInteger() == value.asInteger();
+        else if (value.isString())
+          return option.asString() == value.asString();
+        return false;
+      });
+      if (it == settings.m_options[setting->first].end())
+      {
+        CLog::Log(LOGDEBUG, "%s the stored value for '%s' is invalid, will be applied the default value ", __FUNCTION__, setting->first.c_str());
+        tmp[setting->first] = setting->second;
+      }
+    }
   }
   settings.m_db = tmp;
 }
