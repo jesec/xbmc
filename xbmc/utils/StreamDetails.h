@@ -71,6 +71,7 @@ public:
   std::string m_strLanguage;
 #ifdef HAS_DS_PLAYER
   unsigned long m_iFourcc;
+  float m_fps;
 #endif
 };
 
@@ -140,6 +141,7 @@ public:
   std::string GetVideoLanguage(int idx = 0) const;
 #ifdef HAS_DS_PLAYER
   std::string GetVideoFourcc(int idx = 0) const;
+  float GetVideoFPS(int idx = 0) const;
 #endif
 
   std::string GetAudioCodec(int idx = 0) const;

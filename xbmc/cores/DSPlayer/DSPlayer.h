@@ -69,30 +69,6 @@ enum DSPLAYER_STATE
 
 class CDSInputStreamPVRManager;
 class CDSPlayer;
-class CDSGraphThread : public CThread
-{
-private:
-  CDSPlayer*    m_pPlayer;
-public:
-  CDSGraphThread(CDSPlayer * pPlayer);
-  static ThreadIdentifier m_threadID;
-  void StopThread(bool bWait = true)
-  {
-    if (m_threadID)
-    {
-      PostThreadMessage(m_threadID, WM_QUIT, 0, 0);
-      m_threadID = 0;
-    }
-    CThread::StopThread(bWait);
-  }
-
-protected:
-  void HandleMessages();
-  virtual void OnStartup();
-  virtual void Process();
-  virtual void OnExit();
-
-};
 class CGraphManagementThread : public CThread
 {
 private:
@@ -203,13 +179,12 @@ public:
   virtual bool IsMatroskaEditions() override { return (CStreamsManager::Get()) ? CStreamsManager::Get()->IsMatroskaEditions() : false; }
 
   //CDSPlayer
-  virtual void Stop();
   CDVDClock&  GetClock() { return m_pClock; }
   IPlayerCallback& GetPlayerCallback() { return m_callback; }
 
   static DSPLAYER_STATE PlayerState;
-  static CFileItem currentFileItem;
   static CGUIDialogBoxBase* errorWindow;
+  CFileItem m_currentFileItem;
   CPlayerOptions m_PlayerOptions;
 
   CCriticalSection m_StateSection;
@@ -240,14 +215,11 @@ public:
   HINSTANCE m_hInstance; 
   bool m_isMadvr;
 
-  HRESULT m_hDSGraph;
-  CEvent m_hDSGraphEvent;
-
   CProcessInfo *m_processInfo;
 
   static void PostMessage(CDSMsg *msg, bool wait = true)
   {
-    if (!m_threadID)
+    if (!m_threadID || PlayerState == DSPLAYER_CLOSING || PlayerState == DSPLAYER_CLOSED)
     {
       msg->Release();
       return;
@@ -266,34 +238,14 @@ public:
     }
   }
 
-  static void PostGraphMessage(CDSMsg *msg, bool wait = true)
-  {
-    if (!CDSGraphThread::m_threadID)
-    {
-      msg->Release();
-      return;
-    }
-
-    if (wait)
-      msg->Acquire();
-
-    CLog::Log(LOGDEBUG, "%s Graph Message posted : %d on thread 0x%X", __FUNCTION__, msg->GetMessageType(), CDSGraphThread::m_threadID);
-    PostThreadMessage(CDSGraphThread::m_threadID, WM_GRAPHMESSAGE, msg->GetMessageType(), (LPARAM)msg);
-
-    if (wait)
-    {
-      msg->Wait();
-      msg->Release();
-    }
-  }
-
   static bool IsCurrentThread() { return CThread::IsCurrentThread(m_threadID); }
   static HWND GetDShWnd(){ return m_hWnd; }
-  void SetDSWndVisible(bool bVisible);
 
 protected:
-  virtual void VideoParamsChange() override { };
-  virtual void GetDebugInfo(std::string &audio, std::string &video, std::string &general) override;
+  void SetDSWndVisible(bool bVisible) override;
+  void SetRenderOnDS(bool bRender) override;
+  void VideoParamsChange() override { };
+  void GetDebugInfo(std::string &audio, std::string &video, std::string &general) override;
 
   void StopThread(bool bWait = true)
   {
@@ -310,7 +262,6 @@ protected:
   bool ShowPVRChannelInfo();
 
   CGraphManagementThread m_pGraphThread;
-  CDSGraphThread m_pDSGraphThread;
   CDVDClock m_pClock;
   CEvent m_hReadyEvent;
   static ThreadIdentifier m_threadID;
@@ -344,8 +295,6 @@ protected:
   // IDSPlayer
   bool UsingDS(DIRECTSHOW_RENDERER renderer = DIRECTSHOW_RENDERER_UNDEF);
   bool ReadyDS(DIRECTSHOW_RENDERER renderer = DIRECTSHOW_RENDERER_UNDEF);
-  bool GetRenderOnDS() { return m_renderOnDs; }
-  void SetRenderOnDS(bool b);
   void SetCurrentVideoLayer(DS_RENDER_LAYER layer) { m_currentVideoLayer = layer; }
   void IncRenderCount();
   void ResetRenderCount();
