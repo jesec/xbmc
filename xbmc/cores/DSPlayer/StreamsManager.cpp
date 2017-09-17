@@ -438,8 +438,12 @@ void CStreamsManager::LoadIAMStreamSelectStreamsInternal()
 
     switch (group)
     {
-    case CStreamDetail::VIDEO:	infos = &m_videoStream;					break;
-    case CStreamDetail::AUDIO:	infos = new CDSStreamDetailAudio();		break;
+    case CStreamDetail::VIDEO:
+      infos = &m_videoStream;
+      break;
+    case CStreamDetail::AUDIO:
+      infos = new CDSStreamDetailAudio();
+      break;
     case CStreamDetail::SUBTITLE:
     {
       if (m_bHasSubsFilter)
@@ -448,8 +452,11 @@ void CStreamsManager::LoadIAMStreamSelectStreamsInternal()
         infos = new CDSStreamDetailSubtitle();
       break;
     }
-    case CStreamDetail::EDITION:	m_mkveditions = true;
-    case CStreamDetail::BD_TITLE:	infos = new CDSStreamDetailEdition();	break;
+    case CStreamDetail::EDITION:
+      m_mkveditions = true;
+    case CStreamDetail::BD_TITLE:
+      infos = new CDSStreamDetailEdition();	
+      break;
     default: continue;
     }
 
@@ -660,7 +667,7 @@ void CStreamsManager::LoadStreams()
      We load external subtitle file */
 
   std::vector<std::string> subtitles;
-  CUtil::ScanForExternalSubtitles(CDSPlayer::currentFileItem.GetPath(), subtitles);
+  CUtil::ScanForExternalSubtitles(g_application.CurrentFile(), subtitles);
 
   for (std::vector<std::string>::const_iterator it = subtitles.begin(); it != subtitles.end(); ++it)
   {
@@ -1348,6 +1355,7 @@ void CStreamsManager::MediaTypeToStreamDetail(AM_MEDIA_TYPE *pMediaType, CStream
         VIDEOINFOHEADER *v = reinterpret_cast<VIDEOINFOHEADER *>(pMediaType->pbFormat);
         infos.m_iWidth = v->bmiHeader.biWidth;
         infos.m_iHeight = v->bmiHeader.biHeight;
+        v->AvgTimePerFrame > 0 ? infos.m_fps = (10000000.0 / v->AvgTimePerFrame) : infos.m_fps = 0.0f;
         ExtractCodecDetail(infos, CMediaTypeEx::GetVideoCodecName(pMediaType->subtype, v->bmiHeader.biCompression, &infos.m_iFourcc));
       }
     }
@@ -1358,6 +1366,7 @@ void CStreamsManager::MediaTypeToStreamDetail(AM_MEDIA_TYPE *pMediaType, CStream
         MPEG2VIDEOINFO *m = reinterpret_cast<MPEG2VIDEOINFO *>(pMediaType->pbFormat);
         infos.m_iWidth = m->hdr.bmiHeader.biWidth;
         infos.m_iHeight = m->hdr.bmiHeader.biHeight;
+        m->hdr.AvgTimePerFrame > 0 ? infos.m_fps = (10000000.0 / m->hdr.AvgTimePerFrame) : infos.m_fps = 0.0f;
         ExtractCodecDetail(infos, CMediaTypeEx::GetVideoCodecName(pMediaType->subtype, m->hdr.bmiHeader.biCompression, &infos.m_iFourcc));
         if (infos.m_iFourcc == 0)
         {
@@ -1374,6 +1383,7 @@ void CStreamsManager::MediaTypeToStreamDetail(AM_MEDIA_TYPE *pMediaType, CStream
         VIDEOINFOHEADER2 *v = reinterpret_cast<VIDEOINFOHEADER2 *>(pMediaType->pbFormat);
         infos.m_iWidth = v->bmiHeader.biWidth;
         infos.m_iHeight = v->bmiHeader.biHeight;
+        v->AvgTimePerFrame > 0 ? infos.m_fps = (10000000.0 / v->AvgTimePerFrame) : infos.m_fps = 0.0f;
         ExtractCodecDetail(infos, CMediaTypeEx::GetVideoCodecName(pMediaType->subtype, v->bmiHeader.biCompression, &infos.m_iFourcc));
       }
     }
@@ -1384,6 +1394,7 @@ void CStreamsManager::MediaTypeToStreamDetail(AM_MEDIA_TYPE *pMediaType, CStream
         MPEG1VIDEOINFO *m = reinterpret_cast<MPEG1VIDEOINFO *>(pMediaType->pbFormat);
         infos.m_iWidth = m->hdr.bmiHeader.biWidth;
         infos.m_iHeight = m->hdr.bmiHeader.biHeight;
+        m->hdr.AvgTimePerFrame > 0 ? infos.m_fps = (10000000.0 / m->hdr.AvgTimePerFrame) : infos.m_fps = 0.0f;
         ExtractCodecDetail(infos, CMediaTypeEx::GetVideoCodecName(pMediaType->subtype, m->hdr.bmiHeader.biCompression, &infos.m_iFourcc));
       }
     }

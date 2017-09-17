@@ -186,8 +186,6 @@ void CDSGraph::CloseFile()
 
   if (m_pGraphBuilder)
   {
-    g_application.m_pPlayer->SetRenderOnDS(false);
-
     if (m_pAMOpenProgress)
       m_pAMOpenProgress->AbortOperation();
 
@@ -422,7 +420,7 @@ HRESULT CDSGraph::HandleGraphEvent()
   if (g_application.m_pPlayer->ReadyDS() && m_bPerformPause)
   {
     m_bPerformPause = false;
-    CApplicationMessenger::GetInstance().SendMsg(TMSG_MEDIA_PAUSE);
+    CApplicationMessenger::GetInstance().PostMsg(TMSG_MEDIA_PAUSE);
     CLog::Log(LOGDEBUG, "%s Playback paused at start", __FUNCTION__);
   }
 
@@ -439,19 +437,19 @@ HRESULT CDSGraph::HandleGraphEvent()
     {
     case EC_STEP_COMPLETE:
       CLog::Log(LOGDEBUG, "%s EC_STEP_COMPLETE", __FUNCTION__);
-      CApplicationMessenger::GetInstance().SendMsg(TMSG_MEDIA_STOP);
+      CApplicationMessenger::GetInstance().PostMsg(TMSG_MEDIA_STOP);
       break;
     case EC_COMPLETE:
       CLog::Log(LOGDEBUG, "%s EC_COMPLETE", __FUNCTION__);
       m_State.eof = true;
-      CApplicationMessenger::GetInstance().SendMsg(TMSG_MEDIA_STOP);
+      CApplicationMessenger::GetInstance().PostMsg(TMSG_MEDIA_STOP);
       break;
     case EC_BUFFERING_DATA:
       CLog::Log(LOGDEBUG, "%s EC_BUFFERING_DATA", __FUNCTION__);
       break;
     case EC_USERABORT:
       CLog::Log(LOGDEBUG, "%s EC_USERABORT", __FUNCTION__);
-      CApplicationMessenger::GetInstance().SendMsg(TMSG_MEDIA_STOP);
+      CApplicationMessenger::GetInstance().PostMsg(TMSG_MEDIA_STOP);
       break;
     case EC_ERRORABORT:
     case EC_ERRORABORTEX:
@@ -463,7 +461,7 @@ HRESULT CDSGraph::HandleGraphEvent()
       }
       else
         CLog::Log(LOGDEBUG, "%s EC_ERRORABORT. Error code: 0x%X", __FUNCTION__, evParam1);
-      CApplicationMessenger::GetInstance().SendMsg(TMSG_MEDIA_STOP);
+      CApplicationMessenger::GetInstance().PostMsg(TMSG_MEDIA_STOP);
       break;
     case EC_STATE_CHANGE:
       CLog::Log(LOGDEBUG, "%s EC_STATE_CHANGE", __FUNCTION__);

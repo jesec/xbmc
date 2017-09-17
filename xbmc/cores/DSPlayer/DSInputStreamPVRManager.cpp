@@ -257,7 +257,7 @@ bool CDSInputStreamPVRManager::PerformChannelSwitch()
   bResult = GetNewChannel(fileItem);
   if (bResult)
   {
-    if (m_pPlayer->currentFileItem.GetPath() != fileItem.GetPath())
+    if (m_pPlayer->m_currentFileItem.GetPath() != fileItem.GetPath())
     {
       // File changed - fast channel switching is not possible
       CLog::Log(LOGNOTICE, "%s - File changed - fast channel switching is not possible, opening new channel...", __FUNCTION__);

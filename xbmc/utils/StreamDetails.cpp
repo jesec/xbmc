@@ -411,6 +411,15 @@ std::string CStreamDetails::GetVideoFourcc(int idx) const
   else
     return "";
 }
+
+float CStreamDetails::GetVideoFPS(int idx) const
+{
+  const CStreamDetailVideo *item = static_cast<const CStreamDetailVideo*>(GetNthStream(CStreamDetail::VIDEO, idx));
+  if (item)
+    return item->m_fps;
+  else
+    return 0.0f;
+}
 #endif
 
 float CStreamDetails::GetVideoAspect(int idx) const

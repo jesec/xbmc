@@ -442,6 +442,23 @@ STDMETHODIMP CmadVRAllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
     return E_FAIL;
   }
 
+  if (Com::SmartQIPtr<IMadVRSubclassReplacement> pMVRSR = m_pDXR)
+    VERIFY(SUCCEEDED(pMVRSR->DisableSubclassing()));
+
+  // resize madVR
+  if (Com::SmartQIPtr<IVideoWindow> pVW = m_pDXR)
+  {
+    RECT w;
+    w.left = 0;
+    w.top = 0;
+    w.right = g_graphicsContext.GetWidth();
+    w.bottom = g_graphicsContext.GetHeight();
+    pVW->SetWindowPosition(w.left, w.top, w.right - w.left, w.bottom - w.top);
+
+    // madVR supports calling IVideoWindow::put_Owner before the pins are connected
+    pVW->put_Owner((OAHWND)CDSPlayer::GetDShWnd());
+  }
+
   // Configure initial Madvr Settings
   ConfigureMadvr();
 

@@ -124,18 +124,8 @@ void CGUIControlGroup::Render()
   {
     if (m_renderFocusedLast && control->HasFocus())
       focusedControl = control;
-    else
-#ifdef HAS_DS_PLAYER
-    {
-      if (control->GetControlType() == GUICONTROL_VIDEO && control->IsVisible())
-        g_application.m_pPlayer->RenderToTexture(RENDER_LAYER_OVER);
-
+    else     
       control->DoRender();
-    }
-#else      
-      control->DoRender();
-#endif
-
   }
   if (focusedControl)
     focusedControl->DoRender();

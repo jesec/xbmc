@@ -189,8 +189,6 @@ public:
   // IDSPlayer
   bool UsingDS(DIRECTSHOW_RENDERER renderer = DIRECTSHOW_RENDERER_UNDEF);
   bool ReadyDS(DIRECTSHOW_RENDERER renderer = DIRECTSHOW_RENDERER_UNDEF);
-  bool GetRenderOnDS();
-  void SetRenderOnDS(bool b);
   void SetCurrentVideoLayer(DS_RENDER_LAYER layer);
   void IncRenderCount();
   void ResetRenderCount();

@@ -421,8 +421,6 @@ public:
   // IDSPlayer
   virtual bool UsingDS(DIRECTSHOW_RENDERER renderer = DIRECTSHOW_RENDERER_UNDEF) { return false; };
   virtual bool ReadyDS(DIRECTSHOW_RENDERER renderer = DIRECTSHOW_RENDERER_UNDEF) { return false; };
-  virtual bool GetRenderOnDS() { return false; };
-  virtual void SetRenderOnDS(bool b) {};
   virtual void SetCurrentVideoLayer(DS_RENDER_LAYER layer) {};
   virtual void IncRenderCount() {};
   virtual void ResetRenderCount() {};

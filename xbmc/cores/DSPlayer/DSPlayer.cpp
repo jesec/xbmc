@@ -72,10 +72,8 @@ using namespace std;
 using namespace KODI::MESSAGING;
 
 DSPLAYER_STATE CDSPlayer::PlayerState = DSPLAYER_CLOSED;
-CFileItem CDSPlayer::currentFileItem;
 CGUIDialogBoxBase *CDSPlayer::errorWindow = NULL;
 ThreadIdentifier CDSPlayer::m_threadID = 0;
-ThreadIdentifier CDSGraphThread::m_threadID = 0;
 HWND CDSPlayer::m_hWnd = 0;
 
 CDSPlayer::CDSPlayer(IPlayerCallback& callback)
@@ -83,7 +81,6 @@ CDSPlayer::CDSPlayer(IPlayerCallback& callback)
   CThread("CDSPlayer thread"),
   m_hReadyEvent(true),
   m_pGraphThread(this),
-  m_pDSGraphThread(this),
   m_bEof(false),
   m_renderManager(this)
 {
@@ -205,7 +202,7 @@ void CDSPlayer::ShowEditionDlg(bool playStart)
     if (db.Open())
     {
       CEdition edition;
-      if (db.GetResumeEdition(currentFileItem.GetPath(), edition))
+      if (db.GetResumeEdition(m_currentFileItem.GetPath(), edition))
       {
         CLog::Log(LOGDEBUG, "%s select bookmark, edition with idx %i selected", __FUNCTION__, edition.editionNumber);
         SetEdition(edition.editionNumber);
@@ -214,8 +211,8 @@ void CDSPlayer::ShowEditionDlg(bool playStart)
     }
   }
 
-  PostMessage(new CDSMsgBool(CDSMsg::PLAYER_PLAY, true), false);
-  PostMessage(new CDSMsgBool(CDSMsg::PLAYER_PAUSE, true), false);
+  g_dsGraph->Play(true);
+  g_dsGraph->Pause();
 
   CGUIDialogSelect *dialog = (CGUIDialogSelect *)g_windowManager.GetWindow(WINDOW_DIALOG_SELECT);
 
@@ -276,7 +273,7 @@ void CDSPlayer::ShowEditionDlg(bool playStart)
 
 bool CDSPlayer::WaitForFileClose()
 {
-  if (!WaitForThreadExit(100) || !m_pGraphThread.WaitForThreadExit(100) || !m_pDSGraphThread.WaitForThreadExit(100))
+  if (!WaitForThreadExit(100) || !m_pGraphThread.WaitForThreadExit(100))
     return false;
 
   return true;
@@ -296,7 +293,7 @@ bool CDSPlayer::OpenFileInternal(const CFileItem& file)
       return false;
 
     PlayerState = DSPLAYER_LOADING;
-    currentFileItem = file;
+    m_currentFileItem = file;
 
     m_hReadyEvent.Reset();
 
@@ -306,53 +303,6 @@ bool CDSPlayer::OpenFileInternal(const CFileItem& file)
 
     // wait for the ready event
     CGUIDialogBusy::WaitOnEvent(m_hReadyEvent, g_advancedSettings.m_videoBusyDialogDelay_ms, false);
-
-    if (PlayerState != DSPLAYER_ERROR)
-    {
-      float fValue;
-
-      // Select Audio Stream
-      if (CStreamsManager::Get()) CStreamsManager::Get()->SelectBestAudio();
-
-      // Select Subtitle Stream and set Delay
-      fValue = CMediaSettings::GetInstance().GetCurrentVideoSettings().m_SubtitleDelay;
-
-      if (CStreamsManager::Get()) CStreamsManager::Get()->SelectBestSubtitle(file.GetPath());
-      if (CStreamsManager::Get()) CStreamsManager::Get()->SetSubTitleDelay(fValue);
-
-      // Subtitle On/Off
-      SetSubtitleVisible(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_SubtitleOn);
-
-      // Get Audio Interface LAV AUDIO/FFDSHOW to setting Delay
-      if (CStreamsManager::Get())
-      {
-        if (CStreamsManager::Get()->SetAudioInterface())
-        {
-          fValue = CMediaSettings::GetInstance().GetCurrentVideoSettings().m_AudioDelay;
-          CStreamsManager::Get()->SetAVDelay(fValue);
-        }
-      }
-
-      CMediaSettings::GetInstance().GetAtStartVideoSettings() = CMediaSettings::GetInstance().GetCurrentVideoSettings();
-
-      m_HasVideo = true;
-      m_HasAudio = true;
-
-      if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_SHOWBDTITLECHOICE))
-        ShowEditionDlg(true);
-
-      // Seek
-      if (m_PlayerOptions.starttime > 0)
-        PostMessage(new CDSMsgPlayerSeekTime(SEC_TO_DS_TIME(m_PlayerOptions.starttime), 1U, false), false);
-      else
-        PostMessage(new CDSMsgPlayerSeekTime(0, 1U, false), false);
-
-      // Starts playback
-      PostMessage(new CDSMsgBool(CDSMsg::PLAYER_PLAY, true), false);
-
-      if (CGraphFilters::Get()->IsDVD())
-        CStreamsManager::Get()->LoadDVDStreams();
-    }
 
     return (PlayerState != DSPLAYER_ERROR);
   }
@@ -439,7 +389,7 @@ bool CDSPlayer::OpenFile(const CFileItem& file, const CPlayerOptions &options)
 
   CLog::Log(LOGNOTICE, "%s - DSPlayer: Opening: %s", __FUNCTION__, CURL::GetRedacted(file.GetPath()).c_str());
 
-  if (CSettings::GetInstance().GetInt(CSettings::SETTING_DSPLAYER_MANAGEMADVRWITHKODI) == KODIGUI_LOAD_DSPLAYER)
+  if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_MANAGEMADVRWITHKODI) == KODIGUI_LOAD_DSPLAYER)
     LoadVideoSettings(file);
 
   CFileItem fileItem = file;
@@ -506,14 +456,16 @@ bool CDSPlayer::CloseFile(bool reopen)
   // set the abort request so that other threads can finish up
   m_bEof = g_dsGraph->IsEof();
 
+  // stop the rendering on dsplayer device
+  m_renderOnDs = false;
+
   g_dsGraph->CloseFile();
 
   PlayerState = DSPLAYER_CLOSED;
 
   // Stop threads
-  m_pDSGraphThread.StopThread(false);
-  m_pGraphThread.StopThread(false);
-  StopThread(false);
+  m_pGraphThread.StopThread();
+  StopThread();
 
   m_renderManager.UnInit();
 
@@ -717,6 +669,14 @@ void CDSPlayer::SetDSWndVisible(bool bVisible)
   UpdateWindow(m_hWnd);
 }
 
+void CDSPlayer::SetRenderOnDS(bool bRender)
+{
+  m_renderOnDs = bRender;
+
+  if (bRender)
+    SetDSWndVisible(bRender);
+}
+
 LRESULT CALLBACK CDSPlayer::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
   switch (uMsg)
@@ -739,7 +699,7 @@ LRESULT CALLBACK CDSPlayer::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     return(0);
   case WM_SIZE:
     SetWindowPos(hWnd, 0, 0, 0, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOZORDER);
-    PostGraphMessage(new CDSMsgBool(CDSMsg::RESET_DEVICE, true), false);
+    PostMessage(new CDSMsgBool(CDSMsg::RESET_DEVICE, true), false);
     return(0);
   }
   return DefWindowProc(hWnd, uMsg, wParam, lParam);
@@ -774,17 +734,12 @@ void CDSPlayer::OnExit()
 
 void CDSPlayer::Process()
 {
-  m_hDSGraph = E_FAIL;
+  HRESULT hr = E_FAIL;
   CLog::Log(LOGNOTICE, "%s - Creating DS Graph", __FUNCTION__);
 
-  // Create DS Graph thread
-  m_hDSGraphEvent.Reset();
-  m_pDSGraphThread.Create();
+  hr = g_dsGraph->SetFile(m_currentFileItem, m_PlayerOptions);
 
-  // Wait for DS Graph creation;
-  m_hDSGraphEvent.Wait();
-
-  if (FAILED(m_hDSGraph))
+  if (FAILED(hr))
   {
     CLog::Log(LOGERROR, "%s - Failed creating DS Graph", __FUNCTION__);
     PlayerState = DSPLAYER_ERROR;
@@ -802,6 +757,53 @@ void CDSPlayer::Process()
   // Start playback
   // If there's an error, the lock must be released in order to show the error dialog
   m_hReadyEvent.Set();
+
+  if (PlayerState != DSPLAYER_ERROR)
+  {
+    m_HasVideo = true;
+    m_HasAudio = true;
+
+    float fValue;
+
+    // Select Audio Stream
+    if (CStreamsManager::Get()) CStreamsManager::Get()->SelectBestAudio();
+
+    // Select Subtitle Stream and set Delay
+    fValue = CMediaSettings::GetInstance().GetCurrentVideoSettings().m_SubtitleDelay;
+
+    if (CStreamsManager::Get()) CStreamsManager::Get()->SelectBestSubtitle(m_currentFileItem.GetPath());
+    if (CStreamsManager::Get()) CStreamsManager::Get()->SetSubTitleDelay(fValue);
+
+    // Subtitle On/Off
+    SetSubtitleVisible(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_SubtitleOn);
+
+    // Get Audio Interface LAV AUDIO/FFDSHOW to setting Delay
+    if (CStreamsManager::Get())
+    {
+      if (CStreamsManager::Get()->SetAudioInterface())
+      {
+        fValue = CMediaSettings::GetInstance().GetCurrentVideoSettings().m_AudioDelay;
+        CStreamsManager::Get()->SetAVDelay(fValue);
+      }
+    }
+
+    CMediaSettings::GetInstance().GetAtStartVideoSettings() = CMediaSettings::GetInstance().GetCurrentVideoSettings();
+
+    if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_SHOWBDTITLECHOICE))
+      ShowEditionDlg(true);
+
+    // Seek
+    if (m_PlayerOptions.starttime > 0)
+      g_dsGraph->Seek(SEC_TO_DS_TIME(m_PlayerOptions.starttime), 1U, false);
+    else
+      g_dsGraph->Seek(SEC_TO_DS_TIME(0), 1U, false);
+
+    // Starts playback
+    g_dsGraph->Play(true);
+
+    if (CGraphFilters::Get()->IsDVD())
+      CStreamsManager::Get()->LoadDVDStreams();
+  }
 
   while (!m_bStop && PlayerState != DSPLAYER_CLOSED && PlayerState != DSPLAYER_LOADING)
     HandleMessages();
@@ -826,6 +828,11 @@ void CDSPlayer::HandleMessages()
       if (pMsg->IsType(CDSMsg::GENERAL_SET_WINDOW_POS))
       {
         g_dsGraph->UpdateWindowPosition();
+      }
+      if (pMsg->IsType(CDSMsg::RESET_DEVICE))
+      {
+        CDSMsgBool* speMsg = reinterpret_cast<CDSMsgBool *>(pMsg);
+        g_application.m_pPlayer->Reset(speMsg->m_value);
       }
       if (pMsg->IsType(CDSMsg::SET_WINDOW_POS))
       {
@@ -951,23 +958,18 @@ void CDSPlayer::HandleMessages()
   }
 }
 
-void CDSPlayer::Stop()
-{
-  PostMessage(new CDSMsgBool(CDSMsg::PLAYER_STOP, true));
-}
-
 void CDSPlayer::Pause()
-{
-  if (PlayerState == DSPLAYER_LOADING)
+{  
+  if (PlayerState == DSPLAYER_CLOSING)
+    return;
+
+  if (PlayerState == DSPLAYER_LOADING || PlayerState == DSPLAYER_LOADED )
   {
     g_dsGraph->QueuePause();
     return;
   }
 
   g_dsGraph->UpdateState();
-
-  if (PlayerState == DSPLAYER_LOADING || PlayerState == DSPLAYER_LOADED || PlayerState == DSPLAYER_CLOSING)
-    return;
 
   m_pGraphThread.SetSpeedChanged(true);
   if (PlayerState == DSPLAYER_PAUSED)
@@ -1108,7 +1110,7 @@ bool CDSPlayer::OnAction(const CAction &action)
       else
       {
         CLog::Log(LOGWARNING, "%s - failed to switch channel. playback stopped", __FUNCTION__);
-        CApplicationMessenger::GetInstance().SendMsg(TMSG_MEDIA_STOP);
+        CApplicationMessenger::GetInstance().PostMsg(TMSG_MEDIA_STOP);
       }
       return true;
       break;
@@ -1128,7 +1130,7 @@ bool CDSPlayer::OnAction(const CAction &action)
       else
       {
         CLog::Log(LOGWARNING, "%s - failed to switch channel. playback stopped", __FUNCTION__);
-        CApplicationMessenger::GetInstance().SendMsg(TMSG_MEDIA_STOP);
+        CApplicationMessenger::GetInstance().PostMsg(TMSG_MEDIA_STOP);
       }
       return true;
       break;
@@ -1148,7 +1150,7 @@ bool CDSPlayer::OnAction(const CAction &action)
       else
       {
         CLog::Log(LOGWARNING, "%s - failed to switch channel. playback stopped", __FUNCTION__);
-        CApplicationMessenger::GetInstance().SendMsg(TMSG_MEDIA_STOP);
+        CApplicationMessenger::GetInstance().PostMsg(TMSG_MEDIA_STOP);
       }
       return true;
       break;
@@ -1372,7 +1374,6 @@ bool CDSPlayer::ShowPVRChannelInfo()
 void CDSPlayer::FrameMove()
 {
   m_renderManager.FrameMove();
-  m_renderManager.UpdateResolution();
 }
 
 
@@ -1617,14 +1618,6 @@ bool CDSPlayer::ReadyDS(DIRECTSHOW_RENDERER renderer)
   return (m_pAllocatorCallback != NULL && m_renderOnDs && m_CurrentRenderer == renderer);
 }
 
-void CDSPlayer::SetRenderOnDS(bool b)
-{
-  m_renderOnDs = b;
-
-  if (b)
-    SetDSWndVisible(b);
-}
-
 void CDSPlayer::SetVisibleScreenArea(CRect activeVideoRect)
 {
   if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_OSDINTOACTIVEAREA)
@@ -1768,69 +1761,6 @@ void CDSPlayer::ListSettings(const std::string &path)
     m_pSettingCallback->ListSettings(path);
 }
 
-CDSGraphThread::CDSGraphThread(CDSPlayer * pPlayer)
-  : m_pPlayer(pPlayer), CThread("CDSGraphThread thread")
-{
-  CoInitializeEx(NULL, COINIT_MULTITHREADED);
-}
-
-void CDSGraphThread::OnStartup()
-{
-  m_threadID = CThread::GetCurrentThreadId();
-}
-
-void CDSGraphThread::Process()
-{
-  START_PERFORMANCE_COUNTER
-    m_pPlayer->m_hDSGraph = g_dsGraph->SetFile(m_pPlayer->currentFileItem, m_pPlayer->m_PlayerOptions);
-  END_PERFORMANCE_COUNTER("Loading file");
-  m_pPlayer->m_hDSGraphEvent.Set();
-
-  while (!m_bStop && CDSPlayer::PlayerState != DSPLAYER_CLOSED && CDSPlayer::PlayerState != DSPLAYER_LOADING)
-    HandleMessages();
-}
-
-void CDSGraphThread::HandleMessages()
-{
-  MSG msg;
-  while (GetMessage(&msg, NULL, 0, 0) != 0)
-  {
-    if (msg.message == WM_GRAPHMESSAGE)
-    {
-      CDSMsg* pMsg = reinterpret_cast<CDSMsg *>(msg.lParam);
-
-      if (CDSPlayer::PlayerState == DSPLAYER_CLOSED || CDSPlayer::PlayerState == DSPLAYER_LOADING)
-      {
-        pMsg->Set();
-        pMsg->Release();
-        break;
-      }
-      if (pMsg->IsType(CDSMsg::RESET_DEVICE))
-      {
-        CDSMsgBool* speMsg = reinterpret_cast<CDSMsgBool *>(pMsg);
-        g_application.m_pPlayer->Reset(speMsg->m_value);
-      }
-      pMsg->Set();
-      pMsg->Release();
-      break;
-    }
-
-    TranslateMessage(&msg);
-    DispatchMessage(&msg);
-  }
-}
-
-void CDSGraphThread::OnExit()
-{
-  // In case of, set the ready event
-  // Prevent a dead loop
-  m_pPlayer->m_hDSGraphEvent.Set();
-  m_bStop = true;
-  m_threadID = 0;
-  CoUninitialize();
-  CLog::Log(LOGNOTICE, "thread end: CDSGraphThread::OnExit()");
-}
-
 CGraphManagementThread::CGraphManagementThread(CDSPlayer * pPlayer)
   : m_pPlayer(pPlayer), m_bSpeedChanged(false), CThread("CGraphManagementThread thread")
 {
@@ -1894,7 +1824,7 @@ void CGraphManagementThread::Process()
           }
           else if (newPos >= g_dsGraph->GetTotalTime())
           {
-            CApplicationMessenger::GetInstance().SendMsg(TMSG_MEDIA_STOP);
+            CApplicationMessenger::GetInstance().PostMsg(TMSG_MEDIA_STOP);
             break;
           }
 

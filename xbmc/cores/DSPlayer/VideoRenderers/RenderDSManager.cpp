@@ -202,26 +202,30 @@ bool CRenderDSManager::HasFrame()
 
 void CRenderDSManager::FrameMove()
 {
-  CSingleLock lock(m_statelock);
+  UpdateResolution();
 
-  if (m_renderState == STATE_UNCONFIGURED)
-    return;
-  else if (m_renderState == STATE_CONFIGURING)
   {
-    lock.Leave();
-    if (!Configure())
+    CSingleLock lock(m_statelock);
+
+    if (m_renderState == STATE_UNCONFIGURED)
       return;
-
-    if (m_flags & CONF_FLAGS_FULLSCREEN)
+    else if (m_renderState == STATE_CONFIGURING)
     {
-      CApplicationMessenger::GetInstance().PostMsg(TMSG_SWITCHTOFULLSCREEN);
+      lock.Leave();
+      if (!Configure())
+        return;
+
+      if (m_flags & CONF_FLAGS_FULLSCREEN)
+      {
+        CApplicationMessenger::GetInstance().PostMsg(TMSG_SWITCHTOFULLSCREEN);
+      }
     }
-  }
-  if (m_renderState == STATE_CONFIGURED && m_bWaitingForRenderOnDS && g_graphicsContext.IsFullScreenVideo())
-  {
-    m_bWaitingForRenderOnDS = false;
-    m_bPreInit = false;
-    g_application.m_pPlayer->SetRenderOnDS(true);
+    if (m_renderState == STATE_CONFIGURED && m_bWaitingForRenderOnDS && g_graphicsContext.IsFullScreenVideo())
+    {
+      m_bWaitingForRenderOnDS = false;
+      m_bPreInit = false;
+      m_playerPort->SetRenderOnDS(true);
+    }
   }
 }
 
@@ -358,6 +362,8 @@ void CRenderDSManager::Render(bool clear, DWORD flags, DWORD alpha, bool gui)
     if (m_renderState != STATE_CONFIGURED)
       return;
   }
+
+  g_application.m_pPlayer->RenderToTexture(RENDER_LAYER_OVER);
 
   if (!gui && m_pRenderer->IsGuiLayer())
     return;

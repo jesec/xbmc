@@ -41,6 +41,7 @@ class IRenderDSMsg
 {
   friend CRenderDSManager;
 protected:
+  virtual void SetRenderOnDS(bool bRender) = 0;
   virtual void SetDSWndVisible(bool bVisible) = 0;
   virtual void VideoParamsChange() = 0;
   virtual void GetDebugInfo(std::string &audio, std::string &video, std::string &general) = 0;

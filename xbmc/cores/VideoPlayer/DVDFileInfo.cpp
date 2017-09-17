@@ -397,6 +397,7 @@ bool CDVDFileInfo::DemuxerToStreamDetails(CDVDInputStream *pInputStream, CDVDDem
 
 #ifdef HAS_DS_PLAYER
       p->m_iFourcc = ((CDemuxStreamVideo *) stream)->iCodecTag;
+      p->m_fps = (float)((CDemuxStreamVideo *)stream)->iFpsRate / (float)((CDemuxStreamVideo *)stream)->iFpsScale;
 #endif
 
       // stack handling

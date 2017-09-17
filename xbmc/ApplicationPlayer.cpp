@@ -802,26 +802,6 @@ bool CApplicationPlayer::ReadyDS(DIRECTSHOW_RENDERER renderer)
     return false;
 }
 
-bool CApplicationPlayer::GetRenderOnDS()
-{
-  std::shared_ptr<IPlayer> player = GetInternal();
-  if (player)
-  {
-    return player->GetRenderOnDS();
-  }
-  else
-    return false;
-}
-
-void CApplicationPlayer::SetRenderOnDS(bool b)
-{
-  std::shared_ptr<IPlayer> player = GetInternal();
-  if (player)
-  {
-    player->SetRenderOnDS(b);
-  }
-}
-
 void CApplicationPlayer::SetCurrentVideoLayer(DS_RENDER_LAYER layer)
 {
   std::shared_ptr<IPlayer> player = GetInternal();

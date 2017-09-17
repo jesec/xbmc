@@ -88,7 +88,7 @@ CFGManager::~CFGManager()
 
   m_pUnkInner = NULL;
 
-  CLog::Log(LOGDEBUG, "%s Ressources released", __FUNCTION__);
+  CLog::Log(LOGDEBUG, "%s Resources released", __FUNCTION__);
 }
 
 HRESULT CFGManager::QueryInterface(const IID &iid, void** ppv)
