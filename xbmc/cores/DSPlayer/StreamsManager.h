@@ -241,8 +241,8 @@ public:
   /// @return The ID of the audio codec used in the media file (ie FLAC, MP3, DTS ...)
   std::string GetAudioCodecName(int istream);
   /// @return The displayname of the audio codec used in the media file (ie FLAC, MP3, DTS ...)
-  std::string GetAudioCodecDisplayName() { int i = GetAudioStream(); return (i == -1) ? "" : m_audioStreams[i]->m_strCodecName; }
-  std::string GetAudioCodecDisplayName(int istream) { return (istream == -1) ? "" : m_audioStreams[istream]->m_strCodecName; }
+  std::string GetAudioCodecDisplayName();
+  std::string GetAudioCodecDisplayName(int istream);
   /// @return An instance to the IAMStreamSelect interface if the splitter expose it, NULL otherwise
   IAMStreamSelect *GetStreamSelector() { return m_pIAMStreamSelect; }
 

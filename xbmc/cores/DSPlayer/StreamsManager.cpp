@@ -1458,7 +1458,22 @@ int CStreamsManager::GetPictureHeight()
 
 std::string CStreamsManager::GetAudioCodecName(int istream)
 {
-  return (istream == -1) ? "" : m_audioStreams[istream]->m_strCodec;
+  if (m_audioStreams.size() == 0 || istream == -1)
+    return "";
+
+  return m_audioStreams[istream]->m_strCodec;
+}
+
+std::string CStreamsManager::GetAudioCodecDisplayName()
+{ 
+  int i = GetAudioStream(); return (i == -1) ? "" : m_audioStreams[i]->m_strCodecName; 
+}
+std::string CStreamsManager::GetAudioCodecDisplayName(int istream)
+{ 
+  if (m_audioStreams.size() == 0 || istream == -1)
+    return "";
+
+  return m_audioStreams[istream]->m_strCodecName; 
 }
 
 std::string CStreamsManager::GetVideoCodecName()
