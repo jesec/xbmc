@@ -435,7 +435,6 @@ void CDSPlayer::GetAudioStreamInfo(int index, SPlayerAudioStreamInfo &info)
   info.channels = (CStreamsManager::Get()) ? CStreamsManager::Get()->GetChannels(index) : 0;
   info.samplerate = (CStreamsManager::Get()) ? CStreamsManager::Get()->GetSampleRate(index) : 0;
   codecname = (CStreamsManager::Get()) ? CStreamsManager::Get()->GetAudioCodecDisplayName(index) : "";
-  StringUtils::ToUpper(codecname);
 
   if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_SHOWSPLITTERDETAIL) ||
       CGraphFilters::Get()->UsingMediaPortalTsReader())

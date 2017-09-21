@@ -279,8 +279,8 @@ CStdStringA CMediaTypeEx::GetAudioCodecName(const GUID& subtype, WORD wFormatTag
 	  names[WAVE_FORMAT_G721_ADPCM]            = "G721";
 	  names[WAVE_FORMAT_G728_CELP]             = "G728";
 	  names[WAVE_FORMAT_MSG723]                = "MSG723";
-	  names[WAVE_FORMAT_MPEG]                  = "mp1";
-	  names[WAVE_FORMAT_MPEGLAYER3]            = "mp3";
+	  names[WAVE_FORMAT_MPEG]                  = "MPEG Audio";
+	  names[WAVE_FORMAT_MPEGLAYER3]            = "MP3";
 	  names[WAVE_FORMAT_LUCENT_G723]           = "Lucent G723";
 	  names[WAVE_FORMAT_VOXWARE]               = "Voxware";
 	  names[WAVE_FORMAT_G726_ADPCM]            = "G726";
@@ -294,9 +294,9 @@ CStdStringA CMediaTypeEx::GetAudioCodecName(const GUID& subtype, WORD wFormatTag
 	  names[WAVE_FORMAT_VIVO_SIREN]            = "Vivo Siren";
 	  names[WAVE_FORMAT_DIGITAL_G723]          = "Digital G723";
 	  names[WAVE_FORMAT_SANYO_LD_ADPCM]        = "Sanyo LD ADPCM";
-	  names[WAVE_FORMAT_MSAUDIO1]              = "WMA";
-	  names[WAVE_FORMAT_WMAUDIO2]              = "WMA";
-	  names[WAVE_FORMAT_WMAUDIO3]              = "wmapro";
+	  names[WAVE_FORMAT_MSAUDIO1]              = "WMA 1";
+	  names[WAVE_FORMAT_WMAUDIO2]              = "WMA 2";
+	  names[WAVE_FORMAT_WMAUDIO3]              = "WMA Pro";
 	  names[WAVE_FORMAT_WMAUDIO_LOSSLESS]      = "WMA Lossless";
 	  names[WAVE_FORMAT_CREATIVE_ADPCM]        = "Creative ADPCM";
 	  names[WAVE_FORMAT_CREATIVE_FASTSPEECH8]  = "Creative Fastspeech 8";
@@ -305,7 +305,7 @@ CStdStringA CMediaTypeEx::GetAudioCodecName(const GUID& subtype, WORD wFormatTag
 	  names[WAVE_FORMAT_DTS2]                  = "DTS"; // = WAVE_FORMAT_DVD_DTS
 	  // other
 	  names[WAVE_FORMAT_DOLBY_AC3]             = "AC3";
-	  names[WAVE_FORMAT_LATM_AAC]              = "AAC";
+	  names[WAVE_FORMAT_LATM_AAC]              = "AAC (LATM)";
 	  names[WAVE_FORMAT_FLAC]                  = "FLAC";
 	  names[WAVE_FORMAT_TTA1]                  = "TTA";
 	  names[WAVE_FORMAT_WAVPACK4]              = "wavpack";
@@ -323,58 +323,85 @@ CStdStringA CMediaTypeEx::GetAudioCodecName(const GUID& subtype, WORD wFormatTag
   }
 
   std::map<WORD, CStdStringA>::iterator it = names.find(wFormatTag);
-  if(it == names.end())
-  {
-	  if (subtype == MEDIASUBTYPE_PCM) {
-		  str = "pcm";
-	  } else if (subtype == MEDIASUBTYPE_IEEE_FLOAT) {
-		  str = "ieee float";
-	  } else if (subtype == MEDIASUBTYPE_DVD_LPCM_AUDIO || subtype == MEDIASUBTYPE_HDMV_LPCM_AUDIO) {
-		  str = "pcm_bluray";
-	  } else if (subtype == MEDIASUBTYPE_Vorbis) {
-		  str = "vorbis";
-	  } else if (subtype == MEDIASUBTYPE_Vorbis2) {
-		  str = "vorbis";
-	  } else if (subtype == MEDIASUBTYPE_MP4A) {
-		  str = "mp4a";
-	  } else if (subtype == MEDIASUBTYPE_FLAC_FRAMED) {
-		  str = "flac";
-	  } else if (subtype == MEDIASUBTYPE_DOLBY_AC3) {
-		  str = "ac3";
-	  } else if (subtype == MEDIASUBTYPE_DOLBY_DDPLUS) {
-		  str = "eac3";
-	  } else if (subtype == MEDIASUBTYPE_DOLBY_TRUEHD) {
-		  str = "truehd";
-	  } else if (subtype == MEDIASUBTYPE_DTS) {
-		  str = "dts";
-	  } else if (subtype == MEDIASUBTYPE_MLP) {
-		  str = "mlp";
-	  } else if (subtype == MEDIASUBTYPE_PCM_NONE || subtype == MEDIASUBTYPE_PCM_RAW ||
-		  subtype == MEDIASUBTYPE_PCM_TWOS || subtype == MEDIASUBTYPE_PCM_SOWT ||
-		  subtype == MEDIASUBTYPE_PCM_IN24 || subtype == MEDIASUBTYPE_PCM_IN32 ||
-		  subtype == MEDIASUBTYPE_PCM_FL32 || subtype == MEDIASUBTYPE_PCM_FL64) {
-			  str = "qt pcm";
-	  } else if (subtype == MEDIASUBTYPE_IMA4      ||
-		  subtype == MEDIASUBTYPE_ADPCM_SWF ||
-		  subtype == MEDIASUBTYPE_ADPCM_AMV) {
-			  str = "adpcm";
-	  } else if (subtype == MEDIASUBTYPE_ALAC) {
-		  str = "alac";
-	  } else if (subtype == MEDIASUBTYPE_ALS) {
-		  str = "als";
-	  } else if (subtype == MEDIASUBTYPE_QDM2) {
-		  str = "qdm2";
-	  } else if (subtype == MEDIASUBTYPE_AMR  ||
-		  subtype == MEDIASUBTYPE_SAMR ||
-		  subtype == MEDIASUBTYPE_SAWB) {
-			  str = "amr";
-	  } else {
-		  str.Format("0x%04x", wFormatTag);
-	  }
-  } else {
+  
+  // Check if we are bitstreaming to S/PDIF first to avoid misdetection as PCM
+  if (wFormatTag == WAVE_FORMAT_DOLBY_AC3_SPDIF) { // Note that DTS bitstreaming uses the same format tag
+    str = _T("S/PDIF");
+  }
+  // Check the subtype first after special cases have been handled
+  else if (subtype == MEDIASUBTYPE_PCM) {
+    str = _T("PCM");
+  }
+  else if (subtype == MEDIASUBTYPE_IEEE_FLOAT) {
+    str = _T("IEEE Float");
+  }
+  else if (subtype == MEDIASUBTYPE_DVD_LPCM_AUDIO || subtype == MEDIASUBTYPE_HDMV_LPCM_AUDIO) {
+    str = _T("LPCM");
+  }
+  else if (subtype == MEDIASUBTYPE_Vorbis) {
+    str = _T("Vorbis (deprecated)");
+  }
+  else if (subtype == MEDIASUBTYPE_Vorbis2) {
+    str = _T("Vorbis");
+  }
+  else if (subtype == MEDIASUBTYPE_MP4A) {
+    str = _T("MPEG4 Audio");
+  }
+  else if (subtype == MEDIASUBTYPE_FLAC_FRAMED) {
+    str = _T("FLAC (framed)");
+  }
+  else if (subtype == MEDIASUBTYPE_DOLBY_AC3) {
+    str = _T("AC3");
+  }
+  else if (subtype == MEDIASUBTYPE_DOLBY_DDPLUS) {
+    str = _T("DD+");
+  }
+  else if (subtype == MEDIASUBTYPE_DOLBY_TRUEHD) {
+    str = _T("TrueHD");
+  }
+  else if (subtype == MEDIASUBTYPE_DTS) {
+    str = _T("DTS");
+  }
+  else if (subtype == MEDIASUBTYPE_DTS_HD) {
+    str = _T("DTS-HD");
+  }
+  else if (subtype == MEDIASUBTYPE_MLP) {
+    str = _T("MLP");
+  }
+  else if (subtype == MEDIASUBTYPE_PCM_NONE || subtype == MEDIASUBTYPE_PCM_RAW ||
+    subtype == MEDIASUBTYPE_PCM_TWOS || subtype == MEDIASUBTYPE_PCM_SOWT ||
+    subtype == MEDIASUBTYPE_PCM_IN24 || subtype == MEDIASUBTYPE_PCM_IN32 ||
+    subtype == MEDIASUBTYPE_PCM_FL32 || subtype == MEDIASUBTYPE_PCM_FL64) {
+    str = _T("QT PCM");
+  }
+  else if (subtype == MEDIASUBTYPE_IMA4 ||
+    subtype == MEDIASUBTYPE_ADPCM_SWF ||
+    subtype == MEDIASUBTYPE_ADPCM_AMV) {
+    str = _T("ADPCM");
+  }
+  else if (subtype == MEDIASUBTYPE_ALAC) {
+    str = _T("ALAC");
+  }
+  else if (subtype == MEDIASUBTYPE_ALS) {
+    str = _T("ALS");
+  }
+  else if (subtype == MEDIASUBTYPE_QDM2) {
+    str = _T("QDM2");
+  }
+  else if (subtype == MEDIASUBTYPE_AMR ||
+    subtype == MEDIASUBTYPE_SAMR ||
+    subtype == MEDIASUBTYPE_SAWB) {
+    str = _T("AMR");
+  }// If the subtype wasn't enough to find the codec name, we try the format tag
+  else if (it != names.end()) {
     str = it->second;
   }
-  return str;
+  else {
+    // If that fails, we have an unknown audio codec
+    str.Format("0x%04x", wFormatTag);
+  }
+
+return str;
 }
 
 CStdStringA CMediaTypeEx::GetSubtitleCodecName(const GUID& subtype)
