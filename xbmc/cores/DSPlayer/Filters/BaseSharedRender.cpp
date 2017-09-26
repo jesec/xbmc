@@ -24,6 +24,8 @@
 #include "Utils/Log.h"
 #include "guilib/GUIWindowManager.h"
 #include "windowing/WindowingFactory.h"
+#include "settings/AdvancedSettings.h"
+#include "Application.h"
 
 const DWORD D3DFVF_VID_FRAME_VERTEX = D3DFVF_XYZRHW | D3DFVF_TEX1;
 
@@ -63,6 +65,35 @@ void CRenderWait::Unlock()
     m_renderState = RENDERFRAME_UNLOCK;
   }
   m_presentevent.notifyAll();
+}
+
+void CBaseSharedRender::IncRenderCount()
+{
+  if (!g_application.m_pPlayer->ReadyDS())
+    return;
+
+  m_currentVideoLayer == RENDER_LAYER_UNDER ? m_renderUnderCount += 1 : m_renderOverCount += 1;
+}
+
+void CBaseSharedRender::ResetRenderCount()
+{
+  m_renderUnderCount = 0;
+  m_renderOverCount = 0;
+}
+
+bool CBaseSharedRender::GuiVisible(DS_RENDER_LAYER layer /* = RENDER_LAYER_ALL */)
+{
+  switch (layer)
+  {
+  case RENDER_LAYER_UNDER:
+    return m_renderUnderCount > 0;
+  case RENDER_LAYER_OVER:
+    return m_renderOverCount > 0;
+  case RENDER_LAYER_ALL:
+    return m_renderOverCount + m_renderUnderCount > 0;
+  }
+
+  return false;
 }
 
 HRESULT CBaseSharedRender::CreateFakeStaging(ID3D11Texture2D** ppTexture)
@@ -106,9 +137,7 @@ CBaseSharedRender::CBaseSharedRender()
 {
   color_t clearColour = g_Windowing.UseLimitedColor() ? (16 * 0x010101) : 0;
   CD3DHelper::XMStoreColor(m_fColor, clearColour);
-  m_bUnderRender = false;
-  m_bGuiVisible = false;
-  m_bGuiVisibleOver = false;
+  m_bWaitKodiRendering = !g_advancedSettings.m_bNotWaitKodiRendering;
 }
 
 CBaseSharedRender::~CBaseSharedRender()

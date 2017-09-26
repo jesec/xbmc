@@ -26,7 +26,7 @@
 
 #include "IPlayerCallback.h"
 #ifdef HAS_DS_PLAYER
-#include "IDSPLayer.h"
+#include "IDSPlayer.h"
 #endif
 #include "guilib/Geometry.h"
 #include "guilib/Resolution.h"
@@ -239,7 +239,7 @@ enum ViewMode {
 };
 
 #ifdef HAS_DS_PLAYER
-class IPlayer : public IDSRendererAllocatorCallback, public IDSRendererPaintCallback, public IMadvrSettingCallback
+class IPlayer : public IDSRendererAllocatorCallback, public IDSRendererPaintCallback, public IMadvrSettingCallback, public IDSPlayer
 #else
 class IPlayer
 #endif
@@ -406,58 +406,6 @@ public:
   virtual void RenderCaptureRelease(unsigned int captureId) {};
   virtual void RenderCapture(unsigned int captureId, unsigned int width, unsigned int height, int flags) {};
   virtual bool RenderCaptureGetPixels(unsigned int captureId, unsigned int millis, uint8_t *buffer, unsigned int size) { return false; };
-
-#ifdef HAS_DS_PLAYER
-  virtual int  GetEditionsCount() { return 0; };
-  virtual int  GetEdition() { return -1; }
-  virtual void GetEditionInfo(int iEdition, std::string &strEditionName, REFERENCE_TIME *prt) {};
-  virtual void SetEdition(int iEdition) {};
-  virtual bool IsMatroskaEditions() { return false; };
-  virtual void ShowEditionDlg(bool playStart) {};
-
-  virtual bool Configure(unsigned int width, unsigned int height, unsigned int d_width, unsigned int d_height, float fps, unsigned flags) { return false; };
-  virtual void GetVideoRect(CRect &source, CRect &dest, CRect &view) {};  
-  
-  // IDSPlayer
-  virtual bool UsingDS(DIRECTSHOW_RENDERER renderer = DIRECTSHOW_RENDERER_UNDEF) { return false; };
-  virtual bool ReadyDS(DIRECTSHOW_RENDERER renderer = DIRECTSHOW_RENDERER_UNDEF) { return false; };
-  virtual void SetCurrentVideoLayer(DS_RENDER_LAYER layer) {};
-  virtual void IncRenderCount() {};
-  virtual void ResetRenderCount() {};
-  virtual bool GuiVisible(DS_RENDER_LAYER layer = RENDER_LAYER_ALL) { return false; };
-  virtual DIRECTSHOW_RENDERER GetCurrentRenderer() { return DIRECTSHOW_RENDERER_UNDEF; };
-  virtual void SetCurrentRenderer(DIRECTSHOW_RENDERER renderer) {};
-
-  // IDSRendererAllocatorCallback
-  virtual CRect GetActiveVideoRect() { return CRect(0, 0, 0, 0); };
-  virtual bool IsEnteringExclusive() { return false; };
-  virtual void EnableExclusive(bool bEnable) {};
-  virtual void SetPixelShader() {};
-  virtual void SetResolution() {};
-  virtual void SetPosition(CRect sourceRect, CRect videoRect, CRect viewRect) {};
-  virtual bool ParentWindowProc(HWND hWnd, UINT uMsg, WPARAM *wParam, LPARAM *lParam, LRESULT *ret) { return false; };
-  virtual void Reset(bool bForceWindowed) {};
-  virtual void DisplayChange(bool bExternalChange) {};
-  virtual void Register(IDSRendererAllocatorCallback* pAllocatorCallback) {};
-  virtual void Unregister(IDSRendererAllocatorCallback* pAllocatorCallback) {};
-
-  // IDSRendererPaintCallback
-  virtual void BeginRender() {};
-  virtual void RenderToTexture(DS_RENDER_LAYER layer) {};
-  virtual void EndRender() {};
-  virtual void Register(IDSRendererPaintCallback* pPaintCallback) {};
-  virtual void Unregister(IDSRendererPaintCallback* pPaintCallback) {};
-
-  // IMadvrSettingCallback
-  virtual void LoadSettings(int iSectionId) {};
-  virtual void RestoreSettings() {};
-  virtual void GetProfileActiveName(const std::string &path, std::string *profile) {};
-  virtual void OnSettingChanged(int iSectionId, CSettingsManager* settingsManager, const CSetting *setting) {};
-  virtual void AddDependencies(const std::string &xml, CSettingsManager *settingsManager, CSetting *setting) {};
-  virtual void ListSettings(const std::string &path){};
-  virtual void Register(IMadvrSettingCallback* pSettingCallback) {};
-  virtual void Unregister(IMadvrSettingCallback* pSettingCallback) {};
-#endif
 
   std::string m_name;
   std::string m_type;

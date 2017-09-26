@@ -228,8 +228,6 @@ protected:
   double                                GetFrameRate();
 
   //D3D9Device
-  void                                  SetPosition(CRect sourceRect, CRect videoRect, CRect viewRect);
-  void                                  DisplayChange(bool bExternalChange);
   HRESULT                               InitD3D9();
   void                                  BuildPresentParameters();
   HRESULT                               ResetRenderParam();
@@ -349,6 +347,12 @@ public:
   STDMETHODIMP_(bool)                 Paint(bool fAll);
   STDMETHODIMP                        GetDIB(BYTE* lpDib, DWORD* size);
 
+  // IDSRendererAllocatorCallback
+  CRect GetActiveVideoRect() override { return m_activeVideoRect; };
+  void SetPosition(CRect sourceRect, CRect videoRect, CRect viewRect) override;
+  void Reset(bool bForceWindowed) override;
+  void DisplayChange(bool bExternalChange) override;
+
   // ID3DResource
   virtual void                        OnLostDevice();
   virtual void                        OnDestroyDevice(bool fatal);
@@ -356,10 +360,6 @@ public:
   virtual void                        OnResetDevice();
 
   virtual void                        AfterPresent();
-  virtual void                        Reset(bool bForceWindowed);
-
-  // IEvrAllocatorCallback
-  virtual CRect GetActiveVideoRect() { return m_activeVideoRect; };
 
   static bool                         bPaintAll;
 };

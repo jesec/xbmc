@@ -25,6 +25,7 @@
 #error DSPlayer's header file included without HAS_DS_PLAYER defined
 #endif
 
+#include "system.h" 
 #include "guilib/Geometry.h"
 #include "settings/lib/SettingsManager.h"
 #include "settings/lib/SettingDefinitions.h"
@@ -71,21 +72,6 @@ enum DIRECTSHOW_RENDERER
   DIRECTSHOW_RENDERER_UNDEF = 4
 };
 
-class IDSPlayer 
-{
-public:
-  virtual ~IDSPlayer() {};
-
-  virtual bool UsingDS(DIRECTSHOW_RENDERER renderer = DIRECTSHOW_RENDERER_UNDEF) { return false; };
-  virtual bool ReadyDS(DIRECTSHOW_RENDERER renderer = DIRECTSHOW_RENDERER_UNDEF) { return false; };
-  virtual void SetCurrentVideoLayer(DS_RENDER_LAYER layer) {};
-  virtual void IncRenderCount() {};
-  virtual void ResetRenderCount() {};
-  virtual bool GuiVisible(DS_RENDER_LAYER layer = RENDER_LAYER_ALL) { return false; };
-  virtual DIRECTSHOW_RENDERER GetCurrentRenderer() { return DIRECTSHOW_RENDERER_UNDEF; };
-  virtual void SetCurrentRenderer(DIRECTSHOW_RENDERER renderer) {};
-};
-
 class IDSRendererAllocatorCallback
 {
 public:
@@ -100,8 +86,6 @@ public:
   virtual bool ParentWindowProc(HWND hWnd, UINT uMsg, WPARAM *wParam, LPARAM *lParam, LRESULT *ret) { return false; };
   virtual void Reset(bool bForceWindowed) {};
   virtual void DisplayChange(bool bExternalChange) {};
-  virtual void Register(IDSRendererAllocatorCallback* pAllocatorCallback) {};
-  virtual void Unregister(IDSRendererAllocatorCallback* pAllocatorCallback) {};
 };
 
 class IDSRendererPaintCallback
@@ -112,8 +96,7 @@ public:
   virtual void BeginRender() {};
   virtual void RenderToTexture(DS_RENDER_LAYER layer){};
   virtual void EndRender() {};
-  virtual void Register(IDSRendererPaintCallback* pPaintCallback) {};
-  virtual void Unregister(IDSRendererPaintCallback* pPaintCallback) {};
+  virtual void IncRenderCount() {};
 };
 
 class IMadvrSettingCallback
@@ -127,6 +110,27 @@ public:
   virtual void OnSettingChanged(int iSectionId, CSettingsManager* settingsManager, const CSetting *setting) {};
   virtual void AddDependencies(const std::string &xml, CSettingsManager *settingsManager, CSetting *setting) {};
   virtual void ListSettings(const std::string &path) {};
+};
+
+class IDSPlayer
+{
+public:
+  virtual ~IDSPlayer() {};
+
+  virtual bool Configure(unsigned int width, unsigned int height, unsigned int d_width, unsigned int d_height, float fps, unsigned flags) { return false; };
+  virtual bool UsingDS(DIRECTSHOW_RENDERER renderer = DIRECTSHOW_RENDERER_UNDEF) { return false; };
+  virtual bool ReadyDS(DIRECTSHOW_RENDERER renderer = DIRECTSHOW_RENDERER_UNDEF) { return false; };
+  virtual void Register(IDSRendererAllocatorCallback* pAllocatorCallback) {};
+  virtual void Register(IDSRendererPaintCallback* pPaintCallback) {};
   virtual void Register(IMadvrSettingCallback* pSettingCallback) {};
+  virtual void Unregister(IDSRendererAllocatorCallback* pAllocatorCallback) {};
+  virtual void Unregister(IDSRendererPaintCallback* pPaintCallback) {};
   virtual void Unregister(IMadvrSettingCallback* pSettingCallback) {};
+
+  virtual int  GetEditionsCount() { return 0; };
+  virtual int  GetEdition() { return -1; }
+  virtual void GetEditionInfo(int iEdition, std::string &strEditionName, REFERENCE_TIME *prt) {};
+  virtual void SetEdition(int iEdition) {};
+  virtual bool IsMatroskaEditions() { return false; };
+  virtual void ShowEditionDlg(bool playStart) {};
 };

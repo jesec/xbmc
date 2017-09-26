@@ -22,7 +22,7 @@
  */
 #include "BaseSharedRender.h"
 
-class CMadvrSharedRender: public CBaseSharedRender, IDSRendererPaintCallback
+class CMadvrSharedRender: public CBaseSharedRender
 {
 
 public:
@@ -30,9 +30,9 @@ public:
   virtual ~CMadvrSharedRender();
 
   // IDSRendererPaintCallback
-  virtual void BeginRender();
-  virtual void RenderToTexture(DS_RENDER_LAYER layer);
-  virtual void EndRender();
+  void BeginRender() override;
+  void RenderToTexture(DS_RENDER_LAYER layer) override;
+  void EndRender() override;
 
   HRESULT Render(DS_RENDER_LAYER layer);
 };

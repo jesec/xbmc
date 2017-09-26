@@ -173,30 +173,8 @@ public:
   void  SetSpeed(float speed);
   bool SupportsTempo();
 
-  void  SetSpeed(int iSpeed);
-
 #ifdef HAS_DS_PLAYER
-  int  GetEditionsCount();
-  int  GetEdition();
-  void GetEditionInfo(int iEdition, std::string &strEditionName, REFERENCE_TIME *prt);
-  void SetEdition(int iEdition);
-  bool IsMatroskaEditions();
-  void ShowEditionDlg(bool playStart);
-
-  bool Configure(unsigned int width, unsigned int height, unsigned int d_width, unsigned int d_height, float fps, unsigned flags);
-  void GetVideoRect(CRect &source, CRect &dest, CRect &view);
-
-  // IDSPlayer
-  bool UsingDS(DIRECTSHOW_RENDERER renderer = DIRECTSHOW_RENDERER_UNDEF);
-  bool ReadyDS(DIRECTSHOW_RENDERER renderer = DIRECTSHOW_RENDERER_UNDEF);
-  void SetCurrentVideoLayer(DS_RENDER_LAYER layer);
-  void IncRenderCount();
-  void ResetRenderCount();
-  bool GuiVisible(DS_RENDER_LAYER layer = RENDER_LAYER_ALL);
-  DIRECTSHOW_RENDERER GetCurrentRenderer();
-  void SetCurrentRenderer(DIRECTSHOW_RENDERER renderer);
-
-  // IDSRendererAllocatorCallback (madVR)
+  // IDSRendererAllocatorCallback
   CRect GetActiveVideoRect();
   bool IsEnteringExclusive();
   void EnableExclusive(bool bEnable);
@@ -204,18 +182,14 @@ public:
   void SetResolution();
   void SetPosition(CRect sourceRect, CRect videoRect, CRect viewRect);
   bool ParentWindowProc(HWND hWnd, UINT uMsg, WPARAM *wParam, LPARAM *lParam, LRESULT *ret);
-  // IDSRendererAllocatorCallback (EVR)
   void Reset(bool bForceWindowed);
   void DisplayChange(bool bExternalChange);
-  void Register(IDSRendererAllocatorCallback* pAllocatorCallback);
-  void Unregister(IDSRendererAllocatorCallback* pAllocatorCallback);
 
   // IDSRendererPaintCallback
   void BeginRender();
   void RenderToTexture(DS_RENDER_LAYER layer);
   void EndRender();
-  void Register(IDSRendererPaintCallback* pPaintCallback);
-  void Unregister(IDSRendererPaintCallback* pPaintCallback);
+  void IncRenderCount();
 
   // IMadvrSettingCallback
   void LoadSettings(int iSectionId);
@@ -224,8 +198,24 @@ public:
   void OnSettingChanged(int iSectionId, CSettingsManager* settingsManager, const CSetting *setting);
   void AddDependencies(const std::string &xml, CSettingsManager *settingsManager, CSetting *setting);
   void ListSettings(const std::string &path);
+
+  // IDSPlayer
+  bool Configure(unsigned int width, unsigned int height, unsigned int d_width, unsigned int d_height, float fps, unsigned flags);
+  bool UsingDS(DIRECTSHOW_RENDERER renderer = DIRECTSHOW_RENDERER_UNDEF);
+  bool ReadyDS(DIRECTSHOW_RENDERER renderer = DIRECTSHOW_RENDERER_UNDEF);
+  void Register(IDSRendererAllocatorCallback* pAllocatorCallback);
+  void Register(IDSRendererPaintCallback* pPaintCallback);
   void Register(IMadvrSettingCallback* pSettingCallback);
+  void Unregister(IDSRendererAllocatorCallback* pAllocatorCallback);
+  void Unregister(IDSRendererPaintCallback* pPaintCallback);
   void Unregister(IMadvrSettingCallback* pSettingCallback);
+
+  int  GetEditionsCount();
+  int  GetEdition();
+  void GetEditionInfo(int iEdition, std::string &strEditionName, REFERENCE_TIME *prt);
+  void SetEdition(int iEdition);
+  bool IsMatroskaEditions();
+  void ShowEditionDlg(bool playStart);
 #endif
   
   protected:

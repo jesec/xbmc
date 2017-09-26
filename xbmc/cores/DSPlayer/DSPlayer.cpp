@@ -84,14 +84,12 @@ CDSPlayer::CDSPlayer(IPlayerCallback& callback)
   m_bEof(false),
   m_renderManager(this)
 {
-  m_CurrentRenderer = DIRECTSHOW_RENDERER_UNDEF;
+  m_CurrentVideoRenderer = DIRECTSHOW_RENDERER_UNDEF;
   m_pAllocatorCallback = nullptr;
   m_pSettingCallback = nullptr;
   m_pPaintCallback = nullptr;
   m_renderOnDs = false;
   m_bPerformStop = false;
-  ResetRenderCount();
-  m_currentVideoLayer = RENDER_LAYER_UNDER;
   m_lastActiveVideoRect = { 0, 0, 0, 0 };
 
   m_canTempo = false;
@@ -189,88 +187,6 @@ void CDSPlayer::AddSubtitle(const std::string& strSubPath)
     CStreamsManager::Get()->SetSubtitle(CStreamsManager::Get()->AddSubtitle(strSubPath));
 }
 
-void CDSPlayer::ShowEditionDlg(bool playStart)
-{
-  UINT count = GetEditionsCount();
-
-  if (count < 2)
-    return;
-
-  if (playStart && m_PlayerOptions.starttime > 0)
-  {
-    CDSPlayerDatabase db;
-    if (db.Open())
-    {
-      CEdition edition;
-      if (db.GetResumeEdition(m_currentFileItem.GetPath(), edition))
-      {
-        CLog::Log(LOGDEBUG, "%s select bookmark, edition with idx %i selected", __FUNCTION__, edition.editionNumber);
-        SetEdition(edition.editionNumber);
-        return;
-      }
-    }
-  }
-
-  g_dsGraph->Play(true);
-  g_dsGraph->Pause();
-
-  CGUIDialogSelect *dialog = (CGUIDialogSelect *)g_windowManager.GetWindow(WINDOW_DIALOG_SELECT);
-
-  bool listAllTitles = false;
-  UINT minLength = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_MINTITLELENGTH);
-
-  while (true)
-  {
-    std::vector<UINT> editionOptions;
-
-    dialog->SetHeading(IsMatroskaEditions() ? 55025 : 55026);
-
-    CLog::Log(LOGDEBUG, "%s Edition count - %i", __FUNCTION__, count);
-    int selected = GetEdition();
-    for (UINT i = 0; i < count; i++)
-    {
-      std::string name;
-      REFERENCE_TIME duration;
-
-      GetEditionInfo(i, name, &duration);
-
-      if (duration == _I64_MIN || listAllTitles || count == 1 || duration >= DS_TIME_BASE * 60 * minLength)
-      {
-        if (i == selected)
-          selected = editionOptions.size();
-
-        if (name.length() == 0)
-          name = "Unnamed";
-        dialog->Add(name);
-        editionOptions.push_back(i);
-      }
-    }
-
-    if (count > 1 && count != editionOptions.size())
-    {
-      dialog->Add(g_localizeStrings.Get(55027));
-    }
-
-    dialog->SetSelected(selected);
-    dialog->Open();
-
-    selected = dialog->GetSelectedItem();
-    if (selected >= 0)
-    {
-      if (selected == editionOptions.size())
-      {
-        listAllTitles = true;
-        continue;
-      }
-      UINT idx = editionOptions[selected];
-      CLog::Log(LOGDEBUG, "%s edition with idx %i selected", __FUNCTION__, idx);
-      SetEdition(idx);
-      break;
-    }
-    break;
-  }
-}
-
 bool CDSPlayer::WaitForFileClose()
 {
   if (!WaitForThreadExit(100) || !m_pGraphThread.WaitForThreadExit(100))
@@ -366,6 +282,16 @@ void CDSPlayer::LoadVideoSettings(const CFileItem& file)
   madvrSettings.StoreAtStartSettings();
 
   dsdbs.Close();
+}
+
+void CDSPlayer::SetCurrentVideoRenderer(const std::string &videoRenderer)
+{
+  if (videoRenderer == "EVR")
+    m_CurrentVideoRenderer = DIRECTSHOW_RENDERER_EVR;
+  if (videoRenderer == "VMR9")
+    m_CurrentVideoRenderer = DIRECTSHOW_RENDERER_VMR9;
+  if (videoRenderer == "madVR")
+    m_CurrentVideoRenderer = DIRECTSHOW_RENDERER_MADVR;
 }
 
 bool CDSPlayer::OpenFile(const CFileItem& file, const CPlayerOptions &options)
@@ -737,6 +663,10 @@ void CDSPlayer::Process()
   HRESULT hr = E_FAIL;
   CLog::Log(LOGNOTICE, "%s - Creating DS Graph", __FUNCTION__);
 
+  // Set the selected video renderer
+  SetCurrentVideoRenderer(CServiceBroker::GetSettings().GetString(CSettings::SETTING_DSPLAYER_VIDEORENDERER));
+
+  // Create DirectShow Graph
   hr = g_dsGraph->SetFile(m_currentFileItem, m_PlayerOptions);
 
   if (FAILED(hr))
@@ -1376,7 +1306,6 @@ void CDSPlayer::FrameMove()
   m_renderManager.FrameMove();
 }
 
-
 void CDSPlayer::Render(bool clear, uint32_t alpha, bool gui)
 {
   m_renderManager.Render(clear, 0, alpha, gui);
@@ -1435,18 +1364,6 @@ bool CDSPlayer::Supports(ESCALINGMETHOD method)
 bool CDSPlayer::Supports(ERENDERFEATURE feature)
 {
   return m_renderManager.Supports(feature);
-}
-
-bool CDSPlayer::Configure(unsigned int width, unsigned int height, unsigned int d_width, unsigned int d_height, float fps, unsigned flags)
-{
-  m_fps = fps;
-  UpdateProcessInfo();
-  return m_renderManager.Configure(width, height, d_width, d_height, fps, flags);
-}
-
-void CDSPlayer::GetVideoRect(CRect &source, CRect &dest, CRect &view)
-{
-  m_renderManager.GetVideoRect(source, dest, view);
 }
 
 void CDSPlayer::OnLostDisplay()
@@ -1520,38 +1437,6 @@ void CDSPlayer::SetAudioCodeDelayInfo(int index)
   CServiceBroker::GetDataCacheCore().SignalAudioInfoChange();
 }
 
-void CDSPlayer::IncRenderCount()
-{
-  if (!ReadyDS())
-    return;
-
-  m_currentVideoLayer == RENDER_LAYER_UNDER ? m_renderUnderCount += 1 : m_renderOverCount += 1;
-}
-
-void CDSPlayer::ResetRenderCount()
-{
-  m_renderUnderCount = 0;
-  m_renderOverCount = 0;
-}
-
-bool CDSPlayer::GuiVisible(DS_RENDER_LAYER layer)
-{
-  bool result = false;
-  switch (layer)
-  {
-  case RENDER_LAYER_UNDER:
-    result = m_renderUnderCount > 0;
-    break;
-  case RENDER_LAYER_OVER:
-    result = m_renderOverCount > 0;
-    break;
-  case RENDER_LAYER_ALL:
-    result = m_renderOverCount + m_renderUnderCount > 0;
-    break;
-  }
-  return result;
-}
-
 void CDSPlayer::DisplayChange(bool bExternalChange)
 {
   m_renderManager.DisplayChange(bExternalChange);
@@ -1600,22 +1485,6 @@ int CDSPlayer::VideoDimsToResolution(int iWidth, int iHeight)
     madvr_res = MADVR_RES_2160;
 
   return madvr_res;
-}
-
-bool CDSPlayer::UsingDS(DIRECTSHOW_RENDERER renderer)
-{
-  if (renderer == DIRECTSHOW_RENDERER_UNDEF)
-    renderer = m_CurrentRenderer;
-
-  return (m_pAllocatorCallback != NULL && m_CurrentRenderer == renderer);
-}
-
-bool CDSPlayer::ReadyDS(DIRECTSHOW_RENDERER renderer)
-{
-  if (renderer == DIRECTSHOW_RENDERER_UNDEF)
-    renderer = m_CurrentRenderer;
-
-  return (m_pAllocatorCallback != NULL && m_renderOnDs && m_CurrentRenderer == renderer);
 }
 
 void CDSPlayer::SetVisibleScreenArea(CRect activeVideoRect)
@@ -1725,6 +1594,12 @@ void CDSPlayer::EndRender()
     m_pPaintCallback->EndRender();
 }
 
+void CDSPlayer::IncRenderCount()
+{
+  if (m_pPaintCallback && ReadyDS())
+    m_pPaintCallback->IncRenderCount();
+}
+
 // IMadvrSettingCallback
 void CDSPlayer::RestoreSettings()
 {
@@ -1759,6 +1634,112 @@ void CDSPlayer::ListSettings(const std::string &path)
 {
   if (m_pSettingCallback)
     m_pSettingCallback->ListSettings(path);
+}
+
+// IDSPlayer
+bool CDSPlayer::Configure(unsigned int width, unsigned int height, unsigned int d_width, unsigned int d_height, float fps, unsigned flags)
+{
+  m_fps = fps;
+  UpdateProcessInfo();
+  return m_renderManager.Configure(width, height, d_width, d_height, fps, flags);
+}
+
+bool CDSPlayer::UsingDS(DIRECTSHOW_RENDERER videoRenderer)
+{
+  if (videoRenderer == DIRECTSHOW_RENDERER_UNDEF)
+    videoRenderer = m_CurrentVideoRenderer;
+
+  return (m_pAllocatorCallback != NULL && m_CurrentVideoRenderer == videoRenderer);
+}
+
+bool CDSPlayer::ReadyDS(DIRECTSHOW_RENDERER videoRenderer)
+{
+  if (videoRenderer == DIRECTSHOW_RENDERER_UNDEF)
+    videoRenderer = m_CurrentVideoRenderer;
+
+  return (m_pAllocatorCallback != NULL && m_renderOnDs && m_CurrentVideoRenderer == videoRenderer);
+}
+
+void CDSPlayer::ShowEditionDlg(bool playStart)
+{
+  UINT count = GetEditionsCount();
+
+  if (count < 2)
+    return;
+
+  if (playStart && m_PlayerOptions.starttime > 0)
+  {
+    CDSPlayerDatabase db;
+    if (db.Open())
+    {
+      CEdition edition;
+      if (db.GetResumeEdition(m_currentFileItem.GetPath(), edition))
+      {
+        CLog::Log(LOGDEBUG, "%s select bookmark, edition with idx %i selected", __FUNCTION__, edition.editionNumber);
+        SetEdition(edition.editionNumber);
+        return;
+      }
+    }
+  }
+
+  g_dsGraph->Play(true);
+  g_dsGraph->Pause();
+
+  CGUIDialogSelect *dialog = (CGUIDialogSelect *)g_windowManager.GetWindow(WINDOW_DIALOG_SELECT);
+
+  bool listAllTitles = false;
+  UINT minLength = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_MINTITLELENGTH);
+
+  while (true)
+  {
+    std::vector<UINT> editionOptions;
+
+    dialog->SetHeading(IsMatroskaEditions() ? 55025 : 55026);
+
+    CLog::Log(LOGDEBUG, "%s Edition count - %i", __FUNCTION__, count);
+    int selected = GetEdition();
+    for (UINT i = 0; i < count; i++)
+    {
+      std::string name;
+      REFERENCE_TIME duration;
+
+      GetEditionInfo(i, name, &duration);
+
+      if (duration == _I64_MIN || listAllTitles || count == 1 || duration >= DS_TIME_BASE * 60 * minLength)
+      {
+        if (i == selected)
+          selected = editionOptions.size();
+
+        if (name.length() == 0)
+          name = "Unnamed";
+        dialog->Add(name);
+        editionOptions.push_back(i);
+      }
+    }
+
+    if (count > 1 && count != editionOptions.size())
+    {
+      dialog->Add(g_localizeStrings.Get(55027));
+    }
+
+    dialog->SetSelected(selected);
+    dialog->Open();
+
+    selected = dialog->GetSelectedItem();
+    if (selected >= 0)
+    {
+      if (selected == editionOptions.size())
+      {
+        listAllTitles = true;
+        continue;
+      }
+      UINT idx = editionOptions[selected];
+      CLog::Log(LOGDEBUG, "%s edition with idx %i selected", __FUNCTION__, idx);
+      SetEdition(idx);
+      break;
+    }
+    break;
+  }
 }
 
 CGraphManagementThread::CGraphManagementThread(CDSPlayer * pPlayer)

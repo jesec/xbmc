@@ -438,17 +438,14 @@ HRESULT CFGLoader::InsertVideoRenderer()
 
   if (videoRender == "EVR")
   { 
-    g_application.m_pPlayer->SetCurrentRenderer(DIRECTSHOW_RENDERER_EVR);
     m_pFGF = new CFGFilterVideoRenderer(CLSID_EVRAllocatorPresenter, "Kodi EVR");
   }
   if (videoRender == "VMR9")
   { 
-    g_application.m_pPlayer->SetCurrentRenderer(DIRECTSHOW_RENDERER_VMR9);
     m_pFGF = new CFGFilterVideoRenderer(CLSID_VMR9AllocatorPresenter, "Kodi VMR9");
   }
   if (videoRender == "madVR")
   {
-    g_application.m_pPlayer->SetCurrentRenderer(DIRECTSHOW_RENDERER_MADVR);
     m_pFGF = new CFGFilterVideoRenderer(CLSID_madVRAllocatorPresenter, "Kodi madVR");
   }
 

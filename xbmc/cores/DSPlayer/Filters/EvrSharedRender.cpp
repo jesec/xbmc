@@ -29,7 +29,6 @@
 CEvrSharedRender::CEvrSharedRender()
 {
   g_application.m_pPlayer->Register(this);
-  m_bWaitKodiRendering = !g_advancedSettings.m_bNotWaitKodiRendering;
 }
 
 CEvrSharedRender::~CEvrSharedRender()
@@ -78,12 +77,12 @@ void CEvrSharedRender::BeginRender()
   pSurface11->Release();
 
   // Reset RenderCount
-  g_application.m_pPlayer->ResetRenderCount();
+  ResetRenderCount();
 }
 
 void CEvrSharedRender::RenderToTexture(DS_RENDER_LAYER layer)
 {
-  g_application.m_pPlayer->SetCurrentVideoLayer(layer);
+  m_currentVideoLayer = layer;
 
   ID3D11DeviceContext* pContext = g_Windowing.Get3D11Context();
   ID3D11RenderTargetView* pSurface11;
@@ -99,8 +98,8 @@ void CEvrSharedRender::EndRender()
   g_Windowing.FinishCommandList();
   ForceComplete();
 
-  m_bGuiVisible = g_application.m_pPlayer->GuiVisible();
-  m_bGuiVisibleOver = g_application.m_pPlayer->GuiVisible(RENDER_LAYER_OVER);
+  m_bGuiVisible = GuiVisible();
+  m_bGuiVisibleOver = GuiVisible(RENDER_LAYER_OVER);
 
   // Unlock EVR rendering
   m_dsWait.Unlock();

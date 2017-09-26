@@ -748,10 +748,58 @@ void CDX9AllocatorPresenter::SetMonitor(HMONITOR monitor)
   }
 }
 
+// IDSRendererAllocatorCallback
+void CDX9AllocatorPresenter::SetPosition(CRect sourceRect, CRect videoRect, CRect viewRect)
+{
+  m_VideoRect.top = (long)videoRect.y1;
+  m_VideoRect.bottom = (long)videoRect.y2;
+  m_VideoRect.left = (long)videoRect.x1;
+  m_VideoRect.right = (long)videoRect.x2;
+
+  RENDER_STEREO_MODE stereoMode = g_graphicsContext.GetStereoMode();
+  switch (stereoMode)
+  {
+  case RENDER_STEREO_MODE_SPLIT_VERTICAL:
+  {
+    m_VideoRect.right *= 2;
+    break;
+  }
+  case RENDER_STEREO_MODE_SPLIT_HORIZONTAL:
+  {
+    m_VideoRect.bottom *= 2;
+    break;
+  }
+  }
+}
+
 void CDX9AllocatorPresenter::Reset(bool bForceWindowed)
 {
   m_ForceWindowedDX = bForceWindowed;
   ResetRenderParam();
+}
+
+
+void CDX9AllocatorPresenter::DisplayChange(bool bExternalChange)
+{
+  CAutoLock lock(&m_DisplayChangeLock);
+
+  if (g_Windowing.Get3D11Device() == nullptr || m_pD3DDev == nullptr)
+    return;
+
+  CLog::Log(LOGDEBUG, "%s need to re-create the shared textures", __FUNCTION__);
+
+  if (m_pEvrShared != nullptr)
+    SAFE_DELETE(m_pEvrShared);
+
+  MONITORINFO mi;
+  mi.cbSize = sizeof(MONITORINFO);
+  if (GetMonitorInfo(MonitorFromWindow(m_hWnd, MONITOR_DEFAULTTONEAREST), &mi)) {
+    m_ScreenSize.SetSize(mi.rcMonitor.right - mi.rcMonitor.left, mi.rcMonitor.bottom - mi.rcMonitor.top);
+    m_activeVideoRect.SetRect(0, 0, m_ScreenSize.cx, m_ScreenSize.cy);
+  }
+
+  m_pEvrShared = DNew CEvrSharedRender();
+  m_pEvrShared->CreateTextures(g_Windowing.Get3D11Device(), (IDirect3DDevice9Ex*)m_pD3DDev, (int)m_ScreenSize.cx, (int)m_ScreenSize.cy);
 }
 
 HRESULT CDX9AllocatorPresenter::ResetRenderParam()
@@ -827,29 +875,6 @@ void CDX9AllocatorPresenter::BuildPresentParameters()
  if (!m_useWindowedDX)
    SetWindowLongPtr(m_hWnd, GWL_STYLE, WS_POPUP | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_VISIBLE);
  */
-}
-
-void CDX9AllocatorPresenter::DisplayChange(bool bExternalChange)
-{
-  CAutoLock lock(&m_DisplayChangeLock);
-
-  if (g_Windowing.Get3D11Device() == nullptr || m_pD3DDev == nullptr)
-    return;
-
-  CLog::Log(LOGDEBUG, "%s need to re-create the shared textures", __FUNCTION__);
-
-  if (m_pEvrShared != nullptr)
-    SAFE_DELETE(m_pEvrShared);
-
-  MONITORINFO mi;
-  mi.cbSize = sizeof(MONITORINFO);
-  if (GetMonitorInfo(MonitorFromWindow(m_hWnd, MONITOR_DEFAULTTONEAREST), &mi)) {
-    m_ScreenSize.SetSize(mi.rcMonitor.right - mi.rcMonitor.left, mi.rcMonitor.bottom - mi.rcMonitor.top);
-    m_activeVideoRect.SetRect(0, 0, m_ScreenSize.cx, m_ScreenSize.cy);
-  }
-
-  m_pEvrShared = DNew CEvrSharedRender();
-  m_pEvrShared->CreateTextures(g_Windowing.Get3D11Device(), (IDirect3DDevice9Ex*)m_pD3DDev, (int)m_ScreenSize.cx, (int)m_ScreenSize.cy);
 }
 
 HRESULT CDX9AllocatorPresenter::InitD3D9()
@@ -2703,30 +2728,6 @@ void CDX9AllocatorPresenter::OnResetDevice()
 {
   CLog::Log(LOGDEBUG, "%s Device is back, recreating ressources", __FUNCTION__);
   AfterDeviceReset();
-}
-
-
-void CDX9AllocatorPresenter::SetPosition(CRect sourceRect, CRect videoRect, CRect viewRect)
-{  
-  m_VideoRect.top = (long)videoRect.y1;
-  m_VideoRect.bottom = (long)videoRect.y2;
-  m_VideoRect.left = (long)videoRect.x1;
-  m_VideoRect.right = (long)videoRect.x2;
-
-  RENDER_STEREO_MODE stereoMode = g_graphicsContext.GetStereoMode();
-  switch (stereoMode)
-  {
-  case RENDER_STEREO_MODE_SPLIT_VERTICAL:
-  {
-    m_VideoRect.right *= 2;
-    break;
-  }
-  case RENDER_STEREO_MODE_SPLIT_HORIZONTAL:
-  {
-    m_VideoRect.bottom *= 2;
-    break;
-  }
-  }
 }
 
 void CDX9AllocatorPresenter::AfterPresent()

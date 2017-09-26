@@ -139,14 +139,14 @@ public:
   STDMETHODIMP SetPixelShader(LPCSTR pSrcData, LPCSTR pTarget);
 
   // IDSRendererAllocatorCallback
-  virtual bool IsEnteringExclusive(){ return m_isEnteringExclusive; }
-  virtual void EnableExclusive(bool bEnable);
-  virtual void SetPixelShader();
-  virtual void SetResolution();
-  virtual void SetPosition(CRect sourceRect, CRect videoRect, CRect viewRect);
-  virtual bool ParentWindowProc(HWND hWnd, UINT uMsg, WPARAM *wParam, LPARAM *lParam, LRESULT *ret);
-  virtual CRect GetActiveVideoRect() { return m_activeVideoRect; };
-  virtual void DisplayChange(bool bExternalChange);
+  CRect GetActiveVideoRect() override { return m_activeVideoRect; };
+  bool IsEnteringExclusive() override { return m_isEnteringExclusive; }
+  void EnableExclusive(bool bEnable) override;
+  void SetPixelShader() override;
+  void SetResolution() override;
+  void SetPosition(CRect sourceRect, CRect videoRect, CRect viewRect) override;
+  bool ParentWindowProc(HWND hWnd, UINT uMsg, WPARAM *wParam, LPARAM *lParam, LRESULT *ret) override;
+  void DisplayChange(bool bExternalChange) override;
 
 private:
   void ConfigureMadvr();
