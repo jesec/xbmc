@@ -43,7 +43,7 @@ public:
   SHAREDRENDER_STATE m_renderState;
 };
 
-class CBaseSharedRender
+class CBaseSharedRender : public IDSRendererPaintCallback
 {
 
 public:
@@ -51,7 +51,16 @@ public:
   virtual ~CBaseSharedRender();
   HRESULT CreateTextures(ID3D11Device* pD3DDeviceKodi, IDirect3DDevice9Ex* pD3DDeviceDS, int width, int height);
 
+  // IDSRendererPaintCallback
+  virtual void BeginRender() {};
+  virtual void RenderToTexture(DS_RENDER_LAYER layer) {};
+  virtual void EndRender() {};
+  virtual void IncRenderCount();
+
 protected:
+  void ResetRenderCount();
+  bool GuiVisible(DS_RENDER_LAYER layer = RENDER_LAYER_ALL);
+
   HRESULT CreateSharedResource(IDirect3DTexture9** ppTexture9, ID3D11Texture2D** ppTexture11);
   HRESULT CreateFakeStaging(ID3D11Texture2D** ppTexture);
   HRESULT ForceComplete();
@@ -77,10 +86,13 @@ protected:
   DWORD m_dwWidth = 0;
   DWORD m_dwHeight = 0;
   float m_fColor[4];
-  bool m_bUnderRender;
-  bool m_bGuiVisible;
-  bool m_bGuiVisibleOver;
+  bool m_bGuiVisible = false;
+  bool m_bGuiVisibleOver = false;
   bool m_bWaitKodiRendering;
+  int m_renderUnderCount = 0;
+  int m_renderOverCount = 0;
+  DS_RENDER_LAYER m_currentVideoLayer = RENDER_LAYER_UNDER;
+
   CRenderWait m_kodiWait;
   CRenderWait m_dsWait;
   // stored DSPlayer Renderer device state
@@ -101,4 +113,5 @@ protected:
   DWORD m_D3DRS_DESTBLEND = 0;
 
   IDirect3DPixelShader9* m_pPix = nullptr;
+
 };

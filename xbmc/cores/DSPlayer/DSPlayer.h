@@ -162,21 +162,54 @@ public:
   virtual bool Supports(ESCALINGMETHOD method) override;
   virtual bool Supports(ERENDERFEATURE feature) override;
   
-  virtual bool Configure(unsigned int width, unsigned int height, unsigned int d_width, unsigned int d_height, float fps, unsigned flags) override;
-  virtual void GetVideoRect(CRect &source, CRect &dest, CRect &view) override;
+  // IDSRendererAllocatorCallback
+  CRect GetActiveVideoRect() override;
+  bool IsEnteringExclusive() override;
+  void EnableExclusive(bool bEnable) override;
+  void SetPixelShader() override;
+  void SetResolution() override;
+  void SetPosition(CRect sourceRect, CRect videoRect, CRect viewRect) override;
+  bool ParentWindowProc(HWND hWnd, UINT uMsg, WPARAM *wParam, LPARAM *lParam, LRESULT *ret) override;
+  void Reset(bool bForceWindowed) override;
+  void DisplayChange(bool bExternalChange) override;
+
+  // IDSRendererPaintCallback
+  void BeginRender() override;
+  void RenderToTexture(DS_RENDER_LAYER layer) override;
+  void EndRender() override;
+  void IncRenderCount() override;
+
+  // IMadvrSettingCallback
+  void LoadSettings(int iSectionId);
+  void RestoreSettings();
+  void GetProfileActiveName(const std::string &path, std::string *profile) override;
+  void OnSettingChanged(int iSectionId, CSettingsManager* settingsManager, const CSetting *setting) override;
+  void AddDependencies(const std::string &xml, CSettingsManager *settingsManager, CSetting *setting) override;
+  void ListSettings(const std::string &path) override;
+
+  // IDSPlayer
+  bool Configure(unsigned int width, unsigned int height, unsigned int d_width, unsigned int d_height, float fps, unsigned flags) override;
+  bool UsingDS(DIRECTSHOW_RENDERER renderer = DIRECTSHOW_RENDERER_UNDEF) override;
+  bool ReadyDS(DIRECTSHOW_RENDERER renderer = DIRECTSHOW_RENDERER_UNDEF) override;
+  void Register(IDSRendererAllocatorCallback* pAllocatorCallback) override { m_pAllocatorCallback = pAllocatorCallback; }
+  void Register(IDSRendererPaintCallback* pPaintCallback) override { m_pPaintCallback = pPaintCallback; }
+  void Register(IMadvrSettingCallback* pSettingCallback) override { m_pSettingCallback = pSettingCallback; }
+  void Unregister(IDSRendererAllocatorCallback* pAllocatorCallback) override { m_pAllocatorCallback = nullptr; }
+  void Unregister(IDSRendererPaintCallback* pPaintCallback) override { m_pPaintCallback = nullptr; }
+  void Unregister(IMadvrSettingCallback* pSettingCallback) override { m_pSettingCallback = nullptr; }
+
+  int  GetEditionsCount() override { return (CStreamsManager::Get()) ? CStreamsManager::Get()->GetEditionsCount() : 0; }
+  int  GetEdition() override { return (CStreamsManager::Get()) ? CStreamsManager::Get()->GetEdition() : 0; }
+  void GetEditionInfo(int iEdition, std::string &strEditionName, REFERENCE_TIME *prt) override { if (CStreamsManager::Get()) CStreamsManager::Get()->GetEditionInfo(iEdition, strEditionName, prt); };
+  void SetEdition(int iEdition) override { if (CStreamsManager::Get()) CStreamsManager::Get()->SetEdition(iEdition); };
+  bool IsMatroskaEditions() override { return (CStreamsManager::Get()) ? CStreamsManager::Get()->IsMatroskaEditions() : false; }
+  void ShowEditionDlg(bool playStart) override;
 
   // IDispResource interface
   virtual void OnLostDisplay();
   virtual void OnResetDisplay();
 
   virtual bool IsCaching() const override { return false; }
-
-  //Editions selection
-  virtual int  GetEditionsCount() override { return (CStreamsManager::Get()) ? CStreamsManager::Get()->GetEditionsCount() : 0; }
-  virtual int  GetEdition() override { return (CStreamsManager::Get()) ? CStreamsManager::Get()->GetEdition() : 0; }
-  virtual void GetEditionInfo(int iEdition, std::string &strEditionName, REFERENCE_TIME *prt) override { if (CStreamsManager::Get()) CStreamsManager::Get()->GetEditionInfo(iEdition, strEditionName, prt); };
-  virtual void SetEdition(int iEdition) override { if (CStreamsManager::Get()) CStreamsManager::Get()->SetEdition(iEdition); };
-  virtual bool IsMatroskaEditions() override { return (CStreamsManager::Get()) ? CStreamsManager::Get()->IsMatroskaEditions() : false; }
 
   //CDSPlayer
   CDVDClock&  GetClock() { return m_pClock; }
@@ -195,7 +228,6 @@ public:
 
   void GetGeneralInfo(std::string& strGeneralInfo);
 
-  void ShowEditionDlg(bool playStart);
   bool WaitForFileClose();
   bool OpenFileInternal(const CFileItem& file);
   void UpdateApplication();
@@ -270,6 +302,7 @@ protected:
   bool SelectChannel(bool bNext);
   bool SwitchChannel(unsigned int iChannelNumber);
   void LoadMadvrSettings(int id);
+  void SetCurrentVideoRenderer(const std::string &videoRenderer);
 
   // CThread
   virtual void OnStartup() override;
@@ -292,46 +325,6 @@ protected:
   int VideoDimsToResolution(int iWidth, int iHeight);
   CRect m_lastActiveVideoRect;
 
-  // IDSPlayer
-  bool UsingDS(DIRECTSHOW_RENDERER renderer = DIRECTSHOW_RENDERER_UNDEF);
-  bool ReadyDS(DIRECTSHOW_RENDERER renderer = DIRECTSHOW_RENDERER_UNDEF);
-  void SetCurrentVideoLayer(DS_RENDER_LAYER layer) { m_currentVideoLayer = layer; }
-  void IncRenderCount();
-  void ResetRenderCount();
-  bool GuiVisible(DS_RENDER_LAYER layer = RENDER_LAYER_ALL);
-  DIRECTSHOW_RENDERER GetCurrentRenderer() { return m_CurrentRenderer; }
-  void SetCurrentRenderer(DIRECTSHOW_RENDERER renderer) { m_CurrentRenderer = renderer; }
-
-  // IDSRendererAllocatorCallback
-  CRect GetActiveVideoRect();
-  bool IsEnteringExclusive();
-  void EnableExclusive(bool bEnable);
-  void SetPixelShader();
-  void SetResolution();
-  void SetPosition(CRect sourceRect, CRect videoRect, CRect viewRect);
-  bool ParentWindowProc(HWND hWnd, UINT uMsg, WPARAM *wParam, LPARAM *lParam, LRESULT *ret);
-  void Reset(bool bForceWindowed);
-  void DisplayChange(bool bExternalChange);
-  void Register(IDSRendererAllocatorCallback* pAllocatorCallback) { m_pAllocatorCallback = pAllocatorCallback; }
-  void Unregister(IDSRendererAllocatorCallback* pAllocatorCallback) { m_pAllocatorCallback = nullptr; }
-
-  // IDSRendererPaintCallback
-  void BeginRender();
-  void RenderToTexture(DS_RENDER_LAYER layer);
-  void EndRender();
-  void Register(IDSRendererPaintCallback* pPaintCallback) { m_pPaintCallback = pPaintCallback; }
-  void Unregister(IDSRendererPaintCallback* pPaintCallback) { m_pPaintCallback = nullptr; }
-
-  // IMadvrSettingCallback
-  void LoadSettings(int iSectionId);
-  void RestoreSettings();
-  void GetProfileActiveName(const std::string &path, std::string *profile);
-  void OnSettingChanged(int iSectionId, CSettingsManager* settingsManager, const CSetting *setting);
-  void AddDependencies(const std::string &xml, CSettingsManager *settingsManager, CSetting *setting);
-  void ListSettings(const std::string &path);
-  void Register(IMadvrSettingCallback* pSettingCallback) { m_pSettingCallback = pSettingCallback; }
-  void Unregister(IMadvrSettingCallback* pSettingCallback) { m_pSettingCallback = nullptr; }
-
   IDSRendererAllocatorCallback* m_pAllocatorCallback;
   IMadvrSettingCallback* m_pSettingCallback;
   IDSRendererPaintCallback* m_pPaintCallback;
@@ -340,6 +333,6 @@ protected:
   int m_renderUnderCount;
   int m_renderOverCount;
   DS_RENDER_LAYER m_currentVideoLayer;
-  DIRECTSHOW_RENDERER m_CurrentRenderer;
+  DIRECTSHOW_RENDERER m_CurrentVideoRenderer;
 };
 

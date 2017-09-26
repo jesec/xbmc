@@ -23,16 +23,16 @@
 
 #include "BaseSharedRender.h"
 
-class CEvrSharedRender: public CBaseSharedRender, IDSRendererPaintCallback
+class CEvrSharedRender: public CBaseSharedRender
 {
 
 public:
   CEvrSharedRender();
   virtual ~CEvrSharedRender();
 
-  virtual void BeginRender();
-  virtual void RenderToTexture(DS_RENDER_LAYER layer);
-  virtual void EndRender();
+  void BeginRender() override;
+  void RenderToTexture(DS_RENDER_LAYER layer) override;
+  void EndRender() override;
 
   HRESULT Render(DS_RENDER_LAYER layer);  
 };
