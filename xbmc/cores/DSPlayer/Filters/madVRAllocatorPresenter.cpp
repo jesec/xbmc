@@ -83,6 +83,13 @@ CmadVRAllocatorPresenter::~CmadVRAllocatorPresenter()
   if (Com::SmartQIPtr<IMadVRExclusiveModeCallback> pEXL = m_pDXR)
     pEXL->Unregister(m_exclusiveCallback, this);
 
+  // Let's madVR restore original display mode (when adjust refresh it's handled by madVR)
+  if (CSettings::GetInstance().GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) == ADJUST_REFRESHRATE_OFF)
+  {
+    if (Com::SmartQIPtr<IMadVRCommand> pMadVrCmd = m_pDXR)
+      pMadVrCmd->SendCommand("restoreDisplayModeNow");
+  }
+
   g_advancedSettings.m_guiAlgorithmDirtyRegions = m_kodiGuiDirtyAlgo;
   
   // the order is important here

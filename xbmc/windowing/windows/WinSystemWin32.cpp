@@ -31,6 +31,11 @@
 #include "utils/CharsetConverter.h"
 #include "utils/SystemInfo.h"
 
+#ifdef HAS_DS_PLAYER
+#include "Application.h"
+#include "guilib\GraphicContext.h"
+#endif
+
 #ifdef TARGET_WINDOWS
 #include <tpcshrd.h>
 
@@ -528,6 +533,11 @@ bool CWinSystemWin32::ChangeResolution(const RESOLUTION_INFO& res, bool forceCha
   DEVMODEW sDevMode;
   ZeroMemory(&sDevMode, sizeof(sDevMode));
   sDevMode.dmSize = sizeof(sDevMode);
+
+#ifdef HAS_DS_PLAYER
+  if (g_application.m_pPlayer->UsingDS(DIRECTSHOW_RENDERER_MADVR) && CSettings::GetInstance().GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) == ADJUST_REFRESHRATE_OFF)
+    return true;
+#endif
 
   // If we can't read the current resolution or any detail of the resolution is different than res
   if (!EnumDisplaySettingsW(details->DeviceNameW.c_str(), ENUM_CURRENT_SETTINGS, &sDevMode) ||
