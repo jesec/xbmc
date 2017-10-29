@@ -719,6 +719,9 @@ std::string CSysInfo::GetOsPrettyNameWithVersion(void)
         osNameVer.append("Server 2012 R2");
       break;
     case WindowsVersionWin10:
+#ifdef HAS_DS_PLAYER
+    case WindowsVersionWin10_FCU:
+#endif
       if (osvi.wProductType == VER_NT_WORKSTATION)
         osNameVer.append("10");
       else
@@ -913,8 +916,12 @@ CSysInfo::WindowsVersion CSysInfo::GetWindowsVersion()
         m_WinVer = WindowsVersionWin8;
       else if (osvi.dwMajorVersion == 6 && osvi.dwMinorVersion == 3) 
         m_WinVer = WindowsVersionWin8_1;
-      else if (osvi.dwMajorVersion == 10 && osvi.dwMinorVersion == 0)
+      else if (osvi.dwMajorVersion == 10 && osvi.dwMinorVersion == 0 && osvi.dwBuildNumber < 16299)
         m_WinVer = WindowsVersionWin10;
+#ifdef HAS_DS_PLAYER      
+      else if (osvi.dwMajorVersion == 10 && osvi.dwMinorVersion == 0 && osvi.dwBuildNumber >= 16299)
+        m_WinVer = WindowsVersionWin10_FCU;
+#endif
       /* Insert checks for new Windows versions here */
       else if ( (osvi.dwMajorVersion == 6 && osvi.dwMinorVersion > 3) || osvi.dwMajorVersion > 6)
         m_WinVer = WindowsVersionFuture;

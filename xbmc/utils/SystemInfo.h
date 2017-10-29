@@ -88,6 +88,9 @@ public:
     WindowsVersionWin8,         // Windows 8, Windows Server 2012
     WindowsVersionWin8_1,       // Windows 8.1
     WindowsVersionWin10,        // windows 10
+#ifdef HAS_DS_PLAYER
+    WindowsVersionWin10_FCU,    // windows 10 1709 Fall Creators Update Build 16299
+#endif
     /* Insert new Windows versions here, when they'll be known */
     WindowsVersionFuture = 100  // Future Windows version, not known to code
   };
