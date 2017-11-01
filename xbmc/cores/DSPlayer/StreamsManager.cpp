@@ -775,26 +775,26 @@ void CStreamsManager::resetDelayInterface()
     m_pILAVAudioSettings->SetAudioDelay(bValue, iValueAudio);
 }
 
-bool CStreamsManager::SetAudioInterface()
+void CStreamsManager::SetAudioInterface()
 {
-  Com::SmartPtr<IBaseFilter> m_pAudio;
-  m_pAudio = CGraphFilters::Get()->Audio.pBF;
+  Com::SmartPtr<IBaseFilter> pAudio;
+  pAudio = CGraphFilters::Get()->Audio.pBF;
 
-  if (!m_pAudio)
-    return false;
+  if (!pAudio)
+    return;
 
   std::string audioName;
   HRESULT hraudio;
-  g_charsetConverter.wToUTF8(GetFilterName(m_pAudio), audioName);
+  g_charsetConverter.wToUTF8(GetFilterName(pAudio), audioName);
 
-  hraudio = m_pAudio->QueryInterface(__uuidof(m_pILAVAudioSettings), (void **)&m_pILAVAudioSettings);
+  hraudio = pAudio->QueryInterface(__uuidof(m_pILAVAudioSettings), (void **)&m_pILAVAudioSettings);
   if (SUCCEEDED(hraudio))
   {
     CLog::Log(LOGDEBUG, "%s Get LAVAudio Settings interface from %s", __FUNCTION__, audioName.c_str());
     m_bIsLavAudio = true;
   }
 
-  hraudio = m_pAudio->QueryInterface(IID_IffdshowBaseW, (void **)&m_pIFFDSwhoAudioSettings);
+  hraudio = pAudio->QueryInterface(IID_IffdshowBaseW, (void **)&m_pIFFDSwhoAudioSettings);
   if (SUCCEEDED(hraudio))
   {
     CLog::Log(LOGDEBUG, "%s Get FFDShowAudio Settings interface from %s", __FUNCTION__, audioName.c_str());
@@ -802,8 +802,6 @@ bool CStreamsManager::SetAudioInterface()
   }
 
   m_InitialAudioDelay = GetAVDelay();
-
-  return (m_bIsLavAudio || m_bIsFFDSAudio);
 }
 
 DWORD CStreamsManager::GetHWAccel()

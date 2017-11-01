@@ -212,7 +212,7 @@ public:
   void SetAVDelay(float fValue = 0.0f, int iDisplayerLatency = 0);
   float GetAVDelay();
   int GetLastAVDelay() { return m_lastDelay; };
-  bool SetAudioInterface();
+  void SetAudioInterface();
   void resetDelayInterface();
   void SetSubTitleDelay(float fValue = 0.0f);
   float GetSubTitleDelay();

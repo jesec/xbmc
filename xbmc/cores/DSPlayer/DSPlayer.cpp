@@ -692,29 +692,14 @@ void CDSPlayer::Process()
     m_HasVideo = true;
     m_HasAudio = true;
 
-    float fValue;
-
-    // Select Audio Stream
+    // Select Audio Stream, Delay
     if (CStreamsManager::Get()) CStreamsManager::Get()->SelectBestAudio();
+    SetAVDelay(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_AudioDelay);
 
-    // Select Subtitle Stream and set Delay
-    fValue = CMediaSettings::GetInstance().GetCurrentVideoSettings().m_SubtitleDelay;
-
+    // Select Subtitle Stream, Delay, On/Off
     if (CStreamsManager::Get()) CStreamsManager::Get()->SelectBestSubtitle(m_currentFileItem.GetPath());
-    if (CStreamsManager::Get()) CStreamsManager::Get()->SetSubTitleDelay(fValue);
-
-    // Subtitle On/Off
+    SetSubTitleDelay(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_SubtitleDelay);
     SetSubtitleVisible(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_SubtitleOn);
-
-    // Get Audio Interface LAV AUDIO/FFDSHOW to setting Delay
-    if (CStreamsManager::Get())
-    {
-      if (CStreamsManager::Get()->SetAudioInterface())
-      {
-        fValue = CMediaSettings::GetInstance().GetCurrentVideoSettings().m_AudioDelay;
-        CStreamsManager::Get()->SetAVDelay(fValue);
-      }
-    }
 
     CMediaSettings::GetInstance().GetAtStartVideoSettings() = CMediaSettings::GetInstance().GetCurrentVideoSettings();
 

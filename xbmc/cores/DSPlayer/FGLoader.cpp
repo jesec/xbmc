@@ -632,6 +632,7 @@ HRESULT CFGLoader::LoadFilterRules(const CFileItem& _pFileItem)
     if (FAILED(InsertFilter(filter, CGraphFilters::Get()->Audio)))
       goto clean;
 
+    CStreamsManager::Get()->SetAudioInterface();
     END_PERFORMANCE_COUNTER("Loading audio filter");
 
 
