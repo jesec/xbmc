@@ -25,6 +25,7 @@
 #ifdef HAS_DS_PLAYER
 
 #include "GraphFilters.h"
+#include "ServiceBroker.h"
 #include "settings/Settings.h"
 #include "settings/MediaSettings.h"
 #include "Filters/LavSettings.h"
@@ -69,7 +70,7 @@ CGraphFilters::~CGraphFilters()
 {
   if (m_isKodiRealFS)
   {
-    CSettings::GetInstance().SetBool(CSettings::SETTING_VIDEOSCREEN_FAKEFULLSCREEN, false);
+    CServiceBroker::GetSettings().SetBool(CSettings::SETTING_VIDEOSCREEN_FAKEFULLSCREEN, false);
     m_isKodiRealFS = false;
   }
 }
@@ -86,17 +87,17 @@ void CGraphFilters::SetSanearSettings()
       return;
 
   std::wstring adeviceW;
-  std::string adevice = CSettings::GetInstance().GetString(CSettings::SETTING_DSPLAYER_SANEARDEVICES);  
+  std::string adevice = CServiceBroker::GetSettings().GetString(CSettings::SETTING_DSPLAYER_SANEARDEVICES);  
   if (adevice == "System Default")
     adevice = "";
   g_charsetConverter.utf8ToW(adevice, adeviceW, false);
 
-  bool bSanearExclusive = CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_SANEAREXCLUSIVE);
-  bool bSanearAllowbitstream = CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_SANEARALLOWBITSTREAM);
-  bool bSanearStereoCrossfeed = CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_SANEARSTEREOCROSSFEED);
-  bool bSanearIgnoreSystemChannelMixer = CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_SANEARIGNORESYSTEMCHANNELMIXER);
-  int iSanearCutoff = CSettings::GetInstance().GetInt(CSettings::SETTING_DSPLAYER_SANEARCUTOFF);
-  int iSanearLevel = CSettings::GetInstance().GetInt(CSettings::SETTING_DSPLAYER_SANEARLEVEL);
+  bool bSanearExclusive = CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_SANEAREXCLUSIVE);
+  bool bSanearAllowbitstream = CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_SANEARALLOWBITSTREAM);
+  bool bSanearStereoCrossfeed = CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_SANEARSTEREOCROSSFEED);
+  bool bSanearIgnoreSystemChannelMixer = CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_SANEARIGNORESYSTEMCHANNELMIXER);
+  int iSanearCutoff = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_SANEARCUTOFF);
+  int iSanearLevel = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_SANEARLEVEL);
 
   UINT32 buffer;
   sanear->GetOuputDevice(nullptr, nullptr, &buffer);
@@ -168,7 +169,7 @@ bool CGraphFilters::ShowOSDPPage(IBaseFilter *pBF)
 void CGraphFilters::CreateInternalFilter(const std::string &type, IBaseFilter **ppBF)
 {
   std::string filterName = type;
-  if (type == INTERNAL_XYSUBFILTER && CSettings::GetInstance().GetString(CSettings::SETTING_DSPLAYER_VIDEORENDERER) == "EVR") 
+  if (type == INTERNAL_XYSUBFILTER && CServiceBroker::GetSettings().GetString(CSettings::SETTING_DSPLAYER_VIDEORENDERER) == "EVR") 
     filterName = CGraphFilters::INTERNAL_XYVSFILTER;
 
   CFGLoader *pLoader = new CFGLoader();

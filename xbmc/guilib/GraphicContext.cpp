@@ -21,6 +21,7 @@
 #include "system.h"
 #include "GraphicContext.h"
 #include "Application.h"
+#include "ServiceBroker.h"
 #include "cores/DataCacheCore.h"
 #include "messaging/ApplicationMessenger.h"
 #include "settings/AdvancedSettings.h"
@@ -340,7 +341,7 @@ void CGraphicContext::SetFullScreenVideo(bool bOnOff)
 
   if(m_bFullScreenRoot)
   {
-    bool allowDesktopRes = CSettings::GetInstance().GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) == ADJUST_REFRESHRATE_ALWAYS;
+    bool allowDesktopRes = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) == ADJUST_REFRESHRATE_ALWAYS;
     if (m_bFullScreenVideo || (!allowDesktopRes && g_application.m_pPlayer->IsPlayingVideo()))
       g_application.m_pPlayer->TriggerUpdateResolution();
     else if (CDisplaySettings::GetInstance().GetCurrentResolution() > RES_DESKTOP)
@@ -435,7 +436,7 @@ void CGraphicContext::SetVideoResolutionInternal(RESOLUTION res, bool forceUpdat
   if (g_advancedSettings.m_fullScreen)
   {
 #if defined (TARGET_DARWIN) || defined (TARGET_WINDOWS)
-    bool blankOtherDisplays = CSettings::GetInstance().GetBool(CSettings::SETTING_VIDEOSCREEN_BLANKDISPLAYS);
+    bool blankOtherDisplays = CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOSCREEN_BLANKDISPLAYS);
     g_Windowing.SetFullScreen(true,  info_org, blankOtherDisplays);
 #else
     g_Windowing.SetFullScreen(true,  info_org, false);
@@ -750,16 +751,16 @@ void CGraphicContext::GetGUIScaling(const RESOLUTION_INFO &res, float &scaleX, f
     float fToHeight   = (float)info.Overscan.bottom - fToPosY;
 
     if(!g_guiSkinzoom) // lookup gui setting if we didn't have it already
-      g_guiSkinzoom = (CSettingInt*)CSettings::GetInstance().GetSetting(CSettings::SETTING_LOOKANDFEEL_SKINZOOM);
+      g_guiSkinzoom = (CSettingInt*)CServiceBroker::GetSettings().GetSetting(CSettings::SETTING_LOOKANDFEEL_SKINZOOM);
 
 #ifdef HAS_DS_PLAYER
     int iLeft, iTop, iRight, iBottom;
-    iLeft = CSettings::GetInstance().GetInt(CSettings::SETTING_DSPLAYER_DSAREALEFT);
-    iTop = CSettings::GetInstance().GetInt(CSettings::SETTING_DSPLAYER_DSAREATOP);
-    iRight = CSettings::GetInstance().GetInt(CSettings::SETTING_DSPLAYER_DSAREARIGHT);
-    iBottom = CSettings::GetInstance().GetInt(CSettings::SETTING_DSPLAYER_DSAREABOTTOM);
+    iLeft = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_DSAREALEFT);
+    iTop = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_DSAREATOP);
+    iRight = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_DSAREARIGHT);
+    iBottom = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_DSAREABOTTOM);
 
-    if (CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_DEFINEDSAREA) && (iLeft > 0 || iTop > 0 || iRight > 0 || iBottom > 0))
+    if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_DEFINEDSAREA) && (iLeft > 0 || iTop > 0 || iRight > 0 || iBottom > 0))
     {
       g_guiSkinzoom = 0;
       fToPosX = fToPosX + iLeft;
@@ -770,7 +771,7 @@ void CGraphicContext::GetGUIScaling(const RESOLUTION_INFO &res, float &scaleX, f
 
     if ((g_application.m_pPlayer->IsPlaying()
       && g_application.m_pPlayer->GetCurrentPlayer() == "DSPlayer")
-      && CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_OSDINTOACTIVEAREA))
+      && CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_OSDINTOACTIVEAREA))
     {
       g_guiSkinzoom = 0;
       activeRect = g_application.m_pPlayer->GetActiveVideoRect();
@@ -816,7 +817,7 @@ void CGraphicContext::GetGUIScaling(const RESOLUTION_INFO &res, float &scaleX, f
   }
 
 #ifdef HAS_DS_PLAYER
-  if (CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_OSDINTOACTIVEAREA)
+  if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_OSDINTOACTIVEAREA)
     && (m_oldDsActiveArea != activeRect))
   {
     m_oldDsActiveArea = activeRect;
@@ -975,7 +976,7 @@ void CGraphicContext::UpdateCameraPosition(const CPoint &camera, const float &fa
     RESOLUTION_INFO res = GetResInfo();
     RESOLUTION_INFO desktop = GetResInfo(RES_DESKTOP);
     float scaleRes = (static_cast<float>(res.iWidth) / static_cast<float>(desktop.iWidth));
-    float scaleX = static_cast<float>(CSettings::GetInstance().GetInt(CSettings::SETTING_LOOKANDFEEL_STEREOSTRENGTH)) * scaleRes;
+    float scaleX = static_cast<float>(CServiceBroker::GetSettings().GetInt(CSettings::SETTING_LOOKANDFEEL_STEREOSTRENGTH)) * scaleRes;
     stereoFactor = factor * (m_stereoView == RENDER_STEREO_VIEW_LEFT ? scaleX : -scaleX);
   }
   g_Windowing.SetCameraPosition(camera, m_iScreenWidth, m_iScreenHeight, stereoFactor);

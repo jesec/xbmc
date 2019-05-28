@@ -22,6 +22,7 @@
  */
 
 #include "GUIDialogDSRules.h"
+#include "ServiceBroker.h"
 #include "Application.h"
 #include "URL.h"
 #include "dialogs/GUIDialogYesNo.h"
@@ -128,7 +129,7 @@ void CGUIDialogDSRules::HideUnused(ConfigType type, ConfigType subType)
 {
   int count = 0;
   bool show;
-  bool isMadvr = (CSettings::GetInstance().GetString(CSettings::SETTING_DSPLAYER_VIDEORENDERER) == "madVR");
+  bool isMadvr = (CServiceBroker::GetSettings().GetString(CSettings::SETTING_DSPLAYER_VIDEORENDERER) == "madVR");
 
   for (const auto &it : m_ruleList)
   {
@@ -443,7 +444,7 @@ void CGUIDialogDSRules::ActionInternal(const std::string &settingId)
   if (settingId == SETTING_RULE_SAVE || settingId == SETTING_RULE_ADD)
   {
 
-    bool isMadvr = (CSettings::GetInstance().GetString(CSettings::SETTING_DSPLAYER_VIDEORENDERER) == "madVR");
+    bool isMadvr = (CServiceBroker::GetSettings().GetString(CSettings::SETTING_DSPLAYER_VIDEORENDERER) == "madVR");
     TiXmlElement pRule("rule");
 
     for (const auto &it : m_ruleList)

@@ -536,6 +536,7 @@ namespace XBMCAddon
       /// | video        | Video information
       /// | music        | Music information
       /// | pictures     | Pictures informantion
+      /// | game         | Game informantion
       ///
       /// @note To set pictures exif info, prepend `exif:` to the label. Exif values must be passed
       ///       as strings, separate value pairs with a comma. <b>(eg. <c>{'exif:resolution': '720,480'}</c></b>
@@ -592,6 +593,7 @@ namespace XBMCAddon
       /// | album         | string (The Joshua Tree)
       /// | artist        | list (['U2'])
       /// | votes         | string (12345 votes)
+      /// | path          | string (/home/user/movie.avi)
       /// | trailer       | string (/home/user/trailer.avi)
       /// | dateadded     | string (%Y-%m-%d %h:%m:%s = 2009-04-05 23:16:04)
       /// | mediatype     | string - "video", "movie", "tvshow", "season", "episode" or "musicvideo"
@@ -628,6 +630,17 @@ namespace XBMCAddon
       /// | picturepath   | string (`/home/username/pictures/img001.jpg`)
       /// | exif*         | string (See \ref kodi_pictures_infotag for valid strings)
       ///
+      /// __Game Values__:
+      /// | Info label    | Description                                        |
+      /// |--------------:|:---------------------------------------------------|
+      /// | title         | string (Super Mario Bros.)
+      /// | platform      | string (Atari 2600)
+      /// | genres        | list (["Action","Strategy"])
+      /// | publisher     | string (Nintendo)
+      /// | developer     | string (Square)
+      /// | overview      | string (Long Description)
+      /// | year          | integer (1980)
+      /// | gameclient    | string (game.libretro.fceumm)
       ///
       ///
       ///-----------------------------------------------------------------------
@@ -635,8 +648,9 @@ namespace XBMCAddon
       /// @python_v15 **duration** has to be set in seconds.
       /// @python_v16 Added new label **mediatype**.
       /// @python_v17
-      /// Added labels **setid**, **set**, **imdbnumber**, **code**, **dbid** and **userrating**.
+      /// Added labels **setid**, **set**, **imdbnumber**, **code**, **dbid**, **path** and **userrating**.
       /// Expanded the possible infoLabels for the option **mediatype**.
+      /// @python_v18 Added new **game** type and associated infolabels.
       ///
       /// **Example:**
       /// ~~~~~~~~~~~~~{.py}

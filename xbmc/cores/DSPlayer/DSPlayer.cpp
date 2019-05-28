@@ -100,7 +100,7 @@ CDSPlayer::CDSPlayer(IPlayerCallback& callback)
   m_canTempo = false;
   m_HasVideo = false;
   m_HasAudio = false;
-  m_isMadvr = (CSettings::GetInstance().GetString(CSettings::SETTING_DSPLAYER_VIDEORENDERER) == "madVR");
+  m_isMadvr = (CServiceBroker::GetSettings().GetString(CSettings::SETTING_DSPLAYER_VIDEORENDERER) == "madVR");
 
   if (InitWindow(m_hWnd))
     CLog::Log(LOGDEBUG, "%s : Create DSPlayer window - hWnd: %i", __FUNCTION__, m_hWnd);
@@ -220,7 +220,7 @@ void CDSPlayer::ShowEditionDlg(bool playStart)
   CGUIDialogSelect *dialog = (CGUIDialogSelect *)g_windowManager.GetWindow(WINDOW_DIALOG_SELECT);
 
   bool listAllTitles = false;
-  UINT minLength = CSettings::GetInstance().GetInt(CSettings::SETTING_DSPLAYER_MINTITLELENGTH);
+  UINT minLength = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_MINTITLELENGTH);
 
   while (true)
   {
@@ -338,7 +338,7 @@ bool CDSPlayer::OpenFileInternal(const CFileItem& file)
       m_HasVideo = true;
       m_HasAudio = true;
 
-      if (CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_SHOWBDTITLECHOICE))
+      if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_SHOWBDTITLECHOICE))
         ShowEditionDlg(true);
 
       // Seek
@@ -428,11 +428,11 @@ bool CDSPlayer::OpenFile(const CFileItem& file, const CPlayerOptions &options)
     return false;
   }
 
-  if (!CSettings::GetInstance().GetBool(CSettings::SETTING_VIDEOSCREEN_FAKEFULLSCREEN))
+  if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOSCREEN_FAKEFULLSCREEN))
   {
     g_Windowing.SetWindowedForMadvr();
     CGraphFilters::Get()->SetKodiRealFS(true);
-    CSettings::GetInstance().SetBool(CSettings::SETTING_VIDEOSCREEN_FAKEFULLSCREEN, true);
+    CServiceBroker::GetSettings().SetBool(CSettings::SETTING_VIDEOSCREEN_FAKEFULLSCREEN, true);
   }
 
   CGraphFilters::Get()->SetAuxAudioDelay();
@@ -558,7 +558,7 @@ void CDSPlayer::GetAudioStreamInfo(int index, SPlayerAudioStreamInfo &info)
   codecname = (CStreamsManager::Get()) ? CStreamsManager::Get()->GetAudioCodecDisplayName(index) : "";
   StringUtils::ToUpper(codecname);
 
-  if (!CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_SHOWSPLITTERDETAIL) ||
+  if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_SHOWSPLITTERDETAIL) ||
       CGraphFilters::Get()->UsingMediaPortalTsReader())
   { 
     label = StringUtils::Format("%s - (%s, %d Hz, %i Channels)", strStreamName.c_str(), codecname.c_str(), info.samplerate, info.channels);
@@ -1219,7 +1219,7 @@ bool CDSPlayer::OnAction(const CAction &action)
 
 void CDSPlayer::LoadMadvrSettings(int id)
 {
-  if (id < 0 || !m_isMadvr || CSettings::GetInstance().GetInt(CSettings::SETTING_DSPLAYER_MANAGEMADVRWITHKODI) != KODIGUI_LOAD_DSPLAYER)
+  if (id < 0 || !m_isMadvr || CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_MANAGEMADVRWITHKODI) != KODIGUI_LOAD_DSPLAYER)
     return;
 
   CMadvrSettings &madvrSettings = CMediaSettings::GetInstance().GetCurrentMadvrSettings();
@@ -1340,7 +1340,7 @@ bool CDSPlayer::SelectChannel(bool bNext)
 {
   m_PlayerOptions.identify = true;
 
-  bool bShowPreview = false;/*(CSettings::GetInstance().GetInt("pvrplayback.channelentrytimeout") > 0);*/ // TODO
+  bool bShowPreview = false;/*(CServiceBroker::GetSettings().GetInt("pvrplayback.channelentrytimeout") > 0);*/ // TODO
 
   if (!bShowPreview)
   {
@@ -1358,9 +1358,9 @@ bool CDSPlayer::ShowPVRChannelInfo()
 {
   bool bReturn(false);
 
-  if (CSettings::GetInstance().GetInt(CSettings::SETTING_PVRMENU_DISPLAYCHANNELINFO) > 0)
+  if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_PVRMENU_DISPLAYCHANNELINFO) > 0)
   {
-    g_PVRManager.ShowPlayerInfo(CSettings::GetInstance().GetInt(CSettings::SETTING_PVRMENU_DISPLAYCHANNELINFO));
+    g_PVRManager.ShowPlayerInfo(CServiceBroker::GetSettings().GetInt(CSettings::SETTING_PVRMENU_DISPLAYCHANNELINFO));
 
     bReturn = true;
   }
@@ -1623,15 +1623,15 @@ void CDSPlayer::SetRenderOnDS(bool b)
 
 void CDSPlayer::SetVisibleScreenArea(CRect activeVideoRect)
 {
-  if (CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_OSDINTOACTIVEAREA)
-    && CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_COPYACTIVERECT)
+  if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_OSDINTOACTIVEAREA)
+    && CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_COPYACTIVERECT)
     && activeVideoRect != CRect {0,0,0,0})
   {
     CRect wndRect = g_graphicsContext.GetViewWindow();
-    CSettings::GetInstance().SetInt(CSettings::SETTING_DSPLAYER_DSAREALEFT, activeVideoRect.x1 - wndRect.x1);
-    CSettings::GetInstance().SetInt(CSettings::SETTING_DSPLAYER_DSAREARIGHT, wndRect.x2 - activeVideoRect.x2);
-    CSettings::GetInstance().SetInt(CSettings::SETTING_DSPLAYER_DSAREATOP, activeVideoRect.y1 - wndRect.y1);
-    CSettings::GetInstance().SetInt(CSettings::SETTING_DSPLAYER_DSAREABOTTOM, wndRect.y2 - activeVideoRect.y2);
+    CServiceBroker::GetSettings().SetInt(CSettings::SETTING_DSPLAYER_DSAREALEFT, activeVideoRect.x1 - wndRect.x1);
+    CServiceBroker::GetSettings().SetInt(CSettings::SETTING_DSPLAYER_DSAREARIGHT, wndRect.x2 - activeVideoRect.x2);
+    CServiceBroker::GetSettings().SetInt(CSettings::SETTING_DSPLAYER_DSAREATOP, activeVideoRect.y1 - wndRect.y1);
+    CServiceBroker::GetSettings().SetInt(CSettings::SETTING_DSPLAYER_DSAREABOTTOM, wndRect.y2 - activeVideoRect.y2);
   }
 }
 

@@ -18,9 +18,7 @@
  *
  */
 
-#if (defined HAVE_CONFIG_H) && (!defined TARGET_WINDOWS)
-  #include "config.h"
-#elif defined(TARGET_WINDOWS)
+#if defined(TARGET_WINDOWS)
 #include "system.h"
 #endif
 
@@ -34,6 +32,7 @@
 
 #include "OMXPlayerVideo.h"
 
+#include "ServiceBroker.h"
 #include "linux/XMemUtils.h"
 #include "utils/BitstreamStats.h"
 
@@ -114,7 +113,7 @@ OMXPlayerVideo::~OMXPlayerVideo()
 bool OMXPlayerVideo::OpenStream(CDVDStreamInfo &hints)
 {
   m_hints       = hints;
-  m_hdmi_clock_sync = (CSettings::GetInstance().GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) != ADJUST_REFRESHRATE_OFF);
+  m_hdmi_clock_sync = (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) != ADJUST_REFRESHRATE_OFF);
   m_syncState = IDVDStreamPlayer::SYNC_STARTING;
   m_flush       = false;
   m_stalled     = m_messageQueue.GetPacketCount(CDVDMsg::DEMUXER_PACKET) == 0;

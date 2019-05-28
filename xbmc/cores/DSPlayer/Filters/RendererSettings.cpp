@@ -25,6 +25,7 @@
 #ifdef HAS_DS_PLAYER
 
 #include "RendererSettings.h"
+#include "ServiceBroker.h"
 #include "filesystem/file.h"
 #include "utils/log.h"
 #include "util.h"
@@ -55,7 +56,7 @@ CDSSettings::CDSSettings(void)
 void CDSSettings::Initialize()
 {
   std::string videoRender;
-  videoRender = CSettings::GetInstance().GetString(CSettings::SETTING_DSPLAYER_VIDEORENDERER);
+  videoRender = CServiceBroker::GetSettings().GetString(CSettings::SETTING_DSPLAYER_VIDEORENDERER);
 
   if (videoRender == "EVR")
   {

@@ -30,10 +30,12 @@
 #include "utils/Observer.h"
 
 #include "pvr/PVREvent.h"
+#include "pvr/PVRTypes.h"
 #include "pvr/recordings/PVRRecording.h"
 
-#include <map>
+#include <atomic>
 #include <memory>
+#include <string>
 #include <vector>
 
 class CGUIDialogProgressBarHandle;
@@ -51,14 +53,10 @@ namespace PVR
 {
   class CPVRClient;
   class CPVRClients;
-  class CPVRChannel;
-  typedef std::shared_ptr<CPVRChannel> CPVRChannelPtr;
   class CPVRChannelGroupsContainer;
   class CPVRChannelGroup;
   class CPVRRecordings;
   class CPVRTimers;
-  class CPVRTimerInfoTag;
-  typedef std::shared_ptr<CPVRTimerInfoTag> CPVRTimerInfoTagPtr;
   class CPVRGUIInfo;
   class CPVRDatabase;
   class CGUIWindowPVRCommon;
@@ -83,20 +81,17 @@ namespace PVR
   #define g_PVRRecordings    g_PVRManager.Recordings()
   #define g_PVRClients       g_PVRManager.Clients()
 
-  typedef std::shared_ptr<PVR::CPVRChannelGroup> CPVRChannelGroupPtr;
-
   class CPVRManager : public ISettingCallback, private CThread, public Observable, public ANNOUNCEMENT::IAnnouncer
   {
     friend class CPVRClients;
 
-public:
+  public:
     /*!
      * @brief Create a new CPVRManager instance, which handles all PVR related operations in XBMC.
      */
     CPVRManager(void);
 
-private:
-
+  private:
     /*!
      * @brief Updates the last watched timestamps of the channel and group which are currently playing.
      * @param channel The channel which is updated
@@ -130,25 +125,25 @@ private:
      * @brief Get the channel groups container.
      * @return The groups container.
      */
-    CPVRChannelGroupsContainer *ChannelGroups(void) const { return m_channelGroups.get(); }
+    CPVRChannelGroupsContainerPtr ChannelGroups(void) const;
 
     /*!
      * @brief Get the recordings container.
      * @return The recordings container.
      */
-    CPVRRecordings *Recordings(void) const { return m_recordings.get(); }
+    CPVRRecordingsPtr Recordings(void) const;
 
     /*!
      * @brief Get the timers container.
      * @return The timers container.
      */
-    CPVRTimers *Timers(void) const { return m_timers.get(); }
+    CPVRTimersPtr Timers(void) const;
 
     /*!
      * @brief Get the timers container.
      * @return The timers container.
      */
-    CPVRClients *Clients(void) const { return m_addons.get(); }
+    CPVRClientsPtr Clients(void) const;
 
     /*!
      * @brief Init PVRManager.
@@ -161,14 +156,14 @@ private:
     void Reinit(void);
 
     /*!
-     * @brief Stop the PVRManager and destroy all objects it created.
+     * @brief Stop the PVRManager.
      */
     void Stop(void);
 
     /*!
-     * @brief Delete PVRManager's objects.
+     * @brief Destroy PVRManager's objects.
      */
-    void Cleanup(void);
+    void Clear(void);
 
     /*!
      * @brief Get the TV database.
@@ -223,6 +218,12 @@ private:
     bool IsPlayingChannel(const CPVRChannelPtr &channel) const;
 
     /*!
+     * @brief Check if the given recording is playing.
+     * @return True if it's playing, false otherwise.
+     */
+    bool IsPlayingRecording(const CPVRRecordingPtr &recording) const;
+
+    /*!
      * @return True while the PVRManager is initialising.
      */
     inline bool IsInitialising(void) const
@@ -262,6 +263,12 @@ private:
      * @return The channel or NULL if none is playing.
      */
     CPVRChannelPtr GetCurrentChannel(void) const;
+
+    /*!
+     * @brief Return the recording that is currently playing.
+     * @return The recording or NULL if none is playing.
+     */
+    CPVRRecordingPtr GetCurrentRecording(void) const;
 
     /*!
      * @brief Update the channel displayed in guiinfomanager and application to match the currently playing channel.
@@ -314,13 +321,6 @@ private:
     bool OpenRecordedStream(const CPVRRecordingPtr &tag);
 
     /*!
-    * @brief Try to playback the given file item
-    * @param item The file item to playback.
-    * @return True if the file could be playback, otherwise false.
-    */
-    bool PlayMedia(const CFileItem& item);
-
-    /*!
      * @brief Start recording on a given channel if it is not already recording, stop if it is.
      * @param channel the channel to start/stop recording.
      * @return True if the recording was started or stopped successfully, false otherwise.
@@ -363,7 +363,7 @@ private:
      * @brief Set the current playing group, used to load the right channel.
      * @param group The new group.
      */
-    void SetPlayingGroup(CPVRChannelGroupPtr group);
+    void SetPlayingGroup(const CPVRChannelGroupPtr &group);
 
     /*!
      * @brief Get the current playing group, used to load the right channel.
@@ -661,11 +661,11 @@ private:
 
     /** @name containers */
     //@{
-    std::unique_ptr<CPVRChannelGroupsContainer>    m_channelGroups;               /*!< pointer to the channel groups container */
-    std::unique_ptr<CPVRRecordings>                m_recordings;                  /*!< pointer to the recordings container */
-    std::unique_ptr<CPVRTimers>                    m_timers;                      /*!< pointer to the timers container */
-    std::unique_ptr<CPVRClients>                   m_addons;                      /*!< pointer to the pvr addon container */
-    std::unique_ptr<CPVRGUIInfo>                   m_guiInfo;                     /*!< pointer to the guiinfo data */
+    CPVRChannelGroupsContainerPtr  m_channelGroups;               /*!< pointer to the channel groups container */
+    CPVRRecordingsPtr              m_recordings;                  /*!< pointer to the recordings container */
+    CPVRTimersPtr                  m_timers;                      /*!< pointer to the timers container */
+    const CPVRClientsPtr           m_addons;                      /*!< pointer to the pvr addon container */
+    std::unique_ptr<CPVRGUIInfo>   m_guiInfo;                     /*!< pointer to the guiinfo data */
     //@}
 
     CCriticalSection                m_critSectionTriggers;         /*!< critical section for triggered updates */

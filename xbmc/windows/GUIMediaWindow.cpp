@@ -20,6 +20,7 @@
 
 #include "GUIMediaWindow.h"
 #include "Application.h"
+#include "ServiceBroker.h"
 #include "messaging/ApplicationMessenger.h"
 #include "ContextMenuManager.h"
 #include "FileItemListModification.h"
@@ -78,9 +79,6 @@
 
 #define CONTROL_LABELFILES          12
 
-#define CONTROL_VIEW_START          50
-#define CONTROL_VIEW_END            59
-
 #define PROPERTY_PATH_DB            "path.db"
 #define PROPERTY_SORT_ORDER         "sort.order"
 #define PROPERTY_SORT_ASCENDING     "sort.ascending"
@@ -125,17 +123,6 @@ void CGUIMediaWindow::LoadAdditionalTags(TiXmlElement *root)
       int controlID = atol(i->c_str());
       CGUIControl *control = GetControl(controlID);
       if (control && control->IsContainer())
-        m_viewControl.AddView(control);
-    }
-  }
-  else
-  { // backward compatibility
-    std::vector<CGUIControl *> controls;
-    GetContainers(controls);
-    for (ciControls it = controls.begin(); it != controls.end(); it++)
-    {
-      CGUIControl *control = *it;
-      if (control->GetID() >= CONTROL_VIEW_START && control->GetID() <= CONTROL_VIEW_END)
         m_viewControl.AddView(control);
     }
   }
@@ -590,7 +577,7 @@ void CGUIMediaWindow::SortItems(CFileItemList &items)
       {
         sorting.sortBy = sortBy;
         sorting.sortOrder = items.GetProperty(PROPERTY_SORT_ASCENDING).asBoolean() ? SortOrderAscending : SortOrderDescending;
-        sorting.sortAttributes = CSettings::GetInstance().GetBool(CSettings::SETTING_FILELISTS_IGNORETHEWHENSORTING) ? SortAttributeIgnoreArticle : SortAttributeNone;
+        sorting.sortAttributes = CServiceBroker::GetSettings().GetBool(CSettings::SETTING_FILELISTS_IGNORETHEWHENSORTING) ? SortAttributeIgnoreArticle : SortAttributeNone;
 
         // if the sort order is descending, we need to switch the original sort order, as we assume
         // in CGUIViewState::AddPlaylistOrder that SortByPlaylistOrder is ascending.
@@ -792,6 +779,8 @@ bool CGUIMediaWindow::Update(const std::string &strDirectory, bool updateFilterP
       showLabel = 997;
     else if (iWindow == WINDOW_FILES)
       showLabel = 1026;
+    else if (iWindow == WINDOW_GAMES)
+      showLabel = 35250; // "Add games..."
   }
   if (m_vecItems->IsPath("sources://video/"))
     showLabel = 999;
@@ -801,6 +790,8 @@ bool CGUIMediaWindow::Update(const std::string &strDirectory, bool updateFilterP
     showLabel = 997;
   else if (m_vecItems->IsPath("sources://files/"))
     showLabel = 1026;
+  else if (m_vecItems->IsPath("sources://games/"))
+    showLabel = 35250; // "Add games..."
   if (showLabel && (m_vecItems->Size() == 0 || !m_guiState->DisableAddSourceButtons())) // add 'add source button'
   {
     std::string strLabel = g_localizeStrings.Get(showLabel);

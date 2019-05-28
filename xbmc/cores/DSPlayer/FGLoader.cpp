@@ -25,6 +25,7 @@
 #ifdef HAS_DS_PLAYER
 
 #include "FGLoader.h"
+#include "ServiceBroker.h"
 #include "DSPlayer.h"
 #include "Filters/RendererSettings.h"
 #include "PixelShaderList.h"
@@ -350,7 +351,7 @@ HRESULT CFGLoader::InsertAudioRenderer(const std::string& filterName)
   END_PERFORMANCE_COUNTER("Loaded audio renderer list");
 
   //see if there a config first 
-  const std::string renderer = CSettings::GetInstance().GetString(CSettings::SETTING_DSPLAYER_AUDIORENDERER);
+  const std::string renderer = CServiceBroker::GetSettings().GetString(CSettings::SETTING_DSPLAYER_AUDIORENDERER);
 
   if (renderer == CGraphFilters::INTERNAL_SANEAR)
   {
@@ -433,7 +434,7 @@ HRESULT CFGLoader::InsertVideoRenderer()
   HRESULT hr = S_OK;
 
   std::string videoRender;
-  videoRender = CSettings::GetInstance().GetString(CSettings::SETTING_DSPLAYER_VIDEORENDERER);
+  videoRender = CServiceBroker::GetSettings().GetString(CSettings::SETTING_DSPLAYER_VIDEORENDERER);
 
   if (videoRender == "EVR")
   { 
@@ -508,7 +509,7 @@ HRESULT CFGLoader::LoadFilterRules(const CFileItem& _pFileItem)
   // We *need* those informations for filter loading. If the user wants it, be sure it's loaded
   // before using it.
   bool hasStreamDetails = false;
-  if (CSettings::GetInstance().GetBool(CSettings::SETTING_MYVIDEOS_EXTRACTFLAGS) &&
+  if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_MYVIDEOS_EXTRACTFLAGS) &&
     pFileItem.HasVideoInfoTag() && !pFileItem.GetVideoInfoTag()->HasStreamDetails())
   {
     CLog::Log(LOGDEBUG, "%s - trying to extract filestream details from video file %s", __FUNCTION__, CURL::GetRedacted(pFileItem.GetPath()).c_str());
@@ -547,8 +548,8 @@ HRESULT CFGLoader::LoadFilterRules(const CFileItem& _pFileItem)
   START_PERFORMANCE_COUNTER
     if (SUCCEEDED(CFilterCoreFactory::GetSubsFilter(pFileItem, filter, CGraphFilters::Get()->IsUsingDXVADecoder())))
     {
-      if (CSettings::GetInstance().GetInt(CSettings::SETTING_DSPLAYER_FILTERSMANAGEMENT) == INTERNALFILTERS 
-        && CSettings::GetInstance().GetString(CSettings::SETTING_DSPLAYER_VIDEORENDERER) == "EVR"
+      if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_FILTERSMANAGEMENT) == INTERNALFILTERS 
+        && CServiceBroker::GetSettings().GetString(CSettings::SETTING_DSPLAYER_VIDEORENDERER) == "EVR"
         && filter == CGraphFilters::INTERNAL_XYSUBFILTER)
         filter = CGraphFilters::INTERNAL_XYVSFILTER;
 
@@ -568,7 +569,7 @@ HRESULT CFGLoader::LoadFilterRules(const CFileItem& _pFileItem)
       // We will use our own stream detail
       // We need to make a copy of our streams details because
       // Reset() delete the streams
-      if (CSettings::GetInstance().GetBool(CSettings::SETTING_MYVIDEOS_EXTRACTFLAGS)) // Only warn user if the option is enabled
+      if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_MYVIDEOS_EXTRACTFLAGS)) // Only warn user if the option is enabled
         CLog::Log(LOGWARNING, __FUNCTION__" VideoPlayer failed to fetch streams details. Using DirectShow ones");
 
       pFileItem.GetVideoInfoTag()->m_streamDetails.AddStream(
@@ -597,14 +598,14 @@ HRESULT CFGLoader::LoadFilterRules(const CFileItem& _pFileItem)
       if (SUCCEEDED(InsertFilter(extras[i], f)))
         CGraphFilters::Get()->Extras.push_back(f);
     }
-    if (CSettings::GetInstance().GetInt(CSettings::SETTING_DSPLAYER_FILTERSMANAGEMENT) == INTERNALFILTERS)
+    if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_FILTERSMANAGEMENT) == INTERNALFILTERS)
     {
       for (unsigned int i = 0; i < 3; i++)
       {
         std::string filter;
         std::string setting;
         setting = StringUtils::Format("dsplayer.extrafilter%i", i);
-        filter = CSettings::GetInstance().GetString(setting);
+        filter = CServiceBroker::GetSettings().GetString(setting);
         if (filter != "[null]")
         {
           SFilterInfos f;
@@ -680,7 +681,7 @@ HRESULT CFGLoader::LoadConfig(FILTERSMAN_TYPE filterManager)
   }
   // Two steps
   if (filterManager == NOFILTERMAN)
-    filterManager = (FILTERSMAN_TYPE)CSettings::GetInstance().GetInt(CSettings::SETTING_DSPLAYER_FILTERSMANAGEMENT);
+    filterManager = (FILTERSMAN_TYPE)CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_FILTERSMANAGEMENT);
 
   if (filterManager == MEDIARULES)
   {

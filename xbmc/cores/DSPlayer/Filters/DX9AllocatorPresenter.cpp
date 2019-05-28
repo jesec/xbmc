@@ -871,7 +871,7 @@ HRESULT CDX9AllocatorPresenter::InitD3D9()
   }
 
   /* todo evr
-  if (CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_EXCLUSIVEMODE_EVR))
+  if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_EXCLUSIVEMODE_EVR))
   {
     m_FocusThread = DNew CFocusThread();
     m_FocusThread->Create();

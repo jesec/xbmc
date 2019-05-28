@@ -18,14 +18,6 @@ addons/xbmc.metadata/*
 addons/xbmc.pvr/*
 addons/xbmc.python/*
 addons/xbmc.webinterface/*
-addons/library.kodi.adsp/*
-addons/library.kodi.audioengine/*
-addons/library.kodi.guilib/*
-addons/library.kodi.inputstream/*
-addons/library.kodi.peripheral/*
-addons/library.xbmc.addon/*
-addons/library.xbmc.codec/*
-addons/library.xbmc.pvr/*
 addons/repository.xbmc.org/*
 addons/webinterface.default/*
 addons/screensaver.xbmc.builtin.dim/*

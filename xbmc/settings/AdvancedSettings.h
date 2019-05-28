@@ -348,6 +348,8 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
     DatabaseSettings m_databaseTV;    // advanced tv database setup
     DatabaseSettings m_databaseEpg;   /*!< advanced EPG database setup */
     DatabaseSettings m_databaseADSP;  /*!< advanced audio dsp database setup */
+    DatabaseSettings m_databaseSavestates; /*!< advanced savestate database setup */
+
 #ifdef HAS_DS_PLAYER
     DatabaseSettings m_databaseDSPlayer; // advanced DSPlayer database setup
     bool m_bDSPlayerFastChannelSwitching; // Live TV fast channel switching (don't stop timeshift), only for MediaPortal TV-Server and ArgusTV PVR backends

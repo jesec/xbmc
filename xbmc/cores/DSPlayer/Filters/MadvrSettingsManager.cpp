@@ -22,6 +22,7 @@
 */
 
 #include "MadvrSettingsManager.h"
+#include "ServiceBroker.h"
 #include "mvrInterfaces.h"
 #include "settings/Settings.h"
 #include "settings/MediaSettings.h"
@@ -648,7 +649,7 @@ void CMadvrSettingsManager::ActivateProfile(const std::string &path, const std::
 
 void CMadvrSettingsManager::RestoreSettings()
 {
-  if (CSettings::GetInstance().GetInt(CSettings::SETTING_DSPLAYER_MANAGEMADVRWITHKODI) != KODIGUI_LOAD_DSPLAYER)
+  if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_MANAGEMADVRWITHKODI) != KODIGUI_LOAD_DSPLAYER)
     return;
 
   CMadvrSettings &madvrSettings = CMediaSettings::GetInstance().GetCurrentMadvrSettings();
@@ -691,7 +692,7 @@ void CMadvrSettingsManager::RestoreSettings()
 
 void CMadvrSettingsManager::LoadSettings(int iSectionId)
 {
-  if (CSettings::GetInstance().GetInt(CSettings::SETTING_DSPLAYER_MANAGEMADVRWITHKODI) != KODIGUI_LOAD_MADVR)
+  if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_MANAGEMADVRWITHKODI) != KODIGUI_LOAD_MADVR)
     return;
 
   CMadvrSettings &madvrSettings = CMediaSettings::GetInstance().GetCurrentMadvrSettings();

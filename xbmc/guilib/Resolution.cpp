@@ -19,6 +19,7 @@
  */
 
 #include "Resolution.h"
+#include "ServiceBroker.h"
 #include "GraphicContext.h"
 #include "utils/log.h"
 #include "utils/MathUtils.h"
@@ -68,7 +69,7 @@ RESOLUTION CResolutionUtils::ChooseBestResolution(float fps, int width, bool is3
 {
   RESOLUTION res = g_graphicsContext.GetVideoResolution();
 #ifdef HAS_DS_PLAYER
-  int iValue = CSettings::GetInstance().GetInt(CSettings::SETTING_DSPLAYER_CHANGEREFRESHWITH);
+  int iValue = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_CHANGEREFRESHWITH);
   if (iValue != ADJUST_REFRESHRATE_WITH_BOTH)
   {
     if ((g_application.GetCurrentPlayer() == "DSPlayer" && iValue == ADJUST_REFRESHRATE_WITH_VIDEOPLAYER)

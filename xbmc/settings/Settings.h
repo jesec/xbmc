@@ -191,7 +191,7 @@ public:
   static const std::string SETTING_EPG_PREVENTUPDATESWHILEPLAYINGTV;
   static const std::string SETTING_EPG_IGNOREDBFORCLIENT;
   static const std::string SETTING_EPG_RESETEPG;
-  static const std::string SETTING_PVRPLAYBACK_PLAYMINIMIZED;
+  static const std::string SETTING_PVRPLAYBACK_SWITCHTOFULLSCREEN;
   static const std::string SETTING_PVRPLAYBACK_STARTLAST;
   static const std::string SETTING_PVRPLAYBACK_SIGNALQUALITY;
   static const std::string SETTING_PVRPLAYBACK_SCANTIME;
@@ -378,6 +378,18 @@ public:
   static const std::string SETTING_SOURCE_VIDEOS;
   static const std::string SETTING_SOURCE_MUSIC;
   static const std::string SETTING_SOURCE_PICTURES;
+  static const std::string SETTING_GAMES_KEYBOARD_PLAYERS;
+  static const std::string SETTING_GAMES_KEYBOARD_PLAYERCONFIG_1;
+  static const std::string SETTING_GAMES_KEYBOARD_PLAYERCONFIG_2;
+  static const std::string SETTING_GAMES_KEYBOARD_PLAYERCONFIG_3;
+  static const std::string SETTING_GAMES_KEYBOARD_PLAYERCONFIG_4;
+  static const std::string SETTING_GAMES_KEYBOARD_PLAYERCONFIG_5;
+  static const std::string SETTING_GAMES_KEYBOARD_PLAYERCONFIG_6;
+  static const std::string SETTING_GAMES_KEYBOARD_PLAYERCONFIG_7;
+  static const std::string SETTING_GAMES_KEYBOARD_PLAYERCONFIG_8;
+  static const std::string SETTING_GAMES_ENABLE;
+  static const std::string SETTING_GAMES_ENABLEREWIND;
+  static const std::string SETTING_GAMES_REWINDTIME;
 
 #ifdef HAS_DS_PLAYER
   static const std::string CSettings::SETTING_DSPLAYER_RULES;
@@ -440,13 +452,6 @@ public:
    */
   CSettings();
   virtual ~CSettings();
-
-  /*!
-   \brief Returns a "global" settings wrapper which can be used from anywhere.
-
-   \return "global" settings wrapper
-   */
-  static CSettings& GetInstance();
 
   CSettingsManager* GetSettingsManager() const { return m_settingsManager; }
 
@@ -653,10 +658,14 @@ private:
   void InitializeVisibility();
   void InitializeDefaults();
   void InitializeOptionFillers();
+  void UninitializeOptionFillers();
   void InitializeConditions();
   void InitializeISettingsHandlers();
+  void UninitializeISettingsHandlers();
   void InitializeISubSettings();
+  void UninitializeISubSettings();
   void InitializeISettingCallbacks();
+  void UninitializeISettingCallbacks();
   bool Reset();
 
   bool m_initialized;

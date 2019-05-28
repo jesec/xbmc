@@ -19,6 +19,7 @@
  */
 
 #include "madVRAllocatorPresenter.h"
+#include "ServiceBroker.h"
 #include "windowing/WindowingFactory.h"
 #include <moreuuids.h>
 #include "RendererSettings.h"
@@ -123,8 +124,8 @@ void CmadVRAllocatorPresenter::SetResolution()
 
   SIZE nativeVideoSize = GetVideoSize(false);
 
-  if (CSettings::GetInstance().GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) != ADJUST_REFRESHRATE_OFF
-    && (CSettings::GetInstance().GetInt(CSettings::SETTING_DSPLAYER_CHANGEREFRESHWITH) == ADJUST_REFRESHRATE_WITH_BOTH || CSettings::GetInstance().GetInt(CSettings::SETTING_DSPLAYER_CHANGEREFRESHWITH) == ADJUST_REFRESHRATE_WITH_DSPLAYER)
+  if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) != ADJUST_REFRESHRATE_OFF
+    && (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_CHANGEREFRESHWITH) == ADJUST_REFRESHRATE_WITH_BOTH || CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_CHANGEREFRESHWITH) == ADJUST_REFRESHRATE_WITH_DSPLAYER)
     && g_graphicsContext.IsFullScreenRoot())
   {
     RESOLUTION bestRes = CResolutionUtils::ChooseBestResolution(fps, nativeVideoSize.cx, false);
@@ -163,13 +164,13 @@ void CmadVRAllocatorPresenter::ConfigureMadvr()
     pMadVrCmd->SendCommandBool("disableSeekbar", true);
 
   // Delay Playback
-  m_pSettingsManager->SetBool("delayPlaybackStart2", CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_DELAYMADVRPLAYBACK));
+  m_pSettingsManager->SetBool("delayPlaybackStart2", CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_DELAYMADVRPLAYBACK));
 
   if (Com::SmartQIPtr<IMadVRExclusiveModeCallback> pEXL = m_pDXR)
     pEXL->Register(m_exclusiveCallback, this);
 
   // Exclusive Mode
-  if (CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_EXCLUSIVEMODE))
+  if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_EXCLUSIVEMODE))
   {
       m_pSettingsManager->SetBool("exclusiveDelay", true);
       m_pSettingsManager->SetBool("enableExclusive", true);
@@ -181,7 +182,7 @@ void CmadVRAllocatorPresenter::ConfigureMadvr()
   }
 
   // Direct3D Mode
-  int iD3DMode = CSettings::GetInstance().GetInt(CSettings::SETTING_DSPLAYER_D3DPRESNTATION);
+  int iD3DMode = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_D3DPRESNTATION);
   switch (iD3DMode)
   {
   case MADVR_D3D9:
@@ -204,8 +205,8 @@ void CmadVRAllocatorPresenter::ConfigureMadvr()
   }
 
   // Pre-Presented Frames
-  int iNumPresentWindowed = CSettings::GetInstance().GetInt(CSettings::SETTING_DSPLAYER_NUMPRESENTWINDOWED);
-  int iNumPresentExclusive = CSettings::GetInstance().GetInt(CSettings::SETTING_DSPLAYER_NUMPRESENTEXCLUSIVE);
+  int iNumPresentWindowed = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_NUMPRESENTWINDOWED);
+  int iNumPresentExclusive = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_NUMPRESENTEXCLUSIVE);
 
   if (iNumPresentWindowed > 0)
     m_pSettingsManager->SetInt("preRenderFramesWindowed", iNumPresentWindowed);

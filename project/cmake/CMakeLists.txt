@@ -52,6 +52,7 @@ if(UNIX)
   option(ENABLE_INTERNAL_CROSSGUID "Enable internal crossguid?" ON)
   option(ENABLE_OPENSSL     "Enable OpenSSL?" ON)
   option(ENABLE_SDL         "Enable SDL?" OFF)
+  option(ENABLE_MIR         "Enable MIR?" OFF)
   if(CORE_SYSTEM_NAME STREQUAL linux OR CORE_SYSTEM_NAME STREQUAL freebsd)
     option(ENABLE_X11         "Enable X11 support?" ON)
     option(ENABLE_AML         "Enable AML?" OFF)
@@ -84,7 +85,6 @@ set(LIBRARY_FILES "" CACHE STRING "" FORCE)
 mark_as_advanced(LIBRARY_FILES)
 
 set(INCLUDES ${CORE_SOURCE_DIR}
-             ${CORE_SOURCE_DIR}/addons/library.xbmc.addon
              ${CORE_SOURCE_DIR}/lib
              ${CORE_SOURCE_DIR}/lib/gtest/include
              ${CORE_SOURCE_DIR}/xbmc
@@ -95,7 +95,7 @@ set(INCLUDES ${CORE_SOURCE_DIR}
              ${CMAKE_BINARY_DIR}/${CORE_BUILD_DIR})
 
 find_package(PkgConfig)
-if(CMAKE_CROSSCOMPILING)
+if(KODI_DEPENDSBUILD)
   if(PKG_CONFIG_EXECUTABLE)
     set(PKG_CONFIG_FOUND TRUE)
   endif()
@@ -120,7 +120,7 @@ endif()
 # Optional dependencies
 set(optional_deps MicroHttpd MySqlClient SSH XSLT
                   Alsa UDEV DBus Avahi SmbClient
-                  PulseAudio VDPAU VAAPI)
+                  PulseAudio VDPAU VAAPI Bluetooth CAP)
 
 # Required, dyloaded deps
 set(required_dyload Curl ASS)
@@ -198,14 +198,24 @@ endif()
 if(NOT WIN32)
   core_optional_dep(OpenGl)
   if(OPENGL_FOUND)
-    core_optional_dep(X ENABLE_X11)
-    core_optional_dep(LibDRM ENABLE_X11)
-    core_optional_dep(XRandR ENABLE_X11)
+    if(ENABLE_MIR)
+      core_require_dep(Mir ENABLE_MIR)
+      core_optional_dep(LibDRM ENABLE_MIR)
+    else()
+      core_optional_dep(X ENABLE_X11)
+      core_optional_dep(XRandR ENABLE_X11)
+      core_optional_dep(LibDRM ENABLE_X11)
+    endif()
   else()
     core_optional_dep(OpenGLES)
     if(OPENGLES_FOUND)
-      core_optional_dep(X ENABLE_X11)
-      core_optional_dep(LibDRM ENABLE_X11)
+      if(ENABLE_MIR)
+        core_require_dep(Mir ENABLE_MIR)
+        core_optional_dep(LibDRM ENABLE_MIR)
+      else()
+        core_optional_dep(X ENABLE_X11)
+        core_optional_dep(LibDRM ENABLE_X11)
+      endif()
     endif()
   endif()
   if(NOT APPLE)
@@ -341,9 +351,12 @@ unset(_MAIN_LIBRARIES)
 if(WIN32)
   set_target_properties(${APP_NAME_LC} PROPERTIES WIN32_EXECUTABLE ON)
   set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT ${APP_NAME_LC})
-  target_sources(kodi PRIVATE ${CORE_SOURCE_DIR}/xbmc/platform/win32/app.manifest)
+  target_sources(${APP_NAME_LC} PRIVATE ${CORE_SOURCE_DIR}/xbmc/platform/win32/app.manifest)
 elseif(CORE_SYSTEM_NAME STREQUAL android)
   # Nothing
+elseif(CORE_SYSTEM_NAME STREQUAL ios)
+  set_target_properties(${APP_NAME_LC} PROPERTIES OUTPUT_NAME ${APP_NAME}
+                                                  MACOSX_BUNDLE_INFO_PLIST ${CORE_SOURCE_DIR}/xbmc/platform/darwin/ios/Info.plist.in)
 else()
   set_target_properties(${APP_NAME_LC} PROPERTIES SUFFIX ".bin")
 endif()

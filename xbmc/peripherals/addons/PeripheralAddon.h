@@ -20,7 +20,6 @@
 #pragma once
 
 #include "addons/AddonDll.h"
-#include "addons/DllPeripheral.h"
 #include "addons/kodi-addon-dev-kit/include/kodi/kodi_peripheral_types.h"
 #include "addons/kodi-addon-dev-kit/include/kodi/kodi_peripheral_utils.hpp"
 #include "input/joysticks/JoystickTypes.h"
@@ -45,7 +44,7 @@ namespace PERIPHERALS
   typedef std::vector<ADDON::DriverPrimitive> PrimitiveVector;
   typedef std::map<JOYSTICK::FeatureName, ADDON::JoystickFeature> FeatureMap;
 
-  class CPeripheralAddon : public ADDON::CAddonDll<DllPeripheral, PeripheralAddon, PERIPHERAL_PROPERTIES>
+  class CPeripheralAddon : public ADDON::CAddonDll
   {
   public:
     static std::unique_ptr<CPeripheralAddon> FromExtension(ADDON::AddonProps props, const cp_extension_t* ext);
@@ -136,7 +135,6 @@ namespace PERIPHERALS
     static bool IsCompatibleAPIVersion(const ADDON::AddonVersion &minVersion, const ADDON::AddonVersion &version);
 
     bool LogError(const PERIPHERAL_ERROR error, const char *strMethod) const;
-    void LogException(const std::exception &e, const char *strFunctionName) const;
 
     /* @brief Cache for const char* members in PERIPHERAL_PROPERTIES */
     std::string         m_strUserPath;    /*!< @brief translated path to the user profile */
@@ -156,5 +154,8 @@ namespace PERIPHERALS
 
     /* @brief Thread synchronization */
     CCriticalSection    m_critSection;
+    
+    PERIPHERAL_PROPERTIES m_info;
+    KodiToAddonFuncTable_Peripheral m_struct;
   };
 }

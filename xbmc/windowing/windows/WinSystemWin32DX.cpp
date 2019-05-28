@@ -20,6 +20,7 @@
 
 
 #include "WinSystemWin32DX.h"
+#include "ServiceBroker.h"
 #include "guilib/gui3d.h"
 #include "guilib/GraphicContext.h"
 #include "settings/DisplaySettings.h"
@@ -56,11 +57,7 @@ void CWinSystemWin32DX::PresentRender(bool rendered, bool videoLayer)
 
 bool CWinSystemWin32DX::UseWindowedDX(bool fullScreen)
 {
-#ifdef HAS_DS_PLAYER
-  //todo evr
-  //CRenderSystemDX::m_UseWindowedDX_DSPlayer = (!CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_EXCLUSIVEMODE_EVR) || !fullScreen);
-#endif
-  return (CSettings::GetInstance().GetBool(CSettings::SETTING_VIDEOSCREEN_FAKEFULLSCREEN) || !fullScreen);
+  return (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOSCREEN_FAKEFULLSCREEN) || !fullScreen);
 }
 
 bool CWinSystemWin32DX::CreateNewWindow(std::string name, bool fullScreen, RESOLUTION_INFO& res, PHANDLE_EVENT_FUNC userFunction)

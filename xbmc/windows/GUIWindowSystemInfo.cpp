@@ -20,6 +20,7 @@
 
 #include "system.h"
 #include "GUIWindowSystemInfo.h"
+#include "ServiceBroker.h"
 #include "GUIInfoManager.h"
 #include "guilib/WindowIDs.h"
 #include "guilib/LocalizeStrings.h"
@@ -169,7 +170,7 @@ void CGUIWindowSystemInfo::FrameMove()
       SetControlLabel(i++, "%s: %s", 55098, CDSFilterVersion::Get()->GetStringVersion(CGraphFilters::INTERNAL_LAVVIDEO));
       SetControlLabel(i++, "%s: %s", 55099, CDSFilterVersion::Get()->GetStringVersion(CGraphFilters::INTERNAL_LAVAUDIO));
     }
-    if (CSettings::GetInstance().GetString(CSettings::SETTING_DSPLAYER_VIDEORENDERER) == "madVR")
+    if (CServiceBroker::GetSettings().GetString(CSettings::SETTING_DSPLAYER_VIDEORENDERER) == "madVR")
       SetControlLabel(i++, "%s: %s", 55100, CDSFilterVersion::Get()->GetStringVersion(CGraphFilters::INTERNAL_XYSUBFILTER));
     else
       SetControlLabel(i++, "%s: %s", 55101, CDSFilterVersion::Get()->GetStringVersion(CGraphFilters::INTERNAL_XYVSFILTER));

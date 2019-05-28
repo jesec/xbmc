@@ -51,7 +51,7 @@
 #endif
 
 /* current Peripheral API version */
-#define PERIPHERAL_API_VERSION "1.2.0"
+#define PERIPHERAL_API_VERSION "1.2.1"
 
 /* min. Peripheral API version */
 #define PERIPHERAL_MIN_API_VERSION "1.2.0"
@@ -84,6 +84,7 @@ extern "C"
   {
     PERIPHERAL_TYPE_UNKNOWN,
     PERIPHERAL_TYPE_JOYSTICK,
+    PERIPHERAL_TYPE_KEYBOARD,
   } PERIPHERAL_TYPE;
 
   typedef struct PERIPHERAL_INFO
@@ -287,7 +288,7 @@ extern "C"
   /*!
    * @brief Structure to transfer the methods from kodi_peripheral_dll.h to the frontend
    */
-  typedef struct PeripheralAddon
+  typedef struct KodiToAddonFuncTable_Peripheral
   {
     const char*      (__cdecl* GetPeripheralAPIVersion)(void);
     const char*      (__cdecl* GetMinimumPeripheralAPIVersion)(void);
@@ -313,7 +314,7 @@ extern "C"
     void             (__cdecl* ResetButtonMap)(const JOYSTICK_INFO*, const char*);
     void             (__cdecl* PowerOffJoystick)(unsigned int);
     ///}
-  } PeripheralAddon;
+  } KodiToAddonFuncTable_Peripheral;
 
 #ifdef __cplusplus
 }

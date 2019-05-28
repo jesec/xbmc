@@ -517,8 +517,10 @@ extern "C"
   //@}
 
   // function to export the above structure to KODI
-  void __declspec(dllexport) get_addon(struct AudioDSP* pDSP)
+  void __declspec(dllexport) get_addon(void* ptr)
   {
+    KodiToAddonFuncTable_AudioDSP* pDSP = static_cast<KodiToAddonFuncTable_AudioDSP*>(ptr);
+
     pDSP->GetAudioDSPAPIVersion                 = GetAudioDSPAPIVersion;
     pDSP->GetMinimumAudioDSPAPIVersion          = GetMinimumAudioDSPAPIVersion;
     pDSP->GetGUIAPIVersion                      = GetGUIAPIVersion;

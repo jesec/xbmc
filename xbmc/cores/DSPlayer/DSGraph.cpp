@@ -217,7 +217,7 @@ void CDSGraph::CloseFile()
     CLog::Log(LOGDEBUG, "%s ... done!", __FUNCTION__);
     CGraphFilters::Get()->DVD.Clear();
 
-    if (CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_EXITMADVRFULLSCREEN))
+    if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_EXITMADVRFULLSCREEN))
     {
       CDSPlayer::SetDsWndVisible(false);
       g_application.m_pPlayer->EnableExclusive(false);
@@ -878,7 +878,7 @@ std::string CDSGraph::GetAudioInfo()
   if (!c)
     return "File closed";
 
-  if (!CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_SHOWSPLITTERDETAIL) ||
+  if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_SHOWSPLITTERDETAIL) ||
       CGraphFilters::Get()->UsingMediaPortalTsReader())
   {
     audioInfo = StringUtils::Format("Audio: (%s, %d Hz, %d Channels) | Renderer: %s",
@@ -912,7 +912,7 @@ std::string CDSGraph::GetVideoInfo()
   if (!c)
     return "File closed";
   
-  if (!CSettings::GetInstance().GetBool(CSettings::SETTING_DSPLAYER_SHOWSPLITTERDETAIL) ||
+  if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_SHOWSPLITTERDETAIL) ||
       CGraphFilters::Get()->UsingMediaPortalTsReader())
   {
     videoInfo = StringUtils::Format("Video: (%s, %dx%d) | Renderer: %s",

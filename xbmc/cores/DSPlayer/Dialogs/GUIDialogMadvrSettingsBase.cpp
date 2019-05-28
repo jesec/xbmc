@@ -22,6 +22,7 @@
  */
 
 #include "GUIDialogMadvrSettingsBase.h"
+#include "ServiceBroker.h"
 #include "Application.h"
 #include "URL.h"
 #include "dialogs/GUIDialogYesNo.h"
@@ -89,7 +90,7 @@ void CGUIDialogMadvrSettingsBase::InitializeSettings()
 {
   CGUIDialogSettingsManualBase::InitializeSettings();
 
-  m_bMadvr = g_application.m_pPlayer->UsingDS(DIRECTSHOW_RENDERER_MADVR) && (CSettings::GetInstance().GetInt(CSettings::SETTING_DSPLAYER_MANAGEMADVRWITHKODI) > KODIGUI_NEVER);
+  m_bMadvr = g_application.m_pPlayer->UsingDS(DIRECTSHOW_RENDERER_MADVR) && (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_MANAGEMADVRWITHKODI) > KODIGUI_NEVER);
   m_iSectionIdInternal = m_iSectionId;
 
   bool usePopup = g_SkinInfo->HasSkinFile("DialogSlider.xml");
@@ -113,7 +114,7 @@ void CGUIDialogMadvrSettingsBase::InitializeSettings()
       return;
     }
     
-    if (CSettings::GetInstance().GetInt(CSettings::SETTING_DSPLAYER_MANAGEMADVRWITHKODI) == KODIGUI_LOAD_DSPLAYER)
+    if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_MANAGEMADVRWITHKODI) == KODIGUI_LOAD_DSPLAYER)
     {
       //LOAD SETTINGS...
       AddButton(groupMadvrSave, SETTING_VIDEO_LOAD, 70611, 0);

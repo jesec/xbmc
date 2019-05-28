@@ -20,6 +20,7 @@
 
 #include "GUIUserMessages.h"
 #include "GUIWindowVideoNav.h"
+#include "ServiceBroker.h"
 #include "utils/FileUtils.h"
 #include "Util.h"
 #include "PlayListPlayer.h"
@@ -101,7 +102,7 @@ bool CGUIWindowVideoNav::OnAction(const CAction &action)
 
     if (pItem && pItem->HasVideoInfoTag())
     {
-      CVideoLibraryQueue::GetInstance().MarkAsWatched(pItem, pItem->GetVideoInfoTag()->m_playCount == 0);
+      CVideoLibraryQueue::GetInstance().MarkAsWatched(pItem, pItem->GetVideoInfoTag()->GetPlayCount() == 0);
       return true;
     }
   }
@@ -124,7 +125,7 @@ bool CGUIWindowVideoNav::OnMessage(CGUIMessage& message)
       /* We don't want to show Autosourced items (ie removable pendrives, memorycards) in Library mode */
       m_rootDir.AllowNonLocalSources(false);
 
-      SetProperty("flattened", CSettings::GetInstance().GetBool(CSettings::SETTING_MYVIDEOS_FLATTEN));
+      SetProperty("flattened", CServiceBroker::GetSettings().GetBool(CSettings::SETTING_MYVIDEOS_FLATTEN));
       if (message.GetNumStringParams() && StringUtils::EqualsNoCase(message.GetStringParam(0), "Files") &&
           CMediaSourceSettings::GetInstance().GetSources("video")->empty())
       {
@@ -172,7 +173,7 @@ bool CGUIWindowVideoNav::OnMessage(CGUIMessage& message)
       else if (iControl == CONTROL_BTNSHOWMODE)
       {
         CMediaSettings::GetInstance().CycleWatchedMode(m_vecItems->GetContent());
-        CSettings::GetInstance().Save();
+        CServiceBroker::GetSettings().Save();
         OnFilterItems(GetProperty("filter").asString());
         UpdateButtons();
         return true;
@@ -183,7 +184,7 @@ bool CGUIWindowVideoNav::OnMessage(CGUIMessage& message)
           CMediaSettings::GetInstance().SetWatchedMode(m_vecItems->GetContent(), WatchedModeUnwatched);
         else
           CMediaSettings::GetInstance().SetWatchedMode(m_vecItems->GetContent(), WatchedModeAll);
-        CSettings::GetInstance().Save();
+        CServiceBroker::GetSettings().Save();
         OnFilterItems(GetProperty("filter").asString());
         UpdateButtons();
         return true;
@@ -219,7 +220,7 @@ void CGUIWindowVideoNav::OnInitWindow()
 
 int CGUIWindowVideoNav::GetSettingSelecTvShow()
 {
-  int iValue = CSettings::GetInstance().GetInt(CSettings::SETTING_DSPLAYER_LASTTVSHOWSELECT);
+  int iValue = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_LASTTVSHOWSELECT);
   
   if (m_vecItems->IsVideoDb() && iValue > -1)
   {
@@ -253,7 +254,7 @@ SelectFirstUnwatchedItem CGUIWindowVideoNav::GetSettingSelectFirstUnwatchedItem(
 
     if (nodeType == NODE_TYPE_SEASONS || nodeType == NODE_TYPE_EPISODES)
     {
-      int iValue = CSettings::GetInstance().GetInt(CSettings::SETTING_VIDEOLIBRARY_TVSHOWSSELECTFIRSTUNWATCHEDITEM);
+      int iValue = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOLIBRARY_TVSHOWSSELECTFIRSTUNWATCHEDITEM);
       if (iValue >= SelectFirstUnwatchedItem::NEVER && iValue <= SelectFirstUnwatchedItem::ALWAYS)
         return (SelectFirstUnwatchedItem)iValue;
     }
@@ -264,7 +265,7 @@ SelectFirstUnwatchedItem CGUIWindowVideoNav::GetSettingSelectFirstUnwatchedItem(
 
 IncludeAllSeasonsAndSpecials CGUIWindowVideoNav::GetSettingIncludeAllSeasonsAndSpecials()
 {
-  int iValue = CSettings::GetInstance().GetInt(CSettings::SETTING_VIDEOLIBRARY_TVSHOWSINCLUDEALLSEASONSANDSPECIALS);
+  int iValue = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOLIBRARY_TVSHOWSINCLUDEALLSEASONSANDSPECIALS);
   if (iValue >= IncludeAllSeasonsAndSpecials::NEITHER && iValue <= IncludeAllSeasonsAndSpecials::SPECIALS)
     return (IncludeAllSeasonsAndSpecials)iValue;
 
@@ -290,7 +291,7 @@ int CGUIWindowVideoNav::GetFirstUnwatchedItemIndex(bool includeAllSeasons, bool 
 
     // Is the season unwatched, and is its season number lower than the currently identified
     // first unwatched season
-    if (pTag->m_playCount == 0 && pTag->m_iSeason < iUnwatchedSeason)
+    if (pTag->GetPlayCount() == 0 && pTag->m_iSeason < iUnwatchedSeason)
     {
       iUnwatchedSeason = pTag->m_iSeason;
       iIndex = i;
@@ -315,7 +316,7 @@ int CGUIWindowVideoNav::GetFirstUnwatchedItemIndex(bool includeAllSeasons, bool 
 
       // Does the episode belong to the unwatched season and Is the episode unwatched, and is its epsiode number 
       // lower than the currently identified first unwatched episode
-      if (pTag->m_iSeason == iUnwatchedSeason && pTag->m_playCount == 0 && pTag->m_iEpisode < iUnwatchedEpisode)
+      if (pTag->m_iSeason == iUnwatchedSeason && pTag->GetPlayCount() == 0 && pTag->m_iEpisode < iUnwatchedEpisode)
       {
         iUnwatchedEpisode = pTag->m_iEpisode;
         iIndex = i;
@@ -375,7 +376,7 @@ bool CGUIWindowVideoNav::GetDirectory(const std::string &strDirectory, CFileItem
       dir.GetQueryParams(items.GetPath(),params);
       VIDEODATABASEDIRECTORY::NODE_TYPE node = dir.GetDirectoryChildType(items.GetPath());
 
-      int iFlatten = CSettings::GetInstance().GetInt(CSettings::SETTING_VIDEOLIBRARY_FLATTENTVSHOWS);
+      int iFlatten = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOLIBRARY_FLATTENTVSHOWS);
       int itemsSize = items.GetObjectCount();
       int firstIndex = items.Size() - itemsSize;
 
@@ -581,8 +582,8 @@ void CGUIWindowVideoNav::LoadVideoInfo(CFileItemList &items, CVideoDatabase &dat
     Similarly, we assign the "clean" library labels to the item only if the "Replace filenames with library titles"
     setting is enabled.
     */
-  const bool stackItems    = items.GetProperty("isstacked").asBoolean() || (StackingAvailable(items) && CSettings::GetInstance().GetBool(CSettings::SETTING_MYVIDEOS_STACKVIDEOS));
-  const bool replaceLabels = allowReplaceLabels && CSettings::GetInstance().GetBool(CSettings::SETTING_MYVIDEOS_REPLACELABELS);
+  const bool stackItems    = items.GetProperty("isstacked").asBoolean() || (StackingAvailable(items) && CServiceBroker::GetSettings().GetBool(CSettings::SETTING_MYVIDEOS_STACKVIDEOS));
+  const bool replaceLabels = allowReplaceLabels && CServiceBroker::GetSettings().GetBool(CSettings::SETTING_MYVIDEOS_REPLACELABELS);
 
   CFileItemList dbItems;
   /* NOTE: In the future when GetItemsForPath returns all items regardless of whether they're "in the library"
@@ -635,13 +636,9 @@ void CGUIWindowVideoNav::LoadVideoInfo(CFileItemList &items, CVideoDatabase &dat
         fetchedPlayCounts = true;
       }
       
-      // preferably use some information from PVR info tag if available
-      if (pItem->HasPVRRecordingInfoTag())
-        pItem->GetPVRRecordingInfoTag()->CopyClientInfo(pItem->GetVideoInfoTag());
-
       // set the watched overlay
       if (pItem->IsVideo())
-        pItem->SetOverlayImage(CGUIListItem::ICON_OVERLAY_UNWATCHED, pItem->HasVideoInfoTag() && pItem->GetVideoInfoTag()->m_playCount > 0);
+        pItem->SetOverlayImage(CGUIListItem::ICON_OVERLAY_UNWATCHED, pItem->HasVideoInfoTag() && pItem->GetVideoInfoTag()->GetPlayCount() > 0);
     }
   }
 }
@@ -985,7 +982,7 @@ void CGUIWindowVideoNav::GetContextButtons(int itemNumber, CContextButtons &butt
 
       if (!m_vecItems->IsVideoDb() && !m_vecItems->IsVirtualDirectoryRoot())
       { // non-video db items, file operations are allowed
-        if ((CSettings::GetInstance().GetBool(CSettings::SETTING_FILELISTS_ALLOWFILEDELETION) &&
+        if ((CServiceBroker::GetSettings().GetBool(CSettings::SETTING_FILELISTS_ALLOWFILEDELETION) &&
             CUtil::SupportsWriteFileOperations(item->GetPath())) ||
             (inPlaylists && URIUtils::GetFileName(item->GetPath()) != "PartyMode-Video.xsp"
                          && (item->IsPlayList() || item->IsSmartPlayList())))
@@ -1300,8 +1297,8 @@ bool CGUIWindowVideoNav::ApplyWatchedFilter(CFileItemList &items)
     if (filterWatched)
     {
       if(!item->IsParentFolder() && // Don't delete the go to parent folder
-         ((watchMode == WatchedModeWatched   && item->GetVideoInfoTag()->m_playCount == 0) ||
-          (watchMode == WatchedModeUnwatched && item->GetVideoInfoTag()->m_playCount > 0)))
+         ((watchMode == WatchedModeWatched   && item->GetVideoInfoTag()->GetPlayCount() == 0) ||
+          (watchMode == WatchedModeUnwatched && item->GetVideoInfoTag()->GetPlayCount() > 0)))
       {
         items.Remove(i);
         i--;

@@ -20,10 +20,6 @@
  *
  */
 
-#if defined(HAVE_CONFIG_H)
-#include "config.h"
-#endif
-
 #if !defined(TARGET_WINDOWS)
 #define DECLARE_UNUSED(a,b) a __attribute__((unused)) b;
 #endif
@@ -96,14 +92,11 @@
 #if defined(TARGET_WINDOWS)
 #define HAS_WIN32_NETWORK
 #define HAS_IRSERVERSUITE
-#define HAS_AUDIO
 #define HAS_WEB_SERVER
 #define HAS_WEB_INTERFACE
 #define HAS_FILESYSTEM_SMB
 #define HAS_ZEROCONF
 #define HAS_MDNS
-#define HAS_AIRTUNES
-#define HAS_UPNP
 
 #define DECLARE_UNUSED(a,b) a b;
 #endif

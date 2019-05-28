@@ -160,7 +160,6 @@ bool CPVRChannelGroupInternal::AddToGroup(const CPVRChannelPtr &channel, int iCh
 
 bool CPVRChannelGroupInternal::RemoveFromGroup(const CPVRChannelPtr &channel)
 {
-  CSingleLock lock(m_critSection);
   assert(channel.get());
 
   if (!IsGroupMember(channel))
@@ -173,6 +172,8 @@ bool CPVRChannelGroupInternal::RemoveFromGroup(const CPVRChannelPtr &channel)
     CGUIDialogOK::ShowAndGetInput(CVariant{19098}, CVariant{19102});
     return false;
   }
+
+  CSingleLock lock(m_critSection);
 
   /* switch the hidden flag */
   if (!channel->IsHidden())
@@ -308,7 +309,7 @@ bool CPVRChannelGroupInternal::UpdateGroupEntries(const CPVRChannelGroup &channe
   return bReturn;
 }
 
-void CPVRChannelGroupInternal::CreateChannelEpg(CPVRChannelPtr channel, bool bForce /* = false */)
+void CPVRChannelGroupInternal::CreateChannelEpg(const CPVRChannelPtr &channel, bool bForce /* = false */)
 {
   if (!channel)
     return;

@@ -27,6 +27,8 @@
 #include "video/VideoInfoTag.h"
 #include "music/tags/MusicInfoTag.h"
 #include "pictures/PictureInfoTag.h"
+#include "games/tags/GameInfoTag.h"
+#include "games/GameTypes.h"
 #include "utils/log.h"
 #include "utils/Variant.h"
 #include "utils/StringUtils.h"
@@ -203,9 +205,17 @@ namespace XBMCAddon
         item->SetMimeType(value.c_str());
       }
       else if (lowerKey == "totaltime")
-        item->GetVideoInfoTag()->m_resumePoint.totalTimeInSeconds = (float)atof(value.c_str());
+      {
+        CBookmark resumePoint(item->GetVideoInfoTag()->GetResumePoint());
+        resumePoint.totalTimeInSeconds = (float)atof(value.c_str());
+        item->GetVideoInfoTag()->SetResumePoint(resumePoint);
+      }
       else if (lowerKey == "resumetime")
-        item->GetVideoInfoTag()->m_resumePoint.timeInSeconds = (float)atof(value.c_str());
+      {
+        CBookmark resumePoint(item->GetVideoInfoTag()->GetResumePoint());
+        resumePoint.timeInSeconds = (float)atof(value.c_str());
+        item->GetVideoInfoTag()->SetResumePoint(resumePoint);
+      }
       else if (lowerKey == "specialsort")
       {
         if (value == "bottom")
@@ -231,9 +241,9 @@ namespace XBMCAddon
         value = StringUtils::Format("%f", item->m_lStartOffset / 75.0);
       }
       else if (lowerKey == "totaltime")
-        value = StringUtils::Format("%f", item->GetVideoInfoTag()->m_resumePoint.totalTimeInSeconds);
+        value = StringUtils::Format("%f", item->GetVideoInfoTag()->GetResumePoint().totalTimeInSeconds);
       else if (lowerKey == "resumetime")
-        value = StringUtils::Format("%f", item->GetVideoInfoTag()->m_resumePoint.timeInSeconds);
+        value = StringUtils::Format("%f", item->GetVideoInfoTag()->GetResumePoint().timeInSeconds);
       else if (lowerKey == "fanart_image")
         value = item->GetArt("fanart");
       else
@@ -355,9 +365,9 @@ namespace XBMCAddon
           else if (key == "size")
             item->m_dwSize = (int64_t)strtoll(value.c_str(), NULL, 10);
           else if (key == "watched") // backward compat - do we need it?
-            item->GetVideoInfoTag()->m_playCount = strtol(value.c_str(), NULL, 10);
+            item->GetVideoInfoTag()->SetPlayCount(strtol(value.c_str(), NULL, 10));
           else if (key == "playcount")
-            item->GetVideoInfoTag()->m_playCount = strtol(value.c_str(), NULL, 10);
+            item->GetVideoInfoTag()->SetPlayCount(strtol(value.c_str(), NULL, 10));
           else if (key == "overlay")
           {
             long overlay = strtol(value.c_str(), NULL, 10);
@@ -419,7 +429,7 @@ namespace XBMCAddon
           else if (key == "sorttitle")
             item->GetVideoInfoTag()->m_strSortTitle = value;
           else if (key == "duration")
-            item->GetVideoInfoTag()->m_duration = strtol(value.c_str(), NULL, 10);
+            item->GetVideoInfoTag()->SetDuration(strtol(value.c_str(), NULL, 10));
           else if (key == "studio")
             item->GetVideoInfoTag()->m_studio = StringUtils::Split(value, g_advancedSettings.m_videoItemSeparator);            
           else if (key == "tagline")
@@ -454,6 +464,8 @@ namespace XBMCAddon
             item->GetVideoInfoTag()->SetVotes(StringUtils::ReturnDigits(value));
           else if (key == "trailer")
             item->GetVideoInfoTag()->m_strTrailer = value;
+          else if (key == "path")
+            item->GetVideoInfoTag()->m_strPath = value;
           else if (key == "date")
           {
             if (value.length() == 10)
@@ -590,6 +602,53 @@ namespace XBMCAddon
             int info = CPictureInfoTag::TranslateString(StringUtils::Mid(exifkey,5));
             item->GetPictureInfoTag()->SetInfo(info, value);
           }
+        }
+      }
+      else if (StringUtils::EqualsNoCase(type, "game"))
+      {
+        for (InfoLabelDict::const_iterator it = infoLabels.begin(); it != infoLabels.end(); it++)
+        {
+          String key = it->first;
+          StringUtils::ToLower(key);
+
+          const InfoLabelValue& alt = it->second;
+          const String value(alt.which() == first ? alt.former() : emptyString);
+
+          if (key == "title")
+          {
+            item->m_strTitle = value;
+            item->GetGameInfoTag()->SetTitle(value);
+          }
+          else if (key == "platform")
+            item->GetGameInfoTag()->SetPlatform(value);
+          else if (key == "genres")
+          {
+            if (alt.which() != second)
+              throw WrongTypeException("When using \"genres\" you need to supply a list of strings for the value in the dictionary");
+
+            std::vector<std::string> genres;
+
+            const std::vector<InfoLabelStringOrTuple>& listValue = alt.later();
+            for (std::vector<InfoLabelStringOrTuple>::const_iterator viter = listValue.begin(); viter != listValue.end(); ++viter)
+            {
+
+              const InfoLabelStringOrTuple& genreEntry = *viter;
+              const String& genre = genreEntry.which() == first ? genreEntry.former() : genreEntry.later().first();
+              genres.emplace_back(std::move(genre));
+            }
+
+            item->GetGameInfoTag()->SetGenres(genres);
+          }
+          else if (key == "publisher")
+            item->GetGameInfoTag()->SetPublisher(value);
+          else if (key == "developer")
+            item->GetGameInfoTag()->SetDeveloper(value);
+          else if (key == "overview")
+            item->GetGameInfoTag()->SetOverview(value);
+          else if (key == "year")
+            item->GetGameInfoTag()->SetYear(strtol(value.c_str(), NULL, 10));
+          else if (key == "gameclient")
+            item->GetGameInfoTag()->SetGameClient(value);
         }
       }
     } // end ListItem::setInfo
