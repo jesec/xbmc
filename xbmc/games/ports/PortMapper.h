@@ -19,18 +19,11 @@
  */
 #pragma once
 
+#include "PortTypes.h"
 #include "peripherals/PeripheralTypes.h"
 #include "utils/Observer.h"
 
 #include <map>
-
-namespace KODI
-{
-namespace JOYSTICK
-{
-  class IInputHandler; 
-}
-}
 
 namespace PERIPHERALS
 {
@@ -61,6 +54,6 @@ namespace GAME
     CPortManager* m_portManager;
 
     // Port paremters
-    std::map<PERIPHERALS::PeripheralPtr, KODI::JOYSTICK::IInputHandler*>  m_portMap;
+    std::map<PERIPHERALS::PeripheralPtr, PortPtr> m_portMap;
   };
 }

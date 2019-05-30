@@ -331,7 +331,6 @@ void CGUIDialogSettingsBase::DoProcess(unsigned int currentTime, CDirtyRegionLis
   CGUIDialog::DoProcess(currentTime, dirtyregions);
   if (control && bAlphaFaded)
   {
-    control->SetFocus(false);
     if (control->GetControlType() == CGUIControl::GUICONTROL_BUTTON)
       ((CGUIButtonControl *)control)->SetAlpha(0xFF);
     else
@@ -485,8 +484,8 @@ void CGUIDialogSettingsBase::OnTimeout()
 
 void CGUIDialogSettingsBase::OnSettingChanged(std::shared_ptr<const CSetting> setting)
 {
-  if (setting == NULL || setting->GetType() == SettingTypeNone ||
-      setting->GetType() == SettingTypeAction)
+  if (setting == NULL || setting->GetType() == SettingType::Unknown ||
+      setting->GetType() == SettingType::Action)
     return;
 
   UpdateSettingControl(setting->GetId());
