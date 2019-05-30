@@ -328,7 +328,7 @@ void CMediaSettings::OnSettingChanged(const CSetting *setting)
 }
 #endif
 
-void CMediaSettings::OnSettingAction(const CSetting *setting)
+void CMediaSettings::OnSettingAction(std::shared_ptr<const CSetting> setting)
 {
   if (setting == NULL)
     return;

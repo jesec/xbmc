@@ -55,7 +55,7 @@ public:
 #ifdef HAS_DS_PLAYER
   virtual void OnSettingChanged(const CSetting *setting) override;
 #endif
-  virtual void OnSettingAction(const CSetting *setting) override;
+  virtual void OnSettingAction(std::shared_ptr<const CSetting> setting) override;
   virtual void OnSettingsLoaded() override;
 
   const CVideoSettings& GetDefaultVideoSettings() const { return m_defaultVideoSettings; }
