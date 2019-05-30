@@ -18,6 +18,13 @@
  *
  */
 
+#if defined(TARGET_WINDOWS) || defined(TARGET_WIN10)
+#  if !defined(WIN32_LEAN_AND_MEAN)
+#    define WIN32_LEAN_AND_MEAN
+#  endif
+#  include <windows.h>
+#endif
+
 #include <errno.h>
 #include <stdlib.h>
 
@@ -384,7 +391,8 @@ TEST_F(TestWebServer, CanGetJsonRpcResponse)
   ASSERT_FALSE(result.empty());
 
   // parse the JSON-RPC response
-  CVariant resultObj = CJSONVariantParser::Parse(reinterpret_cast<const unsigned char*>(result.c_str()), result.size());
+  CVariant resultObj;
+  ASSERT_TRUE(CJSONVariantParser::Parse(result, resultObj));
   // make sure it's an object
   ASSERT_TRUE(resultObj.isObject());
 

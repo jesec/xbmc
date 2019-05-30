@@ -17,115 +17,68 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #include "ScreenSaver.h"
-#include "ServiceBroker.h"
 #include "filesystem/SpecialProtocol.h"
 #include "guilib/GraphicContext.h"
-#include "interfaces/generic/ScriptInvocationManager.h"
-#include "settings/Settings.h"
-#include "utils/AlarmClock.h"
-#include "utils/URIUtils.h"
 #include "windowing/WindowingFactory.h"
-
-// What sound does a python screensaver make?
-#define SCRIPT_ALARM "sssssscreensaver"
-
-#define SCRIPT_TIMEOUT 15 // seconds
+#include "utils/log.h"
 
 namespace ADDON
 {
 
-CScreenSaver::CScreenSaver(const char *addonID)
-    : ADDON::CAddonDll(AddonProps(addonID, ADDON_UNKNOWN))
+CScreenSaver::CScreenSaver(AddonDllPtr addonInfo)
+ : IAddonInstanceHandler(ADDON_INSTANCE_SCREENSAVER, addonInfo)
 {
-  memset(&m_info, 0, sizeof(m_info));
-}
+  m_name = Name();
+  m_presets = CSpecialProtocol::TranslatePath(Path());
+  m_profile = CSpecialProtocol::TranslatePath(Profile());
 
-bool CScreenSaver::IsInUse() const
-{
-  return CServiceBroker::GetSettings().GetString(CSettings::SETTING_SCREENSAVER_MODE) == ID();
-}
-
-bool CScreenSaver::CreateScreenSaver()
-{
-  if (CScriptInvocationManager::GetInstance().HasLanguageInvoker(LibPath()))
-  {
-    // Don't allow a previously-scheduled alarm to kill our new screensaver
-    g_alarmClock.Stop(SCRIPT_ALARM, true);
-
-    if (!CScriptInvocationManager::GetInstance().Stop(LibPath()))
-      CScriptInvocationManager::GetInstance().ExecuteAsync(LibPath(), AddonPtr(new CScreenSaver(*this)));
-    return true;
-  }
- // pass it the screen width,height
- // and the name of the screensaver
-  int iWidth = g_graphicsContext.GetWidth();
-  int iHeight = g_graphicsContext.GetHeight();
-
+  m_struct = {0};
 #ifdef HAS_DX
-  m_info.device     = g_Windowing.Get3D11Context();
+  m_struct.props.device = g_Windowing.Get3D11Context();
 #else
-  m_info.device     = NULL;
+  m_struct.props.device = nullptr;
 #endif
-  m_info.x          = 0;
-  m_info.y          = 0;
-  m_info.width      = iWidth;
-  m_info.height     = iHeight;
-  m_info.pixelRatio = g_graphicsContext.GetResInfo().fPixelRatio;
-  m_info.name       = strdup(Name().c_str());
-  m_info.presets    = strdup(CSpecialProtocol::TranslatePath(Path()).c_str());
-  m_info.profile    = strdup(CSpecialProtocol::TranslatePath(Profile()).c_str());
+  m_struct.props.x = 0;
+  m_struct.props.y = 0;
+  m_struct.props.width = g_graphicsContext.GetWidth();
+  m_struct.props.height = g_graphicsContext.GetHeight();
+  m_struct.props.pixelRatio = g_graphicsContext.GetResInfo().fPixelRatio;
+  m_struct.props.name = m_name.c_str();
+  m_struct.props.presets = m_presets.c_str();
+  m_struct.props.profile = m_profile.c_str();
 
-  if (CAddonDll::Create(&m_struct, &m_info) == ADDON_STATUS_OK)
-    return true;
+  m_struct.toKodi.kodiInstance = this;
 
+  /* Open the class "kodi::addon::CInstanceScreensaver" on add-on side */
+  if (CreateInstance(&m_struct))
+    CLog::Log(LOGFATAL, "Screensaver: failed to create instance for '%s' and not usable!", ID().c_str());
+}
+
+CScreenSaver::~CScreenSaver()
+{
+  /* Destroy the class "kodi::addon::CInstanceScreensaver" on add-on side */
+  DestroyInstance();
+}
+
+bool CScreenSaver::Start()
+{
+  if (m_struct.toAddon.Start)
+    return m_struct.toAddon.Start(&m_struct);
   return false;
 }
 
-void CScreenSaver::Start()
+void CScreenSaver::Stop()
 {
-  // notify screen saver that they should start
-  if (Initialized()) m_struct.Start();
+  if (m_struct.toAddon.Stop)
+    m_struct.toAddon.Stop(&m_struct);
 }
 
 void CScreenSaver::Render()
 {
-  // ask screensaver to render itself
-  if (Initialized()) m_struct.Render();
+  if (m_struct.toAddon.Render)
+    m_struct.toAddon.Render(&m_struct);
 }
 
-void CScreenSaver::Destroy()
-{
-#ifdef HAS_PYTHON
-  if (URIUtils::HasExtension(LibPath(), ".py"))
-  {
-    /* FIXME: This is a hack but a proper fix is non-trivial. Basically this code
-     * makes sure the addon gets terminated after we've moved out of the screensaver window.
-     * If we don't do this, we may simply lockup.
-     */
-    g_alarmClock.Start(SCRIPT_ALARM, SCRIPT_TIMEOUT, "StopScript(" + LibPath() + ")", true, false);
-    return;
-  }
-#endif
-  // Release what was allocated in method CScreenSaver::CreateScreenSaver.
-  if (m_info.name)
-  {
-    free((void *) m_info.name);
-    m_info.name = nullptr;
-  }
-  if (m_info.presets)
-  {
-    free((void *) m_info.presets);
-    m_info.presets = nullptr;
-  }
-  if (m_info.profile)
-  {
-    free((void *) m_info.profile);
-    m_info.profile = nullptr;
-  }
-
-  CAddonDll::Destroy();
-}
-
-} /*namespace ADDON*/
-
+} /* namespace ADDON */

@@ -22,10 +22,17 @@
 
 #include <string>
 #include <vector>
+#include <memory>
 #include "system.h"
 
 struct DemuxPacket;
+struct DemuxCryptoSession;
+
 class CDVDInputStream;
+
+namespace ADDON {
+  class IAddonProvider;
+}
 
 #ifndef __GNUC__
 #pragma warning(push)
@@ -89,7 +96,6 @@ public:
     changes = 0;
     flags = FLAG_NONE;
     realtime = false;
-    bandwidth = 0;
   }
 
   virtual ~CDemuxStream()
@@ -109,7 +115,6 @@ public:
   StreamType type;
   int source;
   bool realtime;
-  unsigned int bandwidth;
 
   int iDuration; // in mseconds
   void* pPrivate; // private pointer for the demuxer
@@ -135,6 +140,9 @@ public:
   , FLAG_HEARING_IMPAIRED = 0x0080
   , FLAG_VISUAL_IMPAIRED  = 0x0100
   } flags;
+
+  std::shared_ptr<DemuxCryptoSession> cryptoSession;
+  std::shared_ptr<ADDON::IAddonProvider> externalInterfaces;
 };
 
 class CDemuxStreamVideo : public CDemuxStream
@@ -153,6 +161,8 @@ public:
     type = STREAM_VIDEO;
     iOrientation = 0;
     iBitsPerPixel = 0;
+    iBitRate = 0;
+
 #ifdef HAS_DS_PLAYER
     iCodecTag = 0;
 #endif
@@ -163,12 +173,13 @@ public:
   int iFpsRate;
   int iHeight; // height of the stream reported by the demuxer
   int iWidth; // width of the stream reported by the demuxer
-  float fAspect; // display aspect of stream
+  double fAspect; // display aspect of stream
   bool bVFR;  // variable framerate
   bool bPTSInvalid; // pts cannot be trusted (avi's).
   bool bForcedAspect; // aspect is forced from container
-  int iOrientation; // orientation of the video in degress counter clockwise
+  int iOrientation; // orientation of the video in degrees counter clockwise
   int iBitsPerPixel;
+  int iBitRate;
   std::string stereo_mode; // expected stereo mode
 #ifdef HAS_DS_PLAYER
   int iCodecTag;

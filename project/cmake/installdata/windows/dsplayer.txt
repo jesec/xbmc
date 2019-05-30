@@ -1,3 +1,0 @@
-system/players/dsplayer/*
-addons/repository.dsplayer/*
-addons/script.madvrsettings/*

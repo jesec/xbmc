@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2012-2016 Team Kodi
+ *      Copyright (C) 2012-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -35,9 +35,8 @@
 
 using namespace GAME;
 
-CRetroPlayerVideo::CRetroPlayerVideo(CDVDClock& clock, CRenderManager& renderManager, CProcessInfo& processInfo) :
+CRetroPlayerVideo::CRetroPlayerVideo(CRenderManager& renderManager, CProcessInfo& processInfo) :
   //CThread("RetroPlayerVideo"),
-  m_clock(clock),
   m_renderManager(renderManager),
   m_processInfo(processInfo),
   m_framerate(0.0),
@@ -113,7 +112,7 @@ bool CRetroPlayerVideo::OpenEncodedStream(AVCodecID codec)
 
 void CRetroPlayerVideo::AddData(const uint8_t* data, unsigned int size)
 {
-  DVDVideoPicture picture = { };
+  VideoPicture picture = { };
 
   if (GetPicture(data, size, picture))
   {
@@ -136,7 +135,7 @@ void CRetroPlayerVideo::CloseStream()
   m_pVideoCodec.reset();
 }
 
-bool CRetroPlayerVideo::Configure(DVDVideoPicture& picture)
+bool CRetroPlayerVideo::Configure(VideoPicture& picture)
 {
   if (!m_bConfigured)
   {
@@ -165,7 +164,7 @@ bool CRetroPlayerVideo::Configure(DVDVideoPicture& picture)
   return m_bConfigured;
 }
 
-bool CRetroPlayerVideo::GetPicture(const uint8_t* data, unsigned int size, DVDVideoPicture& picture)
+bool CRetroPlayerVideo::GetPicture(const uint8_t* data, unsigned int size, VideoPicture& picture)
 {
   bool bHasPicture = false;
 
@@ -190,12 +189,11 @@ bool CRetroPlayerVideo::GetPicture(const uint8_t* data, unsigned int size, DVDVi
   }
   else if (m_pVideoCodec)
   {
-    int iDecoderState = m_pVideoCodec->Decode(const_cast<uint8_t*>(data), size, DVD_NOPTS_VALUE, DVD_NOPTS_VALUE);
-    if (iDecoderState & VC_PICTURE)
+    DemuxPacket packet(const_cast<uint8_t*>(data), size, DVD_NOPTS_VALUE, DVD_NOPTS_VALUE);
+    if (m_pVideoCodec->AddData(packet))
     {
-      m_pVideoCodec->ClearPicture(&picture);
-
-      if (m_pVideoCodec->GetPicture(&picture))
+      CDVDVideoCodec::VCReturn ret = m_pVideoCodec->GetPicture(&picture);
+      if (ret == CDVDVideoCodec::VC_PICTURE)
       {
         // Drop frame if requested by the decoder
         const bool bDropped = (picture.iFlags & DVP_FLAG_DROPPED) != 0;
@@ -209,7 +207,7 @@ bool CRetroPlayerVideo::GetPicture(const uint8_t* data, unsigned int size, DVDVi
   return bHasPicture;
 }
 
-void CRetroPlayerVideo::SendPicture(DVDVideoPicture& picture)
+void CRetroPlayerVideo::SendPicture(VideoPicture& picture)
 {
   std::atomic_bool bAbortOutput(false); //! @todo
 

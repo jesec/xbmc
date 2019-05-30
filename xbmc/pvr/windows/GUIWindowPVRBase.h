@@ -31,6 +31,8 @@
 #define CONTROL_BTNSHOWHIDDEN             6
 #define CONTROL_BTNSHOWDELETED            7
 #define CONTROL_BTNHIDEDISABLEDTIMERS     8
+#define CONTROL_BTNSHOWMODE               10
+
 #define CONTROL_BTNCHANNELGROUPS          28
 #define CONTROL_BTNFILTERCHANNELS         31
 
@@ -48,23 +50,24 @@ namespace PVR
     EPG_SELECT_ACTION_INFO           = 2,
     EPG_SELECT_ACTION_RECORD         = 3,
     EPG_SELECT_ACTION_PLAY_RECORDING = 4,
+    EPG_SELECT_ACTION_SMART_SELECT   = 5
   };
 
   class CGUIWindowPVRBase : public CGUIMediaWindow, public Observer
   {
   public:
     virtual ~CGUIWindowPVRBase(void);
-    virtual void OnInitWindow(void) override;
-    virtual void OnDeinitWindow(int nextWindowID) override;
-    virtual bool OnMessage(CGUIMessage& message) override;
-    virtual bool Update(const std::string &strDirectory, bool updateFilterPath = true) override;
-    virtual void UpdateButtons(void) override;
-    virtual bool OnAction(const CAction &action) override;
-    virtual bool OnBack(int actionID) override;
-    virtual bool OpenChannelGroupSelectionDialog(void);
-    virtual void Notify(const Observable &obs, const ObservableMessage msg) override;
-    virtual void SetInvalid() override;
-    virtual bool CanBeActivated() const override;
+
+    void OnInitWindow(void) override;
+    void OnDeinitWindow(int nextWindowID) override;
+    bool OnMessage(CGUIMessage& message) override;
+    bool Update(const std::string &strDirectory, bool updateFilterPath = true) override;
+    void UpdateButtons(void) override;
+    bool OnAction(const CAction &action) override;
+    bool OnBack(int actionID) override;
+    void Notify(const Observable &obs, const ObservableMessage msg) override;
+    void SetInvalid() override;
+    bool CanBeActivated() const override;
 
     static std::string GetSelectedItemPath(bool bRadio);
     static void SetSelectedItemPath(bool bRadio, const std::string &path);
@@ -82,9 +85,24 @@ namespace PVR
 
     virtual void ClearData();
 
+    /*!
+     * @brief Init this window's channel group with the currently active (the "playing") channel group.
+     * @return true if group could be set, false otherwise.
+     */
     bool InitChannelGroup(void);
-    virtual CPVRChannelGroupPtr GetChannelGroup(void);
-    virtual void SetChannelGroup(const CPVRChannelGroupPtr &group);
+
+    /*!
+     * @brief Get the channel group for this window.
+     * @return the group or null, if no group set.
+     */
+   virtual CPVRChannelGroupPtr GetChannelGroup(void);
+
+    /*!
+     * @brief Set a new channel group, start listening to this group, optionally update window content.
+     * @param group The new group.
+     * @param bUpdate if true, window content will be updated.
+     */
+    void SetChannelGroup(const CPVRChannelGroupPtr &group, bool bUpdate = true);
 
     virtual void UpdateSelectedItemPath();
 
@@ -98,6 +116,8 @@ namespace PVR
     bool m_bRadio;
 
   private:
+    bool OpenChannelGroupSelectionDialog(void);
+
     /*!
      * @brief Show or update the progress dialog.
      * @param strText The current status.

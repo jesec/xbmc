@@ -22,7 +22,7 @@
 #include <list>
 #include <utility>
 
-#include "DVDAudio.h"
+#include "AudioSinkAE.h"
 #include "DVDClock.h"
 #include "DVDMessageQueue.h"
 #include "DVDStreamInfo.h"
@@ -41,7 +41,7 @@ public:
   CVideoPlayerAudio(CDVDClock* pClock, CDVDMessageQueue& parent, CProcessInfo &processInfo);
   virtual ~CVideoPlayerAudio();
 
-  bool OpenStream(CDVDStreamInfo &hints);
+  bool OpenStream(CDVDStreamInfo hints);
   void CloseStream(bool bWaitForBuffers);
 
   void SetSpeed(int speed);
@@ -55,12 +55,11 @@ public:
   void SendMessage(CDVDMsg* pMsg, int priority = 0)     { m_messageQueue.Put(pMsg, priority); }
   void FlushMessages()                                  { m_messageQueue.Flush(); }
 
-  void SetDynamicRangeCompression(long drc)             { m_dvdAudio.SetDynamicRangeCompression(drc); }
+  void SetDynamicRangeCompression(long drc)             { m_audioSink.SetDynamicRangeCompression(drc); }
   float GetDynamicRangeAmplification() const            { return 0.0f; }
 
 
   std::string GetPlayerInfo();
-  int GetAudioBitrate();
   int GetAudioChannels();
 
   // holds stream information for current playing stream
@@ -76,32 +75,29 @@ protected:
   virtual void OnStartup();
   virtual void OnExit();
   virtual void Process();
+  bool ProcessDecoderOutput(DVDAudioFrame &audioframe);
 
   void UpdatePlayerInfo();
   void OpenStream(CDVDStreamInfo &hints, CDVDAudioCodec* codec);
   //! Switch codec if needed. Called when the sample rate gotten from the
   //! codec changes, in which case we may want to switch passthrough on/off.
   bool SwitchCodecIfNeeded();
-  float GetCurrentAttenuation()                         { return m_dvdAudio.GetCurrentAttenuation(); }
 
   CDVDMessageQueue m_messageQueue;
   CDVDMessageQueue& m_messageParent;
 
   double m_audioClock;
 
-  CDVDAudio m_dvdAudio; // audio output device
+  CAudioSinkAE m_audioSink; // audio output device
   CDVDClock* m_pClock; // dvd master clock
   CDVDAudioCodec* m_pAudioCodec; // audio codec
   BitstreamStats m_audioStats;
 
   int m_speed;
   bool m_stalled;
-  bool m_silence;
   bool m_paused;
   IDVDStreamPlayer::ESyncState m_syncState;
   XbmcThreads::EndTime m_syncTimer;
-
-  bool OutputPacket(DVDAudioFrame &audioframe);
 
   //SYNC_DISCON, SYNC_SKIPDUP, SYNC_RESAMPLE
   int    m_synctype;

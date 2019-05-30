@@ -57,7 +57,6 @@
 
 #ifdef TARGET_WINDOWS
 
-using namespace PERIPHERALS;
 using namespace KODI::MESSAGING;
 
 HWND g_hWnd = NULL;
@@ -93,7 +92,7 @@ SHChangeNotifyEntry shcne;
 
 void DIB_InitOSKeymap()
 {
-  char current_layout[KL_NAMELENGTH];
+  wchar_t current_layout[KL_NAMELENGTH];
 
   GetKeyboardLayoutName(current_layout);
 
@@ -248,7 +247,7 @@ void DIB_InitOSKeymap()
   }
 }
 
-static int XBMC_MapVirtualKey(int scancode, int vkey)
+static int XBMC_MapVirtualKey(int scancode, WPARAM vkey)
 {
   int mvke = MapVirtualKeyEx(scancode & 0xFF, 1, NULL);
 
@@ -406,6 +405,7 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
   ZeroMemory(&newEvent, sizeof(newEvent));
   static HDEVNOTIFY hDeviceNotify;
 
+#if 0
   if (uMsg == WM_NCCREATE)
   {
     // if available, enable DPI scaling of non-client portion of window (title bar, etc.) 
@@ -415,11 +415,12 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
     }
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
   }
+#endif
 
   if (uMsg == WM_CREATE)
   {
     g_hWnd = hWnd;
-    SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG)(((LPCREATESTRUCT)lParam)->lpCreateParams));
+    SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(reinterpret_cast<LPCREATESTRUCT>(lParam)->lpCreateParams));
     DIB_InitOSKeymap();
     g_uQueryCancelAutoPlay = RegisterWindowMessage(TEXT("QueryCancelAutoPlay"));
     shcne.pidl = NULL;
@@ -805,7 +806,7 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
 
         if (hLock)
         {
-          char drivePath[MAX_PATH+1];
+          wchar_t drivePath[MAX_PATH+1];
           if (!SHGetPathFromIDList(ppidl[0], drivePath))
             break;
 
@@ -850,13 +851,13 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
         switch(wParam)
         {
           case DBT_DEVNODES_CHANGED:
-            g_peripherals.TriggerDeviceScan(PERIPHERAL_BUS_USB);
+            CServiceBroker::GetPeripherals().TriggerDeviceScan(PERIPHERALS::PERIPHERAL_BUS_USB);
             break;
           case DBT_DEVICEARRIVAL:
           case DBT_DEVICEREMOVECOMPLETE:
             if (((_DEV_BROADCAST_HEADER*) lParam)->dbcd_devicetype == DBT_DEVTYP_DEVICEINTERFACE)
             {
-              g_peripherals.TriggerDeviceScan(PERIPHERAL_BUS_USB);
+              CServiceBroker::GetPeripherals().TriggerDeviceScan(PERIPHERALS::PERIPHERAL_BUS_USB);
             }
             // check if an usb or optical media was inserted or removed
             if (((_DEV_BROADCAST_HEADER*) lParam)->dbcd_devicetype == DBT_DEVTYP_VOLUME)

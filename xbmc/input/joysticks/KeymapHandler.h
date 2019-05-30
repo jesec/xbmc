@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2015-2016 Team Kodi
+ *      Copyright (C) 2015-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -23,6 +23,8 @@
 
 #include <vector>
 
+namespace KODI
+{
 namespace JOYSTICK
 {
   /*!
@@ -42,13 +44,6 @@ namespace JOYSTICK
     virtual void OnAnalogKey(unsigned int keyId, float magnitude) override;
 
   private:
-    enum BUTTON_STATE
-    {
-      STATE_UNPRESSED,
-      STATE_BUTTON_PRESSED,
-      STATE_BUTTON_HELD,
-    };
-
     void ProcessButtonPress(unsigned int keyId, unsigned int holdTimeMs);
     void ProcessButtonRelease(unsigned int keyId);
     bool IsPressed(unsigned int keyId) const;
@@ -60,4 +55,5 @@ namespace JOYSTICK
     unsigned int              m_lastDigitalActionMs;
     std::vector<unsigned int> m_pressedButtons;
   };
+}
 }

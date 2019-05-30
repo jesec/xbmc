@@ -31,7 +31,6 @@
 #include <vector>
 
 #include "addons/IAddon.h"
-#include "epg/EpgTypes.h"
 #include "guilib/GUIListItem.h"
 #include "GUIPassword.h"
 #include "pvr/PVRTypes.h"
@@ -111,7 +110,7 @@ public:
   CFileItem(const CGenre& genre);
   CFileItem(const MUSIC_INFO::CMusicInfoTag& music);
   CFileItem(const CVideoInfoTag& movie);
-  CFileItem(const EPG::CEpgInfoTagPtr& tag);
+  CFileItem(const PVR::CPVREpgInfoTagPtr& tag);
   CFileItem(const PVR::CPVRChannelPtr& channel);
   CFileItem(const PVR::CPVRRecordingPtr& record);
   CFileItem(const PVR::CPVRTimerInfoTagPtr& timer);
@@ -182,6 +181,12 @@ public:
    */
   bool IsDeleted() const;
 
+  /*!
+   \brief Check whether an item is an audio book item.
+   \return true if item is audiobook, false otherwise.
+   */
+  bool IsAudioBook() const;
+
   bool IsGame() const;
   bool IsCUESheet() const;
   bool IsInternetStream(const bool bStrictCheck = false) const;
@@ -243,8 +248,8 @@ public:
   void SetFileSizeLabel();
   virtual void SetLabel(const std::string &strLabel);
   int GetVideoContentType() const; /* return VIDEODB_CONTENT_TYPE, but don't want to include videodb in this header */
-  bool IsLabelPreformated() const { return m_bLabelPreformated; }
-  void SetLabelPreformated(bool bYesNo) { m_bLabelPreformated=bYesNo; }
+  bool IsLabelPreformatted() const { return m_bLabelPreformatted; }
+  void SetLabelPreformatted(bool bYesNo) { m_bLabelPreformatted=bYesNo; }
   bool SortsOnTop() const { return m_specialSort == SortSpecialOnTop; }
   bool SortsOnBottom() const { return m_specialSort == SortSpecialOnBottom; }
   void SetSpecialSort(SortSpecial sort) { m_specialSort = sort; }
@@ -272,12 +277,12 @@ public:
     return m_epgInfoTag.get() != NULL;
   }
 
-  inline const EPG::CEpgInfoTagPtr GetEPGInfoTag() const
+  inline const PVR::CPVREpgInfoTagPtr GetEPGInfoTag() const
   {
     return m_epgInfoTag;
   }
 
-  inline void SetEPGInfoTag(const EPG::CEpgInfoTagPtr& tag)
+  inline void SetEPGInfoTag(const PVR::CPVREpgInfoTagPtr& tag)
   {
     m_epgInfoTag = tag;
   }
@@ -553,7 +558,7 @@ private:
 
   /*!
    \brief Return the current resume point for this item.
-   \return The resum point.
+   \return The resume point.
    */
   CBookmark GetResumePoint() const;
 
@@ -562,13 +567,13 @@ private:
   SortSpecial m_specialSort;
   bool m_bIsParentFolder;
   bool m_bCanQueue;
-  bool m_bLabelPreformated;
+  bool m_bLabelPreformatted;
   std::string m_mimetype;
   std::string m_extrainfo;
   bool m_doContentLookup;
   MUSIC_INFO::CMusicInfoTag* m_musicInfoTag;
   CVideoInfoTag* m_videoInfoTag;
-  EPG::CEpgInfoTagPtr m_epgInfoTag;
+  PVR::CPVREpgInfoTagPtr m_epgInfoTag;
   PVR::CPVRChannelPtr m_pvrChannelInfoTag;
   PVR::CPVRRecordingPtr m_pvrRecordingInfoTag;
   PVR::CPVRTimerInfoTagPtr m_pvrTimerInfoTag;
@@ -752,6 +757,13 @@ public:
   const std::string &GetContent() const { return m_content; };
 
   void ClearSortState();
+
+  VECFILEITEMS::const_iterator begin() { return m_items.cbegin(); }
+  VECFILEITEMS::const_iterator end() { return m_items.cend(); }
+  VECFILEITEMS::const_iterator begin() const { return m_items.begin(); }
+  VECFILEITEMS::const_iterator end() const { return m_items.end(); }
+  VECFILEITEMS::const_iterator cbegin() const { return m_items.begin(); }
+  VECFILEITEMS::const_iterator cend() const { return m_items.end(); }
 private:
   void Sort(FILEITEMLISTCOMPARISONFUNC func);
   void FillSortFields(FILEITEMFILLFUNC func);

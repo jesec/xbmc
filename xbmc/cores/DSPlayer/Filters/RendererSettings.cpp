@@ -45,7 +45,7 @@ CDSSettings::CDSSettings(void)
 
   m_pDwmIsCompositionEnabled = NULL;
   m_pDwmEnableComposition = NULL;
-  m_hDWMAPI = LoadLibrary("dwmapi.dll");
+  m_hDWMAPI = LoadLibraryA("dwmapi.dll");
   if (m_hDWMAPI)
   {
     (FARPROC &)m_pDwmIsCompositionEnabled = GetProcAddress(m_hDWMAPI, "DwmIsCompositionEnabled");
@@ -192,8 +192,8 @@ if (m_hD3DX9Dll == NULL)
     // load latest compatible version of the DLL that is available
     for (int i=max_ver; i>=min_ver; i--)
     {
-      m_strD3DX9Version = StringUtils::Format(_T("d3dx9_%d.dll"), i);
-      m_hD3DX9Dll = LoadLibrary (m_strD3DX9Version.c_str());
+      m_strD3DX9Version = StringUtils::Format("d3dx9_%d.dll", i);
+      m_hD3DX9Dll = LoadLibraryA(m_strD3DX9Version.c_str());
       if (m_hD3DX9Dll) 
       {
         m_nDXSdkRelease = i;

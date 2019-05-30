@@ -62,12 +62,10 @@ void CPVRDatabase::CreateTables()
         "bIsVirtual           bool, "
         "bEPGEnabled          bool, "
         "sEPGScraper          varchar(32), "
-        "iLastWatched         integer,"
-
-        //! @todo use mapping table
-        "iClientId            integer, "
-
-        "idEpg                integer"
+        "iLastWatched         integer, "
+        "iClientId            integer, " //! @todo use mapping table
+        "idEpg                integer, "
+        "bWasPlayingOnQuit    bool"
       ")"
   );
 
@@ -138,12 +136,13 @@ void CPVRDatabase::UpdateTables(int iVersion)
     m_pDS->exec("ALTER TABLE channelgroups ADD bIsHidden bool");
 
   if (iVersion < 28)
-  {
     m_pDS->exec("DROP TABLE clients");
-  }
 
   if (iVersion < 29)
     m_pDS->exec("ALTER TABLE channelgroups ADD iPosition integer");
+
+  if (iVersion < 30)
+    m_pDS->exec("ALTER TABLE channels ADD bWasPlayingOnQuit bool");
 }
 
 /********** Channel methods **********/
@@ -449,7 +448,7 @@ int CPVRDatabase::Get(CPVRChannelGroup &group)
       {
         int iChannelId = m_pDS->fv("idChannel").get_asInt();
         int iChannelNumber = m_pDS->fv("iChannelNumber").get_asInt();
-        CPVRChannelPtr channel = g_PVRChannelGroups->GetGroupAll(group.IsRadio())->GetByChannelID(iChannelId);
+        CPVRChannelPtr channel = CServiceBroker::GetPVRManager().ChannelGroups()->GetGroupAll(group.IsRadio())->GetByChannelID(iChannelId);
 
         if (channel)
         {
@@ -579,10 +578,10 @@ bool CPVRDatabase::Persist(CPVRChannelGroup &group)
     /* insert a new entry when this is a new group, or replace the existing one otherwise */
     if (group.GroupID() <= 0)
       strQuery = PrepareSQL("INSERT INTO channelgroups (bIsRadio, iGroupType, sName, iLastWatched, bIsHidden, iPosition) VALUES (%i, %i, '%s', %u, %i, %i)",
-          (group.IsRadio() ? 1 :0), group.GroupType(), group.GroupName().c_str(), group.LastWatched(), group.IsHidden(), group.GetPosition());
+          (group.IsRadio() ? 1 :0), group.GroupType(), group.GroupName().c_str(), static_cast<unsigned int>(group.LastWatched()), group.IsHidden(), group.GetPosition());
     else
       strQuery = PrepareSQL("REPLACE INTO channelgroups (idGroup, bIsRadio, iGroupType, sName, iLastWatched, bIsHidden, iPosition) VALUES (%i, %i, %i, '%s', %u, %i, %i)",
-          group.GroupID(), (group.IsRadio() ? 1 :0), group.GroupType(), group.GroupName().c_str(), group.LastWatched(), group.IsHidden(), group.GetPosition());
+          group.GroupID(), (group.IsRadio() ? 1 :0), group.GroupType(), group.GroupName().c_str(), static_cast<unsigned int>(group.LastWatched()), group.IsHidden(), group.GetPosition());
 
     bReturn = ExecuteQuery(strQuery);
 
@@ -623,7 +622,7 @@ bool CPVRDatabase::Persist(CPVRChannel &channel)
         "idEpg) "
         "VALUES (%i, %i, %i, %i, %i, %i, '%s', '%s', %i, %i, '%s', %u, %i, %i)",
         channel.UniqueID(), (channel.IsRadio() ? 1 :0), (channel.IsHidden() ? 1 : 0), (channel.IsUserSetIcon() ? 1 : 0), (channel.IsUserSetName() ? 1 : 0), (channel.IsLocked() ? 1 : 0),
-        channel.IconPath().c_str(), channel.ChannelName().c_str(), 0, (channel.EPGEnabled() ? 1 : 0), channel.EPGScraper().c_str(), channel.LastWatched(), channel.ClientID(),
+        channel.IconPath().c_str(), channel.ChannelName().c_str(), 0, (channel.EPGEnabled() ? 1 : 0), channel.EPGScraper().c_str(), static_cast<unsigned int>(channel.LastWatched()), channel.ClientID(),
         channel.EpgID());
   }
   else
@@ -635,7 +634,7 @@ bool CPVRDatabase::Persist(CPVRChannel &channel)
         "idChannel, idEpg) "
         "VALUES (%i, %i, %i, %i, %i, %i, '%s', '%s', %i, %i, '%s', %u, %i, %i, %i)",
         channel.UniqueID(), (channel.IsRadio() ? 1 :0), (channel.IsHidden() ? 1 : 0), (channel.IsUserSetIcon() ? 1 : 0), (channel.IsUserSetName() ? 1 : 0), (channel.IsLocked() ? 1 : 0),
-        channel.IconPath().c_str(), channel.ChannelName().c_str(), 0, (channel.EPGEnabled() ? 1 : 0), channel.EPGScraper().c_str(), channel.LastWatched(), channel.ClientID(),
+        channel.IconPath().c_str(), channel.ChannelName().c_str(), 0, (channel.EPGEnabled() ? 1 : 0), channel.EPGScraper().c_str(), static_cast<unsigned int>(channel.LastWatched()), channel.ClientID(),
         channel.ChannelID(),
         channel.EpgID());
   }
@@ -652,18 +651,58 @@ bool CPVRDatabase::Persist(CPVRChannel &channel)
   return bReturn;
 }
 
+bool CPVRDatabase::SetWasPlayingOnLastQuit(const CPVRChannel &channel, bool bSet, bool& bWasPlaying)
+{
+  bool bRet = false;
+
+  // Obtain previous value.
+  try
+  {
+    const std::string strSQL(PrepareSQL("SELECT bWasPlayingOnQuit FROM channels WHERE iUniqueId = %u AND iClientId = %u",
+                                        channel.UniqueID(), channel.ClientID()));
+    m_pDS->query(strSQL);
+    if (m_pDS->num_rows() > 0)
+    {
+      bWasPlaying = m_pDS->fv(0).get_asBool();
+      bRet = true;
+    }
+    else
+    {
+      CLog::Log(LOGERROR, "PVR - %s - couldn't obtain value from channels (no rows)", __FUNCTION__);
+    }
+    m_pDS->close();
+  }
+  catch (...)
+  {
+    CLog::Log(LOGERROR, "PVR - %s - couldn't obtain value from channels (exception)", __FUNCTION__);
+  }
+
+  // Set new value.
+  if (bRet && bSet != bWasPlaying)
+    bRet = SetWasPlayingOnLastQuit(channel, bSet);
+
+  return bRet;
+}
+
+bool CPVRDatabase::SetWasPlayingOnLastQuit(const CPVRChannel &channel, bool bSet)
+{
+  const std::string strQuery(PrepareSQL("UPDATE channels SET bWasPlayingOnQuit = %i WHERE iUniqueId = %u AND iClientId = %u",
+                                        bSet, channel.UniqueID(), channel.ClientID()));
+  return ExecuteQuery(strQuery);
+}
+
 bool CPVRDatabase::UpdateLastWatched(const CPVRChannel &channel)
 {
-  std::string strQuery = PrepareSQL("UPDATE channels SET iLastWatched = %d WHERE idChannel = %d",
-    channel.LastWatched(), channel.ChannelID());
+  std::string strQuery = PrepareSQL("UPDATE channels SET iLastWatched = %u WHERE idChannel = %d",
+    static_cast<unsigned int>(channel.LastWatched()), channel.ChannelID());
 
   return ExecuteQuery(strQuery);
 }
 
 bool CPVRDatabase::UpdateLastWatched(const CPVRChannelGroup &group)
 {
-  std::string strQuery = PrepareSQL("UPDATE channelgroups SET iLastWatched = %d WHERE idGroup = %d",
-    group.LastWatched(), group.GroupID());
+  std::string strQuery = PrepareSQL("UPDATE channelgroups SET iLastWatched = %u WHERE idGroup = %d",
+    static_cast<unsigned int>(group.LastWatched()), group.GroupID());
 
   return ExecuteQuery(strQuery);
 }

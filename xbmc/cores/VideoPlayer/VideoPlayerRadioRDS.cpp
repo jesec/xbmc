@@ -32,7 +32,7 @@
  */
 
 #include "Application.h"
-#include "DVDClock.h"
+#include "TimingConstants.h"
 #include "DVDStreamInfo.h"
 #include "GUIInfoManager.h"
 #include "GUIUserMessages.h"
@@ -180,7 +180,7 @@ using namespace KODI::MESSAGING;
  * RDS and RBDS relevant
  */
 
-/// RDS Programm type id's
+/// RDS Program type id's
 enum {
   RDS_PTY_NONE = 0,
   RDS_PTY_NEWS,
@@ -216,7 +216,7 @@ enum {
   RDS_PTY_ALARM
 };
 
-/// RBDS Programm type id's
+/// RBDS Program type id's
 enum {
   RBDS_PTY_NONE = 0,
   RBDS_PTY_NEWS,
@@ -491,7 +491,7 @@ static char *rds_entitychar(char *text)
 static unsigned short crc16_ccitt(const unsigned char *data, int len, bool skipfirst)
 {
   // CRC16-CCITT: x^16 + x^12 + x^5 + 1
-  // with start 0xffff and result invers
+  // with start 0xffff and result inverse
   unsigned short crc = 0xffff;
 
   if (skipfirst)
@@ -537,7 +537,7 @@ bool CDVDRadioRDSData::CheckStream(CDVDStreamInfo &hints)
   return false;
 }
 
-bool CDVDRadioRDSData::OpenStream(CDVDStreamInfo &hints)
+bool CDVDRadioRDSData::OpenStream(CDVDStreamInfo hints)
 {
   m_messageQueue.Init();
   if (hints.type == STREAM_RADIO_RDS)
@@ -906,28 +906,28 @@ unsigned int CDVDRadioRDSData::DecodeDI(uint8_t *msgElement)
 {
   bool value;
 
-  value = msgElement[3] & 1;
+  value = (msgElement[3] & 1) != 0;
   if (m_DI_IsStereo != value)
   {
     CLog::Log(LOGDEBUG, "Radio UECP (RDS) Processor - %s - Stream changed over to %s", __FUNCTION__, value ? "Stereo" : "Mono");
     m_DI_IsStereo = value;
   }
 
-  value = msgElement[3] & 2;
+  value = (msgElement[3] & 2) != 0;
   if (m_DI_ArtificialHead != value)
   {
     CLog::Log(LOGDEBUG, "Radio UECP (RDS) Processor - %s - Stream changed over to %sArtificial Head", __FUNCTION__, value ? "" : "Not ");
     m_DI_ArtificialHead = value;
   }
 
-  value = msgElement[3] & 4;
+  value = (msgElement[3] & 4) != 0;
   if (m_DI_ArtificialHead != value)
   {
     CLog::Log(LOGDEBUG, "Radio UECP (RDS) Processor - %s - Stream changed over to %sCompressed Head", __FUNCTION__, value ? "" : "Not ");
     m_DI_ArtificialHead = value;
   }
 
-  value = msgElement[3] & 8;
+  value = (msgElement[3] & 8) != 0;
   if (m_DI_DynamicPTY != value)
   {
     CLog::Log(LOGDEBUG, "Radio UECP (RDS) Processor - %s - Stream changed over to %s PTY", __FUNCTION__, value ? "dynamic" : "static");
@@ -940,8 +940,8 @@ unsigned int CDVDRadioRDSData::DecodeDI(uint8_t *msgElement)
 unsigned int CDVDRadioRDSData::DecodeTA_TP(uint8_t *msgElement)
 {
   uint8_t dsn = msgElement[1];
-  bool traffic_announcement = msgElement[3] & 1;
-  bool traffic_programme    = msgElement[3] & 2;
+  bool traffic_announcement = (msgElement[3] & 1) != 0;
+  bool traffic_programme    = (msgElement[3] & 2) != 0;
 
   if (traffic_announcement && !m_TA_TP_TrafficAdvisory && traffic_programme && dsn == 0 && CServiceBroker::GetSettings().GetBool("pvrplayback.trafficadvisory"))
   {
@@ -1107,11 +1107,11 @@ unsigned int CDVDRadioRDSData::DecodeRT(uint8_t *msgElement, unsigned int len)
   }
   else
   {
-  //  bool flagToogle = msgElement[UECP_ME_DATA] & 0x01 ? true : false;
+  //  bool flagToggle = msgElement[UECP_ME_DATA] & 0x01 ? true : false;
   //  int txQty = (msgElement[UECP_ME_DATA] >> 1) & 0x0F;
   //  int bufConf = (msgElement[UECP_ME_DATA] >> 5) & 0x03;
 
-    //! byte 4 = RT-Status bitcodet (0=AB-flagcontrol, 1-4=Transmission-Number, 5+6=Buffer-Config, ingnored, always 0x01 ?)
+    //! byte 4 = RT-Status bitcodet (0=AB-flagcontrol, 1-4=Transmission-Number, 5+6=Buffer-Config, ignored, always 0x01 ?)
     char temptext[RT_MEL];
     memset(temptext, 0x0, RT_MEL);
     for (unsigned int i = 1, ii = 0; i < msgLength; ++i)
@@ -1162,7 +1162,7 @@ unsigned int CDVDRadioRDSData::DecodeRTC(uint8_t *msgElement)
 {
   uint8_t hours   = msgElement[UECP_CLOCK_HOURS];
   uint8_t minutes = msgElement[UECP_CLOCK_MINUTES];
-  bool    minus   = msgElement[UECP_CLOCK_LOCALOFFSET] & 0x20;
+  bool    minus   = (msgElement[UECP_CLOCK_LOCALOFFSET] & 0x20) != 0;
   if (minus)
   {
     if (msgElement[UECP_CLOCK_LOCALOFFSET] >> 1)

@@ -20,8 +20,6 @@
 
 #pragma once
 
-#if defined(HAVE_X11)
-
 #include "WinSystemX11.h"
 #include "GL/glx.h"
 #include "EGL/egl.h"
@@ -43,6 +41,9 @@ public:
 
   bool IsExtSupported(const char* extension) override;
 
+  // videosync
+  virtual std::unique_ptr<CVideoSync> GetVideoSync(void *clock) override;
+
   GLXWindow GetWindow() const;
   GLXContext GetGlxContext() const;
   EGLDisplay GetEGLDisplay() const;
@@ -63,5 +64,3 @@ protected:
 
 XBMC_GLOBAL_REF(CWinSystemX11GLContext,g_Windowing);
 #define g_Windowing XBMC_GLOBAL_USE(CWinSystemX11GLContext)
-
-#endif //HAVE_X11

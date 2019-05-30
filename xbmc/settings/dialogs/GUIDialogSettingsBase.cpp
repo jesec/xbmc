@@ -333,19 +333,6 @@ void CGUIDialogSettingsBase::SetupControls(bool createSettings /* = true */)
   // cleanup first, if necessary
   FreeControls();
 
-  // get the section
-  CSettingSection *section = GetSection();
-  if (section == NULL)
-    return;
-  
-  // update the screen string
-  SetHeading(section->GetLabel());
-
-  // get the categories we need
-  m_categories = section->GetCategories((SettingLevel)GetSettingLevel());
-  if (m_categories.empty())
-    m_categories.push_back(m_dummyCategory);
-
   // get all controls
   m_pOriginalSpin = dynamic_cast<CGUISpinControlEx*>(GetControl(CONTROL_DEFAULT_SPIN));
   m_pOriginalSlider = dynamic_cast<CGUISettingsSliderControl*>(GetControl(CONTROL_DEFAULT_SLIDER));
@@ -356,20 +343,44 @@ void CGUIDialogSettingsBase::SetupControls(bool createSettings /* = true */)
   m_pOriginalEdit = dynamic_cast<CGUIEditControl *>(GetControl(CONTROL_DEFAULT_EDIT));
   m_pOriginalGroupTitle = dynamic_cast<CGUILabelControl *>(GetControl(CONTROL_DEFAULT_SETTING_LABEL));
 
-  if (!m_pOriginalEdit && m_pOriginalButton)
+  // if there's no edit control but there's a button control use that instead
+  if (m_pOriginalEdit == nullptr && m_pOriginalButton != nullptr)
   {
     m_pOriginalEdit = new CGUIEditControl(*m_pOriginalButton);
     m_newOriginalEdit = true;
   }
 
-  if (m_pOriginalSpin) m_pOriginalSpin->SetVisible(false);
-  if (m_pOriginalSlider) m_pOriginalSlider->SetVisible(false);
-  if (m_pOriginalRadioButton) m_pOriginalRadioButton->SetVisible(false);
-  if (m_pOriginalButton) m_pOriginalButton->SetVisible(false);
-  if (m_pOriginalCategoryButton) m_pOriginalCategoryButton->SetVisible(false);
-  if (m_pOriginalEdit) m_pOriginalEdit->SetVisible(false);
-  if (m_pOriginalImage) m_pOriginalImage->SetVisible(false);
-  if (m_pOriginalGroupTitle) m_pOriginalGroupTitle->SetVisible(false);
+  // hide all default controls by default
+  if (m_pOriginalSpin != nullptr)
+    m_pOriginalSpin->SetVisible(false);
+  if (m_pOriginalSlider != nullptr)
+    m_pOriginalSlider->SetVisible(false);
+  if (m_pOriginalRadioButton != nullptr)
+    m_pOriginalRadioButton->SetVisible(false);
+  if (m_pOriginalButton != nullptr)
+    m_pOriginalButton->SetVisible(false);
+  if (m_pOriginalCategoryButton != nullptr)
+    m_pOriginalCategoryButton->SetVisible(false);
+  if (m_pOriginalEdit != nullptr)
+    m_pOriginalEdit->SetVisible(false);
+  if (m_pOriginalImage != nullptr)
+    m_pOriginalImage->SetVisible(false);
+  if (m_pOriginalGroupTitle != nullptr)
+    m_pOriginalGroupTitle->SetVisible(false);
+
+  // get the section
+  CSettingSection *section = GetSection();
+  if (section == NULL)
+    return;
+  
+  // update the screen string
+  if (section->GetLabel() >= 0)
+    SetHeading(section->GetLabel());
+
+  // get the categories we need
+  m_categories = section->GetCategories((SettingLevel)GetSettingLevel());
+  if (m_categories.empty())
+    m_categories.push_back(m_dummyCategory);
 
   if (m_pOriginalCategoryButton != NULL)
   {
@@ -620,7 +631,7 @@ CGUIControl* CGUIDialogSettingsBase::AddSetting(CSetting *pSetting, float width,
       return NULL;
 
     ((CGUIRadioButtonControl *)pControl)->SetLabel(label);
-    pSettingControl.reset(new CGUIControlRadioButtonSetting((CGUIRadioButtonControl *)pControl, iControlID, pSetting));
+    pSettingControl.reset(new CGUIControlRadioButtonSetting((CGUIRadioButtonControl *)pControl, iControlID, pSetting, this));
   }
   else if (controlType == "spinner")
   {
@@ -630,7 +641,7 @@ CGUIControl* CGUIDialogSettingsBase::AddSetting(CSetting *pSetting, float width,
       return NULL;
 
     ((CGUISpinControlEx *)pControl)->SetText(label);
-    pSettingControl.reset(new CGUIControlSpinExSetting((CGUISpinControlEx *)pControl, iControlID, pSetting));
+    pSettingControl.reset(new CGUIControlSpinExSetting((CGUISpinControlEx *)pControl, iControlID, pSetting, this));
   }
   else if (controlType == "edit")
   {
@@ -640,7 +651,7 @@ CGUIControl* CGUIDialogSettingsBase::AddSetting(CSetting *pSetting, float width,
       return NULL;
       
     ((CGUIEditControl *)pControl)->SetLabel(label);
-    pSettingControl.reset(new CGUIControlEditSetting((CGUIEditControl *)pControl, iControlID, pSetting));
+    pSettingControl.reset(new CGUIControlEditSetting((CGUIEditControl *)pControl, iControlID, pSetting, this));
   }
   else if (controlType == "list")
   {
@@ -650,7 +661,7 @@ CGUIControl* CGUIDialogSettingsBase::AddSetting(CSetting *pSetting, float width,
       return NULL;
 
     ((CGUIButtonControl *)pControl)->SetLabel(label);
-    pSettingControl.reset(new CGUIControlListSetting((CGUIButtonControl *)pControl, iControlID, pSetting));
+    pSettingControl.reset(new CGUIControlListSetting((CGUIButtonControl *)pControl, iControlID, pSetting, this));
   }
   else if (controlType == "button" || controlType == "slider")
   {
@@ -663,7 +674,7 @@ CGUIControl* CGUIDialogSettingsBase::AddSetting(CSetting *pSetting, float width,
         return NULL;
       
       ((CGUIButtonControl *)pControl)->SetLabel(label);
-      pSettingControl.reset(new CGUIControlButtonSetting((CGUIButtonControl *)pControl, iControlID, pSetting));
+      pSettingControl.reset(new CGUIControlButtonSetting((CGUIButtonControl *)pControl, iControlID, pSetting, this));
     }
     else
     {
@@ -673,7 +684,7 @@ CGUIControl* CGUIDialogSettingsBase::AddSetting(CSetting *pSetting, float width,
         return NULL;
       
       ((CGUISettingsSliderControl *)pControl)->SetText(label);
-      pSettingControl.reset(new CGUIControlSliderSetting((CGUISettingsSliderControl *)pControl, iControlID, pSetting));
+      pSettingControl.reset(new CGUIControlSliderSetting((CGUISettingsSliderControl *)pControl, iControlID, pSetting, this));
     }
   }
   else if (controlType == "range")
@@ -684,7 +695,7 @@ CGUIControl* CGUIDialogSettingsBase::AddSetting(CSetting *pSetting, float width,
       return NULL;
 
     ((CGUISettingsSliderControl *)pControl)->SetText(label);
-    pSettingControl.reset(new CGUIControlRangeSetting((CGUISettingsSliderControl *)pControl, iControlID, pSetting));
+    pSettingControl.reset(new CGUIControlRangeSetting((CGUISettingsSliderControl *)pControl, iControlID, pSetting, this));
   }
   else
     return NULL;
@@ -704,7 +715,7 @@ CGUIControl* CGUIDialogSettingsBase::AddSeparator(float width, int &iControlID)
   if (pControl == NULL)
     return NULL;
 
-  return AddSettingControl(pControl, BaseSettingControlPtr(new CGUIControlSeparatorSetting((CGUIImage *)pControl, iControlID)), width, iControlID);
+  return AddSettingControl(pControl, BaseSettingControlPtr(new CGUIControlSeparatorSetting((CGUIImage *)pControl, iControlID, this)), width, iControlID);
 }
 
 CGUIControl* CGUIDialogSettingsBase::AddLabel(float width, int &iControlID, int label)
@@ -718,7 +729,7 @@ CGUIControl* CGUIDialogSettingsBase::AddLabel(float width, int &iControlID, int 
 
   ((CGUILabelControl *)pControl)->SetLabel(GetLocalizedString(label));
 
-  return AddSettingControl(pControl, BaseSettingControlPtr(new CGUIControlGroupTitleSetting((CGUILabelControl *)pControl, iControlID)), width, iControlID);
+  return AddSettingControl(pControl, BaseSettingControlPtr(new CGUIControlGroupTitleSetting((CGUILabelControl *)pControl, iControlID, this)), width, iControlID);
 }
 
 CGUIControl* CGUIDialogSettingsBase::AddSettingControl(CGUIControl *pControl, BaseSettingControlPtr pSettingControl, float width, int &iControlID)

@@ -27,6 +27,7 @@
 #include "utils/log.h"
 #include "threads/SingleLock.h"
 #include "DSUtil/DSUtil.h"
+#include "platform/win32/CharsetConverter.h"
 
 
 CXBMCFileStream::CXBMCFileStream(std::string filepath, HRESULT& hr)
@@ -101,7 +102,8 @@ STDMETHODIMP_(HANDLE) CXBMCFileStream::GetFileHandle()
 
 STDMETHODIMP_(LPCTSTR) CXBMCFileStream::GetFileName()
 {
-	return m_strCurrentFile.c_str();
+	using KODI::PLATFORM::WINDOWS::ToW;
+	return ToW(m_strCurrentFile).c_str();
 }
 
 #endif

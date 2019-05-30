@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2014-2016 Team Kodi
+ *      Copyright (C) 2014-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -26,11 +26,12 @@
 #include "addons/GUIWindowAddonBrowser.h"
 #include "addons/IAddon.h"
 #include "addons/AddonManager.h"
-#include "games/controllers/dialogs/GUIDialogButtonCapture.h"
+#include "games/controllers/dialogs/GUIDialogIgnoreInput.h"
 #include "guilib/GUIButtonControl.h"
 #include "guilib/GUIControl.h"
 #include "guilib/GUIMessage.h"
 #include "guilib/WindowIDs.h"
+#include "ServiceBroker.h"
 
 // To check for button mapping support
 #include "dialogs/GUIDialogOK.h"
@@ -40,7 +41,6 @@
 
 // To check for installable controllers
 #include "addons/AddonDatabase.h"
-#include "addons/AddonManager.h"
 
 using namespace GAME;
 
@@ -204,8 +204,6 @@ void CGUIControllerWindow::OnEvent(const ADDON::CRepositoryUpdater::RepositoryUp
 
 void CGUIControllerWindow::OnInitWindow(void)
 {
-  using namespace PERIPHERALS;
-
   CGUIDialog::OnInitWindow();
 
   if (!m_featureList)
@@ -233,8 +231,7 @@ void CGUIControllerWindow::OnInitWindow(void)
   OnMessage(msgFocus);
 
   // Enable button mapping support
-  if (!g_peripherals.GetInstance().EnableButtonMapping())
-    CLog::Log(LOGDEBUG, "Joystick support not found");
+  CServiceBroker::GetPeripherals().EnableButtonMapping();
 
   // FIXME: not thread safe
 //  ADDON::CRepositoryUpdater::GetInstance().Events().Subscribe(this, &CGUIControllerWindow::OnEvent);
@@ -322,6 +319,6 @@ void CGUIControllerWindow::ShowHelp(void)
 
 void CGUIControllerWindow::ShowButtonCaptureDialog(void)
 {
-  CGUIDialogButtonCapture dialog;
+  CGUIDialogIgnoreInput dialog;
   dialog.Show();
 }

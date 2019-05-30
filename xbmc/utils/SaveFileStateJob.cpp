@@ -19,6 +19,7 @@
  */
 
 #include "SaveFileStateJob.h"
+#include "ServiceBroker.h"
 #include "pvr/PVRManager.h"
 #include "settings/MediaSettings.h"
 #include "network/upnp/UPnP.h"
@@ -34,7 +35,6 @@
 #include "guilib/GUIWindowManager.h"
 #include "GUIUserMessages.h"
 #include "music/MusicDatabase.h"
-#include "cores/AudioEngine/Engines/ActiveAE/AudioDSPAddons/ActiveAEDSP.h"
 #include "xbmc/music/tags/MusicInfoTag.h"
 #ifdef HAS_DS_PLAYER
 #include "DSPlayerDatabase.h"
@@ -208,9 +208,9 @@ bool CSaveFileStateJob::DoWork()
       std::string redactPath = CURL::GetRedacted(progressTrackingFile);
       CLog::Log(LOGDEBUG, "%s - Saving file state for audio item %s", __FUNCTION__, redactPath.c_str());
 
+      CMusicDatabase musicdatabase;
       if (m_updatePlayCount)
       {
-        CMusicDatabase musicdatabase;
         if (!musicdatabase.Open())
         {
           CLog::Log(LOGWARNING, "%s - Unable to open music database. Can not save file state!", __FUNCTION__);
@@ -234,29 +234,12 @@ bool CSaveFileStateJob::DoWork()
           }
         }
       }
-    }
 
-    if (CServiceBroker::GetADSP().IsProcessing())
-    {
-      std::string redactPath = CURL::GetRedacted(progressTrackingFile);
-      CLog::Log(LOGDEBUG, "%s - Saving file state for dsp audio item %s", __FUNCTION__, redactPath.c_str());
-
-      ActiveAE::CActiveAEDSPDatabase audiodatabase;
-      if (!audiodatabase.Open())
+      if (m_item.IsAudioBook())
       {
-        CLog::Log(LOGWARNING, "%s - Unable to open dsp audio database. Can not save file state!", __FUNCTION__);
-      }
-      else
-      {
-        if (m_audioSettings != CMediaSettings::GetInstance().GetDefaultAudioSettings())
-        {
-          audiodatabase.SetActiveDSPSettings(m_item, m_audioSettings);
-        }
-        else
-        {
-          audiodatabase.DeleteActiveDSPSettings(m_item);
-        }
-        audiodatabase.Close();
+        musicdatabase.Open();
+        musicdatabase.SetResumeBookmarkForAudioBook(m_item, m_item.m_lStartOffset+m_bookmark.timeInSeconds*75);
+        musicdatabase.Close();
       }
     }
   }

@@ -22,7 +22,7 @@
 #pragma once
 
 #ifdef __GNUC__
-// under gcc, inline will only take place if optimizations are applied (-O). this will force inline even whith optimizations.
+// under gcc, inline will only take place if optimizations are applied (-O). this will force inline even with optimizations.
 #define XBMC_FORCE_INLINE __attribute__((always_inline))
 #else
 #define XBMC_FORCE_INLINE
@@ -43,9 +43,7 @@ public:
   {
     NONE = 1000,
 
-
     // messages used in the whole system
-
     GENERAL_RESYNC,                 //
     GENERAL_FLUSH,                  // flush all buffers
     GENERAL_RESET,                  // reset codecs for new data
@@ -56,7 +54,6 @@ public:
     GENERAL_EOF,                    // eof of stream
 
     // player core related messages (cVideoPlayer.cpp)
-
     PLAYER_SET_AUDIOSTREAM,         //
     PLAYER_SET_VIDEOSTREAM,         //
     PLAYER_SET_SUBTITLESTREAM,      //
@@ -66,6 +63,7 @@ public:
     PLAYER_SEEK,                    //
     PLAYER_SEEK_CHAPTER,            //
     PLAYER_SETSPEED,                // set the playback speed
+    PLAYER_REQUEST_STATE,
 
     PLAYER_CHANNEL_NEXT,            // switches to next playback channel
     PLAYER_CHANNEL_PREV,            // switches to previous playback channel
@@ -75,21 +73,16 @@ public:
     PLAYER_CHANNEL_SELECT,          // switches to the provided channel
     PLAYER_STARTED,                 // sent whenever a sub player has finished it's first frame after open
     PLAYER_AVCHANGE,                // signal a change in audio or video parameters
+    PLAYER_ABORT,
+    PLAYER_REPORT_STATE,
 
     // demuxer related messages
-
     DEMUXER_PACKET,                 // data packet
     DEMUXER_RESET,                  // reset the demuxer
 
-
     // video related messages
-
     VIDEO_SET_ASPECT,               // set aspectratio of video
     VIDEO_DRAIN,                    // wait for decoder to output last frame
-
-    // audio related messages
-
-    AUDIO_SILENCE,
 
     // subtitle related messages
     SUBTITLE_CLUTCHANGE,
@@ -218,10 +211,9 @@ class CDVDMsgPlayerSeek : public CDVDMsg
 public:
   struct CMode
   {
-    int time = 0;
+    double time = 0;
     bool relative = false;
     bool backward = false;
-    bool flush = true;
     bool accurate = true;
     bool sync = true;
     bool restore = true;
@@ -231,10 +223,9 @@ public:
   CDVDMsgPlayerSeek(CDVDMsgPlayerSeek::CMode mode) : CDVDMsg(PLAYER_SEEK),
     m_mode(mode)
   {}
-  int GetTime() { return m_mode.time; }
+  double GetTime() { return m_mode.time; }
   bool GetRelative() { return m_mode.relative; }
   bool GetBackward() { return m_mode.backward; }
-  bool GetFlush() { return m_mode.flush; }
   bool GetAccurate() { return m_mode.accurate; }
   bool GetRestore() { return m_mode.restore; }
   bool GetTrickPlay() { return m_mode.trickplay; }

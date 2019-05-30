@@ -1,5 +1,6 @@
 set(SOURCES GameClient.cpp
-            GameClientInput.cpp
+            GameClientInGameSaves.cpp
+            GameClientJoystick.cpp
             GameClientKeyboard.cpp
             GameClientMouse.cpp
             GameClientProperties.cpp
@@ -8,7 +9,8 @@ set(SOURCES GameClient.cpp
 
 set(HEADERS GameClient.h
             GameClientCallbacks.h
-            GameClientInput.h
+            GameClientInGameSaves.h
+            GameClientJoystick.h
             GameClientKeyboard.h
             GameClientMouse.h
             GameClientProperties.h

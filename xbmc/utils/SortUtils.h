@@ -37,7 +37,8 @@ typedef enum {
 typedef enum {
   SortAttributeNone           = 0x0,
   SortAttributeIgnoreArticle  = 0x1,
-  SortAttributeIgnoreFolders  = 0x2
+  SortAttributeIgnoreFolders  = 0x2,
+  SortAttributeUseArtistSortName = 0x4
 } SortAttribute;
 
 typedef enum {
@@ -86,7 +87,7 @@ typedef enum {
   SortByAlbumType,
   /// __14__ : Sort by genre                      <em>(String: <b><c>Genre</c></b>)</em>
   SortByGenre,
-  /// __15__ : Sort by coutry                     <em>(String: <b><c>Country</c></b>)</em>
+  /// __15__ : Sort by country                     <em>(String: <b><c>Country</c></b>)</em>
   SortByCountry,
   /// __16__ : Sort by year                       <em>(String: <b><c>Year</c></b>)</em>
   SortByYear,

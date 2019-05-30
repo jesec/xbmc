@@ -57,6 +57,7 @@ public:
     strMusicBrainzAlbumID.clear();
     artistCredits.clear();
     strArtistDesc.clear();
+    strArtistSort.clear();
     genre.clear();
     thumbURL.Clear();
     moods.clear();
@@ -92,12 +93,18 @@ public:
   const std::vector<std::string> GetMusicBrainzAlbumArtistID() const;
   std::string GetGenreString() const;
 
-  /*! \brief Get album artist names from the artist decription string (if it exists)
+  /*! \brief Get album artist names from the artist description string (if it exists)
              or concatenated from the vector of artistcredits objects
   \return album artist names as a single string
   */
   const std::string GetAlbumArtistString() const;
   
+  /*! \brief Get album artist sort name from the artist sort string (if it exists)
+  or concatenated from the vector of artistcredits objects
+  \return album artist sort names as a single string
+  */
+  const std::string GetAlbumArtistSort() const;
+
   /*! \brief Get album artist IDs (for json rpc) from the vector of artistcredits objects
   \return album artist IDs as a vector of integers
   */
@@ -130,6 +137,7 @@ public:
   std::string strAlbum;
   std::string strMusicBrainzAlbumID;
   std::string strArtistDesc;
+  std::string strArtistSort;
   VECARTISTCREDITS artistCredits;
   std::vector<std::string> genre;
   CScraperUrl thumbURL;

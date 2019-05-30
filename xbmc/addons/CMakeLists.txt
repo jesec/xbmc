@@ -4,6 +4,7 @@ set(SOURCES Addon.cpp
             AddonDatabase.cpp
             AddonDll.cpp
             AddonInstaller.cpp
+            AddonInstanceHandler.cpp
             AddonManager.cpp
             AddonStatusHandler.cpp
             AddonSystemSettings.cpp
@@ -18,6 +19,7 @@ set(SOURCES Addon.cpp
             GUIDialogAddonSettings.cpp
             GUIViewStateAddonBrowser.cpp
             GUIWindowAddonBrowser.cpp
+            ImageDecoder.cpp
             ImageResource.cpp
             InputStream.cpp
             LanguageResource.cpp
@@ -30,6 +32,7 @@ set(SOURCES Addon.cpp
             Service.cpp
             Skin.cpp
             UISoundsResource.cpp
+            VFSEntry.cpp
             Visualisation.cpp
             Webinterface.cpp)
 
@@ -40,6 +43,7 @@ set(HEADERS Addon.h
             AddonDatabase.h
             AddonDll.h
             AddonInstaller.h
+            AddonInstanceHandler.h
             AddonManager.h
             AddonStatusHandler.h
             AddonSystemSettings.h
@@ -57,6 +61,7 @@ set(HEADERS Addon.h
             GUIViewStateAddonBrowser.h
             GUIWindowAddonBrowser.h
             IAddon.h
+            ImageDecoder.h
             ImageResource.h
             InputStream.h
             LanguageResource.h
@@ -70,6 +75,7 @@ set(HEADERS Addon.h
             Service.h
             Skin.h
             UISoundsResource.h
+            VFSEntry.h
             Visualisation.h
             Webinterface.h)
 

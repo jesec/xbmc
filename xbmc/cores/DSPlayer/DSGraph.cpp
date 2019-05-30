@@ -266,7 +266,7 @@ void CDSGraph::UpdateTime()
     if (SUCCEEDED(m_pMediaSeeking->GetDuration(&Position)))
       m_State.time_total = Position;
 
-    if (g_PVRManager.IsPlayingTV() && g_windowManager.IsWindowActive(WINDOW_DIALOG_VIDEO_OSD))
+    if (CServiceBroker::GetPVRManager().IsPlayingTV() && g_windowManager.IsWindowActive(WINDOW_DIALOG_VIDEO_OSD))
     {
       // LiveTV EPG time
       m_State.time_live = MSEC_TO_DS_TIME(g_pPVRStream->GetTime());
@@ -491,7 +491,7 @@ HRESULT CDSGraph::HandleGraphEvent()
     case EC_DVD_DOMAIN_CHANGE:
     {
       m_pDvdStatus.DvdDomain = (DVD_DOMAIN)evParam1;
-      std::string Domain("-");
+      auto Domain(_T("-"));
 
       switch (m_pDvdStatus.DvdDomain)
       {
@@ -543,13 +543,13 @@ HRESULT CDSGraph::HandleGraphEvent()
         m_DvdState.isInMenu = true;
         break;
       case DVD_DOMAIN_Title:
-        Domain = StringUtils::Format("Title %d", m_pDvdStatus.DvdTitleId);
+        Domain = StringUtils::Format(_T("Title %d"), m_pDvdStatus.DvdTitleId).c_str();
         //left menu
         m_DvdState.isInMenu = false;
         m_pDvdStatus.DvdTitleId = (ULONG)evParam2;
         break;
       case DVD_DOMAIN_Stop:
-        Domain = "stopped";
+        Domain = _T("stopped");
         break;
       default: Domain = _T("-"); break;
       }

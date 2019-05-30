@@ -27,7 +27,7 @@
 
 void ILogImpl::Log(int loglevel, const char *format, ...)
 {
-  CStdString msg;
+  CStdStringA msg;
 
   va_list va;
   va_start(va, format);

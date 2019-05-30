@@ -72,7 +72,7 @@ void CProcessInfo::ResetVideoCodecInfo()
   CServiceBroker::GetDataCacheCore().SetStateSeeking(m_stateSeeking);
 }
 
-void CProcessInfo::SetVideoDecoderName(std::string name, bool isHw)
+void CProcessInfo::SetVideoDecoderName(const std::string &name, bool isHw)
 {
   CSingleLock lock(m_videoCodecSection);
 
@@ -96,7 +96,7 @@ bool CProcessInfo::IsVideoHwDecoder()
   return m_videoIsHWDecoder;
 }
 
-void CProcessInfo::SetVideoDeintMethod(std::string method)
+void CProcessInfo::SetVideoDeintMethod(const std::string &method)
 {
   CSingleLock lock(m_videoCodecSection);
 
@@ -112,7 +112,7 @@ std::string CProcessInfo::GetVideoDeintMethod()
   return m_videoDeintMethod;
 }
 
-void CProcessInfo::SetVideoPixelFormat(std::string pixFormat)
+void CProcessInfo::SetVideoPixelFormat(const std::string &pixFormat)
 {
   CSingleLock lock(m_videoCodecSection);
 
@@ -251,7 +251,7 @@ void CProcessInfo::ResetAudioCodecInfo()
   CServiceBroker::GetDataCacheCore().SetAudioBitsPerSample(m_audioBitsPerSample);
 }
 
-void CProcessInfo::SetAudioDecoderName(std::string name)
+void CProcessInfo::SetAudioDecoderName(const std::string &name)
 {
   CSingleLock lock(m_audioCodecSection);
 
@@ -267,7 +267,7 @@ std::string CProcessInfo::GetAudioDecoderName()
   return m_audioDecoderName;
 }
 
-void CProcessInfo::SetAudioChannels(std::string channels)
+void CProcessInfo::SetAudioChannels(const std::string &channels)
 {
   CSingleLock lock(m_audioCodecSection);
 
@@ -347,6 +347,22 @@ void CProcessInfo::UpdateRenderInfo(CRenderInfo &info)
     if (!Supports(deint))
       m_deintMethods.push_back(deint);
   }
+}
+
+void CProcessInfo::UpdateRenderBuffers(int queued, int discard, int free)
+{
+  CSingleLock lock(m_renderSection);
+  m_renderBufQueued = queued;
+  m_renderBufDiscard = discard;
+  m_renderBufFree = free;
+}
+
+void CProcessInfo::GetRenderBuffers(int &queued, int &discard, int &free)
+{
+  CSingleLock lock(m_renderSection);
+  queued = m_renderBufQueued;
+  discard = m_renderBufDiscard;
+  free = m_renderBufFree;
 }
 
 // player states

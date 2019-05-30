@@ -44,9 +44,9 @@
 #include "CueDocument.h"
 #include "video/VideoDatabase.h"
 #include "music/MusicDatabase.h"
-#include "epg/Epg.h"
 #include "pvr/channels/PVRChannel.h"
 #include "pvr/channels/PVRRadioRDSInfoTag.h"
+#include "pvr/epg/Epg.h"
 #include "pvr/recordings/PVRRecording.h"
 #include "pvr/timers/PVRTimerInfoTag.h"
 #include "video/Bookmark.h"
@@ -73,7 +73,6 @@ using namespace XFILE;
 using namespace PLAYLIST;
 using namespace MUSIC_INFO;
 using namespace PVR;
-using namespace EPG;
 using namespace GAME;
 
 CFileItem::CFileItem(const CSong& song)
@@ -124,7 +123,7 @@ CFileItem::CFileItem(const CVideoInfoTag& movie)
   SetFromVideoInfoTag(movie);
 }
 
-CFileItem::CFileItem(const CEpgInfoTagPtr& tag)
+CFileItem::CFileItem(const CPVREpgInfoTagPtr& tag)
 {
   assert(tag.get());
 
@@ -151,7 +150,7 @@ CFileItem::CFileItem(const CPVRChannelPtr& channel)
 
   Initialize();
 
-  CEpgInfoTagPtr epgNow(channel->GetEPGNow());
+  CPVREpgInfoTagPtr epgNow(channel->GetEPGNow());
 
   m_strPath = channel->Path();
   m_bIsFolder = false;
@@ -318,7 +317,7 @@ CFileItem::CFileItem(const CMediaSource& share)
   m_iBadPwdCount = share.m_iBadPwdCount;
   m_iDriveType = share.m_iDriveType;
   SetArt("thumb", share.m_strThumbnailImage);
-  SetLabelPreformated(true);
+  SetLabelPreformatted(true);
   if (IsDVD())
     GetVideoInfoTag()->m_strFileNameAndPath = share.strDiskUniqueId; // share.strDiskUniqueId contains disc unique id
   FillInMimeType(false);
@@ -359,7 +358,7 @@ const CFileItem& CFileItem::operator=(const CFileItem& item)
     return *this;
 
   CGUIListItem::operator=(item);
-  m_bLabelPreformated=item.m_bLabelPreformated;
+  m_bLabelPreformatted=item.m_bLabelPreformatted;
   FreeMemory();
   m_strPath = item.GetPath();
   m_bIsParentFolder = item.m_bIsParentFolder;
@@ -454,7 +453,7 @@ void CFileItem::Initialize()
   m_videoInfoTag = NULL;
   m_pictureInfoTag = NULL;
   m_gameInfoTag = NULL;
-  m_bLabelPreformated = false;
+  m_bLabelPreformatted = false;
   m_bIsAlbum = false;
   m_dwSize = 0;
   m_bIsParentFolder = false;
@@ -517,7 +516,7 @@ void CFileItem::Archive(CArchive& ar)
   if (ar.IsStoring())
   {
     ar << m_bIsParentFolder;
-    ar << m_bLabelPreformated;
+    ar << m_bLabelPreformatted;
     ar << m_strPath;
     ar << m_bIsShareOrDrive;
     ar << m_iDriveType;
@@ -579,7 +578,7 @@ void CFileItem::Archive(CArchive& ar)
   else
   {
     ar >> m_bIsParentFolder;
-    ar >> m_bLabelPreformated;
+    ar >> m_bLabelPreformatted;
     ar >> m_strPath;
     ar >> m_bIsShareOrDrive;
     ar >> m_iDriveType;
@@ -751,7 +750,8 @@ bool CFileItem::Exists(bool bUseCache /* = true */) const
    || IsInternetStream()
    || IsParentFolder()
    || IsVirtualDirectoryRoot()
-   || IsPlugin())
+   || IsPlugin()
+   || IsPVR())
     return true;
 
   if (IsVideoDb() && HasVideoInfoTag())
@@ -911,6 +911,11 @@ bool CFileItem::IsDeleted() const
   return false;
 }
 
+bool CFileItem::IsAudioBook() const
+{
+  return IsType(".m4b") || IsType(".mka");
+}
+
 bool CFileItem::IsGame() const
 {
   if (HasGameInfoTag())
@@ -993,6 +998,7 @@ bool CFileItem::IsFileFolder(EFileFolderType types) const
     || IsZIP()
     || IsRAR()
     || IsRSS()
+    || IsAudioBook()
     || IsType(".ogg|.oga|.nsf|.sid|.sap|.xbt|.xsp")
 #if defined(TARGET_ANDROID)
     || IsType(".apk")
@@ -1261,7 +1267,6 @@ void CFileItem::FillInDefaultIcon()
   //   default picture for videos
   //   default picture for shortcuts
   //   default picture for playlists
-  //   or the icon embedded in an .xbe
   //
   // for folders
   //   for .. folders the default picture for parent folder
@@ -1274,7 +1279,7 @@ void CFileItem::FillInDefaultIcon()
       /* To reduce the average runtime of this code, this list should
        * be ordered with most frequently seen types first.  Also bear
        * in mind the complexity of the code behind the check in the
-       * case of IsWhatater() returns false.
+       * case of IsWhatever() returns false.
        */
       if (IsPVRChannel())
       {
@@ -1321,7 +1326,7 @@ void CFileItem::FillInDefaultIcon()
         // picture
         SetIconImage("DefaultPicture.png");
       }
-      else if ( IsPlayList() )
+      else if ( IsPlayList() || IsSmartPlayList())
       {
         SetIconImage("DefaultPlaylist.png");
       }
@@ -1337,7 +1342,7 @@ void CFileItem::FillInDefaultIcon()
     }
     else
     {
-      if ( IsPlayList() )
+      if ( IsPlayList() || IsSmartPlayList())
       {
         SetIconImage("DefaultPlaylist.png");
       }
@@ -1389,7 +1394,7 @@ void CFileItem::SetLabel(const std::string &strLabel)
     m_bIsParentFolder = true;
     m_bIsFolder = true;
     m_specialSort = SortSpecialOnTop;
-    SetLabelPreformated(true);
+    SetLabelPreformatted(true);
   }
   CGUIListItem::SetLabel(strLabel);
 }
@@ -1731,6 +1736,8 @@ void CFileItem::LoadEmbeddedCue()
         cuesheet->UpdateMediaFile(*itMedia, GetPath());
       SetCueDocument(cuesheet);
     }
+    // Clear cuesheet tag having added it to item
+    tag.SetCueSheet(""); 
   }
 }
 
@@ -2609,7 +2616,7 @@ void CFileItemList::StackFolders()
             item->m_bIsFolder = false;
             item->SetPath(dvdPath);
             item->SetLabel2("");
-            item->SetLabelPreformated(true);
+            item->SetLabelPreformatted(true);
             m_sortDescription.sortBy = SortByNone; /* sorting is now broken */
           }
         }
@@ -3092,12 +3099,15 @@ std::string CFileItem::GetFolderThumb(const std::string &folderJPG /* = "folder.
   if (IsMultiPath())
     strFolder = CMultiPathDirectory::GetFirstPath(m_strPath);
 
+  if (IsPlugin())
+    return "";
+
   return URIUtils::AddFileToFolder(strFolder, folderJPG);
 }
 
 std::string CFileItem::GetMovieName(bool bUseFolderNames /* = false */) const
 {
-  if (IsLabelPreformated())
+  if (IsLabelPreformatted())
     return GetLabel();
 
   if (m_pvrRecordingInfoTag)
@@ -3196,11 +3206,11 @@ std::string CFileItem::GetLocalFanart() const
     return "";
 
   CFileItemList items;
-  CDirectory::GetDirectory(strDir, items, g_advancedSettings.m_pictureExtensions, DIR_FLAG_NO_FILE_DIRS | DIR_FLAG_READ_CACHE | DIR_FLAG_NO_FILE_INFO);
+  CDirectory::GetDirectory(strDir, items, g_advancedSettings.GetPictureExtensions(), DIR_FLAG_NO_FILE_DIRS | DIR_FLAG_READ_CACHE | DIR_FLAG_NO_FILE_INFO);
   if (IsOpticalMediaFile())
   { // grab from the optical media parent folder as well
     CFileItemList moreItems;
-    CDirectory::GetDirectory(GetLocalMetadataPath(), moreItems, g_advancedSettings.m_pictureExtensions, DIR_FLAG_NO_FILE_DIRS | DIR_FLAG_READ_CACHE | DIR_FLAG_NO_FILE_INFO);
+    CDirectory::GetDirectory(GetLocalMetadataPath(), moreItems, g_advancedSettings.GetPictureExtensions(), DIR_FLAG_NO_FILE_DIRS | DIR_FLAG_READ_CACHE | DIR_FLAG_NO_FILE_INFO);
     items.Append(moreItems);
   }
 

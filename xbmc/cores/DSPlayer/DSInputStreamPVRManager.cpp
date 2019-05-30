@@ -25,6 +25,7 @@
 #ifdef HAS_DS_PLAYER
 
 #include "DSInputStreamPVRManager.h"
+#include "ServiceBroker.h"
 #include "URL.h"
 
 #include "pvr/addons/PVRClients.h"
@@ -51,7 +52,7 @@ CDSInputStreamPVRManager::~CDSInputStreamPVRManager(void)
 
 void CDSInputStreamPVRManager::Close()
 {
-  g_PVRManager.CloseStream();
+  CServiceBroker::GetPVRManager().CloseStream();
   SAFE_DELETE(m_pPVRBackend);
 }
 
@@ -78,10 +79,10 @@ bool CDSInputStreamPVRManager::CloseAndOpenFile(const CURL& url)
       bReturnVal = false;
       for (int iRetry = 0; iRetry < 10 && !bReturnVal; iRetry++)
       {
-        CFileItemPtr tag = g_PVRChannelGroups->GetByPath(strURL);
+        CFileItemPtr tag = CServiceBroker::GetPVRManager().ChannelGroups()->GetByPath(strURL);
         if (tag && tag->HasPVRChannelInfoTag())
         {
-          if (g_PVRManager.OpenLiveStream(*tag))
+          if (CServiceBroker::GetPVRManager().OpenLiveStream(*tag))
             bReturnVal = true;
           else
             Sleep(500);
@@ -101,13 +102,13 @@ bool CDSInputStreamPVRManager::CloseAndOpenFile(const CURL& url)
 
 std::string CDSInputStreamPVRManager::TranslatePVRFilename(const std::string& pathFile)
 {
-  if (!g_PVRManager.IsStarted())
+  if (!CServiceBroker::GetPVRManager().IsStarted())
     return "";
 
   std::string FileName = pathFile;
   if (FileName.substr(0, 14) == "pvr://channels")
   {
-    CFileItemPtr channel = g_PVRChannelGroups->GetByPath(FileName);
+    CFileItemPtr channel = CServiceBroker::GetPVRManager().ChannelGroups()->GetByPath(FileName);
     if (channel && channel->HasPVRChannelInfoTag())
     {
       std::string stream = channel->GetPVRChannelInfoTag()->StreamURL();
@@ -119,7 +120,7 @@ std::string CDSInputStreamPVRManager::TranslatePVRFilename(const std::string& pa
           // This function was added to retrieve the stream URL for this item
           // Is is used for the MediaPortal (ffmpeg) PVR addon
           // see PVRManager.cpp
-          return g_PVRClients->GetStreamURL(channel->GetPVRChannelInfoTag());
+          return CServiceBroker::GetPVRManager().Clients()->GetStreamURL(channel->GetPVRChannelInfoTag());
         }
         else
         {
@@ -145,10 +146,10 @@ bool CDSInputStreamPVRManager::Open(const CFileItem& file)
   if (StringUtils::StartsWith(strURL, "pvr://channels/tv/") ||
     StringUtils::StartsWith(strURL, "pvr://channels/radio/"))
   {
-    CFileItemPtr tag = g_PVRChannelGroups->GetByPath(strURL);
+    CFileItemPtr tag = CServiceBroker::GetPVRManager().ChannelGroups()->GetByPath(strURL);
     if (tag && tag->HasPVRChannelInfoTag())
     {
-      if (!g_PVRManager.OpenLiveStream(*tag))
+      if (!CServiceBroker::GetPVRManager().OpenLiveStream(*tag))
         return false;
 
       bReturnVal = true;
@@ -176,7 +177,7 @@ bool CDSInputStreamPVRManager::Open(const CFileItem& file)
       if (strTranslatedPVRFile == file.GetPath())
       {
         if (file.HasPVRChannelInfoTag())
-          strTranslatedPVRFile = g_PVRClients->GetStreamURL(file.GetPVRChannelInfoTag());
+          strTranslatedPVRFile = CServiceBroker::GetPVRManager().Clients()->GetStreamURL(file.GetPVRChannelInfoTag());
       }
 
       // Check if LiveTV file path is valid for DSPlayer.
@@ -236,11 +237,11 @@ bool  CDSInputStreamPVRManager::PrepareForChannelSwitch(const CPVRChannelPtr &ch
   {
     // Opened new channel manually.
     // This will prevent from SwitchChannel() method to fail.
-    bReturnVal = !((g_PVRClients->GetStreamURL(channel)).empty());
+    bReturnVal = !((CServiceBroker::GetPVRManager().Clients()->GetStreamURL(channel)).empty());
 
     // Clear StreamURL field of CurrentChannel 
     // that's used in CPVRClients::SwitchChannel()
-    g_PVRManager.GetCurrentChannel()->SetStreamURL("");
+    CServiceBroker::GetPVRManager().GetCurrentChannel()->SetStreamURL("");
 
     // Clear StreamURL field of new channel that's
     // used in CPVRManager::ChannelSwitch()
@@ -278,10 +279,10 @@ bool CDSInputStreamPVRManager::PerformChannelSwitch()
 bool CDSInputStreamPVRManager::GetNewChannel(CFileItem& fileItem)
 {
   bool bResult = false;
-  CPVRChannelPtr channelPtr(g_PVRManager.GetCurrentChannel());
+  CPVRChannelPtr channelPtr(CServiceBroker::GetPVRManager().GetCurrentChannel());
   if (channelPtr)
   {
-    std::string strNewFile = g_PVRClients->GetStreamURL(channelPtr);
+    std::string strNewFile = CServiceBroker::GetPVRManager().Clients()->GetStreamURL(channelPtr);
     if (!strNewFile.empty())
     {
       bResult = true;
@@ -320,7 +321,7 @@ bool CDSInputStreamPVRManager::SelectChannel(const CPVRChannelPtr &channel)
     }
     else if (PrepareForChannelSwitch(channel))
     {
-      bResult = g_PVRManager.ChannelSwitchById(channel->ChannelID());
+      bResult = CServiceBroker::GetPVRManager().ChannelSwitchById(channel->ChannelID());
       if (bResult)
         bResult = PerformChannelSwitch();
     }
@@ -334,8 +335,8 @@ bool CDSInputStreamPVRManager::NextChannel(bool preview /* = false */)
   PVR_CLIENT client;
   unsigned int newchannel;
 
-  CPVRChannelPtr channel(g_PVRManager.GetCurrentChannel());
-  CFileItemPtr item = g_PVRChannelGroups->Get(channel->IsRadio())->GetSelectedGroup()->GetByChannelUp(channel);
+  CPVRChannelPtr channel(CServiceBroker::GetPVRManager().GetCurrentChannel());
+  CFileItemPtr item = CServiceBroker::GetPVRManager().ChannelGroups()->Get(channel->IsRadio())->GetSelectedGroup()->GetByChannelUp(channel);
   if (!item || !item->HasPVRChannelInfoTag())
   {
     CLog::Log(LOGERROR, "%s - Cannot find the channel", __FUNCTION__);
@@ -349,7 +350,7 @@ bool CDSInputStreamPVRManager::NextChannel(bool preview /* = false */)
   }
   else if (PrepareForChannelSwitch(item->GetPVRChannelInfoTag()))
   {
-    bResult = g_PVRManager.ChannelUp(&newchannel,preview);
+    bResult = CServiceBroker::GetPVRManager().ChannelUp(&newchannel,preview);
     if (bResult)
       bResult = PerformChannelSwitch();
   }
@@ -363,8 +364,8 @@ bool CDSInputStreamPVRManager::PrevChannel(bool preview/* = false*/)
   PVR_CLIENT client;
   unsigned int newchannel;
 
-  CPVRChannelPtr channel(g_PVRManager.GetCurrentChannel());
-  CFileItemPtr item = g_PVRChannelGroups->Get(channel->IsRadio())->GetSelectedGroup()->GetByChannelDown(channel);
+  CPVRChannelPtr channel(CServiceBroker::GetPVRManager().GetCurrentChannel());
+  CFileItemPtr item = CServiceBroker::GetPVRManager().ChannelGroups()->Get(channel->IsRadio())->GetSelectedGroup()->GetByChannelDown(channel);
   if (!item || !item->HasPVRChannelInfoTag())
   {
     CLog::Log(LOGERROR, "%s - Cannot find the channel", __FUNCTION__);
@@ -378,7 +379,7 @@ bool CDSInputStreamPVRManager::PrevChannel(bool preview/* = false*/)
   }
   else if (PrepareForChannelSwitch(item->GetPVRChannelInfoTag()))
   {
-    bResult = g_PVRManager.ChannelDown(&newchannel, preview);
+    bResult = CServiceBroker::GetPVRManager().ChannelDown(&newchannel, preview);
     if (bResult)
       bResult = PerformChannelSwitch();
   }
@@ -391,8 +392,8 @@ bool CDSInputStreamPVRManager::SelectChannelByNumber(unsigned int iChannelNumber
   bool bResult = false;
   PVR_CLIENT client;
 
-  CPVRChannelPtr channel(g_PVRManager.GetCurrentChannel());
-  CFileItemPtr item = g_PVRChannelGroups->Get(channel->IsRadio())->GetSelectedGroup()->GetByChannelNumber(iChannelNumber);
+  CPVRChannelPtr channel(CServiceBroker::GetPVRManager().GetCurrentChannel());
+  CFileItemPtr item = CServiceBroker::GetPVRManager().ChannelGroups()->Get(channel->IsRadio())->GetSelectedGroup()->GetByChannelNumber(iChannelNumber);
   if (!item || !item->HasPVRChannelInfoTag())
   {
     CLog::Log(LOGERROR, "%s - Cannot find the channel %d", __FUNCTION__, iChannelNumber);
@@ -406,7 +407,7 @@ bool CDSInputStreamPVRManager::SelectChannelByNumber(unsigned int iChannelNumber
   }
   else if (PrepareForChannelSwitch(item->GetPVRChannelInfoTag()))
   {
-    bResult = g_PVRManager.ChannelSwitchById(item->GetPVRChannelInfoTag()->ChannelID());
+    bResult = CServiceBroker::GetPVRManager().ChannelSwitchById(item->GetPVRChannelInfoTag()->ChannelID());
     if (bResult)
       bResult = PerformChannelSwitch();
   }
@@ -420,7 +421,7 @@ bool CDSInputStreamPVRManager::SupportsChannelSwitch()const
     return false;
 
   PVR_CLIENT pvrClient;
-  if (!g_PVRClients->GetPlayingClient(pvrClient))
+  if (!CServiceBroker::GetPVRManager().Clients()->GetPlayingClient(pvrClient))
     return false;
 
   // Check if active PVR Backend addon has changed or PVR Backend addon does not support channel switching
@@ -432,13 +433,13 @@ bool CDSInputStreamPVRManager::SupportsChannelSwitch()const
 
 bool CDSInputStreamPVRManager::UpdateItem(CFileItem& item)
 {
-  return g_PVRManager.UpdateItem(item);
+  return CServiceBroker::GetPVRManager().UpdateItem(item);
 }
 
 CDSPVRBackend* CDSInputStreamPVRManager::GetPVRBackend()
 {
   PVR_CLIENT pvrClient;
-  if (!g_PVRClients->GetPlayingClient(pvrClient))
+  if (!CServiceBroker::GetPVRManager().Clients()->GetPlayingClient(pvrClient))
   {
     CLog::Log(LOGERROR, "%s - Failed to get PVR Client", __FUNCTION__);
     return NULL;
@@ -460,14 +461,14 @@ CDSPVRBackend* CDSInputStreamPVRManager::GetPVRBackend()
 uint64_t CDSInputStreamPVRManager::GetTotalTime()
 {
   if (!m_isRecording)
-    return g_PVRManager.GetTotalTime();
+    return CServiceBroker::GetPVRManager().GetTotalTime();
   return 0;
 }
 
 uint64_t CDSInputStreamPVRManager::GetTime()
 {
   if (!m_isRecording)
-    return g_PVRManager.GetStartTime();
+    return CServiceBroker::GetPVRManager().GetStartTime();
   return 0;
 }
 

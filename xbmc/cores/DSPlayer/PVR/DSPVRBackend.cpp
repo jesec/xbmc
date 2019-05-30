@@ -67,7 +67,7 @@ bool CDSPVRBackend::JSONRPCSendCommand(HttpRequestMethod requestType, const std:
 #endif
     if (strResponse.length() != 0)
 	{
-	  json_response = CJSONVariantParser::Parse(reinterpret_cast<const unsigned char*>(strResponse.c_str()), strResponse.size());
+	  CJSONVariantParser::Parse(strResponse, json_response);
 	  if (json_response.isNull())
 	  {
 		CLog::Log(LOGDEBUG, "%s Failed to parse %s:", __FUNCTION__, strResponse.c_str());
@@ -191,7 +191,7 @@ bool CDSPVRBackend::IsFileExistAndAccessible(const std::string& strFilePath)
         char strUserName[256];
         DWORD lLength = 256;
 
-        if (GetUserName(strUserName, &lLength))
+        if (GetUserNameA(strUserName, &lLength))
           CLog::Log(LOGERROR, "%s Access denied on %s. Check share access rights for user '%s'.\n", __FUNCTION__, strFilePath.c_str(), strUserName);
         else
           CLog::Log(LOGERROR, "%s Access denied on %s. Check share access rights.", __FUNCTION__, strFilePath.c_str());

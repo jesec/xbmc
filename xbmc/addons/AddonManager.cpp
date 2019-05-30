@@ -38,8 +38,10 @@
 #include "cores/AudioEngine/Engines/ActiveAE/AudioDSPAddons/ActiveAEDSP.h"
 #include "DllLibCPluff.h"
 #include "events/AddonManagementEvent.h"
+#include "events/NotificationEvent.h"
 #include "events/EventLog.h"
 #include "filesystem/SpecialProtocol.h"
+#include "VFSEntry.h"
 #include "LangInfo.h"
 #include "PluginSource.h"
 #include "Repository.h"
@@ -237,7 +239,7 @@ static bool LoadManifest(std::set<std::string>& system, std::set<std::string>& o
   auto root = doc.RootElement();
   if (!root || root->ValueStr() != "addons")
   {
-    CLog::Log(LOGERROR, "ADDONS: malformatted manifest");
+    CLog::Log(LOGERROR, "ADDONS: malformed manifest");
     return false;
   }
 
@@ -775,16 +777,27 @@ bool CAddonMgr::DisableAddon(const std::string& id)
 bool CAddonMgr::EnableSingle(const std::string& id)
 {
   CSingleLock lock(m_critSection);
+
   if (m_disabled.find(id) == m_disabled.end())
     return true; //already enabled
+
+  AddonPtr addon;
+  if (!GetAddon(id, addon, ADDON_UNKNOWN, false) || addon == nullptr)
+    return false;
+
+  if (!IsCompatible(*addon))
+  {
+    CLog::Log(LOGERROR, "Add-on '%s' is not compatible with Kodi", addon->ID().c_str());
+    CEventLog::GetInstance().AddWithNotification(EventPtr(new CNotificationEvent(addon->Name(), 24152, EventLevel::Error)));
+    return false;
+  }
+
   if (!m_database.DisableAddon(id, false))
     return false;
   m_disabled.erase(id);
   ADDON::OnEnabled(id);
 
-  AddonPtr addon;
-  if (GetAddon(id, addon, ADDON_UNKNOWN, false) && addon != NULL)
-    CEventLog::GetInstance().Add(EventPtr(new CAddonManagementEvent(addon, 24064)));
+  CEventLog::GetInstance().Add(EventPtr(new CAddonManagementEvent(addon, 24064)));
 
   CLog::Log(LOGDEBUG, "CAddonMgr: enabled %s", addon->ID().c_str());
   m_events.Publish(AddonEvents::Enabled(id));
@@ -847,19 +860,7 @@ bool CAddonMgr::IsAddonInstalled(const std::string& ID)
 
 bool CAddonMgr::CanAddonBeInstalled(const AddonPtr& addon)
 {
-  if (addon == NULL)
-    return false;
-
-  CSingleLock lock(m_critSection);
-  // can't install already installed addon
-  if (IsAddonInstalled(addon->ID()))
-    return false;
-
-  // can't install broken addons
-  if (!addon->Broken().empty())
-    return false;
-
-  return true;
+  return addon != nullptr &&!IsAddonInstalled(addon->ID());
 }
 
 bool CAddonMgr::CanUninstall(const AddonPtr& addon)

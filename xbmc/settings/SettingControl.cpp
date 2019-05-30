@@ -71,10 +71,10 @@ bool CSettingControlFormattedRange::Deserialize(const TiXmlNode *node, bool upda
     const TiXmlNode *settingNode = node->Parent();
     if (settingNode != NULL)
     {
-      const TiXmlNode *contraintsNode = settingNode->FirstChild(SETTING_XML_ELM_CONSTRAINTS);
-      if (contraintsNode != NULL)
+      const TiXmlNode *constraintsNode = settingNode->FirstChild(SETTING_XML_ELM_CONSTRAINTS);
+      if (constraintsNode != NULL)
       {
-        const TiXmlNode *minimumNode = contraintsNode->FirstChild(SETTING_XML_ELM_MINIMUM);
+        const TiXmlNode *minimumNode = constraintsNode->FirstChild(SETTING_XML_ELM_MINIMUM);
         if (minimumNode != NULL)
         {
           const TiXmlElement *minimumElem = minimumNode->ToElement();
@@ -259,11 +259,11 @@ bool CSettingControlSlider::Deserialize(const TiXmlNode *node, bool update /* = 
 bool CSettingControlSlider::SetFormat(const std::string &format)
 {
   if (StringUtils::EqualsNoCase(format, "percentage"))
-    m_format = "%i %%";
+    m_formatString = "%i %%";
   else if (StringUtils::EqualsNoCase(format, "integer"))
-    m_format = "%d";
+    m_formatString = "%d";
   else if (StringUtils::EqualsNoCase(format, "number"))
-    m_format = "%.1f";
+    m_formatString = "%.1f";
   else
     return false;
 

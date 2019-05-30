@@ -912,11 +912,13 @@ void CGUIBaseContainer::UpdateVisibility(const CGUIListItem *item)
   if (!IsVisible() && !CGUIControl::CanFocus())
     return; // no need to update the content if we're not visible and we can't focus
 
-  // check whether we need to update our layouts
-  if ((m_layout && !m_layout->CheckCondition()) ||
-      (m_focusedLayout && !m_focusedLayout->CheckCondition()))
+  // update layouts in case of condition changed
+  if ((m_layout && m_layout->CheckCondition() != m_layoutCondition) ||
+      (m_focusedLayout && m_focusedLayout->CheckCondition() != m_focusedLayoutCondition))
   {
-    // and do it
+    m_layoutCondition = m_layout->CheckCondition();
+    m_focusedLayoutCondition = m_focusedLayout->CheckCondition();
+
     int itemIndex = GetSelectedItem();
     UpdateLayout(true); // true to refresh all items
     SelectItem(itemIndex);
@@ -1145,14 +1147,14 @@ void CGUIBaseContainer::LoadLayout(TiXmlElement *layout)
   while (itemElement)
   { // we have a new item layout
     m_layouts.emplace_back();
-    m_layouts.back().LoadLayout(itemElement, GetParentID(), false);
+    m_layouts.back().LoadLayout(itemElement, GetParentID(), false, m_width, m_height);
     itemElement = itemElement->NextSiblingElement("itemlayout");
   }
   itemElement = layout->FirstChildElement("focusedlayout");
   while (itemElement)
   { // we have a new item layout
     m_focusedLayouts.emplace_back();
-    m_focusedLayouts.back().LoadLayout(itemElement, GetParentID(), true);
+    m_focusedLayouts.back().LoadLayout(itemElement, GetParentID(), true, m_width, m_height);
     itemElement = itemElement->NextSiblingElement("focusedlayout");
   }
 }
@@ -1304,7 +1306,7 @@ std::string CGUIBaseContainer::GetLabel(int info) const
         label = StringUtils::Format("%i", GetSelectedItem() + 1);
     }
     break;
-  case CONTAINER_ACTUAL_ITEMS:
+  case CONTAINER_NUM_ALL_ITEMS:
   case CONTAINER_NUM_ITEMS:
     {
       unsigned int numItems = GetNumItems();
@@ -1314,8 +1316,19 @@ std::string CGUIBaseContainer::GetLabel(int info) const
         label = StringUtils::Format("%u", numItems);
     }
     break;
+  case CONTAINER_NUM_NONFOLDER_ITEMS:
+    {
+      int numItems = 0;
+      for (auto item : m_items)
+      {
+        if (!item->m_bIsFolder)
+          numItems++;
+      }
+      label = StringUtils::Format("%u", numItems);
+    }
+    break;
   default:
-      break;
+    break;
   }
   return label;
 }

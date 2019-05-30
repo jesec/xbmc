@@ -52,7 +52,7 @@ bool CGUIWindow::icompare::operator()(const std::string &s1, const std::string &
 
 CGUIWindow::CGUIWindow(int id, const std::string &xmlFile)
 {
-  SetID(id);
+  CGUIWindow::SetID(id);
   SetProperty("xmlfile", xmlFile);
   m_lastControlID = 0;
   m_needsScaling = true;
@@ -67,12 +67,13 @@ CGUIWindow::CGUIWindow(int id, const std::string &xmlFile)
   m_manualRunActions = false;
   m_exclusiveMouseControl = 0;
   m_clearBackground = 0xff000000; // opaque black -> always clear
-  m_windowXMLRootElement = NULL;
+  m_windowXMLRootElement = nullptr;
   m_menuControlID = 0;
   m_menuLastFocusedControlID = 0;
+  m_custom = false;
 }
 
-CGUIWindow::~CGUIWindow(void)
+CGUIWindow::~CGUIWindow()
 {
   delete m_windowXMLRootElement;
 }
@@ -83,13 +84,14 @@ bool CGUIWindow::Load(const std::string& strFileName, bool bContainsPath)
   CPerformanceSample aSample("WindowLoad-" + strFileName, true);
 #endif
 
-  if (m_windowLoaded || g_SkinInfo == NULL)
+  if (m_windowLoaded || !g_SkinInfo)
     return true;      // no point loading if it's already there
 
 #ifdef _DEBUG
   int64_t start;
   start = CurrentHostCounter();
 #endif
+
   const char* strLoadType;
   switch (m_loadType)
   {
@@ -121,13 +123,19 @@ bool CGUIWindow::Load(const std::string& strFileName, bool bContainsPath)
   }
 
   bool ret = LoadXML(strPath, strLowerPath);
+  if (ret)
+  {
+    m_windowLoaded = true;
+    OnWindowLoaded();
 
 #ifdef _DEBUG
-  int64_t end, freq;
-  end = CurrentHostCounter();
-  freq = CurrentHostFrequency();
-  CLog::Log(LOGDEBUG,"Load %s: %.2fms", GetProperty("xmlfile").c_str(), 1000.f * (end - start) / freq);
+    int64_t end, freq;
+    end = CurrentHostCounter();
+    freq = CurrentHostFrequency();
+    CLog::Log(LOGDEBUG, "Skin file %s loaded in %.2fms", strPath.c_str(), 1000.f * (end - start) / freq);
 #endif
+  }
+
   return ret;
 }
 
@@ -141,47 +149,59 @@ bool CGUIWindow::LoadXML(const std::string &strPath, const std::string &strLower
     StringUtils::ToLower(strPathLower);
     if (!xmlDoc.LoadFile(strPath) && !xmlDoc.LoadFile(strPathLower) && !xmlDoc.LoadFile(strLowerPath))
     {
-      CLog::Log(LOGERROR, "unable to load:%s, Line %d\n%s", strPath.c_str(), xmlDoc.ErrorRow(), xmlDoc.ErrorDesc());
+      CLog::Log(LOGERROR, "Unable to load window XML: %s. Line %d\n%s", strPath.c_str(), xmlDoc.ErrorRow(), xmlDoc.ErrorDesc());
       SetID(WINDOW_INVALID);
       return false;
     }
 
-    m_windowXMLRootElement = (TiXmlElement*)xmlDoc.RootElement()->Clone();
+    // xml need a <window> root element
+    if (!StringUtils::EqualsNoCase(xmlDoc.RootElement()->Value(), "window"))
+    {
+      CLog::Log(LOGERROR, "XML file %s does not contain a <window> root element", GetProperty("xmlfile").c_str());
+      return false;
+    }
+
+    // store XML for further processing if window's load type is LOAD_EVERY_TIME or a reload is needed
+    m_windowXMLRootElement = static_cast<TiXmlElement*>(xmlDoc.RootElement()->Clone());
   }
   else
     CLog::Log(LOGDEBUG, "Using already stored xml root node for %s", strPath.c_str());
 
-  return Load(m_windowXMLRootElement);
+  return Load(Prepare(m_windowXMLRootElement).get());
 }
 
-bool CGUIWindow::Load(TiXmlElement* pRootElement)
+std::unique_ptr<TiXmlElement> CGUIWindow::Prepare(TiXmlElement *pRootElement)
+{
+  if (!pRootElement)
+    return nullptr;
+
+  // clone the root element as we will manipulate it
+  auto preparedRoot = std::unique_ptr<TiXmlElement>(static_cast<TiXmlElement*>(pRootElement->Clone()));
+
+  // Resolve any includes, constants, expressions that may be present
+  // and save include's conditions to the given map
+  g_SkinInfo->ResolveIncludes(preparedRoot.get(), &m_xmlIncludeConditions);
+
+  return preparedRoot;
+}
+
+bool CGUIWindow::Load(TiXmlElement *pRootElement)
 {
   if (!pRootElement)
     return false;
-  
-  if (strcmpi(pRootElement->Value(), "window"))
-  {
-    CLog::Log(LOGERROR, "file : XML file doesnt contain <window>");
-    return false;
-  }
-
-  // we must create copy of root element as we will manipulate it when resolving includes
-  // and we don't want original root element to change
-  pRootElement = (TiXmlElement*)pRootElement->Clone();
 
   // set the scaling resolution so that any control creation or initialisation can
   // be done with respect to the correct aspect ratio
   g_graphicsContext.SetScalingResolution(m_coordsRes, m_needsScaling);
 
-  // Resolve any includes that may be present and save conditions used to do it
-  g_SkinInfo->ResolveIncludes(pRootElement, &m_xmlIncludeConditions);
   // now load in the skin file
   SetDefaults();
 
   CGUIControlFactory::GetInfoColor(pRootElement, "backgroundcolor", m_clearBackground, GetID());
   CGUIControlFactory::GetActions(pRootElement, "onload", m_loadActions);
   CGUIControlFactory::GetActions(pRootElement, "onunload", m_unloadActions);
-  CGUIControlFactory::GetHitRect(pRootElement, m_hitRect);
+  CRect parentRect(0, 0, static_cast<float>(m_coordsRes.iWidth), static_cast<float>(m_coordsRes.iHeight));
+  CGUIControlFactory::GetHitRect(pRootElement, m_hitRect, parentRect);
 
   TiXmlElement *pChild = pRootElement->FirstChildElement();
   while (pChild)
@@ -194,7 +214,7 @@ bool CGUIWindow::Load(TiXmlElement* pRootElement)
     else if (strValue == "defaultcontrol" && pChild->FirstChild())
     {
       const char *always = pChild->Attribute("always");
-      if (always && strcmpi(always, "true") == 0)
+      if (always && StringUtils::EqualsNoCase(always, "true"))
         m_defaultAlways = true;
       m_defaultControl = atoi(pChild->FirstChild()->Value());
     }
@@ -210,7 +230,7 @@ bool CGUIWindow::Load(TiXmlElement* pRootElement)
     }
     else if (strValue == "animation" && pChild->FirstChild())
     {
-      CRect rect(0, 0, (float)m_coordsRes.iWidth, (float)m_coordsRes.iHeight);
+      CRect rect(0, 0, static_cast<float>(m_coordsRes.iWidth), static_cast<float>(m_coordsRes.iHeight));
       CAnimation anim;
       anim.Create(pChild, rect, GetID());
       m_animations.push_back(anim);
@@ -230,8 +250,8 @@ bool CGUIWindow::Load(TiXmlElement* pRootElement)
       while (originElement)
       {
         COrigin origin;
-        originElement->QueryFloatAttribute("x", &origin.x);
-        originElement->QueryFloatAttribute("y", &origin.y);
+        origin.x = CGUIControlFactory::ParsePosition(originElement->Attribute("x"), static_cast<float>(m_coordsRes.iWidth));
+        origin.y = CGUIControlFactory::ParsePosition(originElement->Attribute("y"), static_cast<float>(m_coordsRes.iHeight));
         if (originElement->FirstChild())
           origin.condition = g_infoManager.Register(originElement->FirstChild()->Value(), GetID());
         m_origins.push_back(origin);
@@ -240,13 +260,13 @@ bool CGUIWindow::Load(TiXmlElement* pRootElement)
     }
     else if (strValue == "camera")
     { // z is fixed
-      pChild->QueryFloatAttribute("x", &m_camera.x);
-      pChild->QueryFloatAttribute("y", &m_camera.y);
+      m_camera.x = CGUIControlFactory::ParsePosition(pChild->Attribute("x"), static_cast<float>(m_coordsRes.iWidth));
+      m_camera.y = CGUIControlFactory::ParsePosition(pChild->Attribute("y"), static_cast<float>(m_coordsRes.iHeight));
       m_hasCamera = true;
     }
     else if (strValue == "depth" && pChild->FirstChild())
     { 
-      float stereo = (float)atof(pChild->FirstChild()->Value());;
+      float stereo = static_cast<float>(atof(pChild->FirstChild()->Value()));;
       m_stereo = std::max(-1.f, std::min(1.f, stereo));
     }
     else if (strValue == "controls")
@@ -254,9 +274,9 @@ bool CGUIWindow::Load(TiXmlElement* pRootElement)
       TiXmlElement *pControl = pChild->FirstChildElement();
       while (pControl)
       {
-        if (strcmpi(pControl->Value(), "control") == 0)
+        if (StringUtils::EqualsNoCase(pControl->Value(), "control"))
         {
-          LoadControl(pControl, NULL, CRect(0, 0, (float)m_coordsRes.iWidth, (float)m_coordsRes.iHeight));
+          LoadControl(pControl, nullptr, CRect(0, 0, static_cast<float>(m_coordsRes.iWidth), static_cast<float>(m_coordsRes.iHeight)));
         }
         pControl = pControl->NextSiblingElement();
       }
@@ -264,11 +284,7 @@ bool CGUIWindow::Load(TiXmlElement* pRootElement)
 
     pChild = pChild->NextSiblingElement();
   }
-  LoadAdditionalTags(pRootElement);
 
-  m_windowLoaded = true;
-  OnWindowLoaded();
-  delete pRootElement;
   return true;
 }
 
@@ -687,7 +703,7 @@ bool CGUIWindow::OnMessage(CGUIMessage& message)
     break;
   case GUI_MSG_GESTURE_NOTIFY:
     {
-      CAction action(ACTION_GESTURE_NOTIFY, 0, (float)message.GetParam1(), (float)message.GetParam2(), 0, 0);
+      CAction action(ACTION_GESTURE_NOTIFY, 0, static_cast<float>(message.GetParam1()), static_cast<float>(message.GetParam2()), 0, 0);
       EVENT_RESULT result = OnMouseAction(action);
       auto res = new int(result);
       message.SetPointer(static_cast<void*>(res));
@@ -739,7 +755,7 @@ bool CGUIWindow::OnMessage(CGUIMessage& message)
   return SendControlMessage(message);
 }
 
-bool CGUIWindow::NeedXMLReload()
+bool CGUIWindow::NeedLoad() const
 {
   return !m_windowLoaded || g_infoManager.ConditionsChangedValues(m_xmlIncludeConditions);
 }
@@ -752,8 +768,8 @@ void CGUIWindow::AllocResources(bool forceLoad /*= FALSE */)
   int64_t start;
   start = CurrentHostCounter();
 #endif
-  // use forceLoad to determine if xml file needs loading
-  forceLoad |= NeedXMLReload() || (m_loadType == LOAD_EVERY_TIME);
+  // use forceLoad to determine if window needs (re)loading
+  forceLoad |= NeedLoad() || (m_loadType == LOAD_EVERY_TIME);
 
   // if window is loaded and load is forced we have to free window resources first
   if (m_windowLoaded && forceLoad)
@@ -765,7 +781,7 @@ void CGUIWindow::AllocResources(bool forceLoad /*= FALSE */)
     if (xmlFile.size())
     {
       bool bHasPath = xmlFile.find("\\") != std::string::npos || xmlFile.find("/") != std::string::npos;
-      Load(xmlFile,bHasPath);
+      Load(xmlFile, bHasPath);
     }
   }
 
@@ -802,7 +818,7 @@ void CGUIWindow::FreeResources(bool forceUnload /*= FALSE */)
   if (forceUnload)
   {
     delete m_windowXMLRootElement;
-    m_windowXMLRootElement = NULL;
+    m_windowXMLRootElement = nullptr;
     m_xmlIncludeConditions.clear();
   }
 }
@@ -825,10 +841,10 @@ void CGUIWindow::ClearAll()
 bool CGUIWindow::Initialize()
 {
   if (!g_windowManager.Initialized())
-    return false;     // can't load if we have no skin yet
-  if(!NeedXMLReload())
+    return false;
+  if (!NeedLoad())
     return true;
-  if(g_application.IsCurrentThread())
+  if (g_application.IsCurrentThread())
     AllocResources();
   else
   {
@@ -910,7 +926,7 @@ bool CGUIWindow::ControlGroupHasFocus(int groupID, int controlID)
     {
       CGUIMessage message(GUI_MSG_ITEM_SELECTED, GetID(), group->GetID());
       group->OnMessage(message);
-      return (controlID == (int) message.GetParam1());
+      return (controlID == static_cast<int>(message.GetParam1()));
     }
   }
   return false;
@@ -1000,7 +1016,7 @@ void CGUIWindow::SetDefaults()
   m_stereo = 0.f;
   m_animationsEnabled = true;
   m_clearBackground = 0xff000000; // opaque black -> clear
-  m_hitRect.SetRect(0, 0, (float)m_coordsRes.iWidth, (float)m_coordsRes.iHeight);
+  m_hitRect.SetRect(0, 0, static_cast<float>(m_coordsRes.iWidth), static_cast<float>(m_coordsRes.iHeight));
   m_menuControlID = 0;
   m_menuLastFocusedControlID = 0;
 }
@@ -1065,12 +1081,12 @@ void CGUIWindow::SetRunActionsManually()
   m_manualRunActions = true;
 }
 
-void CGUIWindow::RunLoadActions()
+void CGUIWindow::RunLoadActions() const
 {
   m_loadActions.ExecuteActions(GetID(), GetParentID());
 }
 
-void CGUIWindow::RunUnloadActions()
+void CGUIWindow::RunUnloadActions() const
 {
   m_unloadActions.ExecuteActions(GetID(), GetParentID());
 }

@@ -22,19 +22,17 @@
 #include "DVDDemuxBXA.h"
 #include "DVDDemuxUtils.h"
 #include "utils/StringUtils.h"
-#include "../DVDClock.h"
+#include "TimingConstants.h"
 
 // AirTunes audio Demuxer.
 
 class CDemuxStreamAudioBXA
   : public CDemuxStreamAudio
 {
-  CDVDDemuxBXA  *m_parent;
   std::string    m_codec;
 public:
   CDemuxStreamAudioBXA(CDVDDemuxBXA *parent, const std::string& codec)
-    : m_parent(parent)
-    , m_codec(codec)
+    : m_codec(codec)
 
   {}
 };

@@ -47,7 +47,7 @@
 #include "dialogs/GUIDialogSelect.h"
 #include "dialogs/GUIDialogKaiToast.h"
 #include "video/windows/GUIWindowVideoBase.h"
-#include "cores/AudioEngine/AEFactory.h"
+#include "cores/AudioEngine/Engines/ActiveAE/ActiveAE.h"
 #include "messaging/ApplicationMessenger.h"
 #include "DSInputStreamPVRManager.h"
 #include "pvr/PVRManager.h"
@@ -102,7 +102,7 @@ CDSPlayer::CDSPlayer(IPlayerCallback& callback)
 
   /* Suspend AE temporarily so exclusive or hog-mode sinks */
   /* don't block DSPlayer access to audio device  */
-  if (!CAEFactory::Suspend())
+  if (!CServiceBroker::GetActiveAE().Suspend())
   {
     CLog::Log(LOGNOTICE, __FUNCTION__, "Failed to suspend AudioEngine before launching DSPlayer");
   }
@@ -125,7 +125,7 @@ CDSPlayer::~CDSPlayer()
   g_Windowing.Unregister(this);
 
   /* Resume AE processing of XBMC native audio */
-  if (!CAEFactory::Resume())
+  if (!CServiceBroker::GetActiveAE().Resume())
   {
     CLog::Log(LOGFATAL, __FUNCTION__, "Failed to restart AudioEngine after return from DSPlayer");
   }
@@ -533,7 +533,7 @@ bool CDSPlayer::InitWindow(HWND &hWnd)
   RESOLUTION_INFO res = CDisplaySettings::GetInstance().GetCurrentResolutionInfo();
   int nWidth = res.iWidth;
   int nHeight = res.iHeight;
-  m_className = "Kodi:DSPlayer";
+  m_className = L"Kodi:DSPlayer";
 
   // Register the windows class
   WNDCLASS wndClass;
@@ -1237,11 +1237,11 @@ bool CDSPlayer::SwitchChannel(unsigned int iChannelNumber)
 
 bool CDSPlayer::SwitchChannel(const CPVRChannelPtr &channel)
 {
-  if (!g_PVRManager.CheckParentalLock(channel))
-    return false;
+  if (CServiceBroker::GetPVRManager().IsPlayingChannel(channel))
+    return false; // desired channel already active, nothing to do.
 
   /* set GUI info */
-  if (!g_PVRManager.PerformChannelSwitch(channel, true))
+  if (!CServiceBroker::GetPVRManager().PerformChannelSwitch(channel, true))
     return false;
 
   m_PlayerOptions.identify = true;
@@ -1277,7 +1277,7 @@ bool CDSPlayer::ShowPVRChannelInfo()
 
   if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_PVRMENU_DISPLAYCHANNELINFO) > 0)
   {
-    g_PVRManager.ShowPlayerInfo(CServiceBroker::GetSettings().GetInt(CSettings::SETTING_PVRMENU_DISPLAYCHANNELINFO));
+    CServiceBroker::GetPVRManager().ShowPlayerInfo(CServiceBroker::GetSettings().GetInt(CSettings::SETTING_PVRMENU_DISPLAYCHANNELINFO));
 
     bReturn = true;
   }

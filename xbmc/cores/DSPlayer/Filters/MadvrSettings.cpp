@@ -325,7 +325,7 @@ void CMadvrSettings::AddSetting(TiXmlNode *pNode, int iSectionId, int iGroupId)
 
 void CMadvrSettings::StoreAtStartSettings()
 {
-  m_madvrJsonAtStart = CJSONVariantWriter::Write(m_db, true);
+  CJSONVariantWriter::Write(m_db, m_madvrJsonAtStart, true);
 }
 
 void CMadvrSettings::RestoreDefaultSettings()
@@ -335,13 +335,14 @@ void CMadvrSettings::RestoreDefaultSettings()
 
 void CMadvrSettings::RestoreAtStartSettings()
 {
-  m_db = CJSONVariantParser::Parse(reinterpret_cast<const unsigned char*>(m_madvrJsonAtStart.c_str()), m_madvrJsonAtStart.size());
+  CJSONVariantParser::Parse(m_madvrJsonAtStart, m_db);
 }
 
 
 bool CMadvrSettings::SettingsChanged()
 {
-  std::string strJson = CJSONVariantWriter::Write(m_db, true);
+  std::string strJson;
+  CJSONVariantWriter::Write(m_db, strJson, true);
   return strJson != m_madvrJsonAtStart;
 }
 

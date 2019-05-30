@@ -38,11 +38,7 @@
 #include "DVDClock.h"
 
 class CRenderCapture;
-
-namespace DXVA { class CProcessor; }
-namespace VAAPI { class CSurfaceHolder; }
-namespace VDPAU { class CVdpauRenderPicture; }
-struct DVDVideoPicture;
+struct VideoPicture;
 
 class CWinRenderer;
 class CMMALRenderer;
@@ -59,6 +55,7 @@ protected:
   virtual void GetDebugInfo(std::string &audio, std::string &video, std::string &general) = 0;
   virtual void UpdateClockSync(bool enabled) = 0;
   virtual void UpdateRenderInfo(CRenderInfo &info) = 0;
+  virtual void UpdateRenderBuffers(int queued, int discard, int free) = 0;
 };
 
 class CRenderManager
@@ -72,7 +69,6 @@ public:
   float GetAspectRatio();
   void FrameMove();
   void FrameWait(int ms);
-  bool HasFrame();
   void Render(bool clear, DWORD flags = 0, DWORD alpha = 255, bool gui = true);
   bool IsGuiLayer();
   bool IsVideoLayer();
@@ -106,9 +102,9 @@ public:
    * @param orientation
    * @param numbers of kept buffer references
    */
-  bool Configure(DVDVideoPicture& picture, float fps, unsigned flags, unsigned int orientation, int buffers = 0);
+  bool Configure(VideoPicture& picture, float fps, unsigned flags, unsigned int orientation, int buffers = 0);
 
-  int AddVideoPicture(DVDVideoPicture& picture);
+  int AddVideoPicture(VideoPicture& picture);
 
   /**
    * Called by video player to flip render buffers
@@ -163,6 +159,7 @@ protected:
   void PresentBlend(bool clear, DWORD flags, DWORD alpha);
 
   void PrepareNextRender();
+  bool IsPresenting();
 
   bool Configure();
   void CreateRenderer();
@@ -231,16 +228,17 @@ protected:
   std::deque<int> m_discard;
 
   ERenderFormat m_format;
+  void *m_hwPic;
   unsigned int m_width, m_height, m_dwidth, m_dheight;
   unsigned int m_flags;
   float m_fps;
-  unsigned int m_extended_format;
   unsigned int m_orientation;
   int m_NumberBuffers;
 
   int m_lateframes;
   double m_presentpts;
   EPRESENTSTEP m_presentstep;
+  XbmcThreads::EndTime m_presentTimer;
   bool m_forceNext;
   int m_presentsource;
   XbmcThreads::ConditionVariable  m_presentevent;

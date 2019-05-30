@@ -44,7 +44,7 @@ static void RelBufferS(void *opaque, uint8_t *data)
 { ((CDecoder*)opaque)->RelBuffer(data); }
 
 static int GetBufferS(AVCodecContext *avctx, AVFrame *pic, int flags) 
-{  return ((CDecoder*)((CDVDVideoCodecFFmpeg*)avctx->opaque)->GetHardware())->GetBuffer(avctx, pic, flags); }
+{  return ((CDecoder*)((ICallbackHWAccel*)avctx->opaque)->GetHWAccel())->GetBuffer(avctx, pic, flags); }
 
 DEFINE_GUID(DXVADDI_Intel_ModeH264_A, 0x604F8E64,0x4951,0x4c54,0x88,0xFE,0xAB,0xD2,0x5C,0x15,0xB3,0xD6);
 DEFINE_GUID(DXVADDI_Intel_ModeH264_C, 0x604F8E66,0x4951,0x4c54,0x88,0xFE,0xAB,0xD2,0x5C,0x15,0xB3,0xD6);
@@ -333,7 +333,7 @@ bool CDXVAContext::GetInputAndTarget(int codec, bool bHighBitdepth, GUID &inGuid
 {
   outFormat = DXGI_FORMAT_UNKNOWN;
 
-  // iterate through our predifined dxva modes and find the first matching for desired codec
+  // iterate through our predefined dxva modes and find the first matching for desired codec
   // once we found a mode, get a target we support in render_targets_dxgi DXGI_FORMAT_UNKNOWN
   for (const dxva2_mode_t* mode = dxva2_modes; mode->name && outFormat == DXGI_FORMAT_UNKNOWN; mode++)
   {
@@ -342,7 +342,7 @@ bool CDXVAContext::GetInputAndTarget(int codec, bool bHighBitdepth, GUID &inGuid
 
     for (unsigned i = 0; i < m_input_count && outFormat == DXGI_FORMAT_UNKNOWN; i++)
     {
-      bool supported = IsEqualGUID(m_input_list[i], *mode->guid);
+      bool supported = IsEqualGUID(m_input_list[i], *mode->guid) != 0;
       if (codec == AV_CODEC_ID_HEVC)
       {
         if (bHighBitdepth && !IsEqualGUID(m_input_list[i], D3D11_DECODER_PROFILE_HEVC_VLD_MAIN10))
@@ -416,7 +416,7 @@ bool CDXVAContext::GetConfig(const D3D11_VIDEO_DECODER_DESC *format, D3D11_VIDEO
     // select first available
     if (config.ConfigBitstreamRaw == 0 && pConfig.ConfigBitstreamRaw != 0)
       config = pConfig;
-    // overide with preferred if found
+    // override with preferred if found
     if (config.ConfigBitstreamRaw != bitstream && pConfig.ConfigBitstreamRaw == bitstream)
       config = pConfig;
   }
@@ -949,11 +949,11 @@ bool CDecoder::Open(AVCodecContext *avctx, AVCodecContext* mainctx, enum AVPixel
   return true;
 }
 
-int CDecoder::Decode(AVCodecContext* avctx, AVFrame* frame)
+CDVDVideoCodec::VCReturn CDecoder::Decode(AVCodecContext* avctx, AVFrame* frame)
 {
   CSingleLock lock(m_section);
-  int result = Check(avctx);
-  if(result)
+  CDVDVideoCodec::VCReturn result = Check(avctx);
+  if(result != CDVDVideoCodec::VC_NONE)
     return result;
 
   if(frame)
@@ -963,28 +963,40 @@ int CDecoder::Decode(AVCodecContext* avctx, AVFrame* frame)
       SAFE_RELEASE(m_presentPicture);
       m_presentPicture = new CRenderPicture(m_surface_context);
       m_presentPicture->view = reinterpret_cast<ID3D11View*>(frame->data[3]);
+      m_presentPicture->format = m_format.OutputFormat;
       m_surface_context->MarkRender(m_presentPicture->view);
-      return VC_BUFFER | VC_PICTURE;
+      return CDVDVideoCodec::VC_PICTURE;
     }
     CLog::Log(LOGWARNING, "DXVA - ignoring invalid surface");
-    return VC_BUFFER;
+    return CDVDVideoCodec::VC_BUFFER;
   }
   else
-    return VC_BUFFER;
+    return CDVDVideoCodec::VC_BUFFER;
 }
 
-bool CDecoder::GetPicture(AVCodecContext* avctx, AVFrame* frame, DVDVideoPicture* picture)
+bool CDecoder::GetPicture(AVCodecContext* avctx, VideoPicture* picture)
 {
-  ((CDVDVideoCodecFFmpeg*)avctx->opaque)->GetPictureCommon(picture);
+  static_cast<ICallbackHWAccel*>(avctx->opaque)->GetPictureCommon(picture);
   CSingleLock lock(m_section);
 
-  picture->dxva = m_presentPicture;
+  picture->hwPic = m_presentPicture;
   picture->format = RENDER_FMT_DXVA;
-  picture->extended_format = (unsigned int)m_format.OutputFormat;
+
+  int queued, discard, free;
+  m_processInfo.GetRenderBuffers(queued, discard, free);
+  if (free > 1)
+  {
+    g_Windowing.RequestDecodingTime();
+  }
+  else
+  {
+    g_Windowing.ReleaseDecodingTime();
+  }
+
   return true;
 }
 
-int CDecoder::Check(AVCodecContext* avctx)
+CDVDVideoCodec::VCReturn CDecoder::Check(AVCodecContext* avctx)
 {
   CSingleLock lock(m_section);
 
@@ -992,7 +1004,7 @@ int CDecoder::Check(AVCodecContext* avctx)
   // of opening a single decoder and VideoPlayer opened a new stream without having flushed
   // current one.
   if (!m_decoder)
-    return VC_BUFFER;
+    return CDVDVideoCodec::VC_BUFFER;
 
   if(m_state == DXVA_RESET)
     Close();
@@ -1006,7 +1018,7 @@ int CDecoder::Check(AVCodecContext* avctx)
     if(m_state == DXVA_LOST)
     {
       CLog::Log(LOGERROR, "CDecoder::Check - device didn't reset in reasonable time");
-      return VC_ERROR;
+      return CDVDVideoCodec::VC_ERROR;
     }
   }
 
@@ -1017,9 +1029,9 @@ int CDecoder::Check(AVCodecContext* avctx)
     {
       CLog::Log(LOGERROR, "CDecoder::Check - decoder was not able to reset");
       Close();
-      return VC_ERROR;
+      return CDVDVideoCodec::VC_ERROR;
     }
-    return VC_FLUSHED;
+    return CDVDVideoCodec::VC_FLUSHED;
   }
   else
   {
@@ -1027,7 +1039,7 @@ int CDecoder::Check(AVCodecContext* avctx)
     {
       CLog::Log(LOGWARNING, "CDecoder::Check - number of required reference frames increased, recreating decoder");
       Close();
-      return VC_FLUSHED;
+      return CDVDVideoCodec::VC_FLUSHED;
     }
   }
 
@@ -1035,7 +1047,7 @@ int CDecoder::Check(AVCodecContext* avctx)
   if(avctx->codec_id != AV_CODEC_ID_H264
   && avctx->codec_id != AV_CODEC_ID_VC1
   && avctx->codec_id != AV_CODEC_ID_WMV3)
-    return 0;
+    return CDVDVideoCodec::VC_NONE;
   
   D3D11_VIDEO_DECODER_EXTENSION data = {0};
   union {
@@ -1043,7 +1055,7 @@ int CDecoder::Check(AVCodecContext* avctx)
     DXVA_Status_VC1  vc1;
   } status = {};
 
-  /* I'm not sure, but MSDN says nothing about extentions functions in D3D11, try to using with same way as in DX9 */
+  /* I'm not sure, but MSDN says nothing about extensions functions in D3D11, try to using with same way as in DX9 */
   data.Function = DXVA_STATUS_REPORTING_FUNCTION;
   data.pPrivateOutputData    = &status;
   data.PrivateOutputDataSize = avctx->codec_id == AV_CODEC_ID_H264 ? sizeof(DXVA_Status_H264) : sizeof(DXVA_Status_VC1);
@@ -1051,7 +1063,7 @@ int CDecoder::Check(AVCodecContext* avctx)
   if (FAILED(hr = m_dxva_context->GetVideoContext()->DecoderExtension(m_decoder, &data)))
   {
     CLog::Log(LOGWARNING, "DXVA - failed to get decoder status - 0x%08X", hr);
-    return VC_ERROR;
+    return CDVDVideoCodec::VC_ERROR;
   }
 
   if(avctx->codec_id == AV_CODEC_ID_H264)
@@ -1064,7 +1076,7 @@ int CDecoder::Check(AVCodecContext* avctx)
     if(status.vc1.bStatus)
       CLog::Log(LOGWARNING, "DXVA - decoder problem of status %d with %d", status.vc1.bStatus, status.vc1.bBufType);
   }
-  return 0;
+  return CDVDVideoCodec::VC_NONE;
 }
 
 bool CDecoder::OpenDecoder()

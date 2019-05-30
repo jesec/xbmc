@@ -266,7 +266,7 @@ CDX9AllocatorPresenter::CDX9AllocatorPresenter(HWND hWnd, HRESULT& hr, bool bIsE
     _Error += "No D3DX9 dll found. To enable stats, shaders and complex resizers, please make sure to install the latest DirectX End-User Runtime.\n";
   }
 
-  m_hD3D9 = LoadLibrary("d3d9.dll");
+  m_hD3D9 = LoadLibraryA("d3d9.dll");
 
   m_DetectedFrameRate = 0.0;
   m_DetectedFrameTime = 0.0;
@@ -1026,11 +1026,11 @@ uint32_t CDX9AllocatorPresenter::GetAdapter(IDirect3D9* pD3D, bool CreateDevice)
   if (m_hWnd == NULL || pD3D == NULL)
     return D3DADAPTER_DEFAULT;
 
-  if (CreateDevice && (pD3D->GetAdapterCount() > 1) && (g_dsSettings.D3D9RenderDevice != _T(L"")))
+  if (CreateDevice && (pD3D->GetAdapterCount() > 1) && (g_dsSettings.D3D9RenderDevice != L""))
   {
     WCHAR    strGUID[50];
     D3DADAPTER_IDENTIFIER9 adapterIdentifier;
-    m_D3D9Device = _T("");
+    m_D3D9Device = "";
 
     for (UINT adp = 0, num_adp = pD3D->GetAdapterCount(); adp < num_adp; ++adp)
     {
@@ -2310,34 +2310,35 @@ void CDX9AllocatorPresenter::DrawText(const RECT &rc, const std::string &strText
   else
     OffsetRect(&Rect2, -1, -1);
   if (Quality > 0)
-    m_pFont->DrawText(m_pSprite, strText.c_str(), -1, &Rect2, DT_NOCLIP, Color0);
+    m_pFont->DrawTextA(m_pSprite, strText.c_str(), -1, &Rect2, DT_NOCLIP, Color0);
   OffsetRect(&Rect2, 1, 0);
   if (Quality > 3)
-    m_pFont->DrawText(m_pSprite, strText.c_str(), -1, &Rect2, DT_NOCLIP, Color0);
+    m_pFont->DrawTextA(m_pSprite, strText.c_str(), -1, &Rect2, DT_NOCLIP, Color0);
   OffsetRect(&Rect2, 1, 0);
   if (Quality > 2)
-    m_pFont->DrawText(m_pSprite, strText.c_str(), -1, &Rect2, DT_NOCLIP, Color0);
+    m_pFont->DrawTextA(m_pSprite, strText.c_str(), -1, &Rect2, DT_NOCLIP, Color0);
   OffsetRect(&Rect2, 0, 1);
   if (Quality > 3)
-    m_pFont->DrawText(m_pSprite, strText.c_str(), -1, &Rect2, DT_NOCLIP, Color0);
+    m_pFont->DrawTextA(m_pSprite, strText.c_str(), -1, &Rect2, DT_NOCLIP, Color0);
   OffsetRect(&Rect2, 0, 1);
   if (Quality > 1)
-    m_pFont->DrawText(m_pSprite, strText.c_str(), -1, &Rect2, DT_NOCLIP, Color0);
+    m_pFont->DrawTextA(m_pSprite, strText.c_str(), -1, &Rect2, DT_NOCLIP, Color0);
   OffsetRect(&Rect2, -1, 0);
   if (Quality > 3)
-    m_pFont->DrawText(m_pSprite, strText.c_str(), -1, &Rect2, DT_NOCLIP, Color0);
+    m_pFont->DrawTextA(m_pSprite, strText.c_str(), -1, &Rect2, DT_NOCLIP, Color0);
   OffsetRect(&Rect2, -1, 0);
   if (Quality > 2)
-    m_pFont->DrawText(m_pSprite, strText.c_str(), -1, &Rect2, DT_NOCLIP, Color0);
+    m_pFont->DrawTextA(m_pSprite, strText.c_str(), -1, &Rect2, DT_NOCLIP, Color0);
   OffsetRect(&Rect2, 0, -1);
   if (Quality > 3)
-    m_pFont->DrawText(m_pSprite, strText.c_str(), -1, &Rect2, DT_NOCLIP, Color0);
-  m_pFont->DrawText(m_pSprite, strText.c_str(), -1, &Rect1, DT_NOCLIP, Color1);
+    m_pFont->DrawTextA(m_pSprite, strText.c_str(), -1, &Rect2, DT_NOCLIP, Color0);
+  m_pFont->DrawTextA(m_pSprite, strText.c_str(), -1, &Rect1, DT_NOCLIP, Color1);
 }
 
 
 void CDX9AllocatorPresenter::DrawStats()
 {
+#if 0
   int bDetailedStats = 2;
   
   switch (g_dsSettings.pRendererSettings->displayStats)
@@ -2546,7 +2547,7 @@ void CDX9AllocatorPresenter::DrawStats()
       DrawText(rc, strText, 1);
       OffsetRect(&rc, 0, TextHeight);
 
-      if (m_D3D9Device != _T(""))
+      if (m_D3D9Device != "")
       {
         strText = "Render device: " + m_D3D9Device;
         DrawText(rc, strText, 1);
@@ -2634,7 +2635,7 @@ void CDX9AllocatorPresenter::DrawStats()
   }
 
   // === Text
-
+#endif
 }
 
 STDMETHODIMP CDX9AllocatorPresenter::GetDIB(BYTE* lpDib, DWORD* size)

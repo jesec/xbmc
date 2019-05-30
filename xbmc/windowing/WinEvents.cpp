@@ -21,6 +21,7 @@
 #include "WinEvents.h"
 #include "peripherals/Peripherals.h"
 #include "threads/SingleLock.h"
+#include "ServiceBroker.h"
 
 #if   defined(TARGET_WINDOWS)
 #include "windows/WinEventsWin32.h"
@@ -43,11 +44,11 @@
 #define WinEventsType CWinEventsMir
 
 #elif (defined(TARGET_FREEBSD) || defined(TARGET_LINUX)) && defined(HAS_SDL_WIN_EVENTS)
-#include "WinEventsSDL.h"
+#include "osx/WinEventsSDL.h"
 #define WinEventsType CWinEventsSDL
 
 #elif (defined(TARGET_FREEBSD) || defined(TARGET_LINUX)) && defined(HAS_X11_WIN_EVENTS)
-#include "WinEventsX11.h"
+#include "X11/WinEventsX11.h"
 #define WinEventsType CWinEventsX11
 
 #elif defined(TARGET_LINUX) && defined(HAS_LINUX_EVENTS)
@@ -64,7 +65,7 @@ void Init()
   CSingleLock lock(g_lock);
   if (!g_init)
   {
-    PERIPHERALS::CPeripherals::GetInstance().RegisterObserver(&g_imp);
+    CServiceBroker::GetPeripherals().RegisterObserver(&g_imp);
     g_init = true;
   }
 }

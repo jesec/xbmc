@@ -116,7 +116,7 @@ void CPlayerCoreFactory::GetPlayers(const CFileItem& item, std::vector<std::stri
   for (auto rule: m_vecCoreSelectionRules)
     rule->GetPlayers(item, validPlayers, players);
 
-  CLog::Log(LOGDEBUG, "CPlayerCoreFactory::GetPlayers: matched %" PRIuS" rules with players", players.size());
+  CLog::Log(LOGDEBUG, "CPlayerCoreFactory::GetPlayers: matched {0} rules with players", players.size());
 
   // Process defaults
 
@@ -162,7 +162,7 @@ void CPlayerCoreFactory::GetPlayers(const CFileItem& item, std::vector<std::stri
     players.push_back("RetroPlayer");
   }
 
-  CLog::Log(LOGDEBUG, "CPlayerCoreFactory::GetPlayers: added %" PRIuS" players", players.size());
+  CLog::Log(LOGDEBUG, "CPlayerCoreFactory::GetPlayers: added {0} players", players.size());
 }
 
 int CPlayerCoreFactory::GetPlayerIndex(const std::string& strCoreName) const

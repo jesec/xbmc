@@ -1,6 +1,5 @@
-
 /*
- *      Copyright (C) 2014-2016 Team Kodi
+ *      Copyright (C) 2014-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -21,9 +20,10 @@
 #ifndef __PERIPHERAL_TYPES_H__
 #define __PERIPHERAL_TYPES_H__
 
-#ifdef TARGET_WINDOWS
-  #include <windows.h>
-#else
+#include "versions.h"
+#include "xbmc_addon_types.h"
+
+#ifndef TARGET_WINDOWS
   #ifndef __cdecl
     #define __cdecl
   #endif
@@ -49,12 +49,6 @@
   #define ATTRIBUTE_PACKED
   #define PRAGMA_PACK 1
 #endif
-
-/* current Peripheral API version */
-#define PERIPHERAL_API_VERSION "1.2.1"
-
-/* min. Peripheral API version */
-#define PERIPHERAL_MIN_API_VERSION "1.2.0"
 
 /* indicates a joystick has no preference for port number */
 #define NO_PORT_REQUESTED     (-1)
@@ -113,6 +107,8 @@ extern "C"
   typedef struct PERIPHERAL_CAPABILITIES
   {
     bool provides_joysticks;            /*!< @brief true if the add-on provides joysticks */
+    bool provides_joystick_rumble;
+    bool provides_joystick_power_off;
     bool provides_buttonmaps;           /*!< @brief true if the add-on provides button maps */
   } ATTRIBUTE_PACKED PERIPHERAL_CAPABILITIES;
   ///}
@@ -223,7 +219,9 @@ extern "C"
   typedef struct JOYSTICK_DRIVER_SEMIAXIS
   {
     int                                index;
+    int                                center;
     JOYSTICK_DRIVER_SEMIAXIS_DIRECTION direction;
+    unsigned int                       range;
   } ATTRIBUTE_PACKED JOYSTICK_DRIVER_SEMIAXIS;
 
   typedef struct JOYSTICK_DRIVER_MOTOR
@@ -288,10 +286,19 @@ extern "C"
   /*!
    * @brief Structure to transfer the methods from kodi_peripheral_dll.h to the frontend
    */
+  
+  typedef PERIPHERAL_PROPERTIES AddonProps_Peripheral;
+
+  typedef struct AddonToKodiFuncTable_Peripheral
+  {
+    KODI_HANDLE kodiInstance;
+    void (*TriggerScan)(void* kodiInstance);
+    void (*RefreshButtonMaps)(void* kodiInstance, const char* deviceName, const char* controllerId);
+    unsigned int (*FeatureCount)(void* kodiInstance, const char* controllerId, JOYSTICK_FEATURE_TYPE type);
+  } AddonToKodiFuncTable_Peripheral;
+
   typedef struct KodiToAddonFuncTable_Peripheral
   {
-    const char*      (__cdecl* GetPeripheralAPIVersion)(void);
-    const char*      (__cdecl* GetMinimumPeripheralAPIVersion)(void);
     PERIPHERAL_ERROR (__cdecl* GetAddonCapabilities)(PERIPHERAL_CAPABILITIES*);
     PERIPHERAL_ERROR (__cdecl* PerformDeviceScan)(unsigned int*, PERIPHERAL_INFO**);
     void             (__cdecl* FreeScanResults)(unsigned int, PERIPHERAL_INFO*);
@@ -315,6 +322,13 @@ extern "C"
     void             (__cdecl* PowerOffJoystick)(unsigned int);
     ///}
   } KodiToAddonFuncTable_Peripheral;
+
+  typedef struct AddonInstance_Peripheral
+  {
+    AddonProps_Peripheral props;
+    AddonToKodiFuncTable_Peripheral toKodi;
+    KodiToAddonFuncTable_Peripheral toAddon;
+  } AddonInstance_Peripheral;
 
 #ifdef __cplusplus
 }

@@ -19,8 +19,6 @@
  */
 #include "system.h"
 
-#if defined(HAVE_X11) && defined(HAS_GL)
-
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
@@ -34,6 +32,8 @@
 #include "threads/SingleLock.h"
 #include <vector>
 #include "Application.h"
+#include "VideoSyncDRM.h"
+#include "VideoSyncGLX.h"
 
 CWinSystemX11GLContext::CWinSystemX11GLContext()
 {
@@ -219,4 +219,17 @@ bool CWinSystemX11GLContext::RefreshGLContext(bool force)
   return ret;
 }
 
-#endif
+std::unique_ptr<CVideoSync> CWinSystemX11GLContext::GetVideoSync(void *clock)
+{
+  std::unique_ptr<CVideoSync> pVSync;
+
+  if (dynamic_cast<CGLContextEGL*>(m_pGLContext))
+  {
+    pVSync.reset(new CVideoSyncDRM(clock));
+  }
+  else if (dynamic_cast<CGLContextGLX*>(m_pGLContext))
+  {
+    pVSync.reset(new CVideoSyncGLX(clock));
+  }
+  return pVSync;
+}

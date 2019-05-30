@@ -1229,7 +1229,9 @@ void CDSPlayerDatabase::SetVideoSettings(const std::string& strFilenameAndPath, 
     if (NULL == m_pDS.get()) return;
 
     std::string strSQL = PrepareSQL("select * from madvrFileSettings where file='%s'", strFilenameAndPath.c_str());
-    std::string strJson = CJSONVariantWriter::Write(setting.m_db, true);
+    std::string strJson;
+
+    CJSONVariantWriter::Write(setting.m_db, strJson, true);
 
     m_pDS->query(strSQL.c_str());
     if (m_pDS->num_rows() > 0)
@@ -1265,7 +1267,9 @@ void CDSPlayerDatabase::SetResSettings(int resolution, const CMadvrSettings &set
     if (NULL == m_pDS.get()) return;
 
     std::string strSQL = PrepareSQL("select * from madvrResSettings where Resolution=%i", resolution);
-    std::string strJson = CJSONVariantWriter::Write(settings.m_db, true);
+    std::string strJson;
+
+    CJSONVariantWriter::Write(settings.m_db, strJson, true);
 
     m_pDS->query(strSQL.c_str());
     if (m_pDS->num_rows() > 0)
@@ -1300,7 +1304,9 @@ void CDSPlayerDatabase::SetUserSettings(int userId, const CMadvrSettings &settin
     if (NULL == m_pDS.get()) return;
 
     std::string strSQL = PrepareSQL("select * from madvrUserSettings where User=%i", userId);
-    std::string strJson = CJSONVariantWriter::Write(settings.m_db, true);
+    std::string strJson;
+
+    CJSONVariantWriter::Write(settings.m_db, strJson, true);
 
     m_pDS->query(strSQL.c_str());
     if (m_pDS->num_rows() > 0)
@@ -1335,7 +1341,9 @@ void CDSPlayerDatabase::SetTvShowSettings(const std::string &tvShowName, const C
     if (NULL == m_pDS.get()) return;
 
     std::string strSQL = PrepareSQL("select * from madvrTvShowSettings where TvShowName='%s'", tvShowName.c_str());
-    std::string strJson = CJSONVariantWriter::Write(settings.m_db, true);
+    std::string strJson;
+
+    CJSONVariantWriter::Write(settings.m_db, strJson, true);
 
     m_pDS->query(strSQL.c_str());
     if (m_pDS->num_rows() > 0)
@@ -2005,7 +2013,8 @@ std::string CDSPlayerDatabase::GetSubtitleExtTrackName(const std::string &strFil
 
 void CDSPlayerDatabase::JsonToVariant(const std::string &strJson, CMadvrSettings &settings)
 {
-  CVariant tmp = CJSONVariantParser::Parse(reinterpret_cast<const unsigned char*>(strJson.c_str()), strJson.size());
+  CVariant tmp;
+  CJSONVariantParser::Parse(strJson, tmp);
   for (auto setting = settings.m_db.begin_map(); setting != settings.m_db.end_map(); setting++)
   {
     if (!tmp.isMember(setting->first))

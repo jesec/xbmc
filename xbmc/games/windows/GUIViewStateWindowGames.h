@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2012-2016 Team Kodi
+ *      Copyright (C) 2012-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -27,6 +27,8 @@ namespace GAME
   {
   public:
     CGUIViewStateWindowGames(const CFileItemList& items);
+
+    virtual ~CGUIViewStateWindowGames() = default;
 
     // implementation of CGUIViewState
     virtual std::string GetLockType() override;

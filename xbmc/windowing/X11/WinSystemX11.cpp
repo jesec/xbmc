@@ -20,8 +20,6 @@
 
 #include "system.h"
 
-#if defined(HAVE_X11)
-
 #include "WinSystemX11.h"
 #include "ServiceBroker.h"
 #include "settings/DisplaySettings.h"
@@ -37,14 +35,13 @@
 #include "threads/SingleLock.h"
 #include "utils/TimeUtils.h"
 #include "utils/StringUtils.h"
-#include "settings/Settings.h"
 #include "windowing/WindowingFactory.h"
 #include "CompileInfo.h"
 #include "messaging/ApplicationMessenger.h"
 #include <X11/Xatom.h>
 #include <X11/extensions/Xrandr.h>
 
-#include "../WinEventsX11.h"
+#include "WinEventsX11.h"
 #include "input/InputManager.h"
 
 using namespace KODI::MESSAGING;
@@ -1071,4 +1068,4 @@ void CWinSystemX11::UpdateCrtc()
   g_graphicsContext.SetFPS(fps);
 }
 
-#endif
+

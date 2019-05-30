@@ -79,7 +79,7 @@ bool CDVDInputStreamFFmpeg::Open()
   return true;
 }
 
-// close file and reset everyting
+// close file and reset everything
 void CDVDInputStreamFFmpeg::Close()
 {
   CDVDInputStream::Close();
@@ -115,7 +115,7 @@ std::string CDVDInputStreamFFmpeg::GetProxyHost() const
 uint16_t CDVDInputStreamFFmpeg::GetProxyPort() const
 {
   if (m_item.HasProperty("proxy.port"))
-    return m_item.GetProperty("proxy.port").asInteger();
+    return static_cast<uint16_t>(m_item.GetProperty("proxy.port").asInteger());
 
   // Select the standard port
   const std::string value = GetProxyType();

@@ -37,7 +37,6 @@
 #include "games/GameUtils.h"
 #include "guilib/TextureManager.h"
 #include "File.h"
-#include "ServiceBroker.h"
 #include "settings/Settings.h"
 #include "SpecialProtocol.h"
 #include "utils/URIUtils.h"
@@ -153,7 +152,7 @@ static bool IsGameAddon(const AddonPtr& addon)
          IsGameSupportAddon(addon);
 }
 
-static bool IsDependecyType(TYPE type)
+static bool IsDependencyType(TYPE type)
 {
   return dependencyTypes.find(type) != dependencyTypes.end();
 }
@@ -351,7 +350,7 @@ static void GenerateMainCategoryListing(const CURL& path, const VECADDONS& addon
   for (unsigned int i = ADDON_UNKNOWN + 1; i < ADDON_MAX - 1; ++i)
   {
     const TYPE type = (TYPE)i;
-    if (!IsInfoProviderType(type) && !IsLookAndFeelType(type) && !IsDependecyType(type) && !IsGameType(type))
+    if (!IsInfoProviderType(type) && !IsLookAndFeelType(type) && !IsDependencyType(type) && !IsGameType(type))
       uncategorized.insert(static_cast<TYPE>(i));
   }
   GenerateTypeListing(path, uncategorized, addons, items);
@@ -704,6 +703,8 @@ bool CAddonsDirectory::GetDirectory(const CURL& url, CFileItemList &items)
       type = ADDON_PVRDLL;
     else if (path.GetFileName() == "kodi.adsp")
       type = ADDON_ADSPDLL;
+    else if (path.GetFileName() == "kodi.vfs")
+      type = ADDON_VFS;
     else
       type = ADDON_UNKNOWN;
 

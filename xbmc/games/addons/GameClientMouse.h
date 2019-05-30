@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2015-2016 Team Kodi
+ *      Copyright (C) 2015-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -33,7 +33,7 @@ namespace GAME
    *
    * Listens to mouse events and forwards them to the games (as game_input_event).
    */
-  class CGameClientMouse : public MOUSE::IMouseInputHandler
+  class CGameClientMouse : public KODI::MOUSE::IMouseInputHandler
   {
   public:
     /*!
@@ -46,7 +46,7 @@ namespace GAME
     /*!
      * \brief Destructor unregisters from mouse events from CInputManager.
      */
-    ~CGameClientMouse();
+    virtual ~CGameClientMouse();
 
     // implementation of IMouseInputHandler
     virtual std::string ControllerID(void) const override;

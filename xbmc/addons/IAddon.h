@@ -64,6 +64,8 @@ namespace ADDON
     ADDON_RESOURCE_LANGUAGE,
     ADDON_RESOURCE_UISOUNDS,
     ADDON_RESOURCE_GAMES,
+    ADDON_VFS,
+    ADDON_IMAGEDECODER,
     ADDON_VIDEO, // virtual addon types
     ADDON_AUDIO,
     ADDON_IMAGE,
@@ -137,6 +139,7 @@ namespace ADDON
     virtual void OnPostInstall(bool update, bool modal) =0;
     virtual void OnPreUnInstall() =0;
     virtual void OnPostUnInstall() =0;
+    virtual std::string GetDefaultValue(const TiXmlElement *setting) const = 0;
   };
 };
 

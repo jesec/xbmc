@@ -32,6 +32,7 @@
 #include "settings/DisplaySettings.h"
 #include "guilib/DispResource.h"
 #include "threads/SingleLock.h"
+
 #ifdef HAS_IMXVPU
 // This has to go into another header file
 #include "cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecIMX.h"
@@ -555,5 +556,11 @@ bool CWinSystemEGL::ClampToGUIDisplayLimits(int &width, int &height)
   height = height > m_nHeight ? m_nHeight : height;
   return true;
 }
+
+std::unique_ptr<CVideoSync> CWinSystemEGL::GetVideoSync(void *clock)
+{
+  return nullptr;
+}
+
 
 #endif

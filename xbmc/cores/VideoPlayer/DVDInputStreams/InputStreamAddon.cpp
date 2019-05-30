@@ -31,7 +31,6 @@ CInputStreamAddon::CInputStreamAddon(const CFileItem& fileitem, std::shared_ptr<
 CInputStreamAddon::~CInputStreamAddon()
 {
   Close();
-  m_addon->Stop();
   m_addon.reset();
 }
 
@@ -228,7 +227,7 @@ bool CInputStreamAddon::SeekTime(double time, bool backward, double* startpts)
 
   if (m_hasPosTime)
   {
-    if (!PosTime(time))
+    if (!PosTime(static_cast<int>(time)))
       return false;
 
     FlushDemux();

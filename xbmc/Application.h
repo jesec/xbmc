@@ -108,24 +108,13 @@ struct ReplayGainSettings
   int iPreAmp;
   int iNoGainPreAmp;
   int iType;
-};
-
-class CBackgroundPlayer : public CThread
-{
-public:
-  CBackgroundPlayer(const CFileItem &item, int iPlayList);
-  virtual ~CBackgroundPlayer();
-  virtual void Process();
-protected:
-  CFileItem *m_item;
-  int       m_iPlayList;
+  bool bAvoidClipping;
 };
 
 class CApplication : public CXBApplicationEx, public IPlayerCallback, public IMsgTargetCallback,
                      public ISettingCallback, public ISettingsHandler, public ISubSettings,
                      public KODI::MESSAGING::IMessageTarget
 {
-  friend class CApplicationPlayer;
 public:
 
   enum ESERVERS
@@ -155,16 +144,15 @@ public:
   void StopServices();
   bool StartServer(enum ESERVERS eServer, bool bStart, bool bWait = false);
 
-  void StopPVRManager();
-  void ReinitPVRManager();
   bool IsCurrentThread() const;
   void Stop(int exitCode);
   void RestartApp();
   void UnloadSkin(bool forReload = false);
-  bool LoadUserWindows();
+  bool LoadCustomWindows();
   void ReloadSkin(bool confirm = false);
   const std::string& CurrentFile();
   CFileItem& CurrentFileItem();
+  std::shared_ptr<CFileItem> CurrentFileItemPtr();
   void SetCurrentFileItem(const CFileItem &item);
   CFileItem& CurrentUnstackedItem();
   virtual bool OnMessage(CGUIMessage& message) override;
@@ -175,7 +163,7 @@ public:
   virtual void OnPlayBackResumed() override;
   virtual void OnPlayBackStopped() override;
   virtual void OnQueueNextItem() override;
-  virtual void OnPlayBackSeek(int iTime, int seekOffset) override;
+  virtual void OnPlayBackSeek(int64_t iTime, int64_t seekOffset) override;
   virtual void OnPlayBackSeekChapter(int iChapter) override;
   virtual void OnPlayBackSpeedChanged(int iSpeed) override;
 
@@ -291,21 +279,24 @@ public:
   static bool OnEvent(XBMC_Event& newEvent);
 
   CNetwork& getNetwork();
+
 #ifdef HAS_PERFORMANCE_SAMPLE
   CPerformanceStats &GetPerformanceStats();
 #endif
 
+  std::unique_ptr<CApplicationPlayer> m_pPlayer;
+
 #ifdef HAS_DVD_DRIVE
-  MEDIA_DETECT::CAutorun* m_Autorun;
+  std::unique_ptr<MEDIA_DETECT::CAutorun> m_Autorun;
 #endif
 
 #if !defined(TARGET_WINDOWS) && defined(HAS_DVD_DRIVE)
   MEDIA_DETECT::CDetectDVDMedia m_DetectDVDType;
 #endif
 
-  CApplicationPlayer* m_pPlayer;
+  inline bool IsInScreenSaver() { return m_screensaverActive; };
+  inline std::string ScreensaverIdInUse() { return m_screensaverIdInUse; }
 
-  inline bool IsInScreenSaver() { return m_bScreenSave; };
   inline bool IsDPMSActive() { return m_dpmsIsActive; };
   int m_iScreenSaveLock; // spiff: are we checking for a lock? if so, ignore the screensaver state, if -1 we have failed to input locks
 
@@ -366,8 +357,6 @@ public:
 
   void Minimize();
   bool ToggleDPMS(bool manual);
-
-  float GetDimScreenSaverLevel() const;
 
   bool SwitchToFullScreen(bool force = false);
 
@@ -436,8 +425,9 @@ protected:
   friend class CWinEventsAndroid;
 #endif
   // screensaver
-  bool m_bScreenSave;
-  ADDON::AddonPtr m_screenSaver;
+  bool m_screensaverActive;
+  std::string m_screensaverIdInUse;
+  ADDON::AddonPtr m_pythonScreenSaver; // @warning: Fallback for Python interface, for binaries not needed!
 
   // timer information
 #ifdef TARGET_WINDOWS
@@ -455,16 +445,16 @@ protected:
 
   bool m_bInhibitIdleShutdown;
 
-  DPMSSupport* m_dpms;
+  std::unique_ptr<DPMSSupport> m_dpms;
   bool m_dpmsIsActive;
   bool m_dpmsIsManual;
 
   CFileItemPtr m_itemCurrentFile;
-  CFileItemList* m_currentStack;
+  std::unique_ptr<CFileItemList> m_currentStack;
   CFileItemPtr m_stackFileItemToUpdate;
 
   std::string m_prevMedia;
-  ThreadIdentifier m_threadID;       // application thread ID.  Used in applicationMessanger to know where we are firing a thread with delay from.
+  ThreadIdentifier m_threadID;       // application thread ID.  Used in applicationMessenger to know where we are firing a thread with delay from.
   bool m_bInitializing;
   bool m_bPlatformDirectories;
 
@@ -483,7 +473,7 @@ protected:
   bool m_bTestMode;
   bool m_bSystemScreenSaverEnable;
 
-  MUSIC_INFO::CMusicInfoScanner *m_musicInfoScanner;
+  std::unique_ptr<MUSIC_INFO::CMusicInfoScanner> m_musicInfoScanner;
 
   bool m_muted;
   float m_volumeLevel;
@@ -529,6 +519,7 @@ private:
   CCriticalSection m_frameMoveGuard;              /*!< critical section for synchronizing GUI actions from inside and outside (python) */
   std::atomic_uint m_WaitingExternalCalls;        /*!< counts threads wich are waiting to be processed in FrameMove */
   unsigned int m_ProcessedExternalCalls;          /*!< counts calls wich are processed during one "door open" cycle in FrameMove */
+  unsigned int m_ProcessedExternalDecay = 0;      /*!< counts to close door after a few frames of no python activity */
 };
 
 XBMC_GLOBAL_REF(CApplication,g_application);

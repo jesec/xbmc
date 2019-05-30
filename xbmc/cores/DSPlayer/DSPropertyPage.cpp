@@ -40,6 +40,7 @@
 #include "Application.h"
 #include "settings/Settings.h"
 #include "DSPlayer.h"
+#include "platform/win32/CharsetConverter.h"
 
 LONG GdiGetCharDimensions(HDC hdc, LPTEXTMETRICW lptm, LONG *height)
 {
@@ -136,6 +137,7 @@ static INT_PTR CALLBACK prop_sheet_proc(HWND hwnd, UINT msg, WPARAM wparam,
 
 void CDSPropertyPage::Process()
 {
+  using KODI::PLATFORM::WINDOWS::ToW;
   bool wasFullscreen = false;
   /* todo evr
   if (g_Windowing.IsFullScreen() 
@@ -189,7 +191,7 @@ void CDSPropertyPage::Process()
 
     std::string filterName;
     g_charsetConverter.wToUTF8(GetFilterName(m_pBF), filterName);
-    propSheet.pszCaption = filterName.c_str();
+    propSheet.pszCaption = ToW(filterName).c_str();
 
     hpsp = (HPROPSHEETPAGE *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY,
       pPages.cElems * sizeof(HPROPSHEETPAGE));
@@ -238,7 +240,7 @@ void CDSPropertyPage::Process()
 
       std::string strTitle = "";
       g_charsetConverter.wToUTF8(pPageInfo.pszTitle, strTitle);
-      psp.pszTitle = strTitle.c_str();
+      psp.pszTitle = ToW(strTitle).c_str();
       hpsp[propSheet.nPages++] = CreatePropertySheetPage(&psp);
       CoTaskMemFree(pPageInfo.pszTitle);
       if (pPageInfo.pszDocString)

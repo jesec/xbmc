@@ -164,7 +164,7 @@ public:
   int64_t demuxerId; // demuxer's id of current playing stream
   int id;     // id of current playing stream
   int source;
-  double dts;    // last dts from demuxer, used to find disncontinuities
+  double dts;    // last dts from demuxer, used to find discontinuities
   double dur;    // last frame expected duration
   int dispTime; // display time from input stream
   CDVDStreamInfo hint;   // stream hints, used to notice stream changes
@@ -396,7 +396,7 @@ public:
   virtual bool IsCaching() const override;
   virtual int GetCacheLevel() const override;
 
-  virtual int OnDVDNavResult(void* pData, int iMessage) override;
+  virtual int OnDiscNavResult(void* pData, int iMessage) override;
   void GetVideoResolution(unsigned int &width, unsigned int &height) override;
 
 protected:
@@ -409,6 +409,7 @@ protected:
   virtual void GetDebugInfo(std::string &audio, std::string &video, std::string &general) override;
   virtual void UpdateClockSync(bool enabled) override;
   virtual void UpdateRenderInfo(CRenderInfo &info) override;
+  virtual void UpdateRenderBuffers(int queued, int discard, int free) override;
 
   void CreatePlayers();
   void DestroyPlayers();
@@ -422,9 +423,8 @@ protected:
 
   /** \brief Switches forced subtitles to forced subtitles matching the language of the current audio track.
   *          If these are not available, subtitles are disabled.
-  *   \return true if the subtitles were changed, false otherwise.
   */
-  bool AdaptForcedSubtitles();
+  void AdaptForcedSubtitles();
   bool CloseStream(CCurrentStream& current, bool bWaitForBuffers);
 
   bool CheckIsCurrent(CCurrentStream& current, CDemuxStream* stream, DemuxPacket* pkg);
@@ -444,7 +444,6 @@ protected:
    * one of the DVD_PLAYSPEED defines
    */
   void SetPlaySpeed(int iSpeed);
-  int GetPlaySpeed() { return m_playSpeed; }
 
   enum ECacheState
   {
@@ -462,8 +461,7 @@ protected:
   double GetQueueTime();
   bool GetCachingTimes(double& play_left, double& cache_left, double& file_offset);
 
-
-  void FlushBuffers(bool queued, double pts = DVD_NOPTS_VALUE, bool accurate = true, bool sync = true);
+  void FlushBuffers(double pts, bool accurate, bool sync);
 
   void HandleMessages();
   void HandlePlaySpeed();
@@ -521,7 +519,7 @@ protected:
   {
     double  lastpts;  // holds last display pts during ff/rw operations
     int64_t lasttime;
-    int lastseekpts;
+    double lastseekpts;
     double  lastabstime;
   } m_SpeedState;
   std::atomic_bool m_canTempo;
@@ -584,25 +582,6 @@ protected:
 
   CEdl m_Edl;
   bool m_SkipCommercials;
-
-  struct SEdlAutoSkipMarkers {
-
-    void Clear()
-    {
-      cut = -1;
-      commbreak_start = -1;
-      commbreak_end = -1;
-      seek_to_start = false;
-      mute = false;
-    }
-
-    int cut;              // last automatically skipped EDL cut seek position
-    int commbreak_start;  // start time of the last commercial break automatically skipped
-    int commbreak_end;    // end time of the last commercial break automatically skipped
-    bool seek_to_start;   // whether seeking can go back to the start of a previously skipped break
-    bool mute;            // whether EDL mute is on
-
-  } m_EdlAutoSkipMarkers;
 
   CPlayerOptions m_PlayerOptions;
 

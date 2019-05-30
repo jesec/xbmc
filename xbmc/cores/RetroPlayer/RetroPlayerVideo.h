@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2012-2016 Team Kodi
+ *      Copyright (C) 2012-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -29,7 +29,7 @@ class CDVDVideoCodec;
 class CPixelConverter;
 class CProcessInfo;
 class CRenderManager;
-struct DVDVideoPicture;
+struct VideoPicture;
 
 namespace GAME
 {
@@ -37,7 +37,7 @@ namespace GAME
                             //protected CThread
   {
   public:
-    CRetroPlayerVideo(CDVDClock& m_clock, CRenderManager& m_renderManager, CProcessInfo& m_processInfo);
+    CRetroPlayerVideo(CRenderManager& m_renderManager, CProcessInfo& m_processInfo);
 
     virtual ~CRetroPlayerVideo();
 
@@ -54,12 +54,11 @@ namespace GAME
     */
 
   private:
-    bool Configure(DVDVideoPicture& picture);
-    bool GetPicture(const uint8_t* data, unsigned int size, DVDVideoPicture& picture);
-    void SendPicture(DVDVideoPicture& picture);
+    bool Configure(VideoPicture& picture);
+    bool GetPicture(const uint8_t* data, unsigned int size, VideoPicture& picture);
+    void SendPicture(VideoPicture& picture);
 
     // Construction parameters
-    CDVDClock&      m_clock;
     CRenderManager& m_renderManager;
     CProcessInfo&   m_processInfo;
 

@@ -24,16 +24,19 @@
 #include "GUIPassword.h"
 #include "Util.h"
 #include "addons/AddonManager.h"
+#include "addons/BinaryAddonCache.h"
 #include "addons/Skin.h"
 #if defined(TARGET_ANDROID)
 #include "platform/android/activity/AndroidFeatures.h"
 #endif // defined(TARGET_ANDROID)
-#include "cores/AudioEngine/AEFactory.h"
+#include "cores/AudioEngine/Engines/ActiveAE/ActiveAESettings.h"
+#include "ServiceBroker.h"
+#include "cores/AudioEngine/Interfaces/AE.h"
 #include "cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodec.h"
 #include "guilib/LocalizeStrings.h"
 #include "peripherals/Peripherals.h"
-#include "peripherals/bus/virtual/PeripheralBusAddon.h"
 #include "profiles/ProfilesManager.h"
+#include "pvr/PVRGUIActions.h"
 #include "pvr/PVRManager.h"
 #include "settings/SettingAddon.h"
 #if defined(HAS_LIBAMCODEC)
@@ -72,21 +75,39 @@ bool CheckMasterLock(const std::string &condition, const std::string &value, con
 
 bool CheckPVRParentalPin(const std::string &condition, const std::string &value, const CSetting *setting, void *data)
 {
-  return PVR::g_PVRManager.CheckParentalPIN(g_localizeStrings.Get(19262).c_str());
+  return CServiceBroker::GetPVRManager().GUIActions()->CheckParentalPIN();
 }
 
 bool HasPeripherals(const std::string &condition, const std::string &value, const CSetting *setting, void *data)
 {
-  return PERIPHERALS::g_peripherals.GetNumberOfPeripherals() > 0;
+  return CServiceBroker::GetPeripherals().GetNumberOfPeripherals() > 0;
+}
+
+bool HasPeripheralLibraries(const std::string &condition, const std::string &value, const CSetting *setting, void *data)
+{
+  using namespace ADDON;
+
+  VECADDONS peripheralAddons;
+
+  CBinaryAddonCache& addonCache = CServiceBroker::GetBinaryAddonCache();
+  addonCache.GetInstalledAddons(peripheralAddons, ADDON_PERIPHERALDLL);
+
+  return !peripheralAddons.empty();
 }
 
 bool HasRumbleFeature(const std::string &condition, const std::string &value, const CSetting *setting, void *data)
 {
-  using namespace PERIPHERALS;
+  return CServiceBroker::GetPeripherals().SupportsFeature(PERIPHERALS::FEATURE_RUMBLE);
+}
 
-  PeripheralVector results;
-  g_peripherals.GetPeripheralsWithFeature(results, FEATURE_RUMBLE);
-  return !results.empty();
+bool HasRumbleController(const std::string &condition, const std::string &value, const CSetting *setting, void *data)
+{
+  return CServiceBroker::GetPeripherals().HasPeripheralWithFeature(PERIPHERALS::FEATURE_RUMBLE);
+}
+
+bool HasPowerOffFeature(const std::string &condition, const std::string &value, const CSetting *setting, void *data)
+{
+  return CServiceBroker::GetPeripherals().SupportsFeature(PERIPHERALS::FEATURE_POWER_OFF);
 }
 
 bool IsFullscreen(const std::string &condition, const std::string &value, const CSetting *setting, void *data)
@@ -297,9 +318,6 @@ void CSettingConditions::Initialize()
 #ifdef HAS_ZEROCONF
   m_simpleConditions.insert("has_zeroconf");
 #endif
-#ifdef HAVE_LIBOPENMAX
-  m_simpleConditions.insert("have_libopenmax");
-#endif
 #ifdef HAS_OMXPLAYER
   m_simpleConditions.insert("has_omxplayer");
 #endif
@@ -338,7 +356,7 @@ void CSettingConditions::Initialize()
     m_simpleConditions.insert("isstandalone");
 #endif
 
-  if(CAEFactory::SupportsQualitySetting())
+  if(ActiveAE::CActiveAESettings::SupportsQualitySetting())
     m_simpleConditions.insert("has_ae_quality_levels");
 
   // add complex conditions
@@ -346,7 +364,10 @@ void CSettingConditions::Initialize()
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("checkmasterlock",               CheckMasterLock));
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("checkpvrparentalpin",           CheckPVRParentalPin));
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("hasperipherals",                HasPeripherals));
+  m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("hasperipherallibraries",        HasPeripheralLibraries));
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("hasrumblefeature",              HasRumbleFeature));
+  m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("hasrumblecontroller",           HasRumbleController));
+  m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("haspowerofffeature",            HasPowerOffFeature));
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("isfullscreen",                  IsFullscreen));
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("ismasteruser",                  IsMasterUser));
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("isusingttfsubtitles",           IsUsingTTFSubtitles));
@@ -363,7 +384,7 @@ void CSettingConditions::Initialize()
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("profilehassettingslocked",      ProfileHasSettingsLocked));
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("profilehasvideoslocked",        ProfileHasVideosLocked));
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("profilelockmode",               ProfileLockMode));
-  m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("aesettingvisible",              CAEFactory::IsSettingVisible));
+  m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("aesettingvisible",              ActiveAE::CActiveAESettings::IsSettingVisible));
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("codecoptionvisible",            CDVDVideoCodec::IsSettingVisible));
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("gt",                            GreaterThan));
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("gte",                           GreaterThanOrEqual));

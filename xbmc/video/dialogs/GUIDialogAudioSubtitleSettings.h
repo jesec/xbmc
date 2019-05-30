@@ -41,6 +41,8 @@ public:
   static std::string FormatDecibel(float value);
   static std::string FormatPercentAsDecibel(float value);
 
+  static std::string BrowseForSubtitle();
+
 #ifdef HAS_DS_PLAYER
   static void ShowAudioSelector();
   static void ShowSubsSelector();

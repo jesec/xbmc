@@ -29,6 +29,8 @@
 #include "utils/StringUtils.h"
 #include "storage/MediaManager.h"
 #include "guiinfo/GUIInfoLabels.h"
+#include "ServiceBroker.h"
+
 #ifdef HAS_DS_PLAYER
 #include "DSFilterVersion.h"
 #endif
@@ -65,7 +67,7 @@ bool CGUIWindowSystemInfo::OnMessage(CGUIMessage& message)
       CGUIWindow::OnMessage(message);
       SET_CONTROL_LABEL(52, CSysInfo::GetAppName() + " " + CSysInfo::GetVersion());
       SET_CONTROL_LABEL(53, CSysInfo::GetBuildDate());
-      CONTROL_ENABLE_ON_CONDITION(CONTROL_BT_PVR, PVR::CPVRManager::GetInstance().IsStarted());
+      CONTROL_ENABLE_ON_CONDITION(CONTROL_BT_PVR, CServiceBroker::GetPVRManager().IsStarted());
       return true;
     }
     break;

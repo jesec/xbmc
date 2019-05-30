@@ -1078,7 +1078,7 @@ void CStreamsManager::SelectBestAudio()
       if (it->lcid)
       {
         int len = 0;
-        if (len = GetLocaleInfo(it->lcid, LOCALE_SISO639LANGNAME, buffer, 64))
+        if (len = GetLocaleInfoA(it->lcid, LOCALE_SISO639LANGNAME, buffer, 64))
         {
           audioLang = buffer;
           audioLang.resize(len - 1); //get rid of last \0

@@ -7,8 +7,8 @@ LIST_BINARY_EXTENSIONS="dylib so"
 
 export CODESIGN_ALLOCATE=`xcodebuild -find codesign_allocate`
 
-GEN_ENTITLEMENTS="$XBMC_DEPENDS_ROOT/buildtools-native/bin/gen_entitlements.py"
-LDID="$XBMC_DEPENDS_ROOT/buildtools-native/bin/ldid"
+GEN_ENTITLEMENTS="$NATIVEPREFIX/bin/gen_entitlements.py"
+LDID="$NATIVEPREFIX/bin/ldid"
 
 if [ ! -f ${GEN_ENTITLEMENTS} ]; then
   echo "error: $GEN_ENTITLEMENTS not found. Codesign won't work."
@@ -28,7 +28,12 @@ if [ "${PLATFORM_NAME}" == "iphoneos" ] || [ "${PLATFORM_NAME}" == "appletvos" ]
 
   # pull the CFBundleIdentifier out of the built xxx.app
   BUNDLEID=`mdls -raw -name kMDItemCFBundleIdentifier ${CODESIGNING_FOLDER_PATH}`
+  if [ "${BUNDLEID}" == "(null)" ] ; then
+    BUNDLEID=`/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' ${CODESIGNING_FOLDER_PATH}/Info.plist`
+  fi
+
   echo "CFBundleIdentifier is ${BUNDLEID}"
+
 
   # Prefer the expanded name, if available.
   CODE_SIGN_IDENTITY_FOR_ITEMS="${EXPANDED_CODE_SIGN_IDENTITY_NAME}"
