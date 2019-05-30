@@ -28,8 +28,8 @@
 class CHTTPJsonRpcHandler : public IHTTPRequestHandler
 {
 public:
-  CHTTPJsonRpcHandler() { }
-  virtual ~CHTTPJsonRpcHandler() { }
+  CHTTPJsonRpcHandler() = default;
+  ~CHTTPJsonRpcHandler() override = default;
   
   // implementations of IHTTPRequestHandler
   IHTTPRequestHandler* Create(const HTTPRequest &request) const override { return new CHTTPJsonRpcHandler(request); }
@@ -61,7 +61,7 @@ private:
   {
   public:
     CHTTPTransportLayer() = default;
-    ~CHTTPTransportLayer() = default;
+    ~CHTTPTransportLayer() override = default;
 
     // implementations of JSONRPC::ITransportLayer
     bool PrepareDownload(const char *path, CVariant &details, std::string &protocol) override;
@@ -73,8 +73,14 @@ private:
   class CHTTPClient : public JSONRPC::IClient
   {
   public:
-    virtual int  GetPermissionFlags();
-    virtual int  GetAnnouncementFlags();
-    virtual bool SetAnnouncementFlags(int flags);
+    CHTTPClient(HTTPMethod method);
+    ~CHTTPClient() override = default;
+
+    int GetPermissionFlags() override { return m_permissionFlags; }
+    int GetAnnouncementFlags() override;
+    bool SetAnnouncementFlags(int flags) override;
+
+  private:
+    int m_permissionFlags;
   };
 };

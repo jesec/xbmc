@@ -43,11 +43,10 @@ class CQueueNextFileJob : public CJob
   CFileItem m_item;
   PAPlayer &m_player;
 
-public:
-                CQueueNextFileJob(const CFileItem& item, PAPlayer &player)
-                  : m_item(item), m_player(player) {}
-  virtual       ~CQueueNextFileJob() {}
-  virtual bool  DoWork()
+public: CQueueNextFileJob(const CFileItem& item, PAPlayer &player)
+    : m_item(item), m_player(player) {}
+  ~CQueueNextFileJob() override = default;
+  bool  DoWork() override
   {
     return m_player.QueueNextFileEx(m_item, true, true);
   }
@@ -58,20 +57,20 @@ public:
 // First one being nullsoft's nsv audio decoder format
 
 PAPlayer::PAPlayer(IPlayerCallback& callback) :
-  IPlayer              (callback),
-  CThread              ("PAPlayer"),
-  m_signalSpeedChange  (false),
-  m_playbackSpeed      (1    ),
-  m_isPlaying          (false),
-  m_isPaused           (false),
-  m_isFinished         (false),
+  IPlayer(callback),
+  CThread("PAPlayer"),
+  m_signalSpeedChange(false),
+  m_playbackSpeed(1    ),
+  m_isPlaying(false),
+  m_isPaused(false),
+  m_isFinished(false),
   m_defaultCrossfadeMS (0),
   m_upcomingCrossfadeMS(0),
-  m_currentStream      (NULL ),
-  m_audioCallback      (NULL ),
-  m_FileItem           (new CFileItem()),
-  m_jobCounter         (0),
-  m_continueStream     (false),
+  m_currentStream(NULL ),
+  m_audioCallback(NULL ),
+  m_FileItem(new CFileItem()),
+  m_jobCounter(0),
+  m_continueStream(false),
   m_newForcedPlayerTime(-1),
   m_newForcedTotalTime (-1)
 {
@@ -904,24 +903,6 @@ bool PAPlayer::QueueData(StreamInfo *si)
 void PAPlayer::OnExit()
 {
 
-}
-
-void PAPlayer::RegisterAudioCallback(IAudioCallback* pCallback)
-{
-  CSingleLock lock(m_streamsLock);
-  m_audioCallback = pCallback;
-  if (m_currentStream && m_currentStream->m_stream)
-    m_currentStream->m_stream->RegisterAudioCallback(pCallback);
-}
-
-void PAPlayer::UnRegisterAudioCallback()
-{
-  CSingleLock lock(m_streamsLock);
-  /* only one stream should have the callback, but we do it to all just incase */
-  for(StreamList::iterator itt = m_streams.begin(); itt != m_streams.end(); ++itt)
-    if ((*itt)->m_stream)
-      (*itt)->m_stream->UnRegisterAudioCallback();
-  m_audioCallback = NULL;
 }
 
 void PAPlayer::OnNothingToQueueNotify()

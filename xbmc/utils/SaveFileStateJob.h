@@ -57,15 +57,13 @@ public:
                     m_bookmark(bookmark),
                     m_updatePlayCount(updatePlayCount),
                     m_videoSettings(videoSettings),
-                    m_audioSettings(audioSettings) 
+                    m_audioSettings(audioSettings)
 #ifdef HAS_DS_PLAYER
-                    ,
-                    m_madvrSettings(madvrSettings) {}
-#else
-                {}
+                    , m_madvrSettings(madvrSettings)
 #endif
-  virtual       ~CSaveFileStateJob() {}
-  virtual bool  DoWork();
+                {}
+        ~CSaveFileStateJob() override = default;
+  bool  DoWork() override;
 };
 
 #endif // SAVE_FILE_STATE_H__

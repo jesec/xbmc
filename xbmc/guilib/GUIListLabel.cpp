@@ -30,12 +30,11 @@ CGUIListLabel::CGUIListLabel(int parentID, int controlID, float posX, float posY
   m_scroll = scroll;
   if (m_info.IsConstant())
     SetLabel(m_info.GetLabel(m_parentID, true));
+  m_label.SetScrollLoopCount(2);
   ControlType = GUICONTROL_LISTLABEL;
 }
 
-CGUIListLabel::~CGUIListLabel(void)
-{
-}
+CGUIListLabel::~CGUIListLabel(void) = default;
 
 void CGUIListLabel::SetScrolling(bool scrolling)
 {
@@ -71,9 +70,6 @@ void CGUIListLabel::Process(unsigned int currentTime, CDirtyRegionList &dirtyreg
 {
   if (m_label.Process(currentTime))
     MarkDirtyRegion();
-
-  if (m_label.GetScrollLoopCount() >= 3)
-    SetScrolling(false);
 
   CGUIControl::Process(currentTime, dirtyregions);
 }

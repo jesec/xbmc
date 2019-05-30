@@ -56,9 +56,12 @@ class CGUILabelControl;
 class CSetting;
 class CSettingAction;
 class CSettingCategory;
+class CSettingGroup;
 class CSettingSection;
 
 class CVariant;
+
+class ISetting;
 
 typedef std::shared_ptr<CGUIControlBaseSetting> BaseSettingControlPtr;
 
@@ -71,13 +74,13 @@ class CGUIDialogSettingsBase
 {
 public:
   CGUIDialogSettingsBase(int windowId, const std::string &xmlFile);
-  virtual ~CGUIDialogSettingsBase();
+  ~CGUIDialogSettingsBase() override;
 
   // specializations of CGUIControl
-  virtual bool OnMessage(CGUIMessage &message) override;
-  virtual bool OnAction(const CAction &action) override;
-  virtual bool OnBack(int actionID) override;
-  virtual void DoProcess(unsigned int currentTime, CDirtyRegionList &dirtyregions) override;
+  bool OnMessage(CGUIMessage &message) override;
+  bool OnAction(const CAction &action) override;
+  bool OnBack(int actionID) override;
+  void DoProcess(unsigned int currentTime, CDirtyRegionList &dirtyregions) override;
 
   virtual bool IsConfirmed() const { return m_confirmed; }
 
@@ -86,14 +89,14 @@ public:
 
 protected:
   // specializations of CGUIWindow
-  virtual void OnInitWindow() override;
+  void OnInitWindow() override;
 
   // implementations of ITimerCallback
-  virtual void OnTimeout() override;
+  void OnTimeout() override;
 
   // implementations of ISettingCallback
-  virtual void OnSettingChanged(std::shared_ptr<const CSetting> setting) override;
-  virtual void OnSettingPropertyChanged(std::shared_ptr<const CSetting> setting, const char *propertyName) override;
+  void OnSettingChanged(std::shared_ptr<const CSetting> setting) override;
+  void OnSettingPropertyChanged(std::shared_ptr<const CSetting> setting, const char *propertyName) override;
 
   // new virtual methods
   virtual bool AllowResettingSettings() const { return true; }
@@ -120,7 +123,7 @@ protected:
     \param pSetting Base settings class which need the name
     \return Name used on settings dialog
    */
-  virtual std::string GetSettingsLabel(std::shared_ptr<CSetting> pSetting);
+  virtual std::string GetSettingsLabel(std::shared_ptr<ISetting> pSetting);
 
   virtual CGUIControl* AddSetting(std::shared_ptr<CSetting> pSetting, float width, int &iControlID);
   virtual CGUIControl* AddSettingControl(CGUIControl *pControl, BaseSettingControlPtr pSettingControl, float width, int &iControlID);
@@ -156,7 +159,7 @@ protected:
   BaseSettingControlPtr GetSettingControl(int controlId);
   
   CGUIControl* AddSeparator(float width, int &iControlID);
-  CGUIControl* AddLabel(float width, int &iControlID, int label);
+  CGUIControl* AddGroupLabel(std::shared_ptr<CSettingGroup> group, float width, int &iControlID);
 
   std::vector<std::shared_ptr<CSettingCategory>> m_categories;
   std::vector<BaseSettingControlPtr> m_settingControls;
@@ -180,4 +183,5 @@ protected:
   CTimer m_delayedTimer;                  ///< Delayed setting timer
 
   bool m_confirmed;
+  int m_focusedControl, m_fadedControl;
 };

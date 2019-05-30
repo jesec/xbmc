@@ -35,6 +35,7 @@
 #include "dialogs/GUIDialogSelect.h"
 #include "dialogs/GUIDialogYesNo.h"
 #include "games/GameUtils.h"
+#include "guilib/LocalizeStrings.h"
 #include "GUIUserMessages.h"
 #include "guilib/GUIWindowManager.h"
 #include "input/Key.h"
@@ -60,6 +61,7 @@
 #define CONTROL_BTN_AUTOUPDATE      13
 #define CONTROL_LIST_SCREENSHOTS    50
 
+using namespace KODI;
 using namespace ADDON;
 using namespace XFILE;
 
@@ -71,9 +73,7 @@ CGUIDialogAddonInfo::CGUIDialogAddonInfo(void)
   m_loadType = KEEP_IN_MEMORY;
 }
 
-CGUIDialogAddonInfo::~CGUIDialogAddonInfo(void)
-{
-}
+CGUIDialogAddonInfo::~CGUIDialogAddonInfo(void) = default;
 
 bool CGUIDialogAddonInfo::OnMessage(CGUIMessage& message)
 {
@@ -480,7 +480,7 @@ bool CGUIDialogAddonInfo::SetItem(const CFileItemPtr& item)
   if (!item || !item->HasAddonInfo())
     return false;
 
-  m_item = item;
+  m_item = std::make_shared<CFileItem>(*item);
   m_localAddon.reset();
   CAddonMgr::GetInstance().GetAddon(item->GetAddonInfo()->ID(), m_localAddon, ADDON_UNKNOWN, false);
   return true;

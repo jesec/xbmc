@@ -50,6 +50,7 @@
 #include "cores/VideoPlayer/VideoRenderers/RenderFlags.h"
 #include "cores/VideoPlayer/DVDDemuxers/DemuxCrypto.h"
 #include "platform/android/activity/AndroidFeatures.h"
+#include "platform/android/activity/JNIXBMCSurfaceTextureOnFrameAvailableListener.h"
 #include "settings/Settings.h"
 
 #include <GLES2/gl2.h>
@@ -138,20 +139,12 @@ static bool IsSupportedColorFormat(int color_format)
 
 /*****************************************************************************/
 /*****************************************************************************/
-class CNULL_Listener : public CJNISurfaceTextureOnFrameAvailableListener
-{
-public:
-  CNULL_Listener() : CJNISurfaceTextureOnFrameAvailableListener(jni::jhobject(NULL)) {};
-
-protected:
-  virtual void OnFrameAvailable() {};
-};
-
-class CDVDMediaCodecOnFrameAvailable : public CEvent, CJNISurfaceTextureOnFrameAvailableListener
+class CDVDMediaCodecOnFrameAvailable : public CEvent, public CJNIXBMCSurfaceTextureOnFrameAvailableListener
 {
 public:
   CDVDMediaCodecOnFrameAvailable(std::shared_ptr<CJNISurfaceTexture> &surfaceTexture)
-  : m_surfaceTexture(surfaceTexture)
+    : CJNIXBMCSurfaceTextureOnFrameAvailableListener()
+    , m_surfaceTexture(surfaceTexture)
   {
     m_surfaceTexture->setOnFrameAvailableListener(*this);
   }
@@ -159,19 +152,18 @@ public:
   virtual ~CDVDMediaCodecOnFrameAvailable()
   {
     // unhook the callback
-    CNULL_Listener null_listener;
-    m_surfaceTexture->setOnFrameAvailableListener(null_listener);
+    CJNIXBMCSurfaceTextureOnFrameAvailableListener nullListener(jni::jhobject(NULL));
+    m_surfaceTexture->setOnFrameAvailableListener(nullListener);
   }
 
 protected:
-  virtual void OnFrameAvailable()
+  void onFrameAvailable(CJNISurfaceTexture)
   {
     Set();
   }
 
 private:
   std::shared_ptr<CJNISurfaceTexture> m_surfaceTexture;
-
 };
 
 /*****************************************************************************/
@@ -399,7 +391,7 @@ std::atomic<bool> CDVDVideoCodecAndroidMediaCodec::m_InstanceGuard(false);
 bool CDVDVideoCodecAndroidMediaCodec::Open(CDVDStreamInfo &hints, CDVDCodecOptions &options)
 {
   int num_codecs;
-  bool needSecureDecoder;
+  bool needSecureDecoder(false);
 
   m_opened = false;
   // allow only 1 instance here
@@ -470,14 +462,14 @@ bool CDVDVideoCodecAndroidMediaCodec::Open(CDVDStreamInfo &hints, CDVDCodecOptio
       m_mime = "video/3gpp";
       m_formatname = "amc-h263";
       break;
-    case AV_CODEC_ID_VP3:
     case AV_CODEC_ID_VP6:
     case AV_CODEC_ID_VP6F:
+      m_mime = "video/x-vnd.on2.vp6";
+      m_formatname = "amc-vp6";
+      break;
     case AV_CODEC_ID_VP8:
-      //m_mime = "video/x-vp6";
-      //m_mime = "video/x-vp7";
       m_mime = "video/x-vnd.on2.vp8";
-      m_formatname = "amc-vpX";
+      m_formatname = "amc-vp8";
       break;
     case AV_CODEC_ID_VP9:
       m_mime = "video/x-vnd.on2.vp9";
@@ -611,6 +603,7 @@ bool CDVDVideoCodecAndroidMediaCodec::Open(CDVDStreamInfo &hints, CDVDCodecOptio
       CLog::Log(LOGERROR, "MediaCrypto::ExceptionCheck: <init>");
       goto FAIL;
     }
+    needSecureDecoder = AMediaCrypto_requiresSecureDecoderComponent(m_mime.c_str()) && (m_hints.cryptoSession->flags & DemuxCryptoSession::FLAG_SECURE_DECODER) != 0;
   }
 
   if (m_render_surface)
@@ -638,7 +631,6 @@ bool CDVDVideoCodecAndroidMediaCodec::Open(CDVDStreamInfo &hints, CDVDCodecOptio
   }
   m_colorFormat = -1;
   num_codecs = CJNIMediaCodecList::getCodecCount();
-  needSecureDecoder = m_crypto && AMediaCrypto_requiresSecureDecoderComponent(m_mime.c_str());
 
   for (int i = 0; i < num_codecs; i++)
   {

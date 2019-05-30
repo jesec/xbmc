@@ -28,6 +28,7 @@
 
 #include "AddonManager.h"
 #include "addons/Service.h"
+#include "addons/settings/AddonSettings.h"
 #include "filesystem/Directory.h"
 #include "filesystem/File.h"
 #include "guilib/LocalizeStrings.h"
@@ -68,15 +69,10 @@ CAddon::CAddon(CAddonInfo addonInfo)
   , m_userSettingsPath()
   , m_loadSettingsFailed(false)
   , m_hasUserSettings(false)
-  , m_profilePath(StringUtils::Format("special://profile/addon_data/%s/", m_addonInfo.id.c_str()))
+  , m_profilePath(StringUtils::Format("special://profile/addon_data/%s/", m_addonInfo.ID().c_str()))
   , m_settings(nullptr)
 {
   m_userSettingsPath = URIUtils::AddFileToFolder(m_profilePath, "settings.xml");
-}
-
-bool CAddon::MeetsVersion(const AddonVersion &version) const
-{
-  return m_addonInfo.minversion <= version && version <= m_addonInfo.version;
 }
 
 /**
@@ -84,7 +80,7 @@ bool CAddon::MeetsVersion(const AddonVersion &version) const
  */
 bool CAddon::HasSettings()
 {
-  return LoadSettings();
+  return LoadSettings(false);
 }
 
 bool CAddon::SettingsInitialized() const
@@ -97,7 +93,7 @@ bool CAddon::SettingsLoaded() const
   return m_settings != nullptr && m_settings->IsLoaded();
 }
 
-bool CAddon::LoadSettings(bool bForce /* = false */)
+bool CAddon::LoadSettings(bool bForce, bool loadUserSettings /* = true */)
 {
   if (SettingsInitialized() && !bForce)
     return true;
@@ -113,7 +109,7 @@ bool CAddon::LoadSettings(bool bForce /* = false */)
     GetSettings()->Uninitialize();
 
   // load the settings definition XML file
-  auto addonSettingsDefinitionFile = URIUtils::AddFileToFolder(m_addonInfo.path, "resources", "settings.xml");
+  auto addonSettingsDefinitionFile = URIUtils::AddFileToFolder(m_addonInfo.Path(), "resources", "settings.xml");
   CXBMCTinyXML addonSettingsDefinitionDoc;
   if (!addonSettingsDefinitionDoc.LoadFile(addonSettingsDefinitionFile))
   {
@@ -137,14 +133,15 @@ bool CAddon::LoadSettings(bool bForce /* = false */)
   m_loadSettingsFailed = false;
 
   // load user settings / values
-  LoadUserSettings();
+  if (loadUserSettings)
+    LoadUserSettings();
 
   return true;
 }
 
 bool CAddon::HasUserSettings()
 {
-  if (!LoadSettings())
+  if (!LoadSettings(false))
     return false;
 
   return SettingsLoaded() && m_hasUserSettings;
@@ -218,7 +215,7 @@ void CAddon::SaveSettings(void)
 
 std::string CAddon::GetSetting(const std::string& key)
 {
-  if (key.empty() || !LoadSettings())
+  if (key.empty() || !LoadSettings(false))
     return ""; // no settings available
 
   auto setting = m_settings->GetSetting(key);
@@ -264,7 +261,7 @@ bool CAddon::GetSettingString(const std::string& key, std::string& value)
 
 void CAddon::UpdateSetting(const std::string& key, const std::string& value)
 {
-  if (key.empty() || !LoadSettings())
+  if (key.empty() || !LoadSettings(false))
     return;
 
   // try to get the setting
@@ -386,9 +383,9 @@ CAddonSettings* CAddon::GetSettings() const
 
 std::string CAddon::LibPath() const
 {
-  if (m_addonInfo.libname.empty())
+  if (m_addonInfo.LibName().empty())
     return "";
-  return URIUtils::AddFileToFolder(m_addonInfo.path, m_addonInfo.libname);
+  return URIUtils::AddFileToFolder(m_addonInfo.Path(), m_addonInfo.LibName());
 }
 
 AddonVersion CAddon::GetDependencyVersion(const std::string &dependencyID) const
@@ -404,47 +401,20 @@ void OnEnabled(const std::string& id)
 {
   // If the addon is a special, call enabled handler
   AddonPtr addon;
-  if (CAddonMgr::GetInstance().GetAddon(id, addon, ADDON_PVRDLL) ||
-      CAddonMgr::GetInstance().GetAddon(id, addon, ADDON_ADSPDLL))
+  if (CAddonMgr::GetInstance().GetAddon(id, addon, ADDON_PVRDLL))
     return addon->OnEnabled();
-
-  if (CAddonMgr::GetInstance().ServicesHasStarted())
-  {
-    if (CAddonMgr::GetInstance().GetAddon(id, addon, ADDON_SERVICE))
-      std::static_pointer_cast<CService>(addon)->Start();
-  }
-
-  if (CAddonMgr::GetInstance().GetAddon(id, addon, ADDON_REPOSITORY))
-    CRepositoryUpdater::GetInstance().ScheduleUpdate(); //notify updater there is a new addon
 }
 
 void OnDisabled(const std::string& id)
 {
 
   AddonPtr addon;
-  if (CAddonMgr::GetInstance().GetAddon(id, addon, ADDON_PVRDLL, false) ||
-      CAddonMgr::GetInstance().GetAddon(id, addon, ADDON_ADSPDLL, false))
+  if (CAddonMgr::GetInstance().GetAddon(id, addon, ADDON_PVRDLL, false))
     return addon->OnDisabled();
-
-  if (CAddonMgr::GetInstance().ServicesHasStarted())
-  {
-    if (CAddonMgr::GetInstance().GetAddon(id, addon, ADDON_SERVICE, false))
-      std::static_pointer_cast<CService>(addon)->Stop();
-  }
 }
 
 void OnPreInstall(const AddonPtr& addon)
 {
-  //Before installing we need to stop/unregister any local addon
-  //that have this id, regardless of what the 'new' addon is.
-  AddonPtr localAddon;
-
-  if (CAddonMgr::GetInstance().ServicesHasStarted())
-  {
-    if (CAddonMgr::GetInstance().GetAddon(addon->ID(), localAddon, ADDON_SERVICE))
-      std::static_pointer_cast<CService>(localAddon)->Stop();
-  }
-
   //Fallback to the pre-install callback in the addon.
   //! @bug If primary extension point have changed we're calling the wrong method.
   addon->OnPreInstall();
@@ -452,16 +422,6 @@ void OnPreInstall(const AddonPtr& addon)
 
 void OnPostInstall(const AddonPtr& addon, bool update, bool modal)
 {
-  AddonPtr localAddon;
-  if (CAddonMgr::GetInstance().ServicesHasStarted())
-  {
-    if (CAddonMgr::GetInstance().GetAddon(addon->ID(), localAddon, ADDON_SERVICE))
-      std::static_pointer_cast<CService>(localAddon)->Start();
-  }
-
-  if (CAddonMgr::GetInstance().GetAddon(addon->ID(), localAddon, ADDON_REPOSITORY))
-    CRepositoryUpdater::GetInstance().ScheduleUpdate(); //notify updater there is a new addon or version
-
 #ifdef HAS_DS_PLAYER
   if (addon->ID() == "script.madvrsettings") 
   {
@@ -474,14 +434,6 @@ void OnPostInstall(const AddonPtr& addon, bool update, bool modal)
 
 void OnPreUnInstall(const AddonPtr& addon)
 {
-  AddonPtr localAddon;
-
-  if (CAddonMgr::GetInstance().ServicesHasStarted())
-  {
-    if (CAddonMgr::GetInstance().GetAddon(addon->ID(), localAddon, ADDON_SERVICE))
-      std::static_pointer_cast<CService>(localAddon)->Stop();
-  }
-
   addon->OnPreUnInstall();
 }
 

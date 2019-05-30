@@ -26,6 +26,7 @@
 #include "settings/lib/ISettingsHandler.h"
 #include "settings/lib/ISubSettings.h"
 #include "settings/AudioDSPSettings.h"
+#include "settings/GameSettings.h"
 #include "settings/VideoSettings.h"
 #ifdef HAS_DS_PLAYER
 #include "cores/DSplayer/Filters/MadvrSettings.h"
@@ -49,14 +50,14 @@ class CMediaSettings : public ISettingCallback, public ISettingsHandler, public 
 public:
   static CMediaSettings& GetInstance();
 
-  virtual bool Load(const TiXmlNode *settings) override;
-  virtual bool Save(TiXmlNode *settings) const override;
+  bool Load(const TiXmlNode *settings) override;
+  bool Save(TiXmlNode *settings) const override;
 
 #ifdef HAS_DS_PLAYER
-  virtual void OnSettingChanged(const CSetting *setting) override;
+  void OnSettingChanged(std::shared_ptr<const CSetting> setting) override;
 #endif
-  virtual void OnSettingAction(std::shared_ptr<const CSetting> setting) override;
-  virtual void OnSettingsLoaded() override;
+  void OnSettingAction(std::shared_ptr<const CSetting> setting) override;
+  void OnSettingsLoaded() override;
 
   const CVideoSettings& GetDefaultVideoSettings() const { return m_defaultVideoSettings; }
   CVideoSettings& GetDefaultVideoSettings() { return m_defaultVideoSettings; }
@@ -67,6 +68,11 @@ public:
   CAudioSettings& GetDefaultAudioSettings() { return m_defaultAudioSettings; }
   const CAudioSettings& GetCurrentAudioSettings() const { return m_currentAudioSettings; }
   CAudioSettings& GetCurrentAudioSettings() { return m_currentAudioSettings; }
+
+  const CGameSettings& GetDefaultGameSettings() const { return m_defaultGameSettings; }
+  CGameSettings& GetDefaultGameSettings() { return m_defaultGameSettings; }
+  const CGameSettings& GetCurrentGameSettings() const { return m_currentGameSettings; }
+  CGameSettings& GetCurrentGameSettings() { return m_currentGameSettings; }
 
 #ifdef HAS_DS_PLAYER
   const CVideoSettings& GetAtStartVideoSettings() const { return m_atstartVideoSettings; }
@@ -119,7 +125,7 @@ protected:
   CMediaSettings();
   CMediaSettings(const CMediaSettings&);
   CMediaSettings& operator=(CMediaSettings const&);
-  virtual ~CMediaSettings();
+  ~CMediaSettings() override;
 
   static std::string GetWatchedContent(const std::string &content);
 
@@ -129,6 +135,9 @@ private:
 
   CAudioSettings m_defaultAudioSettings;
   CAudioSettings m_currentAudioSettings;
+
+  CGameSettings m_defaultGameSettings;
+  CGameSettings m_currentGameSettings;
 
 #ifdef HAS_DS_PLAYER
   CVideoSettings m_atstartVideoSettings;

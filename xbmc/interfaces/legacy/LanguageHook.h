@@ -42,10 +42,10 @@ namespace XBMCAddon
   class LanguageHook : public AddonClass
   {
   protected:
-    inline LanguageHook() {}
+    inline LanguageHook() = default;
 
   public:
-    virtual ~LanguageHook();
+    ~LanguageHook() override;
 
     /**
      * If the scripting language needs special handling for calls 

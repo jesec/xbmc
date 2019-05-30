@@ -35,15 +35,27 @@ std::string CInputSink::ControllerID(void) const
   return DEFAULT_CONTROLLER_ID;
 }
 
-bool CInputSink::AcceptsInput(void)
+bool CInputSink::AcceptsInput(const std::string& feature) const
 {
   return m_gameClient.AcceptsInput();
 }
 
-JOYSTICK::INPUT_TYPE CInputSink::GetInputType(const std::string& feature) const
+bool CInputSink::OnButtonPress(const std::string& feature, bool bPressed)
 {
-  // Convert all input to analog. This is done to simplify this function
-  // and avoid any extra dependencies. Analog is chosen to avoid any
-  // thresholding effects.
-  return JOYSTICK::INPUT_TYPE::ANALOG;
+  return true;
+}
+
+bool CInputSink::OnButtonMotion(const std::string& feature, float magnitude, unsigned int motionTimeMs)
+{
+  return true;
+}
+
+bool CInputSink::OnAnalogStickMotion(const std::string& feature, float x, float y, unsigned int motionTimeMs)
+{
+  return true;
+}
+
+bool CInputSink::OnAccelerometerMotion(const std::string& feature, float x, float y, float z)
+{
+  return true;
 }

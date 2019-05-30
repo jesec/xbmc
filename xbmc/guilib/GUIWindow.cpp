@@ -31,7 +31,7 @@
 #include "utils/log.h"
 #include "threads/SingleLock.h"
 #include "utils/TimeUtils.h"
-#include "input/ButtonTranslator.h"
+#include "input/WindowTranslator.h"
 #include "utils/XMLUtils.h"
 #include "GUIAudioManager.h"
 #include "Application.h"
@@ -210,7 +210,7 @@ bool CGUIWindow::Load(TiXmlElement *pRootElement)
     std::string strValue = pChild->Value();
     if (strValue == "previouswindow" && pChild->FirstChild())
     {
-      m_previousWindow = CButtonTranslator::TranslateWindow(pChild->FirstChild()->Value());
+      m_previousWindow = CWindowTranslator::TranslateWindow(pChild->FirstChild()->Value());
     }
     else if (strValue == "defaultcontrol" && pChild->FirstChild())
     {
@@ -267,7 +267,7 @@ bool CGUIWindow::Load(TiXmlElement *pRootElement)
     }
     else if (strValue == "depth" && pChild->FirstChild())
     { 
-      float stereo = static_cast<float>(atof(pChild->FirstChild()->Value()));;
+      float stereo = static_cast<float>(atof(pChild->FirstChild()->Value()));
       m_stereo = std::max(-1.f, std::min(1.f, stereo));
     }
     else if (strValue == "controls")
@@ -598,7 +598,7 @@ bool CGUIWindow::OnMessage(CGUIMessage& message)
   case GUI_MSG_WINDOW_INIT:
     {
       CLog::Log(LOGDEBUG, "------ Window Init (%s) ------", GetProperty("xmlfile").c_str());
-      if (m_dynamicResourceAlloc || !m_bAllocated) AllocResources();
+      if (m_dynamicResourceAlloc || !m_bAllocated) AllocResources(false);
       OnInitWindow();
       return true;
     }
@@ -851,7 +851,7 @@ bool CGUIWindow::Initialize()
   if (!NeedLoad())
     return true;
   if (g_application.IsCurrentThread())
-    AllocResources();
+    AllocResources(false);
   else
   {
     // if not app thread, send gui msg via app messenger
@@ -883,7 +883,7 @@ bool CGUIWindow::CheckAnimation(ANIMATION_TYPE animType)
       return false;
     // make sure we update our visibility prior to queuing the window close anim
     for (unsigned int i = 0; i < m_children.size(); i++)
-      m_children[i]->UpdateVisibility();
+      m_children[i]->UpdateVisibility(nullptr);
   }
   return true;
 }
@@ -1051,14 +1051,13 @@ bool CGUIWindow::SendMessage(int message, int id, int param1 /* = 0*/, int param
   CGUIMessage msg(message, GetID(), id, param1, param2);
   return OnMessage(msg);
 }
-
+#ifdef _DEBUG
 void CGUIWindow::DumpTextureUse()
 {
-#ifdef _DEBUG
   CLog::Log(LOGDEBUG, "%s for window %u", __FUNCTION__, GetID());
   CGUIControlGroup::DumpTextureUse();
-#endif
 }
+#endif
 
 void CGUIWindow::SetProperty(const std::string &strKey, const CVariant &value)
 {

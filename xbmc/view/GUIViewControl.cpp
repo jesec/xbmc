@@ -39,8 +39,7 @@ CGUIViewControl::CGUIViewControl(void)
   Reset();
 }
 
-CGUIViewControl::~CGUIViewControl(void)
-{ }
+CGUIViewControl::~CGUIViewControl(void) = default;
 
 void CGUIViewControl::Reset()
 {
@@ -352,7 +351,7 @@ void CGUIViewControl::UpdateViewVisibility()
     CGUIControl *view = m_allViews[i];
     if (view->HasVisibleCondition())
     {
-      view->UpdateVisibility();
+      view->UpdateVisibility(nullptr);
       if (view->IsVisibleFromSkin())
         m_visibleViews.push_back(view);
     }

@@ -26,7 +26,7 @@
 #include "GUIUserMessages.h"
 #include "GUIInfoManager.h"
 #include "guilib/GUIWindowManager.h"
-#include "input/ButtonTranslator.h"
+#include "input/InputManager.h"
 #include "input/Key.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
@@ -49,7 +49,7 @@ bool CGUIWindowVisualisation::OnAction(const CAction &action)
 {
   if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_PVRPLAYBACK_CONFIRMCHANNELSWITCH) &&
       g_infoManager.IsPlayerChannelPreviewActive() &&
-      (action.GetID() == ACTION_SELECT_ITEM || CButtonTranslator::GetInstance().GetGlobalAction(action.GetButtonCode()).GetID() == ACTION_SELECT_ITEM))
+      (action.GetID() == ACTION_SELECT_ITEM || CServiceBroker::GetInputManager().GetGlobalAction(action.GetButtonCode()).GetID() == ACTION_SELECT_ITEM))
   {
     // If confirm channel switch is active, channel preview is currently shown
     // and the button that caused this action matches (global) action "Select" (OK)
@@ -113,7 +113,7 @@ bool CGUIWindowVisualisation::OnAction(const CAction &action)
       g_infoManager.SetShowInfo(true);
     }
     break;
-    //! @todo These should be mapped to it's own function - at the moment it's overriding
+    //! @todo These should be mapped to its own function - at the moment it's overriding
     //! the global action of fastforward/rewind and OSD.
 /*  case KEY_BUTTON_Y:
     g_application.m_CdgParser.Pause();

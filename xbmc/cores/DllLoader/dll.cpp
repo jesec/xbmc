@@ -58,9 +58,10 @@ extern "C" HMODULE __stdcall dllLoadLibraryExtended(LPCSTR lib_file, LPCSTR sour
   /* extract name */
   const char* p = strrchr(lib_file, PATH_SEPARATOR_CHAR);
   if (p)
-    strcpy(libname, p+1);
+    strncpy(libname, p+1, sizeof(libname) - 1);
   else
-    strcpy(libname, lib_file);
+    strncpy(libname, lib_file, sizeof(libname) - 1);
+  libname[sizeof(libname) - 1] = '\0';
 
   if( libname[0] == '\0' )
     return NULL;
@@ -133,7 +134,7 @@ extern "C" HMODULE __stdcall dllLoadLibraryExA(LPCSTR lpLibFileName, HANDLE hFil
   return dllLoadLibraryExExtended(lpLibFileName, hFile, dwFlags, NULL);
 }
 
-extern "C" BOOL __stdcall dllFreeLibrary(HINSTANCE hLibModule)
+extern "C" int __stdcall dllFreeLibrary(HINSTANCE hLibModule)
 {
   LibraryLoader* dllhandle = DllLoaderContainer::GetModule(hLibModule);
 

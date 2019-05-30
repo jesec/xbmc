@@ -21,6 +21,7 @@
 #include "PVRRecording.h"
 
 #include "dialogs/GUIDialogOK.h"
+#include "guilib/LocalizeStrings.h"
 #include "ServiceBroker.h"
 #include "settings/AdvancedSettings.h"
 #include "utils/log.h"
@@ -434,6 +435,15 @@ CDateTime CPVRRecording::EndTimeAsLocalTime() const
 {
   CDateTime ret;
   ret.SetFromUTCDateTime(EndTimeAsUTC());
+  return ret;
+}
+
+CDateTime CPVRRecording::ExpirationTimeAsLocalTime() const
+{
+  CDateTime ret;
+  if (m_iLifetime > 0)
+    ret = EndTimeAsLocalTime() + CDateTimeSpan(m_iLifetime, 0, 0, 0);
+
   return ret;
 }
 

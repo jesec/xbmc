@@ -87,6 +87,7 @@
 #include "view/ViewStateSettings.h"
 #include "input/InputManager.h"
 #include "ServiceBroker.h"
+#include "DiscSettings.h"
 
 #ifdef HAS_DS_PLAYER  
 #include "FGLoader.h"
@@ -95,6 +96,7 @@
 
 #define SETTINGS_XML_FOLDER "special://xbmc/system/settings/"
 
+using namespace KODI;
 using namespace XFILE;
 
 const std::string CSettings::SETTING_LOOKANDFEEL_SKIN = "lookandfeel.skin";
@@ -312,6 +314,7 @@ const std::string CSettings::SETTING_WEATHER_CURRENTLOCATION = "weather.currentl
 const std::string CSettings::SETTING_WEATHER_ADDON = "weather.addon";
 const std::string CSettings::SETTING_WEATHER_ADDONSETTINGS = "weather.addonsettings";
 const std::string CSettings::SETTING_SERVICES_DEVICENAME = "services.devicename";
+const std::string CSettings::SETTING_SERVICES_UPNP = "services.upnp";
 const std::string CSettings::SETTING_SERVICES_UPNPSERVER = "services.upnpserver";
 const std::string CSettings::SETTING_SERVICES_UPNPANNOUNCE = "services.upnpannounce";
 const std::string CSettings::SETTING_SERVICES_UPNPLOOKFOREXTERNALSUBTITLES = "services.upnplookforexternalsubtitles";
@@ -568,6 +571,15 @@ bool CSettings::Save(const std::string &file)
 bool CSettings::LoadSetting(const TiXmlNode *node, const std::string &settingId)
 {
   return GetSettingsManager()->LoadSetting(node, settingId);
+}
+
+bool CSettings::GetBool(const std::string& id) const
+{
+  // Backward compatibility (skins use this setting)
+  if (StringUtils::EqualsNoCase(id, "lookandfeel.enablemouse"))
+    return CSettingsBase::GetBool(CSettings::SETTING_INPUT_ENABLEMOUSE);
+
+  return CSettingsBase::GetBool(id);
 }
 
 bool CSettings::Initialize(const std::string &file)
@@ -879,11 +891,11 @@ void CSettings::UninitializeISettingsHandlers()
   GetSettingsManager()->UnregisterCallback(&g_charsetConverter);
   GetSettingsManager()->UnregisterCallback(&g_graphicsContext);
   GetSettingsManager()->UnregisterCallback(&g_langInfo);
-  GetSettingsManager()->UnregisterCallback(&CInputManager::GetInstance());
+  GetSettingsManager()->UnregisterCallback(&CServiceBroker::GetInputManager());
   GetSettingsManager()->UnregisterCallback(&CNetworkServices::GetInstance());
   GetSettingsManager()->UnregisterCallback(&g_passwordManager);
   GetSettingsManager()->UnregisterCallback(&CRssManager::GetInstance());
-  GetSettingsManager()->UnregisterCallback(&ADDON::CRepositoryUpdater::GetInstance());
+  GetSettingsManager()->UnregisterCallback(&CServiceBroker::GetRepositoryUpdater());
 #if defined(TARGET_LINUX)
   GetSettingsManager()->UnregisterCallback(&g_timezone);
 #endif // defined(TARGET_LINUX)
@@ -1069,7 +1081,7 @@ void CSettings::InitializeISettingCallbacks()
 
   settingSet.clear();
   settingSet.insert(CSettings::SETTING_INPUT_ENABLEMOUSE);
-  GetSettingsManager()->RegisterCallback(&CInputManager::GetInstance(), settingSet);
+  GetSettingsManager()->RegisterCallback(&CServiceBroker::GetInputManager(), settingSet);
 
   settingSet.clear();
   settingSet.insert(CSettings::SETTING_SERVICES_WEBSERVER);
@@ -1082,6 +1094,7 @@ void CSettings::InitializeISettingCallbacks()
   settingSet.insert(CSettings::SETTING_SERVICES_AIRPLAYVIDEOSUPPORT);
   settingSet.insert(CSettings::SETTING_SERVICES_USEAIRPLAYPASSWORD);
   settingSet.insert(CSettings::SETTING_SERVICES_AIRPLAYPASSWORD);
+  settingSet.insert(CSettings::SETTING_SERVICES_UPNP);
   settingSet.insert(CSettings::SETTING_SERVICES_UPNPSERVER);
   settingSet.insert(CSettings::SETTING_SERVICES_UPNPRENDERER);
   settingSet.insert(CSettings::SETTING_SERVICES_UPNPCONTROLLER);
@@ -1131,7 +1144,7 @@ void CSettings::InitializeISettingCallbacks()
 
   settingSet.clear();
   settingSet.insert(CSettings::SETTING_ADDONS_AUTOUPDATES);
-  GetSettingsManager()->RegisterCallback(&ADDON::CRepositoryUpdater::GetInstance(), settingSet);
+  GetSettingsManager()->RegisterCallback(&CServiceBroker::GetRepositoryUpdater(), settingSet);
 
   settingSet.clear();
   settingSet.insert(CSettings::SETTING_ADDONS_SHOW_RUNNING);
@@ -1156,6 +1169,12 @@ void CSettings::InitializeISettingCallbacks()
   settingSet.insert(CSettings::SETTING_GAMES_ENABLEREWIND);
   settingSet.insert(CSettings::SETTING_GAMES_REWINDTIME);
   GetSettingsManager()->RegisterCallback(&GAME::CGameSettings::GetInstance(), settingSet);
+
+#ifdef HAVE_LIBBLURAY
+  settingSet.clear();
+  settingSet.insert(CSettings::SETTING_DISC_PLAYBACK);
+  GetSettingsManager()->RegisterCallback(&CDiscSettings::GetInstance(), settingSet);
+#endif
 }
 
 void CSettings::UninitializeISettingCallbacks()
@@ -1171,11 +1190,11 @@ void CSettings::UninitializeISettingCallbacks()
   GetSettingsManager()->UnregisterCallback(&g_charsetConverter);
   GetSettingsManager()->UnregisterCallback(&g_graphicsContext);
   GetSettingsManager()->UnregisterCallback(&g_langInfo);
-  GetSettingsManager()->UnregisterCallback(&CInputManager::GetInstance());
+  GetSettingsManager()->UnregisterCallback(&CServiceBroker::GetInputManager());
   GetSettingsManager()->UnregisterCallback(&CNetworkServices::GetInstance());
   GetSettingsManager()->UnregisterCallback(&g_passwordManager);
   GetSettingsManager()->UnregisterCallback(&CRssManager::GetInstance());
-  GetSettingsManager()->UnregisterCallback(&ADDON::CRepositoryUpdater::GetInstance());
+  GetSettingsManager()->UnregisterCallback(&CServiceBroker::GetRepositoryUpdater());
   GetSettingsManager()->UnregisterCallback(&GAME::CGameSettings::GetInstance());
 #if defined(TARGET_LINUX)
   GetSettingsManager()->UnregisterCallback(&g_timezone);
@@ -1186,6 +1205,9 @@ GetSettingsManager()->UnregisterCallback(&CServiceBroker::GetPeripherals());
   GetSettingsManager()->UnregisterCallback(&XBMCHelper::GetInstance());
 #endif
   GetSettingsManager()->UnregisterCallback(&CWakeOnAccess::GetInstance());
+#ifdef HAVE_LIBBLURAY
+  GetSettingsManager()->UnregisterCallback(&CDiscSettings::GetInstance());
+#endif
 }
 
 bool CSettings::Reset()

@@ -34,13 +34,12 @@
 
 #include "utils/log.h"
 
+using namespace KODI;
 using namespace GAME;
 
 #define SAVESTATE_OBJECT  "savestate"
 
-CSavestateDatabase::CSavestateDatabase()
-{
-}
+CSavestateDatabase::CSavestateDatabase() = default;
 
 bool CSavestateDatabase::AddSavestate(const CSavestate& save)
 {

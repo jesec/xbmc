@@ -29,6 +29,7 @@
 #include "events/AddonManagementEvent.h"
 #include "events/EventLog.h"
 #include "guilib/GUIWindowManager.h"
+#include "guilib/LocalizeStrings.h"
 #include "settings/Settings.h"
 #include "threads/SingleLock.h"
 #include "utils/JobManager.h"
@@ -40,20 +41,31 @@
 namespace ADDON
 {
 
-CRepositoryUpdater::CRepositoryUpdater() :
+CRepositoryUpdater::CRepositoryUpdater(CAddonMgr& addonMgr) :
   m_timer(this),
-  m_doneEvent(true)
+  m_doneEvent(true),
+  m_addonMgr(addonMgr)
 {}
-
-CRepositoryUpdater &CRepositoryUpdater::GetInstance()
-{
-  static CRepositoryUpdater instance;
-  return instance;
-}
 
 void CRepositoryUpdater::Start()
 {
+  CServiceBroker::GetAddonMgr().Events().Subscribe(this, &CRepositoryUpdater::OnEvent);
   ScheduleUpdate();
+}
+
+CRepositoryUpdater::~CRepositoryUpdater()
+{
+  CServiceBroker::GetAddonMgr().Events().Unsubscribe(this);
+}
+
+void CRepositoryUpdater::OnEvent(const ADDON::AddonEvent& event)
+{
+  if (auto enableEvent = dynamic_cast<const AddonEvents::Enabled*>(&event))
+  {
+    AddonPtr addon;
+    if (CAddonMgr::GetInstance().GetAddon(enableEvent->id, addon, ADDON_REPOSITORY))
+      ScheduleUpdate();
+  }
 }
 
 void CRepositoryUpdater::OnJobComplete(unsigned int jobID, bool success, CJob* job)

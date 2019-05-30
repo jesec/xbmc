@@ -27,8 +27,8 @@
 namespace ADDON
 {
 
-CScreenSaver::CScreenSaver(AddonDllPtr addonInfo)
- : IAddonInstanceHandler(ADDON_INSTANCE_SCREENSAVER, addonInfo)
+CScreenSaver::CScreenSaver(BinaryAddonBasePtr addonBase)
+ : IAddonInstanceHandler(ADDON_INSTANCE_SCREENSAVER, addonBase)
 {
   m_name = Name();
   m_presets = CSpecialProtocol::TranslatePath(Path());
@@ -52,7 +52,7 @@ CScreenSaver::CScreenSaver(AddonDllPtr addonInfo)
   m_struct.toKodi.kodiInstance = this;
 
   /* Open the class "kodi::addon::CInstanceScreensaver" on add-on side */
-  if (!CreateInstance(&m_struct))
+  if (CreateInstance(&m_struct) != ADDON_STATUS_OK)
     CLog::Log(LOGFATAL, "Screensaver: failed to create instance for '%s' and not usable!", ID().c_str());
 }
 

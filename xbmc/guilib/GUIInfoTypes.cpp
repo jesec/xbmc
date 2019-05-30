@@ -39,9 +39,7 @@ CGUIInfoBool::CGUIInfoBool(bool value)
   m_value = value;
 }
 
-CGUIInfoBool::~CGUIInfoBool()
-{
-}
+CGUIInfoBool::~CGUIInfoBool() = default;
 
 void CGUIInfoBool::Parse(const std::string &expression, int context)
 {

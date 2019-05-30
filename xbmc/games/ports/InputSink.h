@@ -22,11 +22,13 @@
 #include "games/controllers/ControllerTypes.h"
 #include "input/joysticks/IInputHandler.h"
 
+namespace KODI
+{
 namespace GAME
 {
   class CGameClient;
 
-  class CInputSink : public KODI::JOYSTICK::IInputHandler
+  class CInputSink : public JOYSTICK::IInputHandler
   {
   public:
     CInputSink(CGameClient &m_gameClient);
@@ -36,17 +38,16 @@ namespace GAME
     // Implementation of IInputHandler
     virtual std::string ControllerID(void) const override;
     virtual bool HasFeature(const std::string& feature) const override { return true; }
-    virtual bool AcceptsInput(void) override;
-    virtual KODI::JOYSTICK::INPUT_TYPE GetInputType(const std::string& feature) const override;
-    virtual unsigned int GetDelayMs(const std::string& feature) const override { return 0; }
-    virtual bool OnButtonPress(const std::string& feature, bool bPressed) override { return true; }
+    virtual bool AcceptsInput(const std::string& feature) const override;
+    virtual bool OnButtonPress(const std::string& feature, bool bPressed) override;
     virtual void OnButtonHold(const std::string& feature, unsigned int holdTimeMs) override { }
-    virtual bool OnButtonMotion(const std::string& feature, float magnitude) override { return true; }
-    virtual bool OnAnalogStickMotion(const std::string& feature, float x, float y, unsigned int motionTimeMs = 0) override { return true; }
-    virtual bool OnAccelerometerMotion(const std::string& feature, float x, float y, float z) override { return true; }
+    virtual bool OnButtonMotion(const std::string& feature, float magnitude, unsigned int motionTimeMs) override;
+    virtual bool OnAnalogStickMotion(const std::string& feature, float x, float y, unsigned int motionTimeMs) override;
+    virtual bool OnAccelerometerMotion(const std::string& feature, float x, float y, float z) override;
 
   private:
     const CGameClient &m_gameClient;
     const ControllerPtr m_controller;
   };
+}
 }

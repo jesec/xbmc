@@ -28,8 +28,7 @@
 class CWinEventsX11 : public IWinEvents
 {
 public:
-  virtual bool MessagePump();
-  virtual size_t GetQueueSize();
+  bool MessagePump() override;
 };
 
 class CWinEventsX11Imp
@@ -43,7 +42,6 @@ public:
   static void PendingResize(int width, int height);
   static void SetXRRFailSafeTimer(int millis);
   static bool MessagePump();
-  static size_t GetQueueSize();
 
 protected:
   static XBMCKey LookupXbmcKeySym(KeySym keysym);

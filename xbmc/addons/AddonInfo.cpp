@@ -64,7 +64,7 @@ static const TypeMapping types[] =
    {"xbmc.addon.image",                  ADDON_IMAGE,                1039, "DefaultAddonPicture.png" },
    {"xbmc.addon.executable",             ADDON_EXECUTABLE,           1043, "DefaultAddonProgram.png" },
    {"kodi.addon.game",                   ADDON_GAME,                35049, "DefaultAddonGame.png" },
-   {"xbmc.audioencoder",                 ADDON_AUDIOENCODER,         200,  "DefaultAddonAudioEncoder.png" },
+   {"kodi.audioencoder",                 ADDON_AUDIOENCODER,         200,  "DefaultAddonAudioEncoder.png" },
    {"kodi.audiodecoder",                 ADDON_AUDIODECODER,         201,  "DefaultAddonAudioDecoder.png" },
    {"xbmc.service",                      ADDON_SERVICE,             24018, "DefaultAddonService.png" },
    {"kodi.resource.images",              ADDON_RESOURCE_IMAGES,     24035, "DefaultAddonImages.png" },
@@ -138,18 +138,23 @@ TYPE CAddonInfo::TranslateSubContent(const std::string& content)
 }
 
 CAddonInfo::CAddonInfo()
-  : type(ADDON_UNKNOWN),
-    packageSize(0)
+  : m_mainType(ADDON_UNKNOWN),
+    m_packageSize(0)
 {
 
 }
 
 CAddonInfo::CAddonInfo(std::string id, TYPE type)
-  : id(std::move(id)),
-    type(type),
-    packageSize(0)
+  : m_id(std::move(id)),
+    m_mainType(type),
+    m_packageSize(0)
 {
 
+}
+
+bool CAddonInfo::MeetsVersion(const AddonVersion &version) const
+{
+  return m_minversion <= version && version <= m_version;
 }
 
 } /* namespace ADDON */

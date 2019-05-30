@@ -20,6 +20,7 @@
 
 #include "GameClient.h"
 #include "GameClientCallbacks.h"
+#include "GameClientHardware.h"
 #include "GameClientInGameSaves.h"
 #include "GameClientJoystick.h"
 #include "GameClientKeyboard.h"
@@ -37,8 +38,10 @@
 #include "games/ports/PortManager.h"
 #include "games/GameServices.h"
 #include "guilib/GUIWindowManager.h"
+#include "guilib/LocalizeStrings.h"
 #include "guilib/WindowIDs.h"
 #include "input/joysticks/JoystickTypes.h"
+#include "input/InputManager.h"
 #include "messaging/ApplicationMessenger.h"
 #include "peripherals/Peripherals.h"
 #include "profiles/ProfilesManager.h"
@@ -47,7 +50,6 @@
 #include "utils/log.h"
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
-#include "Application.h"
 #include "FileItem.h"
 #include "ServiceBroker.h"
 #include "URL.h"
@@ -112,7 +114,7 @@ std::unique_ptr<CGameClient> CGameClient::FromExtension(ADDON::CAddonInfo addonI
   {
     std::string strProperty = CAddonMgr::GetInstance().GetExtValue(ext->configuration, property.c_str());
     if (!strProperty.empty())
-      addonInfo.extrainfo[property] = strProperty;
+      addonInfo.AddExtraInfo(property, strProperty);
   }
 
   return std::unique_ptr<CGameClient>(new CGameClient(std::move(addonInfo)));
@@ -132,7 +134,7 @@ CGameClient::CGameClient(ADDON::CAddonInfo addonInfo) :
   m_video(nullptr),
   m_region(GAME_REGION_UNKNOWN)
 {
-  const ADDON::InfoMap& extraInfo = m_addonInfo.extrainfo;
+  const ADDON::InfoMap& extraInfo = m_addonInfo.ExtraInfo();
   ADDON::InfoMap::const_iterator it;
 
   it = extraInfo.find(GAME_PROPERTY_EXTENSIONS);
@@ -485,7 +487,7 @@ void CGameClient::ResetPlayback()
   m_playback.reset(new CGameClientRealtimePlayback);
 }
 
-void CGameClient::Reset()
+void CGameClient::Reset(unsigned int port)
 {
   ResetPlayback();
 
@@ -516,6 +518,8 @@ void CGameClient::CloseFile()
   }
 
   ClearPorts();
+
+  m_hardware.reset();
 
   if (m_bSupportsKeyboard)
     CloseKeyboard();
@@ -744,6 +748,10 @@ bool CGameClient::OpenPort(unsigned int port)
   if (m_ports.find(port) != m_ports.end())
     return false;
 
+  // Ensure hardware is open to receive events from the port
+  if (!m_hardware)
+    m_hardware.reset(new CGameClientHardware(this));
+
   ControllerVector controllers = GetControllers();
   if (!controllers.empty())
   {
@@ -757,7 +765,7 @@ bool CGameClient::OpenPort(unsigned int port)
     if (m_bSupportsKeyboard)
       device = PERIPHERALS::PERIPHERAL_JOYSTICK;
 
-    CServiceBroker::GetGameServices().PortManager().OpenPort(m_ports[port].get(), this, port, device);
+    CServiceBroker::GetGameServices().PortManager().OpenPort(m_ports[port].get(), m_hardware.get(), this, port, device);
 
     UpdatePort(port, controller);
 
@@ -817,8 +825,7 @@ void CGameClient::UpdatePort(unsigned int port, const ControllerPtr& controller)
 
 bool CGameClient::AcceptsInput(void) const
 {
-  return g_application.IsAppFocused() &&
-         g_windowManager.GetActiveWindowID() == WINDOW_FULLSCREEN_GAME;
+  return g_windowManager.GetActiveWindowID() == WINDOW_FULLSCREEN_GAME;
 }
 
 void CGameClient::ClearPorts(void)
@@ -883,7 +890,7 @@ bool CGameClient::SetRumble(unsigned int port, const std::string& feature, float
 
 void CGameClient::OpenKeyboard(void)
 {
-  m_keyboard.reset(new CGameClientKeyboard(this, &m_struct.toAddon));
+  m_keyboard.reset(new CGameClientKeyboard(this, &m_struct.toAddon, &CServiceBroker::GetInputManager()));
 }
 
 void CGameClient::CloseKeyboard(void)
@@ -893,7 +900,7 @@ void CGameClient::CloseKeyboard(void)
 
 void CGameClient::OpenMouse(void)
 {
-  m_mouse.reset(new CGameClientMouse(this, &m_struct.toAddon));
+  m_mouse.reset(new CGameClientMouse(this, &m_struct.toAddon, &CServiceBroker::GetInputManager()));
 
   CSingleLock lock(m_critSection);
 
@@ -957,7 +964,7 @@ void CGameClient::LogException(const char* strFunctionName) const
 
 void CGameClient::cb_close_game(void* kodiInstance)
 {
-  using namespace KODI::MESSAGING;
+  using namespace MESSAGING;
 
   CApplicationMessenger::GetInstance().PostMsg(TMSG_GUI_ACTION, WINDOW_INVALID, -1, static_cast<void*>(new CAction(ACTION_STOP)));
 }

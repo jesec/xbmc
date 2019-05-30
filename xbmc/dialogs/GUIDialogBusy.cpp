@@ -40,7 +40,7 @@ public:
   }
 
   // 'this' is actually deleted from the thread where it's on the stack
-  virtual void Process()
+  void Process() override
   {
     std::shared_ptr<CEvent> e_done(m_done);
 
@@ -94,9 +94,7 @@ CGUIDialogBusy::CGUIDialogBusy(void)
   m_progress = -1;
 }
 
-CGUIDialogBusy::~CGUIDialogBusy(void)
-{
-}
+CGUIDialogBusy::~CGUIDialogBusy(void) = default;
 
 void CGUIDialogBusy::Open_Internal(const std::string &param /* = "" */)
 {

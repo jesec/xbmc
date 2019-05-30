@@ -89,14 +89,14 @@ public:
   enum LOAD_TYPE { LOAD_EVERY_TIME, LOAD_ON_GUI_INIT, KEEP_IN_MEMORY };
 
   CGUIWindow(int id, const std::string &xmlFile);
-  virtual ~CGUIWindow(void);
+  ~CGUIWindow(void) override;
 
   bool Initialize();  // loads the window
   bool Load(const std::string& strFileName, bool bContainsPath = false);
 
   void CenterWindow();
 
-  virtual void DoProcess(unsigned int currentTime, CDirtyRegionList &dirtyregions);
+  void DoProcess(unsigned int currentTime, CDirtyRegionList &dirtyregions) override;
   
   /*! \brief Main render function, called every frame.
    Window classes should override this only if they need to alter how something is rendered.
@@ -104,7 +104,7 @@ public:
    is not necessarily re-entrant.
    \sa FrameMove
    */
-  virtual void DoRender();
+  void DoRender() override;
 
   /*! \brief Do any post render activities.
     Check if window closing animation is finished and finalize window closing.
@@ -124,9 +124,11 @@ public:
   // unhandled messages should be dropped through to here where we send the message
   // on to the currently focused control.  Returns true if the action has been handled
   // and does not need to be passed further down the line (to our global action handlers)
-  virtual bool OnAction(const CAction &action);
+  bool OnAction(const CAction &action) override;
   
+  using CGUIControlGroup::OnBack;
   virtual bool OnBack(int actionID);
+  using CGUIControlGroup::OnInfo;
   virtual bool OnInfo(int actionID) { return false; };
 
   /*! \brief Clear the background (if necessary) prior to rendering the window
@@ -134,18 +136,19 @@ public:
   virtual void ClearBackground();
 
   bool OnMove(int fromControl, int moveAction);
-  virtual bool OnMessage(CGUIMessage& message);
+  bool OnMessage(CGUIMessage& message) override;
 
   bool ControlGroupHasFocus(int groupID, int controlID);
-  virtual void SetID(int id);
+  void SetID(int id) override;
   virtual bool HasID(int controlID) const;
   const std::vector<int>& GetIDRange() const { return m_idRange; };
   int GetPreviousWindow() { return m_previousWindow; };
   CRect GetScaledBounds() const;
-  virtual void ClearAll();
+  void ClearAll() override;
+  using CGUIControlGroup::AllocResources;
   virtual void AllocResources(bool forceLoad = false);
-  virtual void FreeResources(bool forceUnLoad = false);
-  virtual void DynamicResourceAlloc(bool bOnOff);
+  void FreeResources(bool forceUnLoad = false) override;
+  void DynamicResourceAlloc(bool bOnOff) override;
   virtual bool IsDialog() const { return false; };
   virtual bool IsDialogRunning() const { return false; };
   virtual bool IsModalDialog() const { return false; };
@@ -162,13 +165,13 @@ public:
   void SetLoadType(LOAD_TYPE loadType) { m_loadType = loadType; };
   LOAD_TYPE GetLoadType() { return m_loadType; } const
   int GetRenderOrder() { return m_renderOrder; };
-  virtual void SetInitialVisibility();
-  virtual bool IsVisible() const { return true; }; // windows are always considered visible as they implement their own
+  void SetInitialVisibility() override;
+  bool IsVisible() const override { return true; }; // windows are always considered visible as they implement their own
                                                    // versions of UpdateVisibility, and are deemed visible if they're in
                                                    // the window manager's active list.
   virtual bool HasVisibleControls() { return true; }; //Assume that window always has visible controls
 
-  virtual bool IsAnimating(ANIMATION_TYPE animType);
+  bool IsAnimating(ANIMATION_TYPE animType) override;
 
   /*!
    \brief Return if the window is a custom window
@@ -185,7 +188,7 @@ public:
   void DisableAnimations();
 
   virtual void ResetControlStates();
-  virtual void UpdateControlStats() {}; // Do not count window itself
+  void UpdateControlStats() override {}; // Do not count window itself
 
   void       SetRunActionsManually();
   void       RunLoadActions() const;
@@ -210,13 +213,14 @@ public:
    */
   void ClearProperties();
 
-  void DumpTextureUse();
-
+#ifdef _DEBUG
+  void DumpTextureUse() override;
+#endif
   bool HasSaveLastControl() const { return !m_defaultAlways; };
 
   virtual void OnDeinitWindow(int nextWindowID);
 protected:
-  virtual EVENT_RESULT OnMouseEvent(const CPoint &point, const CMouseEvent &event);
+  EVENT_RESULT OnMouseEvent(const CPoint &point, const CMouseEvent &event) override;
 
   /*!
    \brief Load the window XML from the given path
@@ -250,10 +254,8 @@ protected:
   virtual void OnInitWindow();
   void Close_Internal(bool forceClose = false, int nextWindowID = 0, bool enableSound = true);
   EVENT_RESULT OnMouseAction(const CAction &action);
-  virtual bool Animate(unsigned int currentTime);
-  virtual bool CheckAnimation(ANIMATION_TYPE animType);
-
-  CAnimation *GetAnimation(ANIMATION_TYPE animType, bool checkConditions = true);
+  bool Animate(unsigned int currentTime) override;
+  bool CheckAnimation(ANIMATION_TYPE animType) override;
 
   // control state saving on window close
   virtual void SaveControlStates();
@@ -290,7 +292,7 @@ protected:
 
    \return the window's origin in skin coordinates
    */
-  virtual CPoint GetPosition() const;
+  CPoint GetPosition() const override;
   std::vector<COrigin> m_origins;  // positions of dialogs depending on base window
 
   // control states

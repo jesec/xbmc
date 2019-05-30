@@ -37,6 +37,7 @@
 #include "guilib/GUIWindowManager.h"
 #include "input/MouseStat.h"
 #include "input/InputManager.h"
+#include "ServiceBroker.h"
 
 using namespace KODI::MESSAGING;
 
@@ -156,11 +157,6 @@ static uint32_t SymMappingsX11[][2] =
 bool CWinEventsX11::MessagePump()
 {
   return CWinEventsX11Imp::MessagePump();
-}
-
-size_t CWinEventsX11::GetQueueSize()
-{
-  return CWinEventsX11Imp::GetQueueSize();
 }
 
 CWinEventsX11Imp::CWinEventsX11Imp()
@@ -422,8 +418,6 @@ bool CWinEventsX11Imp::MessagePump()
           XLookupString(&xevent.xkey, NULL, 0, &xkeysym, NULL);
           newEvent.key.keysym.sym = LookupXbmcKeySym(xkeysym);
           newEvent.key.keysym.scancode = xevent.xkey.keycode;
-          newEvent.key.state = xevent.xkey.state;
-          newEvent.key.type = xevent.xkey.type;
           if (XLookupString(&xevent.xkey, keybuf, sizeof(keybuf), NULL, &state))
           {
             newEvent.key.keysym.unicode = keybuf[0];
@@ -465,8 +459,6 @@ bool CWinEventsX11Imp::MessagePump()
             {
               newEvent.key.keysym.sym = XBMCK_UNKNOWN;
               newEvent.key.keysym.unicode = keys[i];
-              newEvent.key.state = xevent.xkey.state;
-              newEvent.key.type = xevent.xkey.type;
               ret |= ProcessKey(newEvent);
             }
             if (keys.length() > 0)
@@ -475,8 +467,6 @@ bool CWinEventsX11Imp::MessagePump()
               XLookupString(&xevent.xkey, NULL, 0, &xkeysym, NULL);
               newEvent.key.keysym.sym = LookupXbmcKeySym(xkeysym);
               newEvent.key.keysym.unicode = keys[keys.length() - 1];
-              newEvent.key.state = xevent.xkey.state;
-              newEvent.key.type = xevent.xkey.type;
 
               ret |= ProcessKey(newEvent);
             }
@@ -487,8 +477,6 @@ bool CWinEventsX11Imp::MessagePump()
           {
             newEvent.key.keysym.scancode = xevent.xkey.keycode;
             newEvent.key.keysym.sym = LookupXbmcKeySym(xkeysym);
-            newEvent.key.state = xevent.xkey.state;
-            newEvent.key.type = xevent.xkey.type;
             ret |= ProcessKey(newEvent);
             break;
           }
@@ -518,8 +506,6 @@ bool CWinEventsX11Imp::MessagePump()
         xkeysym = XLookupKeysym(&xevent.xkey, 0);
         newEvent.key.keysym.scancode = xevent.xkey.keycode;
         newEvent.key.keysym.sym = LookupXbmcKeySym(xkeysym);
-        newEvent.key.state = xevent.xkey.state;
-        newEvent.key.type = xevent.xkey.type;
         ret |= ProcessKey(newEvent);
         break;
       }
@@ -532,7 +518,7 @@ bool CWinEventsX11Imp::MessagePump()
       // lose mouse coverage
       case LeaveNotify:
       {
-        CInputManager::GetInstance().SetMouseActive(false);
+        CServiceBroker::GetInputManager().SetMouseActive(false);
         break;
       }
 
@@ -543,8 +529,6 @@ bool CWinEventsX11Imp::MessagePump()
         XBMC_Event newEvent;
         memset(&newEvent, 0, sizeof(newEvent));
         newEvent.type = XBMC_MOUSEMOTION;
-        newEvent.motion.xrel = (int16_t)xevent.xmotion.x_root;
-        newEvent.motion.yrel = (int16_t)xevent.xmotion.y_root;
         newEvent.motion.x = (int16_t)xevent.xmotion.x;
         newEvent.motion.y = (int16_t)xevent.xmotion.y;
         ret |= g_application.OnEvent(newEvent);
@@ -557,7 +541,6 @@ bool CWinEventsX11Imp::MessagePump()
         memset(&newEvent, 0, sizeof(newEvent));
         newEvent.type = XBMC_MOUSEBUTTONDOWN;
         newEvent.button.button = (unsigned char)xevent.xbutton.button;
-        newEvent.button.state = XBMC_PRESSED;
         newEvent.button.x = (int16_t)xevent.xbutton.x;
         newEvent.button.y = (int16_t)xevent.xbutton.y;
         ret |= g_application.OnEvent(newEvent);
@@ -570,7 +553,6 @@ bool CWinEventsX11Imp::MessagePump()
         memset(&newEvent, 0, sizeof(newEvent));
         newEvent.type = XBMC_MOUSEBUTTONUP;
         newEvent.button.button = (unsigned char)xevent.xbutton.button;
-        newEvent.button.state = XBMC_RELEASED;
         newEvent.button.x = (int16_t)xevent.xbutton.x;
         newEvent.button.y = (int16_t)xevent.xbutton.y;
         ret |= g_application.OnEvent(newEvent);
@@ -590,16 +572,6 @@ bool CWinEventsX11Imp::MessagePump()
     g_Windowing.NotifyXRREvent();
     WinEvents->m_xrrEventPending = false;
   }
-
-  return ret;
-}
-
-size_t CWinEventsX11Imp::GetQueueSize()
-{
-  int ret = 0;
-
-  if (WinEvents)
-    ret = XPending(WinEvents->m_display);
 
   return ret;
 }

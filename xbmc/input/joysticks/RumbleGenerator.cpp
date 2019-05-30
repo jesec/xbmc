@@ -20,8 +20,9 @@
 
 #include "RumbleGenerator.h"
 #include "games/controllers/Controller.h"
-#include "games/GameServices.h"
+#include "games/controllers/ControllerManager.h"
 #include "input/joysticks/IInputReceiver.h"
+#include "input/joysticks/JoystickIDs.h"
 #include "ServiceBroker.h"
 
 #include <algorithm>
@@ -35,12 +36,17 @@
 using namespace KODI;
 using namespace JOYSTICK;
 
-CRumbleGenerator::CRumbleGenerator(const std::string& controllerId) :
+CRumbleGenerator::CRumbleGenerator() :
   CThread("RumbleGenerator"),
-  m_motors(GetMotors(controllerId)),
+  m_motors(GetMotors(ControllerID())),
   m_receiver(nullptr),
   m_type(RUMBLE_UNKNOWN)
 {
+}
+
+std::string CRumbleGenerator::ControllerID() const
+{
+  return DEFAULT_CONTROLLER_ID;
 }
 
 void CRumbleGenerator::NotifyUser(IInputReceiver* receiver)
@@ -124,7 +130,8 @@ std::vector<std::string> CRumbleGenerator::GetMotors(const std::string& controll
 
   std::vector<std::string> motors;
 
-  ControllerPtr controller = CServiceBroker::GetGameServices().GetController(controllerId);
+  CControllerManager& controllerManager = CServiceBroker::GetGameControllerManager();
+  ControllerPtr controller = controllerManager.GetController(controllerId);
   if (controller)
     controller->GetFeatures(motors, FEATURE_TYPE::MOTOR);
  

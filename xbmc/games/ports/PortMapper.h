@@ -30,6 +30,8 @@ namespace PERIPHERALS
   class CPeripherals;
 }
 
+namespace KODI
+{
 namespace GAME
 {
   class CPortManager;
@@ -37,23 +39,21 @@ namespace GAME
   class CPortMapper : public Observer
   {
   public:
-    CPortMapper();
+    CPortMapper(PERIPHERALS::CPeripherals& peripheralManager, CPortManager& portManager);
 
     virtual ~CPortMapper();
-
-    void Initialize(PERIPHERALS::CPeripherals& peripheralManager, CPortManager& portManager);
-    void Deinitialize();
 
     virtual void Notify(const Observable& obs, const ObservableMessage msg) override;
 
   private:
     void ProcessPeripherals();
 
-    // Initialization parameters
-    PERIPHERALS::CPeripherals* m_peripheralManager;
-    CPortManager* m_portManager;
+    // Construction parameters
+    PERIPHERALS::CPeripherals &m_peripheralManager;
+    CPortManager &m_portManager;
 
     // Port paremters
     std::map<PERIPHERALS::PeripheralPtr, PortPtr> m_portMap;
   };
+}
 }

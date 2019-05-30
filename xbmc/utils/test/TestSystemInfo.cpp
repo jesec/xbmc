@@ -29,11 +29,9 @@ class TestSystemInfo : public testing::Test
 {
 protected:
   TestSystemInfo()
-  {
-  }
-  ~TestSystemInfo()
-  {
-  }
+  = default;
+  ~TestSystemInfo() override
+  = default;
 };
 
 TEST_F(TestSystemInfo, Print_System_Info)

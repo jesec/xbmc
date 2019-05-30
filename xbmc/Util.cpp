@@ -302,12 +302,9 @@ std::string GetHomePath(const std::string& strTarget, std::string strPath)
 }
 #endif
 }
-CUtil::CUtil(void)
-{
-}
+CUtil::CUtil(void) = default;
 
-CUtil::~CUtil(void)
-{}
+CUtil::~CUtil(void) = default;
 
 std::string CUtil::GetTitleFromPath(const std::string& strFileNameAndPath, bool bIsFolder /* = false */)
 {
@@ -1465,10 +1462,16 @@ bool CUtil::MakeShortenPath(std::string StrInput, std::string& StrOutput, size_t
   {
     nPos = StrInput.find_last_of( cDelim, nPos );
     nGreaterDelim = nPos;
-    if ( nPos != std::string::npos )
-      nPos = StrInput.find_last_of( cDelim, nPos - 1 );
-    if ( nPos == std::string::npos ) break;
-    if ( nGreaterDelim > nPos ) StrInput.replace( nPos + 1, nGreaterDelim - nPos - 1, ".." );
+
+    if (nPos == std::string::npos || nPos == 0)
+      break;
+
+    nPos = StrInput.find_last_of( cDelim, nPos - 1 );
+
+    if ( nPos == std::string::npos )
+      break;
+    if ( nGreaterDelim > nPos )
+      StrInput.replace( nPos + 1, nGreaterDelim - nPos - 1, ".." );
     iStrInputSize = StrInput.size();
   }
   // replace any additional /../../ with just /../ if necessary
@@ -2092,7 +2095,7 @@ ExternalStreamInfo CUtil::GetExternalStreamDetailsFromFilename(const std::string
         std::string langTmp(*it);
         std::string langCode;
         // try to recognize language
-        if (g_LangCodeExpander.ConvertToISO6392T(langTmp, langCode))
+        if (g_LangCodeExpander.ConvertToISO6392B(langTmp, langCode))
         {
           info.language = langCode;
           continue;

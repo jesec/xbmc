@@ -26,12 +26,13 @@ class CGUIDialogAddonSettings : public CGUIDialogSettingsManagerBase
 {
 public:
   CGUIDialogAddonSettings();
-  ~CGUIDialogAddonSettings() = default;
+  ~CGUIDialogAddonSettings() override = default;
 
   // specializations of CGUIControl
-  virtual bool OnMessage(CGUIMessage &message);
+  bool OnMessage(CGUIMessage &message) override;
 
   static bool ShowForAddon(const ADDON::AddonPtr &addon, bool saveToDisk = true);
+  static void SaveAndClose();
 
   std::string GetCurrentAddonID() const;
 
@@ -39,7 +40,7 @@ protected:
   // implementation of CGUIDialogSettingsBase
   void SetupView() override;
   std::string GetLocalizedString(uint32_t labelId) const override;
-  std::string GetSettingsLabel(std::shared_ptr<CSetting> setting) override;
+  std::string GetSettingsLabel(std::shared_ptr<ISetting> setting) override;
   int GetSettingLevel() const override;
   std::shared_ptr<CSettingSection> GetSection() override;
 
@@ -50,4 +51,5 @@ protected:
 
 private:
   ADDON::AddonPtr m_addon;
+  bool m_saveToDisk = false;
 };

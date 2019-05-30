@@ -226,10 +226,7 @@ CLangInfo::CRegion::CRegion()
   SetDefaults();
 }
 
-CLangInfo::CRegion::~CRegion()
-{
-
-}
+CLangInfo::CRegion::~CRegion() = default;
 
 void CLangInfo::CRegion::SetDefaults()
 {
@@ -334,9 +331,7 @@ CLangInfo::CLangInfo()
   m_speedUnit = m_defaultRegion.m_speedUnit;
 }
 
-CLangInfo::~CLangInfo()
-{
-}
+CLangInfo::~CLangInfo() = default;
 
 void CLangInfo::OnSettingChanged(std::shared_ptr<const CSetting> setting)
 {
@@ -429,16 +424,16 @@ bool CLangInfo::Load(const std::string& strLanguage)
   // Windows need 3 chars isolang code
   if (m_defaultRegion.m_strLangLocaleName.length() == 2)
   {
-    if (!g_LangCodeExpander.ConvertISO6391ToISO6392T(m_defaultRegion.m_strLangLocaleName, m_defaultRegion.m_strLangLocaleName, true))
+    if (!g_LangCodeExpander.ConvertISO6391ToISO6392B(m_defaultRegion.m_strLangLocaleName, m_defaultRegion.m_strLangLocaleName, true))
       m_defaultRegion.m_strLangLocaleName = "";
   }
 
-  if (!g_LangCodeExpander.ConvertWindowsLanguageCodeToISO6392T(m_defaultRegion.m_strLangLocaleName, m_languageCodeGeneral))
+  if (!g_LangCodeExpander.ConvertWindowsLanguageCodeToISO6392B(m_defaultRegion.m_strLangLocaleName, m_languageCodeGeneral))
     m_languageCodeGeneral = "";
 #else
   if (m_defaultRegion.m_strLangLocaleName.length() != 3)
   {
-    if (!g_LangCodeExpander.ConvertToISO6392T(m_defaultRegion.m_strLangLocaleName, m_languageCodeGeneral))
+    if (!g_LangCodeExpander.ConvertToISO6392B(m_defaultRegion.m_strLangLocaleName, m_languageCodeGeneral))
       m_languageCodeGeneral = "";
   }
   else
@@ -467,7 +462,7 @@ bool CLangInfo::Load(const std::string& strLanguage)
       // Windows need 3 chars regions code
       if (region.m_strRegionLocaleName.length() == 2)
       {
-        if (!g_LangCodeExpander.ConvertISO36111Alpha2ToISO36111Alpha3(region.m_strRegionLocaleName, region.m_strRegionLocaleName))
+        if (!g_LangCodeExpander.ConvertISO31661Alpha2ToISO31661Alpha3(region.m_strRegionLocaleName, region.m_strRegionLocaleName))
           region.m_strRegionLocaleName = "";
       }
 #endif
@@ -705,8 +700,8 @@ bool CLangInfo::SetLanguage(bool& fallback, const std::string &strLanguage /* = 
       if (addondb.Open())
       {
         // update the addon repositories to check if there's a matching language addon available for download
-        if (ADDON::CRepositoryUpdater::GetInstance().CheckForUpdates())
-          ADDON::CRepositoryUpdater::GetInstance().Await();
+        if (CServiceBroker::GetRepositoryUpdater().CheckForUpdates())
+          CServiceBroker::GetRepositoryUpdater().Await();
 
         ADDON::VECADDONS languageAddons;
         if (addondb.GetRepositoryContent(languageAddons) && !languageAddons.empty())
@@ -799,7 +794,7 @@ void CLangInfo::SetAudioLanguage(const std::string& language)
   if (language.empty()
     || StringUtils::EqualsNoCase(language, "default")
     || StringUtils::EqualsNoCase(language, "original")
-    || !g_LangCodeExpander.ConvertToISO6392T(language, m_audioLanguage))
+    || !g_LangCodeExpander.ConvertToISO6392B(language, m_audioLanguage))
     m_audioLanguage.clear();
 }
 
@@ -817,7 +812,7 @@ void CLangInfo::SetSubtitleLanguage(const std::string& language)
   if (language.empty()
     || StringUtils::EqualsNoCase(language, "default")
     || StringUtils::EqualsNoCase(language, "original")
-    || !g_LangCodeExpander.ConvertToISO6392T(language, m_subtitleLanguage))
+    || !g_LangCodeExpander.ConvertToISO6392B(language, m_subtitleLanguage))
     m_subtitleLanguage.clear();
 }
 

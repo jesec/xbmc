@@ -23,6 +23,7 @@
 #include "filesystem/File.h"
 #include "filesystem/Directory.h"
 #include "filesystem/PluginDirectory.h"
+#include "guilib/LocalizeStrings.h"
 #include "AddonManager.h"
 #include "utils/ScraperParser.h"
 #include "utils/ScraperUrl.h"
@@ -137,7 +138,7 @@ std::unique_ptr<CScraper> CScraper::FromExtension(CAddonInfo addonInfo, const cp
     persistence.SetFromTimeString(tmp);
 
   CONTENT_TYPE pathContent(CONTENT_NONE);
-  switch (addonInfo.type)
+  switch (addonInfo.MainType())
   {
     case ADDON_SCRAPER_ALBUMS:
       pathContent = CONTENT_ALBUMS;
@@ -188,7 +189,7 @@ bool CScraper::Supports(const CONTENT_TYPE &content) const
 bool CScraper::SetPathSettings(CONTENT_TYPE content, const std::string& xml)
 {
   m_pathContent = content;
-  if (!LoadSettings())
+  if (!LoadSettings(false, false))
     return false;
 
   if (xml.empty())
@@ -201,7 +202,7 @@ bool CScraper::SetPathSettings(CONTENT_TYPE content, const std::string& xml)
 
 std::string CScraper::GetPathSettings()
 {
-  if (!LoadSettings())
+  if (!LoadSettings(false))
     return "";
 
   std::stringstream stream;

@@ -54,9 +54,7 @@ CGUIWindowSystemInfo::CGUIWindowSystemInfo(void) :
   m_loadType = KEEP_IN_MEMORY;
 }
 
-CGUIWindowSystemInfo::~CGUIWindowSystemInfo(void)
-{
-}
+CGUIWindowSystemInfo::~CGUIWindowSystemInfo(void) = default;
 
 bool CGUIWindowSystemInfo::OnMessage(CGUIMessage& message)
 {

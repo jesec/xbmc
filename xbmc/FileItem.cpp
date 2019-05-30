@@ -69,6 +69,7 @@
 #include <assert.h>
 #include <algorithm>
 
+using namespace KODI;
 using namespace XFILE;
 using namespace PLAYLIST;
 using namespace MUSIC_INFO;
@@ -1055,7 +1056,7 @@ bool CFileItem::IsNFO() const
 
 bool CFileItem::IsDiscImage() const
 {
-  return URIUtils::HasExtension(m_strPath, ".img|.iso|.nrg");
+  return URIUtils::HasExtension(m_strPath, ".img|.iso|.nrg|.udf");
 }
 
 bool CFileItem::IsOpticalMediaFile() const
@@ -1689,7 +1690,7 @@ std::string CFileItem::GetOpticalMediaPath() const
 * @todo Ideally this (and SetPath) would not be available outside of construction
 * for CFileItem objects, or at least restricted to essentially be equivalent
 * to construction. This would require re-formulating a bunch of CFileItem
-* construction, and also allowing CFileItemList to have it's own (public)
+* construction, and also allowing CFileItemList to have its own (public)
 * SetURL() function, so for now we give direct access.
 */
 void CFileItem::SetURL(const CURL& url)

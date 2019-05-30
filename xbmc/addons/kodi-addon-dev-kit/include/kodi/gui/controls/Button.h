@@ -73,9 +73,7 @@ namespace controls
     /// @ingroup cpp_kodi_gui_control_CButton
     /// @brief Destructor
     ///
-    virtual ~CButton()
-    {
-    }
+    ~CButton() override = default;
     //--------------------------------------------------------------------------
 
     //==========================================================================

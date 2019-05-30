@@ -29,39 +29,18 @@ using namespace GAME;
 using namespace JOYSTICK;
 using namespace PERIPHERALS;
 
-CPortMapper::CPortMapper() :
-  m_peripheralManager(nullptr),
-  m_portManager(nullptr)
+CPortMapper::CPortMapper(PERIPHERALS::CPeripherals& peripheralManager, CPortManager& portManager) :
+  m_peripheralManager(peripheralManager),
+  m_portManager(portManager)
 {
+  m_peripheralManager.RegisterObserver(this);
+  m_portManager.RegisterObserver(this);
 }
 
 CPortMapper::~CPortMapper()
 {
-  Deinitialize();
-}
-
-void CPortMapper::Initialize(PERIPHERALS::CPeripherals& peripheralManager, CPortManager& portManager)
-{
-  m_peripheralManager = &peripheralManager;
-  m_portManager = &portManager;
-
-  m_peripheralManager->RegisterObserver(this);
-  m_portManager->RegisterObserver(this);
-}
-
-void CPortMapper::Deinitialize()
-{
-  if (m_portManager)
-  {
-    m_portManager->UnregisterObserver(this);
-    m_portManager = nullptr;
-  }
-
-  if (m_peripheralManager)
-  {
-    m_peripheralManager->UnregisterObserver(this);
-    m_peripheralManager = nullptr;
-  }
+  m_portManager.UnregisterObserver(this);
+  m_peripheralManager.UnregisterObserver(this);
 }
 
 void CPortMapper::Notify(const Observable &obs, const ObservableMessage msg)
@@ -79,15 +58,12 @@ void CPortMapper::Notify(const Observable &obs, const ObservableMessage msg)
 
 void CPortMapper::ProcessPeripherals()
 {
-  if (m_peripheralManager == nullptr || m_portManager == nullptr)
-    return;
-
   PeripheralVector joysticks;
-  m_peripheralManager->GetPeripheralsWithFeature(joysticks, FEATURE_JOYSTICK);
+  m_peripheralManager.GetPeripheralsWithFeature(joysticks, FEATURE_JOYSTICK);
 
   // Perform the port mapping
   std::map<CPeripheral*, IInputHandler*> newPortMap;
-  m_portManager->MapDevices(joysticks, newPortMap);
+  m_portManager.MapDevices(joysticks, newPortMap);
 
   // Update each joystick
   for (auto& joystick : joysticks)
@@ -95,32 +71,30 @@ void CPortMapper::ProcessPeripherals()
     auto itConnectedPort = newPortMap.find(joystick.get());
     auto itDisconnectedPort = m_portMap.find(joystick);
 
-    bool bIsConnected = itConnectedPort != newPortMap.end();
-    bool bWasConnected = itDisconnectedPort != m_portMap.end();
+    IInputHandler* newHandler = itConnectedPort != newPortMap.end() ? itConnectedPort->second : nullptr;
+    IInputHandler* oldHandler = itDisconnectedPort != m_portMap.end() ? itDisconnectedPort->second->InputHandler() : nullptr;
 
-    if (bIsConnected != bWasConnected)
+    if (oldHandler != newHandler)
     {
       // Unregister old handler
-      if (bWasConnected)
+      if (oldHandler != nullptr)
       {
         PortPtr& oldPort = itDisconnectedPort->second;
 
-        oldPort->UnregisterDevice(joystick.get());
+        oldPort->UnregisterInput(joystick.get());
 
         m_portMap.erase(itDisconnectedPort);
       }
 
       // Register new handler
-      if (bIsConnected)
+      if (newHandler != nullptr)
       {
-        IInputHandler *inputHandler = itConnectedPort->second;
-
-        CGameClient *gameClient = m_portManager->GameClient(inputHandler);
+        CGameClient *gameClient = m_portManager.GameClient(newHandler);
         if (gameClient)
         {
-          PortPtr newPort(new CPort(inputHandler, *gameClient));
+          PortPtr newPort(new CPort(newHandler, *gameClient));
 
-          newPort->RegisterDevice(joystick.get());
+          newPort->RegisterInput(joystick.get());
 
           m_portMap.insert(std::make_pair(std::move(joystick), std::move(newPort)));
         }

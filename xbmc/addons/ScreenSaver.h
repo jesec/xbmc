@@ -20,7 +20,7 @@
 #pragma once
 
 #include "addons/kodi-addon-dev-kit/include/kodi/addon-instance/Screensaver.h"
-#include "addons/AddonInstanceHandler.h"
+#include "addons/binary-addons/AddonInstanceHandler.h"
 
 namespace ADDON
 {
@@ -28,8 +28,8 @@ namespace ADDON
 class CScreenSaver : public IAddonInstanceHandler
 {
 public:
-  CScreenSaver(AddonDllPtr addonInfo);
-  virtual ~CScreenSaver();
+  CScreenSaver(BinaryAddonBasePtr addonBase);
+  ~CScreenSaver() override;
 
   bool Start();
   void Stop();

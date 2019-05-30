@@ -51,9 +51,7 @@ CAnimEffect::CAnimEffect(unsigned int delay, unsigned int length, EFFECT_TYPE ef
   m_pTweener = std::shared_ptr<Tweener>(new LinearTweener());
 }
 
-CAnimEffect::~CAnimEffect()
-{
-}
+CAnimEffect::~CAnimEffect() = default;
 
 CAnimEffect::CAnimEffect(const CAnimEffect &src)
 {
@@ -440,8 +438,7 @@ void CAnimation::Animate(unsigned int time, bool startAnim)
     m_currentProcess = ANIM_PROCESS_REVERSE;
   }
   // reset the queued state once we've rendered to ensure allocation has occured
-  if (startAnim || m_queuedProcess == ANIM_PROCESS_REVERSE)
-    m_queuedProcess = ANIM_PROCESS_NONE;
+  m_queuedProcess = ANIM_PROCESS_NONE;
 
   // Update our animation process
   if (m_currentProcess == ANIM_PROCESS_NORMAL)
@@ -731,9 +728,7 @@ CScroller& CScroller::operator=(const CScroller &right)
   return *this;
 }
 
-CScroller::~CScroller()
-{
-}
+CScroller::~CScroller() = default;
 
 void CScroller::ScrollTo(float endPos)
 {

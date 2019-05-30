@@ -41,7 +41,7 @@
 #include "threads/SingleLock.h"
 #include "utils/StringUtils.h"
 #include "XBDateTime.h"
-#include "input/ButtonTranslator.h"
+#include "input/InputManager.h"
 #include "windowing/WindowingFactory.h"
 #include "cores/IPlayer.h"
 #include "guiinfo/GUIInfoLabels.h"
@@ -111,7 +111,7 @@ bool CGUIWindowFullScreen::OnAction(const CAction &action)
 {
   if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_PVRPLAYBACK_CONFIRMCHANNELSWITCH) &&
       g_infoManager.IsPlayerChannelPreviewActive() &&
-      (action.GetID() == ACTION_SELECT_ITEM || CButtonTranslator::GetInstance().GetGlobalAction(action.GetButtonCode()).GetID() == ACTION_SELECT_ITEM))
+      (action.GetID() == ACTION_SELECT_ITEM || CServiceBroker::GetInputManager().GetGlobalAction(action.GetButtonCode()).GetID() == ACTION_SELECT_ITEM))
   {
     // If confirm channel switch is active, channel preview is currently shown
     // and the button that caused this action matches (global) action "Select" (OK)
@@ -160,9 +160,7 @@ bool CGUIWindowFullScreen::OnAction(const CAction &action)
     { // toggle the aspect ratio mode (only if the info is onscreen)
       if (m_dwShowViewModeTimeout)
       {
-#ifdef HAS_VIDEO_PLAYBACK
         g_application.m_pPlayer->SetRenderViewMode(CViewModeSettings::GetNextQuickCycleViewMode(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_ViewMode));
-#endif
       }
       else
         m_viewModeChanged = true;
@@ -449,7 +447,7 @@ void CGUIWindowFullScreen::SeekChapter(int iChapter)
 
 void CGUIWindowFullScreen::ToggleOSD()
 {
-  CGUIDialogVideoOSD *pOSD = g_windowManager.GetWindow<CGUIDialogVideoOSD>(WINDOW_DIALOG_VIDEO_OSD);
+  CGUIDialog *pOSD = GetOSD();
   if (pOSD)
   {
     if (pOSD->IsDialogRunning())
@@ -463,10 +461,11 @@ void CGUIWindowFullScreen::ToggleOSD()
 
 void CGUIWindowFullScreen::TriggerOSD()
 {
-  CGUIDialogVideoOSD *pOSD = g_windowManager.GetWindow<CGUIDialogVideoOSD>(WINDOW_DIALOG_VIDEO_OSD);
+  CGUIDialog *pOSD = GetOSD();
   if (pOSD && !pOSD->IsDialogRunning())
   {
-    pOSD->SetAutoClose(3000);
+    if (!g_application.m_pPlayer->IsPlayingGame())
+      pOSD->SetAutoClose(3000);
     pOSD->Open();
   }
 }
@@ -474,4 +473,12 @@ void CGUIWindowFullScreen::TriggerOSD()
 bool CGUIWindowFullScreen::HasVisibleControls()
 {
   return m_controlStats->nCountVisible > 0;
+}
+
+CGUIDialog *CGUIWindowFullScreen::GetOSD()
+{
+  if (g_application.m_pPlayer->IsPlayingGame())
+    return g_windowManager.GetDialog(WINDOW_DIALOG_GAME_OSD);
+  else
+    return g_windowManager.GetDialog(WINDOW_DIALOG_VIDEO_OSD);
 }

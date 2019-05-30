@@ -22,7 +22,7 @@
 #include "addons/kodi-addon-dev-kit/include/kodi/Filesystem.h"
 
 #include "Util.h"
-#include "addons/AddonDll.h"
+#include "addons/binary-addons/AddonDll.h"
 #include "filesystem/File.h"
 #include "filesystem/Directory.h"
 #include "filesystem/SpecialProtocol.h"
@@ -303,7 +303,7 @@ char* Interface_Filesystem::make_legal_filename(void* kodiBase, const char* file
     return nullptr;
   }
 
-  std::string string = CUtil::MakeLegalFileName(filename);;
+  std::string string = CUtil::MakeLegalFileName(filename);
   char* buffer = strdup(string.c_str());
   return buffer;
 }
@@ -317,7 +317,7 @@ char* Interface_Filesystem::make_legal_path(void* kodiBase, const char* path)
     return nullptr;
   }
 
-  std::string string = CUtil::MakeLegalPath(path);;
+  std::string string = CUtil::MakeLegalPath(path);
   char* buffer = strdup(string.c_str());
   return buffer;
 }

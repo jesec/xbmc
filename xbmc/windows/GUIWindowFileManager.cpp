@@ -294,7 +294,7 @@ bool CGUIWindowFileManager::OnMessage(CGUIMessage& message)
         if (iAction == ACTION_HIGHLIGHT_ITEM || iAction == ACTION_MOUSE_LEFT_CLICK)
         {
           OnMark(list, iItem);
-          if (!CInputManager::GetInstance().IsMouseActive())
+          if (!CServiceBroker::GetInputManager().IsMouseActive())
           {
             //move to next item
             CGUIMessage msg(GUI_MSG_ITEM_SELECT, GetID(), iControl, iItem + 1);
@@ -624,7 +624,7 @@ void CGUIWindowFileManager::OnStart(CFileItem *pItem, const std::string &player)
   }
   if (pItem->IsAudio() || pItem->IsVideo())
   {
-    g_playlistPlayer.Play(std::make_shared<CFileItem>(*pItem), player);
+    CServiceBroker::GetPlaylistPlayer().Play(std::make_shared<CFileItem>(*pItem), player);
     return;
   }
   if (pItem->IsGame())

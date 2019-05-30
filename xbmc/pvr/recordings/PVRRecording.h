@@ -89,7 +89,7 @@ namespace PVR
     CPVRRecording &operator =(const CPVRRecording &other) = delete;
 
   public:
-    virtual ~CPVRRecording() = default;
+    ~CPVRRecording() override = default;
 
     bool operator ==(const CPVRRecording& right) const;
     bool operator !=(const CPVRRecording& right) const;
@@ -213,6 +213,18 @@ namespace PVR
      * @return the recording end time
      */
     CDateTime EndTimeAsLocalTime() const;
+
+    /*!
+     * @brief Check whether this recording has an expiration time
+     * @return True if the recording has an expiration time, false otherwise
+     */
+    bool HasExpirationTime() const { return m_iLifetime > 0; }
+
+    /*!
+     * @brief Retrieve the recording expiration time as local time
+     * @return the recording expiration time
+     */
+    CDateTime ExpirationTimeAsLocalTime() const;
 
     /*!
      * @brief Retrieve the recording title from the URL path

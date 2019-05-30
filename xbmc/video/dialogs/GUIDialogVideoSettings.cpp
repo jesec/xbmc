@@ -26,6 +26,7 @@
 #include "addons/Skin.h"
 #include "dialogs/GUIDialogYesNo.h"
 #include "guilib/GUIWindowManager.h"
+#include "guilib/LocalizeStrings.h"
 #include "GUIPassword.h"
 #include "profiles/ProfilesManager.h"
 #include "settings/lib/Setting.h"
@@ -95,8 +96,7 @@ CGUIDialogVideoSettings::CGUIDialogVideoSettings()
 
 }
 
-CGUIDialogVideoSettings::~CGUIDialogVideoSettings()
-{ }
+CGUIDialogVideoSettings::~CGUIDialogVideoSettings() = default;
 
 void CGUIDialogVideoSettings::OnSettingChanged(std::shared_ptr<const CSetting> setting)
 {
@@ -134,7 +134,6 @@ void CGUIDialogVideoSettings::OnSettingChanged(std::shared_ptr<const CSetting> s
 #ifdef HAS_DS_PLAYER
   }
 #endif
-#ifdef HAS_VIDEO_PLAYBACK
   else if (settingId == SETTING_VIDEO_STREAM)
   {
     m_videoStream = std::static_pointer_cast<const CSettingInt>(setting)->GetValue();
@@ -194,7 +193,6 @@ void CGUIDialogVideoSettings::OnSettingChanged(std::shared_ptr<const CSetting> s
     videoSettings.m_NoiseReduction = static_cast<float>(std::static_pointer_cast<const CSettingNumber>(setting)->GetValue());
   else if (settingId == SETTING_VIDEO_VDPAU_SHARPNESS)
     videoSettings.m_Sharpness = static_cast<float>(std::static_pointer_cast<const CSettingNumber>(setting)->GetValue());
-#endif
   else if (settingId == SETTING_VIDEO_STEREOSCOPICMODE)
     videoSettings.m_StereoMode = std::static_pointer_cast<const CSettingInt>(setting)->GetValue();
   else if (settingId == SETTING_VIDEO_STEREOSCOPICINVERT)
@@ -494,7 +492,6 @@ void CGUIDialogVideoSettings::InitializeSettings()
   }
 #endif
 
-#ifdef HAS_VIDEO_PLAYBACK
   AddVideoStreams(groupVideoStream, SETTING_VIDEO_STREAM);
 
   if (g_application.m_pPlayer->Supports(RENDERFEATURE_STRETCH) || g_application.m_pPlayer->Supports(RENDERFEATURE_PIXEL_RATIO))
@@ -521,7 +518,6 @@ void CGUIDialogVideoSettings::InitializeSettings()
     AddSlider(groupVideoPlayback, SETTING_VIDEO_VDPAU_SHARPNESS, 16313, SettingLevel::Basic, videoSettings.m_Sharpness, "%2.2f", -1.0f, 0.02f, 1.0f, 16313, usePopup);
   if (g_application.m_pPlayer->Supports(RENDERFEATURE_NONLINSTRETCH))
     AddToggle(groupVideoPlayback, SETTING_VIDEO_NONLIN_STRETCH, 659, SettingLevel::Basic, videoSettings.m_CustomNonLinStretch);
-#endif
 
   // stereoscopic settings
   entries.clear();
@@ -576,9 +572,14 @@ void CGUIDialogVideoSettings::VideoStreamsOptionFiller(std::shared_ptr<const CSe
     }
 
     if (info.videoCodecName.empty())
-      strItem += StringUtils::Format(" (%ix%i)", info.width, info.height);
+      strItem += StringUtils::Format(" (%ix%i", info.width, info.height);
     else
-      strItem += StringUtils::Format(" (%s, %ix%i)", info.videoCodecName.c_str(), info.width, info.height);
+      strItem += StringUtils::Format(" (%s, %ix%i", info.videoCodecName.c_str(), info.width, info.height);
+
+    if (info.bitrate)
+      strItem += StringUtils::Format(", %i bps)", info.bitrate);
+    else
+      strItem += ")";
 
     strItem += StringUtils::Format(" (%i/%i)", i + 1, videoStreamCount);
     list.push_back(make_pair(strItem, i));

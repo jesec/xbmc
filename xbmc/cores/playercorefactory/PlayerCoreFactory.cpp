@@ -40,8 +40,7 @@
 
 #define PLAYERCOREFACTORY_XML "playercorefactory.xml"
 
-CPlayerCoreFactory::CPlayerCoreFactory()
-{ }
+CPlayerCoreFactory::CPlayerCoreFactory() = default;
 
 CPlayerCoreFactory::~CPlayerCoreFactory()
 {

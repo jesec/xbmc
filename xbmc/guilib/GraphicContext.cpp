@@ -32,6 +32,7 @@
 #include "TextureManager.h"
 #include "input/InputManager.h"
 #include "GUIWindowManager.h"
+#include "ServiceBroker.h"
 
 using namespace KODI::MESSAGING;
 
@@ -66,9 +67,7 @@ CGraphicContext::CGraphicContext(void) :
 #endif
 }
 
-CGraphicContext::~CGraphicContext(void)
-{
-}
+CGraphicContext::~CGraphicContext(void) = default;
 
 void CGraphicContext::OnSettingChanged(std::shared_ptr<const CSetting> setting)
 {
@@ -451,7 +450,7 @@ void CGraphicContext::SetVideoResolutionInternal(RESOLUTION res, bool forceUpdat
   SetStereoView(RENDER_STEREO_VIEW_OFF);
 
   // update anyone that relies on sizing information
-  CInputManager::GetInstance().SetMouseResolution(info_org.iWidth, info_org.iHeight, 1, 1);
+  CServiceBroker::GetInputManager().SetMouseResolution(info_org.iWidth, info_org.iHeight, 1, 1);
   g_windowManager.SendMessage(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_WINDOW_RESIZE);
 
   Unlock();

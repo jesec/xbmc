@@ -252,6 +252,7 @@ public:
   static const std::string SETTING_WEATHER_ADDON;
   static const std::string SETTING_WEATHER_ADDONSETTINGS;
   static const std::string SETTING_SERVICES_DEVICENAME;
+  static const std::string SETTING_SERVICES_UPNP;
   static const std::string SETTING_SERVICES_UPNPSERVER;
   static const std::string SETTING_SERVICES_UPNPANNOUNCE;
   static const std::string SETTING_SERVICES_UPNPLOOKFOREXTERNALSUBTITLES;
@@ -442,7 +443,7 @@ public:
    be used.
    */
   CSettings() = default;
-  virtual ~CSettings() = default;
+  ~CSettings() override = default;
 
   CSettingsManager* GetSettingsManager() const { return m_settingsManager; }
 
@@ -493,6 +494,9 @@ public:
    \return True if the setting was successfully loaded from the given XML node, false otherwise
    */
   bool LoadSetting(const TiXmlNode *node, const std::string &settingId);
+
+  // overwrite (not override) from CSettingsBase
+  bool GetBool(const std::string& id) const;
 
 protected:
   // specializations of CSettingsBase

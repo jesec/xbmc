@@ -41,13 +41,13 @@ set(package_files strings.xml
                   src/org/xbmc/kodi/XBMCInputDeviceListener.java
                   src/org/xbmc/kodi/XBMCJsonRPC.java
                   src/org/xbmc/kodi/XBMCMediaContentProvider.java
-                  src/org/xbmc/kodi/XBMCOnAudioFocusChangeListener.java
-                  src/org/xbmc/kodi/XBMCOnFrameAvailableListener.java
                   src/org/xbmc/kodi/XBMCRecommendationBuilder.java
                   src/org/xbmc/kodi/XBMCSearchableActivity.java
                   src/org/xbmc/kodi/XBMCSettingsContentObserver.java
                   src/org/xbmc/kodi/XBMCProperties.java
                   src/org/xbmc/kodi/XBMCVideoView.java
+                  src/org/xbmc/kodi/interfaces/XBMCAudioManagerOnAudioFocusChangeListener.java
+                  src/org/xbmc/kodi/interfaces/XBMCSurfaceTextureOnFrameAvailableListener.java
                   )
 foreach(file IN LISTS package_files)
   configure_file(${CMAKE_SOURCE_DIR}/tools/android/packaging/xbmc/${file}.in
@@ -121,6 +121,7 @@ foreach(target apk obb apk-unsigned apk-obb apk-obb-unsigned apk-noobb apk-clean
               CPU=${CPU}
               ARCH=${ARCH}
               PREFIX=${prefix}
+              DEPENDS_PATH=${DEPENDS_PATH}
               NDKROOT=${NDKROOT}
               SDKROOT=${SDKROOT}
               SDK_PLATFORM=${SDK_PLATFORM}

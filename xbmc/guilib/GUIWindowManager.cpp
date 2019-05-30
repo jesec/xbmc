@@ -148,6 +148,8 @@
 /* Game related include files */
 #include "games/controllers/windows/GUIControllerWindow.h"
 #include "games/windows/GUIWindowGames.h"
+#include "games/dialogs/osd/DialogGameOSD.h"
+#include "games/dialogs/osd/DialogGameVideoSettings.h"
 
 #ifdef HAS_DS_PLAYER
 #include "cores/DSPlayer/GUIDialogShaderList.h"
@@ -162,9 +164,10 @@
 #include "cores/DSPlayer/Dialogs/GUIDialogDSPlayerProcessInfo.h"
 #endif
 
+using namespace KODI;
 using namespace PVR;
 using namespace PERIPHERALS;
-using namespace KODI::MESSAGING;
+using namespace MESSAGING;
 
 CGUIWindowManager::CGUIWindowManager()
 {
@@ -173,9 +176,7 @@ CGUIWindowManager::CGUIWindowManager()
   m_initialized = false;
 }
 
-CGUIWindowManager::~CGUIWindowManager()
-{
-}
+CGUIWindowManager::~CGUIWindowManager() = default;
 
 void CGUIWindowManager::Initialize()
 {
@@ -322,6 +323,8 @@ void CGUIWindowManager::CreateWindows()
 
   Add(new GAME::CGUIControllerWindow);
   Add(new GAME::CGUIWindowGames);
+  Add(new GAME::CDialogGameOSD);
+  Add(new GAME::CDialogGameVideoSettings);
 }
 
 bool CGUIWindowManager::DestroyWindows()
@@ -434,6 +437,8 @@ bool CGUIWindowManager::DestroyWindows()
     DestroyWindow(WINDOW_WEATHER);
     DestroyWindow(WINDOW_DIALOG_GAME_CONTROLLERS);
     DestroyWindow(WINDOW_GAMES);
+    DestroyWindow(WINDOW_DIALOG_GAME_OSD);
+    DestroyWindow(WINDOW_DIALOG_GAME_VIDEO_SETTINGS);
 
     Remove(WINDOW_SETTINGS_SERVICE);
     Remove(WINDOW_SETTINGS_MYPVR);
@@ -716,15 +721,6 @@ void CGUIWindowManager::PreviousWindow()
   }
 
   // ok to go to the previous window now
-
-  // pause game when leaving fullscreen or resume game when entering fullscreen
-  if (g_application.m_pPlayer->IsPlayingGame())
-  {
-    if (previousWindow == WINDOW_FULLSCREEN_VIDEO && g_application.m_pPlayer->IsPaused())
-      g_application.OnAction(ACTION_PAUSE);
-    else if (currentWindow == WINDOW_FULLSCREEN_VIDEO && !g_application.m_pPlayer->IsPaused())
-      g_application.OnAction(ACTION_PAUSE);
-  }
 
   // tell our info manager which window we are going to
   g_infoManager.SetNextWindow(previousWindow);
@@ -1291,7 +1287,10 @@ void CGUIWindowManager::SetCallback(IWindowManagerCallback& callback)
 void CGUIWindowManager::DeInitialize()
 {
   CSingleLock lock(g_graphicsContext);
-  for (const auto& entry : m_mapWindows)
+
+  // Need a copy bacause addon-dialogs remove itself on Close()
+  std::unordered_map<int, CGUIWindow*> closeMap(m_mapWindows);
+  for (const auto& entry : closeMap)
   {
     CGUIWindow* pWindow = entry.second;
     if (IsWindowActive(entry.first, false))

@@ -572,9 +572,9 @@
         </setting>
         <setting id="audiocds.encoder" type="addon" label="621" help="36287">
           <level>3</level>
-          <default>audioencoder.xbmc.builtin.wav</default>
+          <default>audioencoder.kodi.builtin.aac</default>
           <constraints>
-            <addontype>xbmc.audioencoder</addontype>
+            <addontype>kodi.audioencoder</addontype>
           </constraints>
           <control type="button" format="addon">
             <show more="true" details="true">installed</show>
@@ -2373,16 +2373,29 @@
     <category id="upnp" label="20187" help="36322">
       <requirement>HAS_UPNP</requirement>
       <group id="1" label="16000">
-        <setting id="services.upnpserver" type="boolean" label="21360" help="36323">
+        <setting id="services.upnp" type="boolean" label="21358" help="39017">
           <level>0</level>
           <default>false</default>
+          <control type="toggle" />
+        </setting>
+        <setting id="services.upnpserver" type="boolean" parent="services.upnp" label="21360" help="36323">
+          <level>0</level>
+          <default>false</default>
+          <dependencies>
+            <dependency type="enable" setting="services.upnp">true</dependency>
+          </dependencies>
           <control type="toggle" />
         </setting>
         <setting id="services.upnpannounce" type="boolean" parent="services.upnpserver" label="20188" help="36324">
           <level>2</level>
           <default>true</default>
           <dependencies>
-            <dependency type="enable" setting="services.upnpserver">true</dependency>
+            <dependency type="enable">
+              <and>
+                <condition setting="services.upnp" operator="is">true</condition>
+                <condition setting="services.upnpserver" operator="is">true</condition>
+              </and>
+            </dependency>
           </dependencies>
           <control type="toggle" />
         </setting>
@@ -2390,7 +2403,12 @@
           <level>2</level>
           <default>false</default>
           <dependencies>
-            <dependency type="enable" setting="services.upnpserver">true</dependency>
+            <dependency type="enable">
+              <and>
+                <condition setting="services.upnp" operator="is">true</condition>
+                <condition setting="services.upnpserver" operator="is">true</condition>
+              </and>
+            </dependency>
           </dependencies>
           <control type="toggle" />
         </setting>
@@ -2398,13 +2416,21 @@
           <level>2</level>
           <default>false</default>
           <dependencies>
-            <dependency type="enable" setting="services.upnpserver">true</dependency>
+            <dependency type="enable">
+              <and>
+                <condition setting="services.upnp" operator="is">true</condition>
+                <condition setting="services.upnpserver" operator="is">true</condition>
+              </and>
+            </dependency>
           </dependencies>
           <control type="toggle" />
         </setting>
         <setting id="services.upnprenderer" type="boolean" label="21881" help="36325">
           <level>1</level>
           <default>false</default>
+          <dependencies>
+            <dependency type="enable" setting="services.upnp">true</dependency>
+          </dependencies>
           <control type="toggle" />
         </setting>
       </group>
@@ -3901,7 +3927,7 @@
       <group id="1" label="16000">
         <setting id="screensaver.mode" type="addon" label="356" help="36130">
           <level>0</level>
-          <default>screensaver.xbmc.builtin.dim</default>
+          <default>default</default> <!-- will be properly set on startup -->
           <constraints>
             <addontype>xbmc.ui.screensaver</addontype>
             <allowempty>true</allowempty>
