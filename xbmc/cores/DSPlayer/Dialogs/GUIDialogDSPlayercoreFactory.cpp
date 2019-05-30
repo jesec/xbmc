@@ -95,7 +95,7 @@ void CGUIDialogDSPlayercoreFactory::InitializeSettings()
 {
   CGUIDialogSettingsManualBase::InitializeSettings();
 
-  CSettingCategory *category = AddCategory("dsplayercoresettings", -1);
+  const std::shared_ptr<CSettingCategory> category = AddCategory("dsplayercoresettings", -1);
   if (category == NULL)
   {
     CLog::Log(LOGERROR, "CGUIDialogDSPlayercoreFactory: unable to setup settings");
@@ -103,14 +103,14 @@ void CGUIDialogDSPlayercoreFactory::InitializeSettings()
   }
 
   // get all necessary setting groups
-  CSettingGroup *group = AddGroup(category);
+  const std::shared_ptr<CSettingGroup> group = AddGroup(category);
   if (group == NULL)
   {
     CLog::Log(LOGERROR, "CGUIDialogDSPlayercoreFactory: unable to setup settings");
     return;
   }
 
-  CSettingGroup *groupSave = AddGroup(category);
+  const std::shared_ptr<CSettingGroup> groupSave = AddGroup(category);
   if (groupSave == NULL)
   {
     CLog::Log(LOGERROR, "CGUIDialogDSPlayercoreFactory: unable to setup settings");
@@ -171,17 +171,17 @@ void CGUIDialogDSPlayercoreFactory::InitializeSettings()
   for (const auto &it : m_ruleList)
   {
     if (it->m_configType == EDITATTR)
-      AddEdit(group, it->m_setting, it->m_label, 0, it->m_value, true);
+      AddEdit(group, it->m_setting, it->m_label, SettingLevel::Basic, it->m_value, true);
 
     if (it->m_configType == BOOLATTR)
-      AddToggle(group, it->m_setting, it->m_label, 0, it->GetBoolValue());
+      AddToggle(group, it->m_setting, it->m_label, SettingLevel::Basic, it->GetBoolValue());
   }
 
   if (!m_dsmanager->GetNew())
-    AddButton(groupSave, SETTING_RULE_DEL, 60017, 0);
+    AddButton(groupSave, SETTING_RULE_DEL, 60017, SettingLevel::Basic);
 }
 
-void CGUIDialogDSPlayercoreFactory::OnSettingChanged(const CSetting *setting)
+void CGUIDialogDSPlayercoreFactory::OnSettingChanged(std::shared_ptr<const CSetting> setting)
 {
   if (setting == NULL)
     return;
@@ -196,14 +196,14 @@ void CGUIDialogDSPlayercoreFactory::OnSettingChanged(const CSetting *setting)
     if (settingId == it->m_setting)
     {
       if (it->m_configType != BOOLATTR)
-        it->m_value = static_cast<std::string>(static_cast<const CSettingString*>(setting)->GetValue());
+        it->m_value = static_cast<std::string>(static_pointer_cast<const CSettingString>(setting)->GetValue());
       else
-        it->SetBoolValue(static_cast<bool>(static_cast<const CSettingBool*>(setting)->GetValue()));
+        it->SetBoolValue(static_cast<bool>(static_pointer_cast<const CSettingBool>(setting)->GetValue()));
     }
   }
 }
 
-void CGUIDialogDSPlayercoreFactory::OnSettingAction(const CSetting *setting)
+void CGUIDialogDSPlayercoreFactory::OnSettingAction(std::shared_ptr<const CSetting> setting)
 {
   if (setting == NULL)
     return;

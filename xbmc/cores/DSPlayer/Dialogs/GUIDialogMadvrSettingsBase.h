@@ -33,21 +33,21 @@ public:
   
 protected:
   virtual void InitializeSettings();
-  virtual void OnSettingChanged(const CSetting *setting);
-  virtual void OnSettingAction(const CSetting *setting);
+  virtual void OnSettingChanged(std::shared_ptr<const CSetting> setting);
+  virtual void OnSettingAction(std::shared_ptr<const CSetting> setting);
 
   virtual void SaveControlStates();
   virtual void RestoreControlStates();
 
   static void SetSection(int iSectionId, int label = -1 ) { m_iSectionId = iSectionId; m_label = label; }
-  static void MadvrSettingsOptionsString(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data);
+  static void MadvrSettingsOptionsString(std::shared_ptr<const CSetting> setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data);
   static int m_iSectionId;
   static int m_label;
 
   void LoadMadvrSettings();
   void SaveMadvrSettings();
 
-  CSettingCategory *m_category;
+  std::shared_ptr<CSettingCategory> m_category;
   std::map<int, int> m_focusPositions;
   bool m_bMadvr;
   int m_iSectionIdInternal;

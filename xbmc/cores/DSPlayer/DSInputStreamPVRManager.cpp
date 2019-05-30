@@ -428,7 +428,7 @@ bool CDSInputStreamPVRManager::SupportsChannelSwitch()const
   if (pvrClient->GetBackendName() != m_pPVRBackend->GetBackendName() || !m_pPVRBackend->SupportsFastChannelSwitch())
     return false;
 
-  return pvrClient->HandlesInputStream();
+  return pvrClient->GetClientCapabilities().HandlesInputStream();
 }
 
 bool CDSInputStreamPVRManager::UpdateItem(CFileItem& item)

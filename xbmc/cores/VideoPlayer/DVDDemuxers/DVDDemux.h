@@ -168,7 +168,7 @@ public:
 #endif
   }
 
-  virtual ~CDemuxStreamVideo() = default;
+  ~CDemuxStreamVideo() override = default;
   int iFpsScale; // scale of 1000 and a rate of 29970 will result in 29.97 fps
   int iFpsRate;
   int iHeight; // height of the stream reported by the demuxer
@@ -200,7 +200,7 @@ public:
     type = STREAM_AUDIO;
   }
 
-  virtual ~CDemuxStreamAudio() = default;
+  ~CDemuxStreamAudio() override = default;
 
   std::string GetStreamType();
 
@@ -256,7 +256,7 @@ public:
    * Aborts any internal reading that might be stalling main thread
    * NOTICE - this can be called from another thread
    */
-  virtual void Abort() = 0;
+  virtual void Abort() { }
 
   /*
    * Flush the demuxer, if any data is kept in buffers, this should be freed now
@@ -307,12 +307,12 @@ public:
    * Set the playspeed, if demuxer can handle different
    * speeds of playback
    */
-  virtual void SetSpeed(int iSpeed) = 0;
+  virtual void SetSpeed(int iSpeed) { }
 
   /*
    * returns the total time in msec
    */
-  virtual int GetStreamLength() = 0;
+  virtual int GetStreamLength() { return 0; }
 
   /*
    * returns the stream or NULL on error
@@ -329,7 +329,7 @@ public:
   /*
    * returns opened filename
    */
-  virtual std::string GetFileName() = 0;
+  virtual std::string GetFileName() { return ""; }
 
   /*
    * return nr of subtitle streams, 0 if none
@@ -347,6 +347,11 @@ public:
   virtual void EnableStream(int64_t demuxerId, int id, bool enable) { EnableStream(id, enable); };
 
   /*
+  * implicitly enable and open a demux stream for playback
+  */
+  virtual void OpenStream(int64_t demuxerId, int id) { OpenStream(id); };
+
+  /*
    * sets desired width / height for video stream
    * adaptive demuxers like DASH can use this to choose best fitting video stream
    */
@@ -359,6 +364,7 @@ public:
 
 protected:
   virtual void EnableStream(int id, bool enable) {};
+  virtual void OpenStream(int id) {};
   virtual CDemuxStream* GetStream(int iStreamId) const = 0;
   virtual std::string GetStreamCodecName(int iStreamId) { return ""; };
 

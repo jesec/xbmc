@@ -212,7 +212,7 @@ void CGUIDialogDSManager::LoadDsXML(xmlType type, TiXmlElement* &pNode, bool for
   }
 }
 
-void CGUIDialogDSManager::GetFilterList(xmlType type, std::vector<DynamicStringSettingOption> &list)
+void CGUIDialogDSManager::GetFilterList(xmlType type, StringSettingOptions &list)
 {
   list.emplace_back("", "[null]");
 
@@ -243,10 +243,10 @@ void CGUIDialogDSManager::GetFilterList(xmlType type, std::vector<DynamicStringS
   }
 }
 
-void CGUIDialogDSManager::AllFiltersConfigOptionFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)
+void CGUIDialogDSManager::AllFiltersConfigOptionFiller(std::shared_ptr<const CSetting> setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)
 {
-  std::vector<DynamicStringSettingOption> listUserdata;
-  std::vector<DynamicStringSettingOption> listHome;
+  StringSettingOptions listUserdata;
+  StringSettingOptions listHome;
   Get()->GetFilterList(FILTERSCONFIG, listUserdata);
   Get()->GetFilterList(HOMEFILTERSCONFIG, listHome);
 
@@ -260,7 +260,7 @@ void CGUIDialogDSManager::AllFiltersConfigOptionFiller(const CSetting *setting, 
   list.erase(unique(list.begin(), list.end()), list.end());
 }
 
-void CGUIDialogDSManager::ShadersOptionFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)
+void CGUIDialogDSManager::ShadersOptionFiller(std::shared_ptr<const CSetting> setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)
 {
   list.emplace_back("", "[null]");
 
@@ -288,13 +288,13 @@ void CGUIDialogDSManager::ShadersOptionFiller(const CSetting *setting, std::vect
   }
 }
 
-void CGUIDialogDSManager::ShadersScaleOptionFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)
+void CGUIDialogDSManager::ShadersScaleOptionFiller(std::shared_ptr<const CSetting> setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)
 {
   list.emplace_back("Pre-resize", "preresize");
   list.emplace_back("Post-resize", "postresize");
 }
 
-void CGUIDialogDSManager::DSFilterOptionFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)
+void CGUIDialogDSManager::DSFilterOptionFiller(std::shared_ptr<const CSetting> setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)
 {
   CDSFilterEnumerator p_dfilter;
   std::vector<DSFiltersInfo> filterList;
@@ -306,14 +306,14 @@ void CGUIDialogDSManager::DSFilterOptionFiller(const CSetting *setting, std::vec
     list.emplace_back(it.lpstrName, it.lpstrGuid);
 }
 
-void CGUIDialogDSManager::BoolOptionFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)
+void CGUIDialogDSManager::BoolOptionFiller(std::shared_ptr<const CSetting> setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)
 {
   list.emplace_back("[null]", "[null]");
   list.emplace_back("true", "true");
   list.emplace_back("false", "false");
 }
 
-void CGUIDialogDSManager::PriorityOptionFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)
+void CGUIDialogDSManager::PriorityOptionFiller(std::shared_ptr<const CSetting> setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)
 {
   list.emplace_back("", "[null]");
 
@@ -341,7 +341,7 @@ TiXmlElement* CGUIDialogDSManager::KeepSelectedNode(TiXmlElement* pNode, const s
   return pRule;
 }
 
-bool CGUIDialogDSManager::compare_by_word(const DynamicStringSettingOption& lhs, const DynamicStringSettingOption& rhs)
+bool CGUIDialogDSManager::compare_by_word(const StringSettingOption& lhs, const StringSettingOption& rhs)
 {
   std::string strLine1 = lhs.first;
   std::string strLine2 = rhs.first;

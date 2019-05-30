@@ -45,6 +45,8 @@
 
 #include "windowing/WindowingFactory.h"
 
+#include "DVDCodecs/DVDCodecUtils.h"
+
 using namespace KODI::MESSAGING;
 
 CRenderDSManager::CRenderDSManager(IRenderDSMsg *player) :
@@ -152,7 +154,15 @@ bool CRenderDSManager::Configure()
       return false;
   }
 
-  bool result = m_pRenderer->Configure(m_width, m_height, m_dwidth, m_dheight, m_fps, m_flags,(ERenderFormat)0,0,0);
+  VideoPicture picture;
+  memset(&picture, 0, sizeof(VideoPicture));
+
+  picture.iWidth = m_width;
+  picture.iHeight = m_height;
+  picture.iDisplayWidth = m_dwidth;
+  picture.iDisplayHeight = m_dheight;
+
+  bool result = m_pRenderer->Configure(picture, m_fps, m_flags, 0);
   if (result)
   {
     CRenderInfo info = m_pRenderer->GetRenderInfo();
@@ -235,24 +245,6 @@ void CRenderDSManager::EndRender()
     g_graphicsContext.Clear(0);
 }
 
-void CRenderDSManager::PreInit()
-{
-  if (!g_application.IsCurrentThread())
-  {
-    CLog::Log(LOGERROR, "CRenderDSManager::UnInit - not called from render thread");
-    return;
-  }
-
-  CSingleLock lock(m_statelock);
-
-  if (!m_pRenderer)
-    CreateRenderer();
-
-  UpdateDisplayLatency();
-
-  m_bPreInit = true;
-}
-
 void CRenderDSManager::UnInit()
 {
   if (!g_application.IsCurrentThread())
@@ -313,9 +305,7 @@ void CRenderDSManager::CreateRenderer()
   {
     m_pRenderer = new CWinDsRenderer();
 
-    if (m_pRenderer)
-      m_pRenderer->PreInit();
-    else
+    if (!m_pRenderer)
       CLog::Log(LOGERROR, "RenderDSManager::CreateRenderer: failed to create renderer");
   }
 }

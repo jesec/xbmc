@@ -107,7 +107,7 @@ void CGUIDialogMadvrSettingsBase::InitializeSettings()
 
   if (m_bMadvr && m_iSectionId == MADVR_VIDEO_ROOT)
   {
-    CSettingGroup *groupMadvrSave = AddGroup(m_category);
+    const std::shared_ptr<CSettingGroup> groupMadvrSave = AddGroup(m_category);
     if (groupMadvrSave == NULL)
     {
       CLog::Log(LOGERROR, "CGUIDialogMadvrSettings: unable to setup settings");
@@ -117,20 +117,20 @@ void CGUIDialogMadvrSettingsBase::InitializeSettings()
     if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_MANAGEMADVRWITHKODI) == KODIGUI_LOAD_DSPLAYER)
     {
       //LOAD SETTINGS...
-      AddButton(groupMadvrSave, SETTING_VIDEO_LOAD, 70611, 0);
+      AddButton(groupMadvrSave, SETTING_VIDEO_LOAD, 70611, SettingLevel::Basic);
 
       //SAVE SETTINGS...
-      AddButton(groupMadvrSave, SETTING_VIDEO_SAVE, 70600, 0);
+      AddButton(groupMadvrSave, SETTING_VIDEO_SAVE, 70600, SettingLevel::Basic);
     }
   }
 
-  std::map<int, CSettingGroup *> groups;
+  std::map<int, std::shared_ptr<CSettingGroup>> groups;
   CMadvrSettings &madvrSettings = CMediaSettings::GetInstance().GetCurrentMadvrSettings();
   g_application.m_pPlayer->LoadSettings(m_iSectionId);
 
   for (const auto &it : madvrSettings.m_gui[m_iSectionId])
   {
-    CSetting *setting;
+    std::shared_ptr<CSetting> setting;
 
     if (groups[it.group] == NULL)
     {
@@ -144,34 +144,34 @@ void CGUIDialogMadvrSettingsBase::InitializeSettings()
 
     if (it.type.find("button_") != std::string::npos)
     {
-      setting = AddButton(groups[it.group], it.dialogId, it.label, 0);
+      setting = AddButton(groups[it.group], it.dialogId, it.label, SettingLevel::Basic);
     }
     else if (it.type == "bool")
     {
-      setting = AddToggle(groups[it.group], it.dialogId, it.label, 0, madvrSettings.m_db[it.name].asBoolean());
+      setting = AddToggle(groups[it.group], it.dialogId, it.label, SettingLevel::Basic, madvrSettings.m_db[it.name].asBoolean());
     }
     else if (it.type == "float")
     {
-      setting = AddSlider(groups[it.group], it.dialogId, it.label, 0, madvrSettings.m_db[it.name].asFloat(),
+      setting = AddSlider(groups[it.group], it.dialogId, it.label, SettingLevel::Basic, madvrSettings.m_db[it.name].asFloat(),
         it.slider.format, it.slider.min, it.slider.step, it.slider.max, it.slider.parentLabel, usePopup);
     }
     else if (it.type.find("list_") != std::string::npos)
     {
       if (!it.optionsInt.empty())
-        setting = AddList(groups[it.group], it.dialogId, it.label, 0, madvrSettings.m_db[it.name].asInteger(), it.optionsInt, it.label);
+        setting = AddList(groups[it.group], it.dialogId, it.label, SettingLevel::Basic, madvrSettings.m_db[it.name].asInteger(), it.optionsInt, it.label);
       else
-        setting = AddList(groups[it.group], it.dialogId, it.label, 0, madvrSettings.m_db[it.name].asString(), MadvrSettingsOptionsString, it.label);
+        setting = AddList(groups[it.group], it.dialogId, it.label, SettingLevel::Basic, madvrSettings.m_db[it.name].asString(), MadvrSettingsOptionsString, it.label);
     }
 
     if (!it.dependencies.empty() && setting)
-      g_application.m_pPlayer->AddDependencies(it.dependencies, m_settingsManager, setting);
+      g_application.m_pPlayer->AddDependencies(it.dependencies, GetSettingsManager(), setting);
 
     if (!it.parent.empty() && setting)
       setting->SetParent(it.parent);
   }
 }
 
-void CGUIDialogMadvrSettingsBase::OnSettingChanged(const CSetting *setting)
+void CGUIDialogMadvrSettingsBase::OnSettingChanged(std::shared_ptr<const CSetting> setting)
 {
   if (setting == NULL)
     return;
@@ -181,10 +181,10 @@ void CGUIDialogMadvrSettingsBase::OnSettingChanged(const CSetting *setting)
   if (!m_bMadvr)
     return;
 
-  g_application.m_pPlayer->OnSettingChanged(m_iSectionId, m_settingsManager, setting);
+  g_application.m_pPlayer->OnSettingChanged(m_iSectionId, GetSettingsManager(), setting);
 }
 
-void CGUIDialogMadvrSettingsBase::OnSettingAction(const CSetting *setting)
+void CGUIDialogMadvrSettingsBase::OnSettingAction(std::shared_ptr<const CSetting> setting)
 {
   if (setting == NULL)
     return;
@@ -481,7 +481,7 @@ void CGUIDialogMadvrSettingsBase::SaveMadvrSettings()
   }
 }
 
-void CGUIDialogMadvrSettingsBase::MadvrSettingsOptionsString(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)
+void CGUIDialogMadvrSettingsBase::MadvrSettingsOptionsString(std::shared_ptr<const CSetting> setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)
 {
   CMadvrSettings &madvrSettings = CMediaSettings::GetInstance().GetCurrentMadvrSettings();
 

@@ -450,7 +450,7 @@ void CGUIDialogAudioSubtitleSettings::InitializeSettings()
 #ifdef HAS_DS_PLAYER
   if (g_application.m_pPlayer->GetEditionsCount() > 1)
   {
-    AddButton(groupEdition, EDITONS_SETTINGS, g_application.m_pPlayer->IsMatroskaEditions() ? 55023 : 55024, 0);
+    AddButton(groupEdition, EDITONS_SETTINGS, g_application.m_pPlayer->IsMatroskaEditions() ? 55023 : 55024, SettingLevel::Basic);
   }
 #endif
 

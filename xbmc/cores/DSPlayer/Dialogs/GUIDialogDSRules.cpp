@@ -95,19 +95,19 @@ void CGUIDialogDSRules::SetupView()
 
 void CGUIDialogDSRules::SetVisible(std::string id, bool visible, ConfigType subType, bool isChild /* = false */)
 {
-  CSetting *setting = m_settingsManager->GetSetting(id);
+  auto setting = GetSettingsManager()->GetSetting(id);
   if (setting->IsVisible() && visible)
     return;
   setting->SetVisible(visible);
   setting->SetEnabled(visible);
   if (!isChild)
-    m_settingsManager->SetString(id, "[null]");
+    GetSettingsManager()->SetString(id, "[null]");
   else
   { 
     if (subType == SPINNERATTRSHADER)
-      m_settingsManager->SetString(id, "prescale");
+      GetSettingsManager()->SetString(id, "prescale");
     else
-      m_settingsManager->SetString(id, "");
+      GetSettingsManager()->SetString(id, "");
   }
 }
 
@@ -172,7 +172,7 @@ void CGUIDialogDSRules::InitializeSettings()
 {
   CGUIDialogSettingsManualBase::InitializeSettings();
 
-  CSettingCategory *category = AddCategory("dsrulesettings", -1);
+  const std::shared_ptr<CSettingCategory> category = AddCategory("dsrulesettings", -1);
   if (category == NULL)
   {
     CLog::Log(LOGERROR, "CGUIDialogDSRules: unable to setup settings");
@@ -180,35 +180,35 @@ void CGUIDialogDSRules::InitializeSettings()
   }
 
   // get all necessary setting groups
-  CSettingGroup *groupPriority = AddGroup(category);
+  const std::shared_ptr<CSettingGroup> groupPriority = AddGroup(category);
   if (groupPriority == NULL)
   {
     CLog::Log(LOGERROR, "CGUIDialogDSRules: unable to setup settings");
     return;
   }
 
-  CSettingGroup *groupRule = AddGroup(category);
+  const std::shared_ptr<CSettingGroup> groupRule = AddGroup(category);
   if (groupRule == NULL)
   {
     CLog::Log(LOGERROR, "CGUIDialogDSRules: unable to setup settings");
     return;
   }
 
-  CSettingGroup *groupFilter = AddGroup(category);
+  const std::shared_ptr<CSettingGroup> groupFilter = AddGroup(category);
   if (groupFilter == NULL)
   {
     CLog::Log(LOGERROR, "CGUIDialogDSRules: unable to setup settings");
     return;
   }
 
-  CSettingGroup *groupExtra = AddGroup(category);
+  const std::shared_ptr<CSettingGroup> groupExtra = AddGroup(category);
   if (groupFilter == NULL)
   {
     CLog::Log(LOGERROR, "CGUIDialogDSRules: unable to setup settings");
     return;
   }
 
-  CSettingGroup *groupSave = AddGroup(category);
+  const std::shared_ptr<CSettingGroup> groupSave = AddGroup(category);
   if (groupFilter == NULL)
   {
     CLog::Log(LOGERROR, "CGUIDialogDSRules: unable to setup settings");
@@ -343,7 +343,7 @@ void CGUIDialogDSRules::InitializeSettings()
   }
 
   // Stamp Button
-  CSettingGroup *groupTmp;
+  std::shared_ptr<CSettingGroup> groupTmp;
 
   for (const auto &it : m_ruleList)
   {
@@ -356,30 +356,30 @@ void CGUIDialogDSRules::InitializeSettings()
       else
         groupTmp = groupRule;
 
-      AddEdit(groupTmp, it->m_setting, it->m_label, 0, it->m_value.c_str(), true);
+      AddEdit(groupTmp, it->m_setting, it->m_label, SettingLevel::Basic, it->m_value.c_str(), true);
     }
     if (it->m_configType == SPINNERATTR)
-      AddList(groupPriority, it->m_setting, it->m_label, 0, it->m_value, it->m_filler, it->m_label);
+      AddList(groupPriority, it->m_setting, it->m_label, SettingLevel::Basic, it->m_value, it->m_filler, it->m_label);
 
     if (it->m_configType == SPINNERATTRSHADER)
-      AddSpinner(groupExtra, it->m_setting, it->m_label, 0, it->m_value, it->m_filler);
+      AddSpinner(groupExtra, it->m_setting, it->m_label, SettingLevel::Basic, it->m_value, it->m_filler);
 
     if (it->m_configType == BOOLATTR)
-      AddToggle(groupRule, it->m_setting, it->m_label, 0, it->GetBoolValue());
+      AddToggle(groupRule, it->m_setting, it->m_label, SettingLevel::Basic, it->GetBoolValue());
 
     if (it->m_configType == FILTER)
-      AddList(groupFilter, it->m_setting, it->m_label, 0, it->m_value, it->m_filler, it->m_label);
+      AddList(groupFilter, it->m_setting, it->m_label, SettingLevel::Basic, it->m_value, it->m_filler, it->m_label);
 
     if (it->m_configType == EXTRAFILTER || it->m_configType == SHADER)
-      AddList(groupExtra, it->m_setting, it->m_label, 0, it->m_value, it->m_filler, it->m_label);
+      AddList(groupExtra, it->m_setting, it->m_label, SettingLevel::Basic, it->m_value, it->m_filler, it->m_label);
   }
 
 
   if (!m_dsmanager->GetNew())
-    AddButton(groupSave, SETTING_RULE_DEL, 60017, 0);
+    AddButton(groupSave, SETTING_RULE_DEL, 60017, SettingLevel::Basic);
 }
 
-void CGUIDialogDSRules::OnSettingChanged(const CSetting *setting)
+void CGUIDialogDSRules::OnSettingChanged(std::shared_ptr<const CSetting> setting)
 {
   if (setting == NULL)
     return;
@@ -395,15 +395,15 @@ void CGUIDialogDSRules::OnSettingChanged(const CSetting *setting)
     if (settingId == it->m_setting)
     {
       if (it->m_configType != BOOLATTR)
-        it->m_value = static_cast<std::string>(static_cast<const CSettingString*>(setting)->GetValue());
+        it->m_value = static_cast<std::string>(static_pointer_cast<const CSettingString>(setting)->GetValue());
       else
-        it->SetBoolValue(static_cast<bool>(static_cast<const CSettingBool*>(setting)->GetValue()));
+        it->SetBoolValue(static_cast<bool>(static_pointer_cast<const CSettingBool>(setting)->GetValue()));
     }
   }
   HideUnused();
 }
 
-void CGUIDialogDSRules::OnSettingAction(const CSetting *setting)
+void CGUIDialogDSRules::OnSettingAction(std::shared_ptr<const CSetting> setting)
 {
   if (setting == NULL)
     return;  

@@ -149,18 +149,16 @@ public:
   virtual bool SwitchChannel(const PVR::CPVRChannelPtr &channel) override;
 
   // RenderManager
-  virtual void FrameMove() override;
-  virtual void Render(bool clear, uint32_t alpha = 255, bool gui = true) override;
-  virtual void FlushRenderer() override;
-  virtual void SetRenderViewMode(int mode) override;
+  void FrameMove() override;
+  void Render(bool clear, uint32_t alpha = 255, bool gui = true) override;
+  void FlushRenderer() override;
+  void SetRenderViewMode(int mode) override;
   float GetRenderAspectRatio() override;
-  virtual void TriggerUpdateResolution() override;
-  virtual bool IsRenderingVideo() override;
-  virtual bool IsRenderingGuiLayer() override;
-  virtual bool IsRenderingVideoLayer() override;
-  virtual bool Supports(EINTERLACEMETHOD method) override;
-  virtual bool Supports(ESCALINGMETHOD method) override;
-  virtual bool Supports(ERENDERFEATURE feature) override;
+  void TriggerUpdateResolution() override;
+  bool IsRenderingVideo() override;
+  bool Supports(EINTERLACEMETHOD method) override;
+  bool Supports(ESCALINGMETHOD method) override;
+  bool Supports(ERENDERFEATURE feature) override;
   
   // IDSRendererAllocatorCallback
   CRect GetActiveVideoRect() override;
@@ -183,8 +181,8 @@ public:
   void LoadSettings(int iSectionId);
   void RestoreSettings();
   void GetProfileActiveName(const std::string &path, std::string *profile) override;
-  void OnSettingChanged(int iSectionId, CSettingsManager* settingsManager, const CSetting *setting) override;
-  void AddDependencies(const std::string &xml, CSettingsManager *settingsManager, CSetting *setting) override;
+  void OnSettingChanged(int iSectionId, CSettingsManager* settingsManager, std::shared_ptr<const CSetting> setting) override;
+  void AddDependencies(const std::string &xml, CSettingsManager *settingsManager, std::shared_ptr<CSetting> setting) override;
   void ListSettings(const std::string &path) override;
 
   // IDSPlayer

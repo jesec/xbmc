@@ -101,60 +101,60 @@ void CGUIDialogLAVVideo::InitializeSettings()
 
   bool usePopup = g_SkinInfo->HasSkinFile("DialogSlider.xml");
 
-  CSettingCategory *category = AddCategory("dsplayerlavvideo", -1);
+  const std::shared_ptr<CSettingCategory> category = AddCategory("dsplayerlavvideo", -1);
   if (category == NULL)
   {
     CLog::Log(LOGERROR, "CGUIDialogLAVVideo: unable to setup settings");
     return;
   }
   // get all necessary setting groups
-  CSettingGroup *groupProperty = AddGroup(category);
+  const std::shared_ptr<CSettingGroup> groupProperty = AddGroup(category);
   if (groupProperty == NULL)
   {
     CLog::Log(LOGERROR, "CGUIDialogLAVVideo: unable to setup settings");
     return;
   }
-  CSettingGroup *group = AddGroup(category);
+  const std::shared_ptr<CSettingGroup> group = AddGroup(category);
   if (group == NULL)
   {
     CLog::Log(LOGERROR, "CGUIDialogLAVVideo: unable to setup settings");
     return;
   }
-  CSettingGroup *groupHW = AddGroup(category);
+  const std::shared_ptr<CSettingGroup> groupHW = AddGroup(category);
   if (groupHW == NULL)
   {
     CLog::Log(LOGERROR, "CGUIDialogLAVVideo: unable to setup settings");
     return;
   }
   // get all necessary setting groups
-  CSettingGroup *groupSettings = AddGroup(category);
+  const std::shared_ptr<CSettingGroup> groupSettings = AddGroup(category);
   if (groupSettings == NULL)
   {
     CLog::Log(LOGERROR, "CGUIDialogLAVVideo: unable to setup settings");
     return;
   }
   // get all necessary setting groups
-  CSettingGroup *groupOutput = AddGroup(category);
+  const std::shared_ptr<CSettingGroup> groupOutput = AddGroup(category);
   if (groupOutput == NULL)
   {
     CLog::Log(LOGERROR, "CGUIDialogLAVVideo: unable to setup settings");
     return;
   }
   // get all necessary setting groups
-  CSettingGroup *groupDeintSW = AddGroup(category);
+  const std::shared_ptr<CSettingGroup> groupDeintSW = AddGroup(category);
   if (groupDeintSW == NULL)
   {
     CLog::Log(LOGERROR, "CGUIDialogLAVVideo: unable to setup settings");
     return;
   }
   // get all necessary setting groups
-  CSettingGroup *groupDeintHW = AddGroup(category);
+  const std::shared_ptr<CSettingGroup> groupDeintHW = AddGroup(category);
   if (groupDeintHW == NULL)
   {
     CLog::Log(LOGERROR, "CGUIDialogLAVVideo: unable to setup settings");
     return;
   }
-  CSettingGroup *groupReset = AddGroup(category);
+  const std::shared_ptr<CSettingGroup> groupReset = AddGroup(category);
   if (groupReset == NULL)
   {
     CLog::Log(LOGERROR, "CGUIDialogLAVAudio: unable to setup settings");
@@ -166,35 +166,35 @@ void CGUIDialogLAVVideo::InitializeSettings()
   CGraphFilters::Get()->GetInternalFilter(CGraphFilters::INTERNAL_LAVVIDEO, &pBF);
   CGraphFilters::Get()->GetLavSettings(CGraphFilters::INTERNAL_LAVVIDEO, pBF);
 
-  StaticIntegerSettingOptions entries;
+  IntegerSettingOptions entries;
   CLavSettings &lavSettings = CMediaSettings::GetInstance().GetCurrentLavSettings();
 
   // BUTTON
-  AddButton(groupProperty, LAVVIDEO_PROPERTYPAGE, 80013, 0);
+  AddButton(groupProperty, LAVVIDEO_PROPERTYPAGE, 80013, SettingLevel::Basic);
 
   // TRAYICON
-  AddToggle(group, LAVVIDEO_TRAYICON, 80001, 0, lavSettings.video_bTrayIcon);
+  AddToggle(group, LAVVIDEO_TRAYICON, 80001, SettingLevel::Basic, lavSettings.video_bTrayIcon);
 
   // HW ACCELERATION
 
   // dependencies
-  CSettingDependency dependencyHWAccelEnabled(SettingDependencyTypeEnable, m_settingsManager);
+  CSettingDependency dependencyHWAccelEnabled(SettingDependencyType::Enable, GetSettingsManager());
   dependencyHWAccelEnabled.Or()
-    ->Add(CSettingDependencyConditionPtr(new CSettingDependencyCondition(LAVVIDEO_HWACCEL, "0", SettingDependencyOperatorEquals, true, m_settingsManager)));
+    ->Add(CSettingDependencyConditionPtr(new CSettingDependencyCondition(LAVVIDEO_HWACCEL, "0", SettingDependencyOperator::Equals, true, GetSettingsManager())));
   SettingDependencies depsHWAccelEnabled;
   depsHWAccelEnabled.push_back(dependencyHWAccelEnabled);
 
   entries.clear();
-  entries.emplace_back(80200, HWAccel_None);
-  entries.emplace_back(80201, HWAccel_CUDA);
-  entries.emplace_back(80202, HWAccel_QuickSync);
-  entries.emplace_back(80203, HWAccel_DXVA2CopyBack);
-  entries.emplace_back(80204, HWAccel_DXVA2Native);
-  entries.emplace_back(80221, HWAccel_D3D11);
-  AddList(groupHW, LAVVIDEO_HWACCEL, 80005, 0, lavSettings.video_dwHWAccel, entries, 80005);
+  entries.emplace_back("80200", HWAccel_None);
+  entries.emplace_back("80201", HWAccel_CUDA);
+  entries.emplace_back("80202", HWAccel_QuickSync);
+  entries.emplace_back("80203", HWAccel_DXVA2CopyBack);
+  entries.emplace_back("80204", HWAccel_DXVA2Native);
+  entries.emplace_back("80221", HWAccel_D3D11);
+  AddList(groupHW, LAVVIDEO_HWACCEL, 80005, SettingLevel::Basic, lavSettings.video_dwHWAccel, entries, 80005);
 
-  CSetting *settingHWDevices;
-  settingHWDevices = AddList(groupHW, LAVVIDEO_HWACCELDEVICES, 80014, 0,
+  std::shared_ptr<CSetting> settingHWDevices;
+  settingHWDevices = AddList(groupHW, LAVVIDEO_HWACCELDEVICES, 80014, SettingLevel::Basic,
     lavSettings.video_dwHWAccelDeviceIndex[lavSettings.video_dwHWAccel], 
     HWAccellIndexFiller,
     80014);
@@ -209,8 +209,7 @@ void CGUIDialogLAVVideo::InitializeSettings()
     values.emplace_back(LAVHWResFlag_HD);
   if (lavSettings.video_dwHWAccelResFlags & LAVHWResFlag_UHD)
     values.emplace_back(LAVHWResFlag_UHD);
-  CSetting *settingHWRes;
-  settingHWRes = AddList(groupHW, LAVVIDEO_HWACCELRES, 80015, 0, values, ResolutionsFiller, 80015);
+  auto settingHWRes = AddList(groupHW, LAVVIDEO_HWACCELRES, 80015, SettingLevel::Basic, values, ResolutionsFiller, 80015);
   settingHWRes->SetParent(LAVVIDEO_HWACCEL);
   settingHWRes->SetDependencies(depsHWAccelEnabled);
 
@@ -228,89 +227,88 @@ void CGUIDialogLAVVideo::InitializeSettings()
     values.emplace_back(HWCodec_HEVC);
   if (lavSettings.video_bHWFormats[HWCodec_VP9])
     values.emplace_back(HWCodec_VP9);
-  CSetting *settingHWCodecs;
-  settingHWCodecs = AddList(groupHW, LAVVIDEO_HWACCELCODECS, 80016, 0, values, CodecsFiller, 80016);
+  auto settingHWCodecs = AddList(groupHW, LAVVIDEO_HWACCELCODECS, 80016, SettingLevel::Basic, values, CodecsFiller, 80016);
   settingHWCodecs->SetParent(LAVVIDEO_HWACCEL);
   settingHWCodecs->SetDependencies(depsHWAccelEnabled);
 
   entries.clear();
   for (unsigned int i = 0; i < 17; i++)
-    entries.emplace_back(80100 + i, i);
-  AddList(groupHW, LAVVIDEO_NUMTHREADS, 80003, 0, lavSettings.video_dwNumThreads, entries, 80003);
+    entries.emplace_back("80100 + i", i);
+  AddList(groupHW, LAVVIDEO_NUMTHREADS, 80003, SettingLevel::Basic, lavSettings.video_dwNumThreads, entries, 80003);
 
   // SETTINGS
-  AddToggle(groupSettings, LAVVIDEO_STREAMAR, 80002, 0, lavSettings.video_dwStreamAR);
+  AddToggle(groupSettings, LAVVIDEO_STREAMAR, 80002, SettingLevel::Basic, lavSettings.video_dwStreamAR);
 
   entries.clear();
-  entries.emplace_back(80100, DeintFieldOrder_Auto);
-  entries.emplace_back(80205, DeintFieldOrder_TopFieldFirst);
-  entries.emplace_back(80206, DeintFieldOrder_BottomFieldFirst);
-  AddList(groupSettings, LAVVIDEO_DEINTFILEDORDER, 80009, 0, lavSettings.video_dwDeintFieldOrder, entries, 80009);
+  entries.emplace_back("80100", DeintFieldOrder_Auto);
+  entries.emplace_back("80205", DeintFieldOrder_TopFieldFirst);
+  entries.emplace_back("80206", DeintFieldOrder_BottomFieldFirst);
+  AddList(groupSettings, LAVVIDEO_DEINTFILEDORDER, 80009, SettingLevel::Basic, lavSettings.video_dwDeintFieldOrder, entries, 80009);
 
   entries.clear();
-  entries.emplace_back(80100, DeintMode_Auto);
-  entries.emplace_back(80207, DeintMode_Aggressive);
-  entries.emplace_back(80208, DeintMode_Force);
-  entries.emplace_back(80209, DeintMode_Disable);
-  AddList(groupSettings, LAVVIDEO_DEINTMODE, 80010, 0, (LAVDeintMode)lavSettings.video_deintMode, entries, 80010);
+  entries.emplace_back("80100", DeintMode_Auto);
+  entries.emplace_back("80207", DeintMode_Aggressive);
+  entries.emplace_back("80208", DeintMode_Force);
+  entries.emplace_back("80209", DeintMode_Disable);
+  AddList(groupSettings, LAVVIDEO_DEINTMODE, 80010, SettingLevel::Basic, (LAVDeintMode)lavSettings.video_deintMode, entries, 80010);
 
   // OUTPUT RANGE
   entries.clear();
-  entries.emplace_back(80214, 1); // "TV (16/235)"
-  entries.emplace_back(80215, 2); // "PC (0-255)"
-  entries.emplace_back(80216, 0); // "Untouched (as input)"
-  AddList(groupOutput, LAVVIDEO_RGBRANGE, 80004, 0, lavSettings.video_dwRGBRange, entries, 80004);
+  entries.emplace_back("80214", 1); // "TV (16/235)"
+  entries.emplace_back("80215", 2); // "PC (0-255)"
+  entries.emplace_back("80216", 0); // "Untouched (as input)"
+  AddList(groupOutput, LAVVIDEO_RGBRANGE, 80004, SettingLevel::Basic, lavSettings.video_dwRGBRange, entries, 80004);
 
   entries.clear();
-  entries.emplace_back(80212, LAVDither_Ordered);
-  entries.emplace_back(80213, LAVDither_Random);
-  AddList(groupOutput, LAVVIDEO_DITHERMODE, 80012, 0, lavSettings.video_dwDitherMode, entries, 80012);
+  entries.emplace_back("80212", LAVDither_Ordered);
+  entries.emplace_back("80213", LAVDither_Random);
+  AddList(groupOutput, LAVVIDEO_DITHERMODE, 80012, SettingLevel::Basic, lavSettings.video_dwDitherMode, entries, 80012);
 
   // DEINT HW/SW
 
   // dependencies
-  CSettingDependency dependencyHWDeintEnabled(SettingDependencyTypeEnable, m_settingsManager);
+  CSettingDependency dependencyHWDeintEnabled(SettingDependencyType::Enable, GetSettingsManager());
   dependencyHWDeintEnabled.Or()
-    ->Add(CSettingDependencyConditionPtr(new CSettingDependencyCondition(LAVVIDEO_HWDEINTMODE, "true", SettingDependencyOperatorEquals, false, m_settingsManager)));
+    ->Add(CSettingDependencyConditionPtr(new CSettingDependencyCondition(LAVVIDEO_HWDEINTMODE, "true", SettingDependencyOperator::Equals, false, GetSettingsManager())));
   SettingDependencies depsHWDeintEnabled;
   depsHWDeintEnabled.push_back(dependencyHWDeintEnabled);
 
-  AddToggle(groupDeintHW, LAVVIDEO_HWDEINTMODE, 80006, 0, lavSettings.video_dwHWDeintMode);
+  AddToggle(groupDeintHW, LAVVIDEO_HWDEINTMODE, 80006, SettingLevel::Basic, lavSettings.video_dwHWDeintMode);
   entries.clear();
-  entries.emplace_back(80210, DeintOutput_FramePer2Field); // "25p/30p (Film)"
-  entries.emplace_back(80211, DeintOutput_FramePerField); // "50p/60p (Video)"  
-  CSetting *settingHWDeintOut;
-  settingHWDeintOut = AddList(groupDeintHW, LAVVIDEO_HWDEINTOUT, 80007, 0, lavSettings.video_dwHWDeintOutput, entries, 80007);
+  entries.emplace_back("80210", DeintOutput_FramePer2Field); // "25p/30p (Film)"
+  entries.emplace_back("80211", DeintOutput_FramePerField); // "50p/60p (Video)"  
+  std::shared_ptr<CSetting> settingHWDeintOut;
+  settingHWDeintOut = AddList(groupDeintHW, LAVVIDEO_HWDEINTOUT, 80007, SettingLevel::Basic, lavSettings.video_dwHWDeintOutput, entries, 80007);
   settingHWDeintOut->SetParent(LAVVIDEO_HWDEINTMODE);
   settingHWDeintOut->SetDependencies(depsHWDeintEnabled);
 
   // dependencies
-  CSettingDependency dependencySWDeintEnabled(SettingDependencyTypeEnable, m_settingsManager);
+  CSettingDependency dependencySWDeintEnabled(SettingDependencyType::Enable, GetSettingsManager());
   dependencySWDeintEnabled.Or()
-    ->Add(CSettingDependencyConditionPtr(new CSettingDependencyCondition(LAVVIDEO_SWDEINTMODE, "0", SettingDependencyOperatorEquals, true, m_settingsManager)));
+    ->Add(CSettingDependencyConditionPtr(new CSettingDependencyCondition(LAVVIDEO_SWDEINTMODE, "0", SettingDependencyOperator::Equals, true, GetSettingsManager())));
   SettingDependencies depSWDeintEnabled;
   depSWDeintEnabled.push_back(dependencySWDeintEnabled);
 
   entries.clear();
-  entries.emplace_back(80220, SWDeintMode_None);
-  entries.emplace_back(80217, SWDeintMode_YADIF);
-  entries.emplace_back(80218, SWDeintMode_W3FDIF_Simple);
-  entries.emplace_back(80219, SWDeintMode_W3FDIF_Complex);
-  AddList(groupDeintSW, LAVVIDEO_SWDEINTMODE, 80011, 0, lavSettings.video_dwSWDeintMode, entries, 800011);
+  entries.emplace_back("80220", SWDeintMode_None);
+  entries.emplace_back("80217", SWDeintMode_YADIF);
+  entries.emplace_back("80218", SWDeintMode_W3FDIF_Simple);
+  entries.emplace_back("80219", SWDeintMode_W3FDIF_Complex);
+  AddList(groupDeintSW, LAVVIDEO_SWDEINTMODE, 80011, SettingLevel::Basic, lavSettings.video_dwSWDeintMode, entries, 800011);
   entries.clear();
-  entries.emplace_back(80210, DeintOutput_FramePer2Field); // "25p/30p (Film)"
-  entries.emplace_back(80211, DeintOutput_FramePerField); // "50p/60p (Video)"
-  CSetting *settingSWDeintOut;
-  settingSWDeintOut = AddList(groupDeintSW, LAVVIDEO_SWDEINTOUT, 80007, 0, lavSettings.video_dwSWDeintOutput, entries, 80007);
+  entries.emplace_back("80210", DeintOutput_FramePer2Field); // "25p/30p (Film)"
+  entries.emplace_back("80211", DeintOutput_FramePerField); // "50p/60p (Video)"
+  std::shared_ptr<CSetting> settingSWDeintOut;
+  settingSWDeintOut = AddList(groupDeintSW, LAVVIDEO_SWDEINTOUT, 80007, SettingLevel::Basic, lavSettings.video_dwSWDeintOutput, entries, 80007);
   settingSWDeintOut->SetParent(LAVVIDEO_SWDEINTMODE);
   settingSWDeintOut->SetDependencies(depSWDeintEnabled);
 
   // BUTTON RESET
   if (!g_application.m_pPlayer->IsPlayingVideo())
-    AddButton(groupReset, LAVVIDEO_RESET, 10041, 0);
+    AddButton(groupReset, LAVVIDEO_RESET, 10041, SettingLevel::Basic);
 }
 
-void CGUIDialogLAVVideo::OnSettingChanged(const CSetting *setting)
+void CGUIDialogLAVVideo::OnSettingChanged(std::shared_ptr<const CSetting> setting)
 {
   if (setting == NULL)
     return;
@@ -322,20 +320,20 @@ void CGUIDialogLAVVideo::OnSettingChanged(const CSetting *setting)
 
   if (settingId == LAVVIDEO_HWACCEL)
   {
-    lavSettings.video_dwHWAccel = static_cast<int>(static_cast<const CSettingInt*>(setting)->GetValue());
-    CSetting* setting_index = m_settingsManager->GetSetting(LAVVIDEO_HWACCELDEVICES);
-    ((CSettingInt*)setting_index)->UpdateDynamicOptions();
-    static_cast<int>(static_cast<CSettingInt*>(setting_index)->SetValue(lavSettings.video_dwHWAccelDeviceIndex[lavSettings.video_dwHWAccel]));
+    lavSettings.video_dwHWAccel = static_cast<int>(static_pointer_cast<const CSettingInt>(setting)->GetValue());
+    auto setting_index = GetSettingsManager()->GetSetting(LAVVIDEO_HWACCELDEVICES);
+    static_pointer_cast<CSettingInt>(setting_index)->UpdateDynamicOptions();
+    static_cast<int>(static_pointer_cast<CSettingInt>(setting_index)->SetValue(lavSettings.video_dwHWAccelDeviceIndex[lavSettings.video_dwHWAccel]));
   }
   if (settingId == LAVVIDEO_HWACCELDEVICES)
   {
-    lavSettings.video_dwHWAccelDeviceIndex[lavSettings.video_dwHWAccel] = static_cast<int>(static_cast<const CSettingInt*>(setting)->GetValue());
+    lavSettings.video_dwHWAccelDeviceIndex[lavSettings.video_dwHWAccel] = static_cast<int>(static_pointer_cast<const CSettingInt>(setting)->GetValue());
   }
   if (settingId == LAVVIDEO_HWACCELRES)
   {
     DWORD flags;
     std::vector<CVariant> values;
-    values = CSettingUtils::GetList(static_cast<const CSettingList*>(setting));
+    values = CSettingUtils::GetList(static_pointer_cast<const CSettingList>(setting));
     if (!values.empty())
     { 
       for (std::vector<CVariant>::const_iterator itValue = values.begin(); itValue != values.end(); ++itValue)
@@ -346,7 +344,7 @@ void CGUIDialogLAVVideo::OnSettingChanged(const CSetting *setting)
   if (settingId == LAVVIDEO_HWACCELCODECS)
   {
     std::vector<CVariant> values;
-    values = CSettingUtils::GetList(static_cast<const CSettingList*>(setting));
+    values = CSettingUtils::GetList(static_pointer_cast<const CSettingList>(setting));
 
     lavSettings.video_bHWFormats[HWCodec_H264] = FALSE;
     lavSettings.video_bHWFormats[HWCodec_VC1] = FALSE;
@@ -363,27 +361,27 @@ void CGUIDialogLAVVideo::OnSettingChanged(const CSetting *setting)
   }
 
   if (settingId == LAVVIDEO_NUMTHREADS)
-    lavSettings.video_dwNumThreads = static_cast<int>(static_cast<const CSettingInt*>(setting)->GetValue());
+    lavSettings.video_dwNumThreads = static_cast<int>(static_pointer_cast<const CSettingInt>(setting)->GetValue());
   if (settingId == LAVVIDEO_TRAYICON)
-    lavSettings.video_bTrayIcon = static_cast<BOOL>(static_cast<const CSettingBool*>(setting)->GetValue());
+    lavSettings.video_bTrayIcon = static_cast<BOOL>(static_pointer_cast<const CSettingBool>(setting)->GetValue());
   if (settingId == LAVVIDEO_STREAMAR)
-    lavSettings.video_dwStreamAR = static_cast<BOOL>(static_cast<const CSettingBool*>(setting)->GetValue());
+    lavSettings.video_dwStreamAR = static_cast<BOOL>(static_pointer_cast<const CSettingBool>(setting)->GetValue());
   if (settingId == LAVVIDEO_DEINTFILEDORDER)
-    lavSettings.video_dwDeintFieldOrder = static_cast<int>(static_cast<const CSettingInt*>(setting)->GetValue());
+    lavSettings.video_dwDeintFieldOrder = static_cast<int>(static_pointer_cast<const CSettingInt>(setting)->GetValue());
   if (settingId == LAVVIDEO_DEINTMODE)
-    lavSettings.video_deintMode = (LAVDeintMode)static_cast<int>(static_cast<const CSettingInt*>(setting)->GetValue());
+    lavSettings.video_deintMode = (LAVDeintMode)static_cast<int>(static_pointer_cast<const CSettingInt>(setting)->GetValue());
   if (settingId == LAVVIDEO_RGBRANGE)
-    lavSettings.video_dwRGBRange = static_cast<int>(static_cast<const CSettingInt*>(setting)->GetValue());
+    lavSettings.video_dwRGBRange = static_cast<int>(static_pointer_cast<const CSettingInt>(setting)->GetValue());
   if (settingId == LAVVIDEO_DITHERMODE)
-    lavSettings.video_dwDitherMode = static_cast<int>(static_cast<const CSettingInt*>(setting)->GetValue());
+    lavSettings.video_dwDitherMode = static_cast<int>(static_pointer_cast<const CSettingInt>(setting)->GetValue());
   if (settingId == LAVVIDEO_HWDEINTMODE)
-    lavSettings.video_dwHWDeintMode = static_cast<BOOL>(static_cast<const CSettingBool*>(setting)->GetValue());
+    lavSettings.video_dwHWDeintMode = static_cast<BOOL>(static_pointer_cast<const CSettingBool>(setting)->GetValue());
   if (settingId == LAVVIDEO_HWDEINTOUT)
-    lavSettings.video_dwHWDeintOutput = static_cast<int>(static_cast<const CSettingInt*>(setting)->GetValue());
+    lavSettings.video_dwHWDeintOutput = static_cast<int>(static_pointer_cast<const CSettingInt>(setting)->GetValue());
   if (settingId == LAVVIDEO_SWDEINTMODE)
-    lavSettings.video_dwSWDeintMode = static_cast<BOOL>(static_cast<const CSettingBool*>(setting)->GetValue());
+    lavSettings.video_dwSWDeintMode = static_cast<BOOL>(static_pointer_cast<const CSettingBool>(setting)->GetValue());
   if (settingId == LAVVIDEO_SWDEINTOUT)
-    lavSettings.video_dwSWDeintOutput = static_cast<int>(static_cast<const CSettingInt*>(setting)->GetValue());
+    lavSettings.video_dwSWDeintOutput = static_cast<int>(static_pointer_cast<const CSettingInt>(setting)->GetValue());
 
   // Get current running filter
   IBaseFilter *pBF;
@@ -396,7 +394,7 @@ void CGUIDialogLAVVideo::OnSettingChanged(const CSetting *setting)
   CGraphFilters::Get()->SaveLavSettings(CGraphFilters::INTERNAL_LAVVIDEO);
 }
 
-void CGUIDialogLAVVideo::OnSettingAction(const CSetting *setting)
+void CGUIDialogLAVVideo::OnSettingAction(std::shared_ptr<const CSetting> setting)
 {
   if (setting == NULL)
     return;
@@ -420,13 +418,13 @@ void CGUIDialogLAVVideo::OnSettingAction(const CSetting *setting)
   }
 }
 
-void CGUIDialogLAVVideo::HWAccellIndexFiller(const CSetting *setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data)
+void CGUIDialogLAVVideo::HWAccellIndexFiller(std::shared_ptr<const CSetting> setting, IntegerSettingOptions &list, int &current, void *data)
 {
   CLavSettings &lavSettings = CMediaSettings::GetInstance().GetCurrentLavSettings();
   CGraphFilters::Get()->GetHWDeviceList(lavSettings.video_dwHWAccel, list);
 }
 
-void CGUIDialogLAVVideo::CodecsFiller(const CSetting *setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data)
+void CGUIDialogLAVVideo::CodecsFiller(std::shared_ptr<const CSetting> setting, IntegerSettingOptions &list, int &current, void *data)
 {
   list.emplace_back("h264", HWCodec_H264);
   list.emplace_back("VC1", HWCodec_VC1);
@@ -436,7 +434,7 @@ void CGUIDialogLAVVideo::CodecsFiller(const CSetting *setting, std::vector< std:
   list.emplace_back("VP9", HWCodec_VP9);
 }
 
-void CGUIDialogLAVVideo::ResolutionsFiller(const CSetting *setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data)
+void CGUIDialogLAVVideo::ResolutionsFiller(std::shared_ptr<const CSetting> setting, IntegerSettingOptions &list, int &current, void *data)
 {
   list.emplace_back("SD", LAVHWResFlag_SD);
   list.emplace_back("HD", LAVHWResFlag_HD);

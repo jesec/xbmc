@@ -718,7 +718,7 @@ void CMadvrSettingsManager::LoadSettings(int iSectionId)
   }
 }
 
-void CMadvrSettingsManager::OnSettingChanged(int iSectionId, CSettingsManager* settingsManager, const CSetting *setting)
+void CMadvrSettingsManager::OnSettingChanged(int iSectionId, CSettingsManager* settingsManager, std::shared_ptr<const CSetting> setting)
 {
   if (!m_bAllowChanges)
     return;
@@ -736,42 +736,42 @@ void CMadvrSettingsManager::OnSettingChanged(int iSectionId, CSettingsManager* s
   { 
     if (it->type == "list_string")
     {
-      madvrSettings.m_db[it->name] = static_cast<const CSettingString*>(setting)->GetValue();
+      madvrSettings.m_db[it->name] = std::static_pointer_cast<const CSettingString>(setting)->GetValue();
       SetStr(it->name, madvrSettings.m_db[it->name].asString(), it->type);
     }
     else if (it->type == "list_int")
     {
-      madvrSettings.m_db[it->name] = static_cast<int>(static_cast<const CSettingInt*>(setting)->GetValue());
+      madvrSettings.m_db[it->name] = static_cast<int>(std::static_pointer_cast<const CSettingInt>(setting)->GetValue());
       SetInt(it->name, madvrSettings.m_db[it->name].asInteger(), it->type);
     }
     else if (it->type == "list_boolint")
     {
-      madvrSettings.m_db[it->name] = static_cast<int>(static_cast<const CSettingInt*>(setting)->GetValue());
+      madvrSettings.m_db[it->name] = static_cast<int>(std::static_pointer_cast<const CSettingInt>(setting)->GetValue());
       SetBoolInt(it->name, it->value, madvrSettings.m_db[it->name].asInteger(), it->negate, it->type);
     }
     else if (it->type == "list_boolbool")
     {
-      madvrSettings.m_db[it->name] = static_cast<int>(static_cast<const CSettingInt*>(setting)->GetValue());
+      madvrSettings.m_db[it->name] = static_cast<int>(std::static_pointer_cast<const CSettingInt>(setting)->GetValue());
       SetBoolBool(it->name, it->value, madvrSettings.m_db[it->name].asInteger(), it->negate, it->type);
     }
     else if (it->type == "list_boolstring")
     {
-      madvrSettings.m_db[it->name] = static_cast<const CSettingString*>(setting)->GetValue();
+      madvrSettings.m_db[it->name] = std::static_pointer_cast<const CSettingString>(setting)->GetValue();
       SetBoolStr(it->name, it->value, madvrSettings.m_db[it->name].asString(), it->negate, it->type);
     }
     else if (it->type == "bool")
     {
-      madvrSettings.m_db[it->name] = static_cast<const CSettingBool*>(setting)->GetValue();
+      madvrSettings.m_db[it->name] = std::static_pointer_cast<const CSettingBool>(setting)->GetValue();
       SetBool(it->name, madvrSettings.m_db[it->name].asBoolean(), it->negate, it->type);
     }
     else if (it->type == "float")
     {
-      madvrSettings.m_db[it->name] = static_cast<float>(static_cast<const CSettingNumber*>(setting)->GetValue());
+      madvrSettings.m_db[it->name] = static_cast<float>(std::static_pointer_cast<const CSettingNumber>(setting)->GetValue());
       SetFloat(it->name, madvrSettings.m_db[it->name].asFloat(), it->slider.format, it->type);
     }
     else
     {
-      madvrSettings.m_db[it->name] = static_cast<const CSettingString*>(setting)->GetValue();
+      madvrSettings.m_db[it->name] = std::static_pointer_cast<const CSettingString>(setting)->GetValue();
       SetCustom(it->name, madvrSettings.m_db[it->name].asString(), it->type);
     }
     
@@ -820,7 +820,7 @@ void CMadvrSettingsManager::UpdateSettings(const std::string &settingId, CSettin
   m_bAllowChanges = true;
 }
 
-void CMadvrSettingsManager::AddDependencies(const std::string &xml, CSettingsManager *settingsManager, CSetting *setting)
+void CMadvrSettingsManager::AddDependencies(const std::string &xml, CSettingsManager *settingsManager, std::shared_ptr<CSetting> setting)
 {
   CXBMCTinyXML doc;
   if (!doc.Parse(xml, TIXML_ENCODING_UTF8))

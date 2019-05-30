@@ -95,7 +95,7 @@ void CGUIDialogDSFilters::InitializeSettings()
 {
   CGUIDialogSettingsManualBase::InitializeSettings();
 
-  CSettingCategory *category = AddCategory("dsfiltersettings", -1);
+  const std::shared_ptr<CSettingCategory> category = AddCategory("dsfiltersettings", -1);
   if (category == NULL)
   {
     CLog::Log(LOGERROR, "CGUIDialogDSFilters: unable to setup settings");
@@ -103,21 +103,21 @@ void CGUIDialogDSFilters::InitializeSettings()
   }
 
   // get all necessary setting groups
-  CSettingGroup *groupSystem = AddGroup(category);
+  const std::shared_ptr<CSettingGroup> groupSystem = AddGroup(category);
   if (groupSystem == NULL)
   {
     CLog::Log(LOGERROR, "CGUIDialogDSFilters: unable to setup settings");
     return;
   }
 
-  CSettingGroup *group = AddGroup(category);
+  const std::shared_ptr<CSettingGroup> group = AddGroup(category);
   if (group == NULL)
   {
     CLog::Log(LOGERROR, "CGUIDialogDSFilters: unable to setup settings");
     return;
   }
 
-  CSettingGroup *groupSave = AddGroup(category);
+  const std::shared_ptr<CSettingGroup> groupSave = AddGroup(category);
   if (groupSave == NULL)
   {
     CLog::Log(LOGERROR, "CGUIDialogDSFilters: unable to setup settings");
@@ -168,20 +168,20 @@ void CGUIDialogDSFilters::InitializeSettings()
   for (const auto &it : m_filterList)
   {
     if (it->m_configType == FILTERSYSTEM)
-      AddList(groupSystem, it->m_setting, it->m_label, 0, it->m_value, it->m_filler, it->m_label);
+      AddList(groupSystem, it->m_setting, it->m_label, SettingLevel::Basic, it->m_value, it->m_filler, it->m_label);
 
     if (it->m_configType == EDITATTR || it->m_configType == OSDGUID)
-      AddEdit(group, it->m_setting, it->m_label, 0, it->m_value, true);
+      AddEdit(group, it->m_setting, it->m_label, SettingLevel::Basic, it->m_value, true);
 
     if (it->m_configType == FILTER)
-      AddList(group, it->m_setting, it->m_label, 0, it->m_value, it->m_filler, it->m_label);
+      AddList(group, it->m_setting, it->m_label, SettingLevel::Basic, it->m_value, it->m_filler, it->m_label);
   }
 
   if (!m_dsmanager->GetNew())
-    AddButton(groupSave, SETTING_FILTER_DEL, 65009, 0);
+    AddButton(groupSave, SETTING_FILTER_DEL, 65009, SettingLevel::Basic);
 }
 
-void CGUIDialogDSFilters::OnSettingChanged(const CSetting *setting)
+void CGUIDialogDSFilters::OnSettingChanged(std::shared_ptr<const CSetting> setting)
 {
   if (setting == NULL)
     return;
@@ -199,14 +199,14 @@ void CGUIDialogDSFilters::OnSettingChanged(const CSetting *setting)
     {
       if (settingId == it->m_setting)
       {
-        it->m_value = static_cast<std::string>(static_cast<const CSettingString*>(setting)->GetValue());
+        it->m_value = static_cast<std::string>(static_pointer_cast<const CSettingString>(setting)->GetValue());
       }
     }
     if (it->m_configType == FILTERSYSTEM)
     {
       if (settingId == "dsfilters.systemfilter")
       {
-        it->m_value = static_cast<std::string>(static_cast<const CSettingString*>(setting)->GetValue());
+        it->m_value = static_cast<std::string>(static_pointer_cast<const CSettingString>(setting)->GetValue());
 
         if (it->m_value != "[null]")
         {
@@ -215,16 +215,16 @@ void CGUIDialogDSFilters::OnSettingChanged(const CSetting *setting)
           StringUtils::ToLower(strFilterName);
           StringUtils::Replace(strFilterName, " ", "_");
 
-          m_settingsManager->SetString("dsfilters.guid", it->m_value.c_str());
-          m_settingsManager->SetString("dsfilters.osdname", strOSDName);
-          m_settingsManager->SetString("dsfilters.name", strFilterName);
+          GetSettingsManager()->SetString("dsfilters.guid", it->m_value.c_str());
+          GetSettingsManager()->SetString("dsfilters.osdname", strOSDName);
+          GetSettingsManager()->SetString("dsfilters.name", strFilterName);
         }
       }
     }
   }
 }
 
-void CGUIDialogDSFilters::OnSettingAction(const CSetting *setting)
+void CGUIDialogDSFilters::OnSettingAction(std::shared_ptr<const CSetting> setting)
 {
   if (setting == NULL)
     return;
@@ -350,7 +350,7 @@ void CGUIDialogDSFilters::ShowDSFiltersList()
     g_windowManager.ActivateWindow(WINDOW_DIALOG_DSFILTERS);
 }
 
-void CGUIDialogDSFilters::TypeOptionFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)
+void CGUIDialogDSFilters::TypeOptionFiller(std::shared_ptr<const CSetting> setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)
 {
   list.emplace_back("", "[null]");
   list.emplace_back("Source Filter (source)", "source");

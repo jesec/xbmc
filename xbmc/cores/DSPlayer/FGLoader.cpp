@@ -753,7 +753,7 @@ HRESULT CFGLoader::InsertFilter(const std::string& filterName, SFilterInfos& f)
   return hr;
 }
 
-void CFGLoader::SettingOptionsDSVideoRendererFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)
+void CFGLoader::SettingOptionsDSVideoRendererFiller(std::shared_ptr<const CSetting> setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)
 {
   list.push_back(std::make_pair("Enhanced Video Renderer (EVR)", "EVR"));
   //todo dx11 
@@ -776,7 +776,7 @@ void CFGLoader::SettingOptionsDSVideoRendererFiller(const CSetting *setting, std
   }
 }
 
-void CFGLoader::SettingOptionsDSAudioRendererFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)
+void CFGLoader::SettingOptionsDSAudioRendererFiller(std::shared_ptr<const CSetting> setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)
 {
   list.push_back(std::make_pair("Internal Audio Renderer (Sanear)", CGraphFilters::INTERNAL_SANEAR));
   list.push_back(std::make_pair("System Default", "System Default"));
@@ -794,7 +794,7 @@ void CFGLoader::SettingOptionsDSAudioRendererFiller(const CSetting *setting, std
   }
 }
 
-void CFGLoader::SettingOptionsSanearDevicesFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)
+void CFGLoader::SettingOptionsSanearDevicesFiller(std::shared_ptr<const CSetting> setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)
 {
   list.push_back(std::make_pair("System Default", "System Default"));
   for (const auto& device : GetDevices())

@@ -23,8 +23,10 @@
 #include "cores/IPlayer.h"
 #include "cores/playercorefactory/PlayerCoreFactory.h"
 #include "guilib/GUIWindowManager.h"
+#include "cores/DataCacheCore.h"
 #include "Application.h"
 #include "PlayListPlayer.h"
+#include "ServiceBroker.h"
 #include "settings/MediaSettings.h"
 
 CApplicationPlayer::CApplicationPlayer()
@@ -854,7 +856,7 @@ void CApplicationPlayer::GetProfileActiveName(const std::string &path, std::stri
   }
 }
 
-void CApplicationPlayer::OnSettingChanged(int iSectionId, CSettingsManager* settingsManager, const CSetting *setting)
+void CApplicationPlayer::OnSettingChanged(int iSectionId, CSettingsManager* settingsManager, std::shared_ptr<const CSetting> setting)
 {
   std::shared_ptr<IPlayer> player = GetInternal();
   if (player)
@@ -863,7 +865,7 @@ void CApplicationPlayer::OnSettingChanged(int iSectionId, CSettingsManager* sett
   }
 }
 
-void CApplicationPlayer::AddDependencies(const std::string &xml, CSettingsManager *settingsManager, CSetting *setting)
+void CApplicationPlayer::AddDependencies(const std::string &xml, CSettingsManager *settingsManager, std::shared_ptr<CSetting> setting)
 {
   std::shared_ptr<IPlayer> player = GetInternal();
   if (player)
@@ -1139,7 +1141,7 @@ bool CApplicationPlayer::IsRenderingGuiLayer()
 {
   std::shared_ptr<IPlayer> player = GetInternal();
   if (player)
-    return player->IsRenderingGuiLayer();
+    return CServiceBroker::GetDataCacheCore().GetGuiRender();
   else
     return false;
 }
@@ -1148,7 +1150,7 @@ bool CApplicationPlayer::IsRenderingVideoLayer()
 {
   std::shared_ptr<IPlayer> player = GetInternal();
   if (player)
-    return player->IsRenderingVideoLayer();
+    return CServiceBroker::GetDataCacheCore().GetVideoRender();
   else
     return false;
 }

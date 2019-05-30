@@ -66,7 +66,6 @@ public:
   void UpdateResolution();
   void TriggerUpdateResolution(float fps, int width, int flags);
   void SetViewMode(int iViewMode);
-  void PreInit();
   void UnInit();
   bool Flush();
   bool IsConfigured() const;
@@ -92,7 +91,7 @@ protected:
   void DeleteRenderer();
 
   CDebugRenderer m_debugRenderer;
-  CBaseRenderer *m_pRenderer;
+  CBaseRenderer *m_pRenderer = nullptr;
   CCriticalSection m_statelock;
   CCriticalSection m_datalock;
   bool m_bTriggerUpdateResolution;

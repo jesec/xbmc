@@ -323,11 +323,12 @@ void CGUIDialogVideoSettings::InitializeSettings()
 #ifdef HAS_DS_PLAYER
   CGUIDialogMadvrSettingsBase::SetSection(MADVR_VIDEO_ROOT);
   CGUIDialogMadvrSettingsBase::InitializeSettings();
-  CSettingCategory *category = m_category;
+  const std::shared_ptr<CSettingCategory> category = m_category;
 #else
   CGUIDialogSettingsManualBase::InitializeSettings();
 
   const std::shared_ptr<CSettingCategory> category = AddCategory("videosettings", -1);
+#endif
   if (category == NULL)
   {
     CLog::Log(LOGERROR, "CGUIDialogVideoSettings: unable to setup settings");
@@ -335,7 +336,7 @@ void CGUIDialogVideoSettings::InitializeSettings()
   }
 
 #ifdef HAS_DS_PLAYER
-  CSettingGroup *groupFilters = AddGroup(category);
+  const std::shared_ptr<CSettingGroup> groupFilters = AddGroup(category);
   if (groupFilters == NULL)
   {
     CLog::Log(LOGERROR, "CGUIDialogVideoSettings: unable to setup settings");

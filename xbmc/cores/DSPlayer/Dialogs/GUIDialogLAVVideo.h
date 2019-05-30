@@ -31,15 +31,15 @@ public:
   CGUIDialogLAVVideo();
   virtual ~CGUIDialogLAVVideo();
   
-  static void HWAccellIndexFiller(const CSetting *setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data);
-  static void CodecsFiller(const CSetting *setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data);
-  static void ResolutionsFiller(const CSetting *setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data);
+  static void HWAccellIndexFiller(std::shared_ptr<const CSetting> setting, IntegerSettingOptions &list, int &current, void *data);
+  static void CodecsFiller(std::shared_ptr<const CSetting> setting, IntegerSettingOptions &list, int &current, void *data);
+  static void ResolutionsFiller(std::shared_ptr<const CSetting> setting, IntegerSettingOptions &list, int &current, void *data);
 
 protected:
 
   // implementations of ISettingCallback
-  virtual void OnSettingChanged(const CSetting *setting);
-  virtual void OnSettingAction(const CSetting *setting);
+  virtual void OnSettingChanged(std::shared_ptr<const CSetting> setting);
+  virtual void OnSettingAction(std::shared_ptr<const CSetting> setting);
 
   // specialization of CGUIDialogSettingsBase
   virtual bool AllowResettingSettings() const { return false; }

@@ -195,8 +195,8 @@ public:
   void LoadSettings(int iSectionId);
   void RestoreSettings();
   void GetProfileActiveName(const std::string &path, std::string *profile);
-  void OnSettingChanged(int iSectionId, CSettingsManager* settingsManager, const CSetting *setting);
-  void AddDependencies(const std::string &xml, CSettingsManager *settingsManager, CSetting *setting);
+  void OnSettingChanged(int iSectionId, CSettingsManager* settingsManager, std::shared_ptr<const CSetting> setting);
+  void AddDependencies(const std::string &xml, CSettingsManager *settingsManager, std::shared_ptr<CSetting> setting);
   void ListSettings(const std::string &path);
 
   // IDSPlayer

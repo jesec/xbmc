@@ -57,6 +57,7 @@
 #include "Application.h"
 #include "GUIUserMessages.h"
 #include "input/Key.h"
+#include "TimingConstants.h"
 #include "settings/MediaSettings.h"
 #include "settings/MediaSourceSettings.h"
 #include "cores/DSPlayer/dsgraph.h"
@@ -212,8 +213,6 @@ bool CDSPlayer::OpenFileInternal(const CFileItem& file)
     m_currentFileItem = file;
 
     m_hReadyEvent.Reset();
-
-    m_renderManager.PreInit();
 
     Create();
 
@@ -1320,16 +1319,6 @@ bool CDSPlayer::IsRenderingVideo()
   return m_renderManager.IsConfigured();
 }
 
-bool CDSPlayer::IsRenderingGuiLayer()
-{
-  return m_renderManager.IsGuiLayer();
-}
-
-bool CDSPlayer::IsRenderingVideoLayer()
-{
-  return m_renderManager.IsVideoLayer();
-}
-
 bool CDSPlayer::Supports(EINTERLACEMETHOD method)
 {
   if (method == VS_INTERLACEMETHOD_NONE
@@ -1602,13 +1591,13 @@ void CDSPlayer::GetProfileActiveName(const std::string &path, std::string *profi
   if (m_pSettingCallback)
     m_pSettingCallback->GetProfileActiveName(path, profile);
 }
-void CDSPlayer::OnSettingChanged(int iSectionId, CSettingsManager* settingsManager, const CSetting *setting)
+void CDSPlayer::OnSettingChanged(int iSectionId, CSettingsManager* settingsManager, std::shared_ptr<const CSetting> setting)
 {
   if (m_pSettingCallback)
     m_pSettingCallback->OnSettingChanged(iSectionId, settingsManager, setting);
 }
 
-void CDSPlayer::AddDependencies(const std::string &xml, CSettingsManager *settingsManager, CSetting *setting)
+void CDSPlayer::AddDependencies(const std::string &xml, CSettingsManager *settingsManager, std::shared_ptr<CSetting> setting)
 {
   if (m_pSettingCallback)
     m_pSettingCallback->AddDependencies(xml, settingsManager, setting);

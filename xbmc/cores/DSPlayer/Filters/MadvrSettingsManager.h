@@ -56,8 +56,8 @@ public:
   virtual void LoadSettings(int iSectionId);
   virtual void RestoreSettings();
   virtual void GetProfileActiveName(const std::string &path, std::string *profile);
-  virtual void OnSettingChanged(int iSectionId, CSettingsManager* settingsManager, const CSetting *setting);
-  virtual void AddDependencies(const std::string &xml, CSettingsManager *settingsManager, CSetting *setting);
+  virtual void OnSettingChanged(int iSectionId, CSettingsManager* settingsManager, std::shared_ptr<const CSetting> setting);
+  virtual void AddDependencies(const std::string &xml, CSettingsManager *settingsManager, std::shared_ptr<CSetting> setting);
   virtual void ListSettings(const std::string &path);
 
   void SetBool(const std::string &path, bool bValue, bool bNegate = false, const std::string &type = "");

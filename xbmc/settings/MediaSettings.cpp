@@ -330,7 +330,7 @@ bool CMediaSettings::Save(TiXmlNode *settings) const
 }
 
 #ifdef HAS_DS_PLAYER
-void CMediaSettings::OnSettingChanged(const CSetting *setting)
+void CMediaSettings::OnSettingChanged(std::shared_ptr<const CSetting> setting)
 {
   if (setting == NULL)
     return;

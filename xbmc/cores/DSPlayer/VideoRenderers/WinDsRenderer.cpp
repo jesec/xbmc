@@ -38,6 +38,8 @@
 #include "guilib\GraphicContext.h"
 #include "Application.h"
 
+#include "DVDCodecs/DVDCodecUtils.h"
+
 CWinDsRenderer::CWinDsRenderer(): 
   m_bConfigured(false)
   , m_oldVideoRect(0, 0, 0, 0)
@@ -56,23 +58,17 @@ void CWinDsRenderer::SetupScreenshot()
   CDX9AllocatorPresenter::bPaintAll = false;
 }
 
-bool CWinDsRenderer::Configure(unsigned int width, unsigned int height, unsigned int d_width, unsigned int d_height, float fps, unsigned flags, ERenderFormat format, void *hwPic, unsigned int orientation)
+bool CWinDsRenderer::Configure(const VideoPicture &picture, float fps, unsigned flags, unsigned int orientation)
 {
-  if (m_sourceWidth != width
-    || m_sourceHeight != height)
-  {
-    m_sourceWidth = width;
-    m_sourceHeight = height;
-    // need to recreate textures
-  }
+  m_sourceWidth = picture.iWidth;
+  m_sourceHeight = picture.iHeight;
 
   m_fps = fps;
   m_iFlags = flags;
   m_flags = flags;
-  m_format = format;
 
   // calculate the input frame aspect ratio
-  CalculateFrameAspectRatio(d_width, d_height);
+  CalculateFrameAspectRatio(picture.iDisplayWidth, picture.iDisplayHeight);
 
   SetViewMode(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_ViewMode);
   ManageRenderArea();
@@ -80,11 +76,6 @@ bool CWinDsRenderer::Configure(unsigned int width, unsigned int height, unsigned
   m_bConfigured = true;
 
   return true;
-}
-
-void CWinDsRenderer::Reset()
-{
-  // todo
 }
 
 void CWinDsRenderer::Update()
@@ -154,22 +145,10 @@ void CWinDsRenderer::RenderUpdate(bool clear, unsigned int flags, unsigned int a
 
 void CWinDsRenderer::Flush()
 {
-  PreInit();
   SetViewMode(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_ViewMode);
   ManageRenderArea();
 
   m_bConfigured = true;
-}
-
-void CWinDsRenderer::PreInit()
-{
-  CSingleLock lock(g_graphicsContext);
-  m_bConfigured = false;
-  UnInit();
-
-  // setup the background colour
-  m_clearColour = g_Windowing.UseLimitedColor() ? (16 * 0x010101) : 0;
-  return;
 }
 
 void CWinDsRenderer::UnInit()

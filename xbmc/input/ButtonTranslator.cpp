@@ -41,6 +41,8 @@
 #include "utils/log.h"
 #include "utils/XBMCTinyXML.h"
 
+#include "settings/AdvancedSettings.h"
+
 using namespace KODI;
 
 CButtonTranslator::CButtonTranslator()

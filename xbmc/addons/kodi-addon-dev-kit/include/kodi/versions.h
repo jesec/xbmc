@@ -102,8 +102,8 @@
 #define ADDON_INSTANCE_VERSION_IMAGEDECODER_XML_ID    "kodi.binary.instance.imagedecoder"
 #define ADDON_INSTANCE_VERSION_IMAGEDECODER_DEPENDS   "addon-instance/ImageDecoder.h"
 
-#define ADDON_INSTANCE_VERSION_INPUTSTREAM            "2.0.1"
-#define ADDON_INSTANCE_VERSION_INPUTSTREAM_MIN        "2.0.1"
+#define ADDON_INSTANCE_VERSION_INPUTSTREAM            "2.0.2"
+#define ADDON_INSTANCE_VERSION_INPUTSTREAM_MIN        "2.0.2"
 #define ADDON_INSTANCE_VERSION_INPUTSTREAM_XML_ID     "kodi.binary.instance.inputstream"
 #define ADDON_INSTANCE_VERSION_INPUTSTREAM_DEPENDS    "addon-instance/Inputstream.h"
 
@@ -113,8 +113,8 @@
 #define ADDON_INSTANCE_VERSION_PERIPHERAL_DEPENDS     "addon-instance/Peripheral.h" \
                                                       "addon-instance/PeripheralUtils.h"
 
-#define ADDON_INSTANCE_VERSION_PVR                    "5.2.4"
-#define ADDON_INSTANCE_VERSION_PVR_MIN                "5.2.4"
+#define ADDON_INSTANCE_VERSION_PVR                    "5.3.0"
+#define ADDON_INSTANCE_VERSION_PVR_MIN                "5.3.0"
 #define ADDON_INSTANCE_VERSION_PVR_XML_ID             "kodi.binary.instance.pvr"
 #define ADDON_INSTANCE_VERSION_PVR_DEPENDS            "xbmc_pvr_dll.h" \
                                                       "xbmc_pvr_types.h" \
@@ -136,8 +136,8 @@
 #define ADDON_INSTANCE_VERSION_VISUALIZATION_XML_ID   "kodi.binary.instance.visualization"
 #define ADDON_INSTANCE_VERSION_VISUALIZATION_DEPENDS  "addon-instance/Visualization.h"
 
-#define ADDON_INSTANCE_VERSION_VIDEOCODEC             "1.0.0"
-#define ADDON_INSTANCE_VERSION_VIDEOCODEC_MIN         "1.0.0"
+#define ADDON_INSTANCE_VERSION_VIDEOCODEC             "1.0.1"
+#define ADDON_INSTANCE_VERSION_VIDEOCODEC_MIN         "1.0.1"
 #define ADDON_INSTANCE_VERSION_VIDEOCODEC_XML_ID      "kodi.binary.instance.videocodec"
 #define ADDON_INSTANCE_VERSION_VIDEOCODEC_DEPENDS     "addon-instance/VideoCodec.h" \
                                                       "StreamCodec.h" \

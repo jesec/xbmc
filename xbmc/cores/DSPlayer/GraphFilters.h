@@ -193,7 +193,7 @@ public:
   bool SaveLavSettings(const std::string &type);
   void EraseLavSetting(const std::string &type);
   void GetActiveDecoder(std::pair<std::string, bool> &activeDecoder);
-  void GetHWDeviceList(DWORD dwHWAccel, DynamicIntegerSettingOptions &list) { list = m_mapHWAccelDeviceInfo[dwHWAccel];};
+  void GetHWDeviceList(DWORD dwHWAccel, IntegerSettingOptions &list) { list = m_mapHWAccelDeviceInfo[dwHWAccel];};
 
   void SetSanearSettings();
 
@@ -225,7 +225,7 @@ private:
 
   bool m_bDialogProcessInfo = false;
   
-  std::map<int, DynamicIntegerSettingOptions> m_mapHWAccelDeviceInfo;
+  std::map<int, IntegerSettingOptions> m_mapHWAccelDeviceInfo;
 
   Com::SmartPtr<IBaseFilter> m_pBF;
   IDirect3DDevice9 * m_pD3DDevice;
