@@ -49,12 +49,6 @@ enum DS_STATS
   DS_STATS_3 = 1
 };
 
-enum EVR_OUTPUT_RANGE
-{
-  OUTPUT_RANGE_0_255 = 0,
-  OUTPUT_RANGE_16_235
-};
-
 class CRendererSettings
 {
 public:
@@ -100,50 +94,6 @@ public:
   SSubSettings subtitlesSettings;
 };
 
-class CEVRRendererSettings: public CRendererSettings
-{
-public:
-  CEVRRendererSettings()
-  {
-    SetDefault();
-  }
-  void SetDefault()
-  {
-    CRendererSettings::SetDefault();
-
-    highColorResolution = false;
-    enableFrameTimeCorrection = false;
-    outputRange = OUTPUT_RANGE_0_255;
-    buffers = 4;
-  }
-
-public:
-  bool highColorResolution;
-  bool enableFrameTimeCorrection;
-  EVR_OUTPUT_RANGE outputRange;
-  int buffers;
-};
-
-class CVMR9RendererSettings: public CRendererSettings
-{
-public:
-  CVMR9RendererSettings()
-  {
-    SetDefault();
-  }
-  void SetDefault()
-  {
-    CRendererSettings::SetDefault();
-    flushGPUBeforeVSync = false;
-    vSync = false;
-    vSyncAccurate = false;
-    mixerMode = true;
-  };
-
-public:
-  bool mixerMode;
-};
-
 class CMADVRRendererSettings : public CRendererSettings
 {
 public:
@@ -187,8 +137,6 @@ public:
   HRESULT (__stdcall * m_pDwmIsCompositionEnabled)(__out BOOL* pfEnabled);
   HRESULT (__stdcall * m_pDwmEnableComposition)(UINT uCompositionAction);
   HMODULE m_hDWMAPI;
-
-  bool isEVR;
 };
 extern class CDSSettings g_dsSettings;
 extern bool g_bNoDuration;

@@ -3,75 +3,12 @@
     <!-- You dont need a path if your filter is registered -->
 
     <!-- Video decoders -->
-    <filter name="mpcvideodec" type="videodec">
-      <path>MPCVideoDec.ax</path>
-      <guid>{008BAC12-FBAF-497B-9670-BC6F6FBAE2C4}</guid>
-      <osdname>MPC Video Decoder</osdname>
-    </filter>
-    <filter name="ffdvideodec" type="videodec">
-      <guid>{04FE9017-F873-410E-871E-AB91661A4EF7}</guid>
-      <osdname>ffdshow Video Decoder</osdname>
-    </filter>
-    <filter name="ffdvideodxvadec" type="videodec">
-      <guid>{0B0EFF97-C750-462C-9488-B10E7D87F1A6}</guid>
-      <osdname>ffdshow DXVA Decoder</osdname>
-    </filter>
-     <filter name="ffdshowrawfilter" type="extra">
-       <guid>{0B390488-D80F-4A68-8408-48DC199F0E97}</guid>
-       <osdname>ffdshow raw video filter</osdname>
-    </filter>
-    <filter name="coreavcvideodec" type="videodec">
-      <guid>{09571A4B-F1FE-4C60-9760-DE6D310C7C31}</guid>
-      <osdname>CoreAVC Video Decoder</osdname>
-    </filter>
-    <filter name="cyberlinkvideodec" type="videodec">
-      <guid>{BEF49ADB-9EC1-4AF2-8E50-90F226CC4843}</guid>
-      <osdname>CyberLink Video Decoder</osdname>
-    </filter>
-    <filter name="wmvideodecoder" type="videodec">
-      <guid>{82D353DF-90BD-4382-8BC2-3F6192B76E34}</guid>
-      <osdname>WMVideo Decoder</osdname>
-      <isdmo>true</isdmo>
-      <guid_category_dmo>{4a69b442-28be-4991-969c-b500adf5d8a8}</guid_category_dmo>
-    </filter>
-    <filter name="mpeg2videodec" type="videodec">
-      <path>Mpeg2DecFilter.ax</path>
-      <guid>{39F498AF-1A09-4275-B193-673B0BA3D478}</guid>
-      <osdname>mpeg2 Video Decoder</osdname>
-    </filter>
-    <filter name="realvideodec" type="videodec">
-      <guid>{238D0F23-5DC9-45A6-9BE2-666160C324DD}</guid>
-      <osdname>RealAlternative Video Decoder</osdname>
-    </filter>
-    <filter name="broadcomvideodecoder" type="videodec">
-      <guid>{2DE1D17E-46B1-42A8-9AEC-E20E80D9B1A9}</guid>
-      <osdname>Broadcom VideoDecoder</osdname>
-    </filter>
     <filter name="lavvideodec" type="videodec">
       <guid>{EE30215D-164F-4A92-A4EB-9D4C13390F9F}</guid>
       <osdname>LAV Video Decoder</osdname>
     </filter>
     
     <!-- Audio decoders -->
-    <filter name="mpaaudiodec" type="audiodec">
-      <path>MpaDecFilter.ax</path>
-      <guid>{3D446B6F-71DE-4437-BE15-8CE47174340F}</guid>
-      <osdname>Mpa Decoder</osdname>
-    </filter>
-    <filter name="ffdaudiodec" type="audiodec">
-      <guid>{0F40E1E5-4F79-4988-B1A9-CC98794E6B55}</guid>
-      <osdname>ffdshow audio decoder</osdname>
-    </filter>
-    <filter name="wmaudiodecoder" type="audiodec">
-      <guid>{2EEB4ADF-4578-4D10-BCA7-BB955F56320A}</guid>
-      <osdname>WMAudio Decoder</osdname>
-      <isdmo>true</isdmo>
-      <guid_category_dmo>{57f2db8b-e6bb-4513-9d43-dcd2a6593125}</guid_category_dmo>
-    </filter>
-    <filter name="realaudiodec" type="audiodec">
-      <guid>{941A4793-A705-4312-8DFC-C11CA05F397E}</guid>
-      <osdname>RealAlternative Audio Decoder</osdname>
-    </filter>
     <filter name="lavaudiodec" type="audiodec">
       <guid>{E8E73B6B-4CB3-44A4-BE99-4F7BCB96E491}</guid>
       <osdname>LAV Audio Decoder</osdname>

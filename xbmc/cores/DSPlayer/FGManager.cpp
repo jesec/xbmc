@@ -40,10 +40,6 @@
 #include "utils/SystemInfo.h" //g_sysinfo
 #include "settings/Settings.h"//g_guiSettings
 
-
-#include "filters/VMR9AllocatorPresenter.h"
-#include "filters/EVRAllocatorPresenter.h"
-
 #include <initguid.h>
 #include "moreuuids.h"
 #include <dmodshow.h>
@@ -340,10 +336,6 @@ HRESULT CFGManager::RenderFileXbmc(const CFileItem& pFileItem)
 {
   CSingleLock lock(*this);
   HRESULT hr = S_OK;
-
-  //update ffdshow registry to avoid stupid connection problem
-  //TODO move updateregistry to the xbmc gui like setting the stable codecs for ffdshow
-  //UpdateRegistry();
 
   START_PERFORMANCE_COUNTER
     if (FAILED(m_CfgLoader->LoadFilterRules(pFileItem)))

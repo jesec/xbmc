@@ -43,8 +43,6 @@
 #include "utils/SystemInfo.h"
 
 #include "filters/XBMCFileSource.h"
-#include "filters/VMR9AllocatorPresenter.h"
-#include "filters/EVRAllocatorPresenter.h"
 #include "Filters/madVRAllocatorPresenter.h"
 
 #include "Utils/AudioEnumerator.h"
@@ -436,18 +434,7 @@ HRESULT CFGLoader::InsertVideoRenderer()
   std::string videoRender;
   videoRender = CServiceBroker::GetSettings().GetString(CSettings::SETTING_DSPLAYER_VIDEORENDERER);
 
-  if (videoRender == "EVR")
-  { 
-    m_pFGF = new CFGFilterVideoRenderer(CLSID_EVRAllocatorPresenter, "Kodi EVR");
-  }
-  if (videoRender == "VMR9")
-  { 
-    m_pFGF = new CFGFilterVideoRenderer(CLSID_VMR9AllocatorPresenter, "Kodi VMR9");
-  }
-  if (videoRender == "madVR")
-  {
-    m_pFGF = new CFGFilterVideoRenderer(CLSID_madVRAllocatorPresenter, "Kodi madVR");
-  }
+  m_pFGF = new CFGFilterVideoRenderer(CLSID_madVRAllocatorPresenter, "Kodi madVR");
 
   hr = m_pFGF->Create(&CGraphFilters::Get()->VideoRenderer.pBF);
   if (FAILED(hr))
@@ -545,11 +532,6 @@ HRESULT CFGLoader::LoadFilterRules(const CFileItem& _pFileItem)
   START_PERFORMANCE_COUNTER
     if (SUCCEEDED(CFilterCoreFactory::GetSubsFilter(pFileItem, filter, CGraphFilters::Get()->IsUsingDXVADecoder())))
     {
-      if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_FILTERSMANAGEMENT) == INTERNALFILTERS 
-        && CServiceBroker::GetSettings().GetString(CSettings::SETTING_DSPLAYER_VIDEORENDERER) == "EVR"
-        && filter == CGraphFilters::INTERNAL_XYSUBFILTER)
-        filter = CGraphFilters::INTERNAL_XYVSFILTER;
-
       if (FAILED(InsertFilter(filter, CGraphFilters::Get()->Subs)))
         return E_FAIL;
       END_PERFORMANCE_COUNTER("Loading subs filter");
@@ -755,10 +737,6 @@ HRESULT CFGLoader::InsertFilter(const std::string& filterName, SFilterInfos& f)
 
 void CFGLoader::SettingOptionsDSVideoRendererFiller(std::shared_ptr<const CSetting> setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)
 {
-  list.push_back(std::make_pair("Enhanced Video Renderer (EVR)", "EVR"));
-  //todo dx11 
-  //list.push_back(std::make_pair("Video Mixing Renderer 9 (VMR9)", "VMR9"));
-  
   CDSFilterEnumerator p_dsfilter;
   std::vector<DSFiltersInfo> dsfilterList;
   p_dsfilter.GetDSFilters(dsfilterList);

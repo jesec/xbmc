@@ -27,15 +27,15 @@
 #include "EpgDatabase.h"
 #include "ServiceBroker.h"
 #include "guilib/LocalizeStrings.h"
-#include "pvr/addons/PVRClients.h"
-#include "pvr/PVRManager.h"
-#include "pvr/recordings/PVRRecordings.h"
-#include "pvr/timers/PVRTimers.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
 #include "threads/SingleLock.h"
 #include "utils/log.h"
 
+#include "pvr/PVRManager.h"
+#include "pvr/addons/PVRClients.h"
+#include "pvr/recordings/PVRRecordings.h"
+#include "pvr/timers/PVRTimers.h"
 
 using namespace PVR;
 
@@ -145,8 +145,8 @@ void CPVREpg::Clear(void)
 
 void CPVREpg::Cleanup(void)
 {
-  CDateTime cleanupTime = CDateTime::GetCurrentDateTime().GetAsUTCDateTime() -
-      CDateTimeSpan(0, g_advancedSettings.m_iEpgLingerTime / 60, g_advancedSettings.m_iEpgLingerTime % 60, 0);
+  int iPastDays = CServiceBroker::GetPVRManager().EpgContainer().GetPastDaysToDisplay();
+  const CDateTime cleanupTime = CDateTime::GetUTCDateTime() - CDateTimeSpan(iPastDays, 0, 0, 0);
   Cleanup(cleanupTime);
 }
 
@@ -310,7 +310,7 @@ void CPVREpg::AddEntry(const CPVREpgInfoTag &tag)
   if (newTag)
   {
     newTag->Update(tag);
-    newTag->SetPVRChannel(channel);
+    newTag->SetChannel(channel);
     newTag->SetEpg(this);
     newTag->SetTimer(CServiceBroker::GetPVRManager().Timers()->GetTimerForEpgTag(newTag));
     newTag->SetRecording(CServiceBroker::GetPVRManager().Recordings()->GetRecordingForEpgTag(newTag));
@@ -407,16 +407,16 @@ CDateTime CPVREpg::GetLastScanTime(void)
   return m_lastScanTime;
 }
 
-bool CPVREpg::UpdateEntry(const EPG_TAG *data, bool bUpdateDatabase /* = false */)
+bool CPVREpg::UpdateEntry(const EPG_TAG *data, int iClientId, bool bUpdateDatabase)
 {
   if (!data)
     return false;
 
-  CPVREpgInfoTagPtr tag(new CPVREpgInfoTag(*data));
+  CPVREpgInfoTagPtr tag(new CPVREpgInfoTag(*data, iClientId));
   return UpdateEntry(tag, bUpdateDatabase);
 }
 
-bool CPVREpg::UpdateEntry(const CPVREpgInfoTagPtr &tag, bool bUpdateDatabase /* = false */)
+bool CPVREpg::UpdateEntry(const CPVREpgInfoTagPtr &tag, bool bUpdateDatabase)
 {
   CPVREpgInfoTagPtr infoTag;
 
@@ -438,7 +438,7 @@ bool CPVREpg::UpdateEntry(const CPVREpgInfoTagPtr &tag, bool bUpdateDatabase /* 
 
     infoTag->Update(*tag, bNewTag);
     infoTag->SetEpg(this);
-    infoTag->SetPVRChannel(m_pvrChannel);
+    infoTag->SetChannel(m_pvrChannel);
 
     if (bUpdateDatabase)
       m_changedTags.insert(std::make_pair(infoTag->UniqueBroadcastID(), infoTag));
@@ -450,7 +450,7 @@ bool CPVREpg::UpdateEntry(const CPVREpgInfoTagPtr &tag, bool bUpdateDatabase /* 
   return true;
 }
 
-bool CPVREpg::UpdateEntry(const CPVREpgInfoTagPtr &tag, EPG_EVENT_STATE newState, bool bUpdateDatabase /* = false */)
+bool CPVREpg::UpdateEntry(const CPVREpgInfoTagPtr &tag, EPG_EVENT_STATE newState, bool bUpdateDatabase)
 {
   bool bRet(true);
   bool bNotify(true);
@@ -477,7 +477,8 @@ bool CPVREpg::UpdateEntry(const CPVREpgInfoTagPtr &tag, EPG_EVENT_STATE newState
     else
     {
       // Respect epg linger time.
-      const CDateTime cleanupTime(CDateTime::GetUTCDateTime() - CDateTimeSpan(0, g_advancedSettings.m_iEpgLingerTime / 60, g_advancedSettings.m_iEpgLingerTime % 60, 0));
+      int iPastDays = CServiceBroker::GetPVRManager().EpgContainer().GetPastDaysToDisplay();
+      const CDateTime cleanupTime(CDateTime::GetUTCDateTime() - CDateTimeSpan(iPastDays, 0, 0, 0));
       if (it->second->EndAsUTC() < cleanupTime)
       {
         if (bUpdateDatabase)
@@ -856,7 +857,7 @@ void CPVREpg::SetChannel(const PVR::CPVRChannelPtr &channel)
     }
     m_pvrChannel = channel;
     for (std::map<CDateTime, CPVREpgInfoTagPtr>::iterator it = m_tags.begin(); it != m_tags.end(); ++it)
-      it->second->SetPVRChannel(m_pvrChannel);
+      it->second->SetChannel(m_pvrChannel);
   }
 }
 

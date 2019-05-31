@@ -427,7 +427,7 @@ void CRenderDSManager::UpdateDisplayLatency()
   float refresh = g_graphicsContext.GetFPS();
   if (g_graphicsContext.GetVideoResolution() == RES_WINDOW)
     refresh = 0; // No idea about refresh rate when windowed, just get the default latency
-  m_displayLatency = (double) g_advancedSettings.GetDisplayLatency(refresh);
+  m_displayLatency = g_advancedSettings.GetLatencyTweak(refresh);
 
   if (CGraphFilters::Get()->GetAuxAudioDelay())
     m_displayLatency += (double)g_advancedSettings.GetDisplayAuxDelay(refresh);

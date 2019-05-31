@@ -22,7 +22,11 @@
 #include "threads/SingleLock.h"
 #include "ServiceBroker.h"
 
-CDataCacheCore::CDataCacheCore()
+CDataCacheCore::CDataCacheCore() :
+  m_playerVideoInfo {},
+  m_playerAudioInfo {},
+  m_renderInfo {},
+  m_stateInfo {}
 {
   m_hasAVInfoChanges = false;
 }
@@ -30,6 +34,18 @@ CDataCacheCore::CDataCacheCore()
 CDataCacheCore& CDataCacheCore::GetInstance()
 {
   return CServiceBroker::GetDataCacheCore();
+}
+
+void CDataCacheCore::Reset()
+{
+  CSingleLock lock(m_stateSection);
+
+  m_stateInfo.m_speed = 1.0;
+  m_stateInfo.m_tempo = 1.0;
+  m_stateInfo.m_stateSeeking = false;
+  m_stateInfo.m_renderGuiLayer = false;
+  m_stateInfo.m_renderVideoLayer = false;
+  m_playerStateChanged = false;
 }
 
 bool CDataCacheCore::HasAVInfoChanges()
@@ -237,6 +253,28 @@ bool CDataCacheCore::CDataCacheCore::IsSeeking()
   return m_stateInfo.m_stateSeeking;
 }
 
+void CDataCacheCore::SetSpeed(float tempo, float speed)
+{
+  CSingleLock lock(m_stateSection);
+
+  m_stateInfo.m_tempo = tempo;
+  m_stateInfo.m_speed = speed;
+}
+
+float CDataCacheCore::GetSpeed()
+{
+  CSingleLock lock(m_stateSection);
+
+  return m_stateInfo.m_speed;
+}
+
+float CDataCacheCore::GetTempo()
+{
+  CSingleLock lock(m_stateSection);
+
+  return m_stateInfo.m_tempo;
+}
+
 bool CDataCacheCore::IsPlayerStateChanged()
 {
   CSingleLock lock(m_stateSection);
@@ -275,4 +313,37 @@ bool CDataCacheCore::CDataCacheCore::GetVideoRender()
   CSingleLock lock(m_stateSection);
 
   return m_stateInfo.m_renderVideoLayer;
+}
+
+void CDataCacheCore::SetPlayTimes(time_t start, int64_t current, int64_t min, int64_t max)
+{
+  CSingleLock lock(m_stateSection);
+  m_timeInfo.m_startTime = start;
+  m_timeInfo.m_time = current;
+  m_timeInfo.m_timeMin = min;
+  m_timeInfo.m_timeMax = max;
+}
+
+time_t CDataCacheCore::GetStartTime()
+{
+  CSingleLock lock(m_stateSection);
+  return m_timeInfo.m_startTime;
+}
+
+int64_t CDataCacheCore::GetPlayTime()
+{
+  CSingleLock lock(m_stateSection);
+  return m_timeInfo.m_time;
+}
+
+int64_t CDataCacheCore::GetMinTime()
+{
+  CSingleLock lock(m_stateSection);
+  return m_timeInfo.m_timeMin;
+}
+
+int64_t CDataCacheCore::GetMaxTime()
+{
+  CSingleLock lock(m_stateSection);
+  return m_timeInfo.m_timeMax;
 }

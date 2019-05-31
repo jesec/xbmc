@@ -285,12 +285,7 @@ void CDSPlayer::LoadVideoSettings(const CFileItem& file)
 
 void CDSPlayer::SetCurrentVideoRenderer(const std::string &videoRenderer)
 {
-  if (videoRenderer == "EVR")
-    m_CurrentVideoRenderer = DIRECTSHOW_RENDERER_EVR;
-  if (videoRenderer == "VMR9")
-    m_CurrentVideoRenderer = DIRECTSHOW_RENDERER_VMR9;
-  if (videoRenderer == "madVR")
-    m_CurrentVideoRenderer = DIRECTSHOW_RENDERER_MADVR;
+  m_CurrentVideoRenderer = DIRECTSHOW_RENDERER_MADVR;
 }
 
 bool CDSPlayer::OpenFile(const CFileItem& file, const CPlayerOptions &options)
@@ -305,7 +300,6 @@ bool CDSPlayer::OpenFile(const CFileItem& file, const CPlayerOptions &options)
 
   if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOSCREEN_FAKEFULLSCREEN))
   {
-    g_Windowing.SetWindowedForMadvr();
     CGraphFilters::Get()->SetKodiRealFS(true);
     CServiceBroker::GetSettings().SetBool(CSettings::SETTING_VIDEOSCREEN_FAKEFULLSCREEN, true);
   }
@@ -352,12 +346,6 @@ bool CDSPlayer::CloseFile(bool reopen)
     g_dsGraph->QueueStop();
     return false;
   }
-
-  //todo evrfullscreen
-  /*
-  if (UsingDS(DIRECTSHOW_RENDERER_EVR))
-  PostMessage(new CDSMsgBool(CDSMsg::RESET_DEVICE, true), false);
-  */
 
   // zoom
   if (m_pAllocatorCallback)
@@ -645,15 +633,10 @@ void CDSPlayer::OnExit()
   m_hReadyEvent.Set();
   m_bStop = true;
   m_threadID = 0;
-  if (m_PlayerOptions.identify == false)
-  {
-    if (!m_bEof || PlayerState == DSPLAYER_ERROR)
-      m_callback.OnPlayBackStopped();
-    else
-      m_callback.OnPlayBackEnded();
-  }
-
-  m_PlayerOptions.identify = false;
+  if (!m_bEof || PlayerState == DSPLAYER_ERROR)
+    m_callback.OnPlayBackStopped();
+  else
+    m_callback.OnPlayBackEnded();
 }
 
 void CDSPlayer::Process()
@@ -680,7 +663,7 @@ void CDSPlayer::Process()
 
   g_dsSettings.pRendererSettings->bAllowFullscreen = m_PlayerOptions.fullscreen;
 
-  if (m_PlayerOptions.identify == false) m_callback.OnPlayBackStarted();
+  m_callback.OnPlayBackStarted();
 
   // Start playback
   // If there's an error, the lock must be released in order to show the error dialog
@@ -887,28 +870,29 @@ void CDSPlayer::Pause()
   m_pGraphThread.SetSpeedChanged(true);
   if (PlayerState == DSPLAYER_PAUSED)
   {
-    m_pGraphThread.SetCurrentRate(1);
+    SetSpeed(1);
     m_callback.OnPlayBackResumed();
   }
   else
   {
-    m_pGraphThread.SetCurrentRate(0);
+    SetSpeed(0);
     m_callback.OnPlayBackPaused();
   }
   PostMessage(new CDSMsg(CDSMsg::PLAYER_PAUSE));
 }
 void CDSPlayer::SetSpeed(float iSpeed)
 {
-  if (iSpeed != 1)
+  if (iSpeed != 1 && iSpeed != 0)
     g_infoManager.SetDisplayAfterSeek();
 
   m_pGraphThread.SetCurrentRate(iSpeed);
   m_pGraphThread.SetSpeedChanged(true);
+  CDataCacheCore::GetInstance().SetSpeed(1.0, iSpeed);
 }
 
-float CDSPlayer::GetSpeed()
+void CDSPlayer::SetTempo(float tempo)
 {
-  return m_pGraphThread.GetCurrentRate();
+  // TODO
 }
 
 bool CDSPlayer::SupportsTempo()
@@ -1006,68 +990,8 @@ bool CDSPlayer::OnAction(const CAction &action)
 
   if (g_pPVRStream)
   {
-    switch (action.GetID())
-    {
-    case ACTION_MOVE_UP:
-    case ACTION_NEXT_ITEM:
-    case ACTION_CHANNEL_UP:
-      if (SelectChannel(true))
-      {
-        g_infoManager.SetDisplayAfterSeek();
-        ShowPVRChannelInfo();
-      }
-      else if (CDSPlayer::PlayerState == DSPLAYER_CLOSED)
-      {
-        m_callback.OnPlayBackStopped();
-      }
-      else
-      {
-        CLog::Log(LOGWARNING, "%s - failed to switch channel. playback stopped", __FUNCTION__);
-        CApplicationMessenger::GetInstance().PostMsg(TMSG_MEDIA_STOP);
-      }
-      return true;
-      break;
-
-    case ACTION_MOVE_DOWN:
-    case ACTION_PREV_ITEM:
-    case ACTION_CHANNEL_DOWN:
-      if (SelectChannel(false))
-      {
-        g_infoManager.SetDisplayAfterSeek();
-        ShowPVRChannelInfo();
-      }
-      else if (CDSPlayer::PlayerState == DSPLAYER_CLOSED)
-      {
-        m_callback.OnPlayBackStopped();
-      }
-      else
-      {
-        CLog::Log(LOGWARNING, "%s - failed to switch channel. playback stopped", __FUNCTION__);
-        CApplicationMessenger::GetInstance().PostMsg(TMSG_MEDIA_STOP);
-      }
-      return true;
-      break;
-
-    case ACTION_CHANNEL_SWITCH:
-      // Offset from key codes back to button number
-      int channel = (int)action.GetAmount();
-      if (SwitchChannel(channel))
-      {
-        g_infoManager.SetDisplayAfterSeek();
-        ShowPVRChannelInfo();
-      }
-      else if (CDSPlayer::PlayerState == DSPLAYER_CLOSED)
-      {
-        m_callback.OnPlayBackStopped();
-      }
-      else
-      {
-        CLog::Log(LOGWARNING, "%s - failed to switch channel. playback stopped", __FUNCTION__);
-        CApplicationMessenger::GetInstance().PostMsg(TMSG_MEDIA_STOP);
-      }
-      return true;
-      break;
-    }
+    // TODO
+    return true;
   }
 
   switch (action.GetID())
@@ -1194,12 +1118,7 @@ void CDSPlayer::UpdateApplication()
 {
   if (g_pPVRStream)
   {
-    CFileItem item(g_application.CurrentFileItem());
-    if (g_pPVRStream->UpdateItem(item))
-    {
-      g_application.CurrentFileItem() = item;
-      CApplicationMessenger::GetInstance().PostMsg(TMSG_UPDATE_CURRENT_ITEM, 0, -1, static_cast<void*>(new CFileItem(item)));
-    }
+    // TODO
   }
 }
 
@@ -1223,39 +1142,8 @@ void CDSPlayer::UpdateChannelSwitchSettings()
 #endif
 }
 
-bool CDSPlayer::SwitchChannel(unsigned int iChannelNumber)
-{
-  m_PlayerOptions.identify = true;
-
-  bool bResult = g_pPVRStream->SelectChannelByNumber(iChannelNumber);
-  
-  m_PlayerOptions.identify = false;
-
-  return bResult;
-}
-
-bool CDSPlayer::SwitchChannel(const CPVRChannelPtr &channel)
-{
-  if (CServiceBroker::GetPVRManager().IsPlayingChannel(channel))
-    return false; // desired channel already active, nothing to do.
-
-  /* set GUI info */
-  if (!CServiceBroker::GetPVRManager().PerformChannelSwitch(channel, true))
-    return false;
-
-  m_PlayerOptions.identify = true;
-
-  bool bResult = g_pPVRStream->SelectChannel(channel);
-
-  m_PlayerOptions.identify = false;
-
-  return bResult;
-}
-
 bool CDSPlayer::SelectChannel(bool bNext)
 {
-  m_PlayerOptions.identify = true;
-
   bool bShowPreview = false;/*(CServiceBroker::GetSettings().GetInt("pvrplayback.channelentrytimeout") > 0);*/ // TODO
 
   if (!bShowPreview)
@@ -1264,8 +1152,6 @@ bool CDSPlayer::SelectChannel(bool bNext)
   }
 
   bool bResult = (bNext ? g_pPVRStream->NextChannel(bShowPreview) : g_pPVRStream->PrevChannel(bShowPreview));
-  
-  m_PlayerOptions.identify = false;
 
   return bResult;
 }
@@ -1273,20 +1159,14 @@ bool CDSPlayer::SelectChannel(bool bNext)
 bool CDSPlayer::ShowPVRChannelInfo()
 {
   bool bReturn(false);
-
-  if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_PVRMENU_DISPLAYCHANNELINFO) > 0)
-  {
-    CServiceBroker::GetPVRManager().ShowPlayerInfo(CServiceBroker::GetSettings().GetInt(CSettings::SETTING_PVRMENU_DISPLAYCHANNELINFO));
-
-    bReturn = true;
-  }
-
+  // TODO
   return bReturn;
 }
 
 void CDSPlayer::FrameMove()
 {
   m_renderManager.FrameMove();
+  CDataCacheCore::GetInstance().SetPlayTimes(0, GetTime(), 0, GetTotalTime());
 }
 
 void CDSPlayer::Render(bool clear, uint32_t alpha, bool gui)
@@ -1542,8 +1422,7 @@ bool CDSPlayer::ParentWindowProc(HWND hWnd, UINT uMsg, WPARAM *wParam, LPARAM *l
 
 void CDSPlayer::Reset(bool bForceWindowed)
 {
-  if (UsingDS(DIRECTSHOW_RENDERER_EVR))
-    m_pAllocatorCallback->Reset(bForceWindowed);
+
 }
 
 // IDSRendererPaintCallback

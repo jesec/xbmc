@@ -31,6 +31,8 @@
 #include "video/dialogs/GUIDialogAudioSubtitleSettings.h"
 #include "guilib/GUIWindowManager.h"
 #include "input/Key.h"
+#include "pvr/PVRGUIActions.h"
+#include "pvr/PVRManager.h"
 #include "video/dialogs/GUIDialogFullScreenInfo.h"
 #include "settings/DisplaySettings.h"
 #include "settings/MediaSettings.h"
@@ -110,13 +112,14 @@ CGUIWindowFullScreen::~CGUIWindowFullScreen(void)
 bool CGUIWindowFullScreen::OnAction(const CAction &action)
 {
   if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_PVRPLAYBACK_CONFIRMCHANNELSWITCH) &&
-      g_infoManager.IsPlayerChannelPreviewActive() &&
-      (action.GetID() == ACTION_SELECT_ITEM || CServiceBroker::GetInputManager().GetGlobalAction(action.GetButtonCode()).GetID() == ACTION_SELECT_ITEM))
+      CServiceBroker::GetPVRManager().GUIActions()->GetChannelNavigator().IsPreview() &&
+      (action.GetID() == ACTION_SELECT_ITEM ||
+       CServiceBroker::GetInputManager().GetGlobalAction(action.GetButtonCode()).GetID() == ACTION_SELECT_ITEM))
   {
     // If confirm channel switch is active, channel preview is currently shown
     // and the button that caused this action matches (global) action "Select" (OK)
     // switch to the channel currently displayed within the preview.
-    g_application.m_pPlayer->SwitchChannel(g_application.CurrentFileItem().GetPVRChannelInfoTag());
+    CServiceBroker::GetPVRManager().GUIActions()->GetChannelNavigator().SwitchToCurrentChannel();
     return true;
   }
 
@@ -313,7 +316,7 @@ EVENT_RESULT CGUIWindowFullScreen::OnMouseEvent(const CPoint &point, const CMous
 void CGUIWindowFullScreen::FrameMove()
 {
   float playspeed = g_application.m_pPlayer->GetPlaySpeed();
-  if (playspeed < 0.75 || playspeed > 1.55)
+  if (playspeed != 1.0 && !g_application.m_pPlayer->HasGame())
     g_infoManager.SetDisplayAfterSeek();
 
   if (!g_application.m_pPlayer->HasPlayer())

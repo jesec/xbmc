@@ -23,12 +23,12 @@
 #include <utility>
 
 #include "Application.h"
+#include "ServiceBroker.h"
 #include "dialogs/GUIDialogOK.h"
 #include "dialogs/GUIDialogYesNo.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
 #include "messaging/ApplicationMessenger.h"
-#include "ServiceBroker.h"
 #include "utils/StringUtils.h"
 #include "utils/Variant.h"
 
@@ -49,7 +49,7 @@ using namespace KODI::MESSAGING;
 #define CONTROL_BTN_OK                  7
 #define CONTROL_BTN_PLAY_RECORDING      8
 #define CONTROL_BTN_ADD_TIMER           9
-#define CONTROL_BTN_CHANNEL_GUIDE       10
+#define CONTROL_BTN_PLAY_EPGTAG        10
 
 CGUIDialogPVRGuideInfo::CGUIDialogPVRGuideInfo(void)
     : CGUIDialog(WINDOW_DIALOG_PVR_GUIDE_INFO, "DialogPVRInfo.xml")
@@ -71,26 +71,6 @@ bool CGUIDialogPVRGuideInfo::OnClickButtonOK(CGUIMessage &message)
   return bReturn;
 }
 
-bool CGUIDialogPVRGuideInfo::OnClickButtonChannelGuide(CGUIMessage &message)
-{
-  bool bReturn = false;
-
-  if (message.GetSenderId() == CONTROL_BTN_CHANNEL_GUIDE)
-  {
-    if (!m_progItem || !m_progItem->HasPVRChannel())
-    {
-      /* invalid channel */
-      CGUIDialogOK::ShowAndGetInput(CVariant{19033}, CVariant{19136}); // Information, Channel unavailable
-      Close();
-      return bReturn;
-    }
-
-    bReturn = CServiceBroker::GetPVRManager().GUIActions()->ShowChannelEPG(CFileItemPtr(new CFileItem(m_progItem)));
-  }
-
-  return bReturn;
-}
-
 bool CGUIDialogPVRGuideInfo::OnClickButtonRecord(CGUIMessage &message)
 {
   bool bReturn = false;
@@ -99,7 +79,7 @@ bool CGUIDialogPVRGuideInfo::OnClickButtonRecord(CGUIMessage &message)
   {
     bReturn = true;
 
-    if (!m_progItem || !m_progItem->HasPVRChannel())
+    if (!m_progItem || !m_progItem->HasChannel())
     {
       /* invalid channel */
       CGUIDialogOK::ShowAndGetInput(CVariant{19033}, CVariant{19067});
@@ -152,13 +132,17 @@ bool CGUIDialogPVRGuideInfo::OnClickButtonPlay(CGUIMessage &message)
 {
   bool bReturn = false;
 
-  if (message.GetSenderId() == CONTROL_BTN_SWITCH || message.GetSenderId() == CONTROL_BTN_PLAY_RECORDING)
+  if (message.GetSenderId() == CONTROL_BTN_SWITCH ||
+      message.GetSenderId() == CONTROL_BTN_PLAY_RECORDING ||
+      message.GetSenderId() == CONTROL_BTN_PLAY_EPGTAG)
   {
     Close();
 
     const CFileItemPtr item(new CFileItem(m_progItem));
     if (message.GetSenderId() == CONTROL_BTN_PLAY_RECORDING)
       CServiceBroker::GetPVRManager().GUIActions()->PlayRecording(item, true /* bCheckResume */);
+    else if (message.GetSenderId() == CONTROL_BTN_PLAY_EPGTAG && m_progItem->IsPlayable())
+      CServiceBroker::GetPVRManager().GUIActions()->PlayEpgTag(item);
     else
       CServiceBroker::GetPVRManager().GUIActions()->SwitchToChannel(item, true /* bCheckResume */);
 
@@ -187,8 +171,7 @@ bool CGUIDialogPVRGuideInfo::OnMessage(CGUIMessage& message)
            OnClickButtonRecord(message) ||
            OnClickButtonPlay(message) ||
            OnClickButtonFind(message) ||
-           OnClickButtonAddTimer(message) ||
-           OnClickButtonChannelGuide(message);
+           OnClickButtonAddTimer(message);
   }
 
   return CGUIDialog::OnMessage(message);
@@ -242,12 +225,15 @@ void CGUIDialogPVRGuideInfo::OnInitWindow()
       bHideRecord = false;
     }
   }
-  else if (CServiceBroker::GetPVRManager().Clients()->SupportsTimers() && m_progItem->EndAsLocalTime() > CDateTime::GetCurrentDateTime())
+  else if (CServiceBroker::GetPVRManager().Clients()->SupportsTimers() && m_progItem->IsRecordable())
   {
     SET_CONTROL_LABEL(CONTROL_BTN_RECORD, 264);     /* Record */
     bHideRecord = false;
     bHideAddTimer = false;
   }
+
+  if (!m_progItem->IsPlayable())
+    SET_CONTROL_HIDDEN(CONTROL_BTN_PLAY_EPGTAG);
 
   if (bHideRecord)
     SET_CONTROL_HIDDEN(CONTROL_BTN_RECORD);

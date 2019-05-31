@@ -23,18 +23,13 @@ list(APPEND CMAKE_SYSTEM_PREFIX_PATH ${CMAKE_SOURCE_DIR}/project/BuildDependenci
 list(APPEND CMAKE_SYSTEM_LIBRARY_PATH ${CMAKE_SOURCE_DIR}/project/BuildDependencies/mingwlibs/${ARCH}/bin)
 list(APPEND CMAKE_SYSTEM_PREFIX_PATH ${CMAKE_SOURCE_DIR}/project/BuildDependencies/${ARCH})
 list(APPEND CMAKE_SYSTEM_PREFIX_PATH ${CMAKE_SOURCE_DIR}/project/BuildDependencies)
-
-if(${ARCH} STREQUAL win32)
-  set(PYTHON_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/project/BuildDependencies/include/python)
-else()
-  set(PYTHON_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/project/BuildDependencies/${ARCH}/include/python)
-endif()
+set(PYTHON_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/project/BuildDependencies/${ARCH}/include/python)
 
 
 # -------- Compiler options ---------
 
 add_options(CXX ALL_BUILDS "/wd\"4996\"")
-set(ARCH_DEFINES -D_WINDOWS -DTARGET_WINDOWS -D__SSE__ -D__SSE2__)
+set(ARCH_DEFINES -D_WINDOWS -DTARGET_WINDOWS -DTARGET_WINDOWS_DESKTOP -D__SSE__ -D__SSE2__)
 set(SYSTEM_DEFINES -DNOMINMAX -DHAS_DX -D__STDC_CONSTANT_MACROS
                    -DTAGLIB_STATIC -DNPT_CONFIG_ENABLE_LOGGING
                    -DPLT_HTTP_DEFAULT_USER_AGENT="UPnP/1.0 DLNADOC/1.50 Kodi"

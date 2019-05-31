@@ -282,17 +282,9 @@ void CLangInfo::CRegion::SetGlobalLocale()
   // decimal separator is changed depending of the current language
   // (ie. "," in French or Dutch instead of "."). This breaks atof() and
   // others similar functions.
-#if defined(TARGET_FREEBSD) || defined(TARGET_DARWIN_OSX) || defined(__UCLIBC__)
+#if !(defined(TARGET_FREEBSD) || defined(TARGET_DARWIN_OSX) || defined(__UCLIBC__))
   // on FreeBSD, darwin and uClibc-based systems libstdc++ is compiled with
   // "generic" locale support
-  if (setlocale(LC_COLLATE, strLocale.c_str()) == NULL
-  || setlocale(LC_CTYPE, strLocale.c_str()) == NULL)
-  {
-    strLocale = "C";
-    setlocale(LC_COLLATE, strLocale.c_str());
-    setlocale(LC_CTYPE, strLocale.c_str());
-  }
-#else
   std::locale current_locale = std::locale::classic(); // C-Locale
   try
   {
@@ -300,6 +292,8 @@ void CLangInfo::CRegion::SetGlobalLocale()
     strLocale = lcl.name();
     current_locale = current_locale.combine< std::collate<wchar_t> >(lcl);
     current_locale = current_locale.combine< std::ctype<wchar_t> >(lcl);
+    current_locale = current_locale.combine< std::time_get<wchar_t> >(lcl);
+    current_locale = current_locale.combine< std::time_put<wchar_t> >(lcl);
 
     assert(std::use_facet< std::numpunct<char> >(current_locale).decimal_point() == '.');
 
@@ -311,6 +305,32 @@ void CLangInfo::CRegion::SetGlobalLocale()
   g_langInfo.m_systemLocale = current_locale; //! @todo move to CLangInfo class
   std::locale::global(current_locale);
 #endif
+
+#ifndef TARGET_WINDOWS
+  if (setlocale(LC_COLLATE, strLocale.c_str()) == NULL ||
+      setlocale(LC_CTYPE, strLocale.c_str()) == NULL ||
+      setlocale(LC_TIME, strLocale.c_str()) == NULL)
+  {
+    strLocale = "C";
+    setlocale(LC_COLLATE, strLocale.c_str());
+    setlocale(LC_CTYPE, strLocale.c_str());
+    setlocale(LC_TIME, strLocale.c_str());
+  }
+#else
+  std::wstring strLocaleW;
+  g_charsetConverter.utf8ToW(strLocale, strLocaleW);
+  if (_wsetlocale(LC_COLLATE, strLocaleW.c_str()) == NULL ||
+      _wsetlocale(LC_CTYPE, strLocaleW.c_str()) == NULL ||
+      _wsetlocale(LC_TIME, strLocaleW.c_str()) == NULL)
+  {
+    strLocale = "C";
+    strLocaleW = L"C";
+    _wsetlocale(LC_COLLATE, strLocaleW.c_str());
+    _wsetlocale(LC_CTYPE, strLocaleW.c_str());
+    _wsetlocale(LC_TIME, strLocaleW.c_str());
+  }
+#endif
+
   g_charsetConverter.resetSystemCharset();
   CLog::Log(LOGINFO, "global locale set to %s", strLocale.c_str());
 
@@ -646,102 +666,23 @@ std::string CLangInfo::GetEnglishLanguageName(const std::string& locale /* = "" 
   return addon->Name();
 }
 
-bool CLangInfo::SetLanguage(const std::string &strLanguage /* = "" */, bool reloadServices /* = true */)
+bool CLangInfo::SetLanguage(std::string language /* = "" */, bool reloadServices /* = true */)
 {
-  bool fallback;
-  return SetLanguage(fallback, strLanguage, reloadServices);
-}
-
-bool CLangInfo::SetLanguage(bool& fallback, const std::string &strLanguage /* = "" */, bool reloadServices /* = true */)
-{
-  fallback = false;
-
-  std::string language = strLanguage;
   if (language.empty())
-  {
     language = CServiceBroker::GetSettings().GetString(CSettings::SETTING_LOCALE_LANGUAGE);
 
-    if (language.empty())
+  ADDON::AddonPtr addon;
+  if (!ADDON::CAddonMgr::GetInstance().GetAddon(language, addon, ADDON::ADDON_RESOURCE_LANGUAGE, false))
+  {
+    CLog::Log(LOGWARNING, "CLangInfo: could not find language add-on '%s', loading default..", language.c_str());
+    language = std::static_pointer_cast<const CSettingString>(CServiceBroker::GetSettings().GetSetting(
+        CSettings::SETTING_LOCALE_LANGUAGE))->GetDefault();
+
+    if (!ADDON::CAddonMgr::GetInstance().GetAddon(language, addon, ADDON::ADDON_RESOURCE_LANGUAGE, false))
     {
-      CLog::Log(LOGFATAL, "CLangInfo: cannot load empty language.");
+      CLog::Log(LOGFATAL, "CLangInfo: could not find default language add-on '%s'", language.c_str());
       return false;
     }
-  }
-
-  LanguageResourcePtr languageAddon;
-  {
-    std::string addonId = ADDON::CLanguageResource::GetAddonId(language);
-    if (addonId.empty())
-      addonId = CServiceBroker::GetSettings().GetString(CSettings::SETTING_LOCALE_LANGUAGE);
-
-    ADDON::AddonPtr addon;
-    if (ADDON::CAddonMgr::GetInstance().GetAddon(addonId, addon, ADDON::ADDON_RESOURCE_LANGUAGE, false))
-    {
-      languageAddon = std::static_pointer_cast<ADDON::CLanguageResource>(addon);
-      ADDON::CAddonMgr::GetInstance().EnableAddon(languageAddon->ID());
-    }
-  }
-
-  if (languageAddon == NULL)
-  {
-    CLog::Log(LOGWARNING, "CLangInfo: unable to load language \"%s\". Trying to determine matching language addon...", language.c_str());
-
-    // we may have to fall back to the default language
-    std::string defaultLanguage = std::static_pointer_cast<CSettingString>(CServiceBroker::GetSettings().GetSetting(CSettings::SETTING_LOCALE_LANGUAGE))->GetDefault();
-    std::string newLanguage = defaultLanguage;
-
-    // try to determine a language addon matching the given language in name
-    if (!ADDON::CLanguageResource::FindLanguageAddonByName(language, newLanguage))
-    {
-      CLog::Log(LOGWARNING, "CLangInfo: unable to find an installed language addon matching \"%s\". Trying to find an installable language...", language.c_str());
-
-      bool foundMatchingAddon = false;
-      CAddonDatabase addondb;
-      if (addondb.Open())
-      {
-        // update the addon repositories to check if there's a matching language addon available for download
-        if (CServiceBroker::GetRepositoryUpdater().CheckForUpdates())
-          CServiceBroker::GetRepositoryUpdater().Await();
-
-        ADDON::VECADDONS languageAddons;
-        if (addondb.GetRepositoryContent(languageAddons) && !languageAddons.empty())
-        {
-          languageAddons.erase(std::remove_if(languageAddons.begin(), languageAddons.end(),
-              [](const ADDON:: AddonPtr& addon){ return !addon->IsType(ADDON::ADDON_RESOURCE_LANGUAGE); }), languageAddons.end());
-          // try to get the proper language addon by its name from all available language addons
-          if (ADDON::CLanguageResource::FindLanguageAddonByName(language, newLanguage, languageAddons))
-          {
-            if (CAddonInstaller::GetInstance().InstallOrUpdate(newLanguage, false, false))
-            {
-              CLog::Log(LOGINFO, "CLangInfo: successfully installed language addon \"%s\" matching current language \"%s\"", newLanguage.c_str(), language.c_str());
-              foundMatchingAddon = true;
-            }
-            else
-              CLog::Log(LOGERROR, "CLangInfo: failed to installed language addon \"%s\" matching current language \"%s\"", newLanguage.c_str(), language.c_str());
-          }
-          else
-            CLog::Log(LOGERROR, "CLangInfo: unable to match old language \"%s\" to any available language addon", language.c_str());
-        }
-        else
-          CLog::Log(LOGERROR, "CLangInfo: no language addons available to match against \"%s\"", language.c_str());
-      }
-      else
-        CLog::Log(LOGERROR, "CLangInfo: unable to open addon database to look for a language addon matching \"%s\"", language.c_str());
-
-      // if the new language matches the default language we are loading the
-      // default language as a fallback
-      if (!foundMatchingAddon && newLanguage == defaultLanguage)
-      {
-        CLog::Log(LOGINFO, "CLangInfo: fall back to the default language \"%s\"", defaultLanguage.c_str());
-        fallback = true;
-      }
-    }
-
-    if (!CServiceBroker::GetSettings().SetString(CSettings::SETTING_LOCALE_LANGUAGE, newLanguage))
-      return false;
-
-    CServiceBroker::GetSettings().Save();
-    return true;
   }
 
   CLog::Log(LOGINFO, "CLangInfo: loading %s language information...", language.c_str());

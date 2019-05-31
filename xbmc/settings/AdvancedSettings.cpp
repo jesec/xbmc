@@ -304,7 +304,6 @@ void CAdvancedSettings::Initialize()
   m_bVideoScannerIgnoreErrors = false;
   m_iVideoLibraryDateAdded = 1; // prefer mtime over ctime and current time
 
-  m_iEpgLingerTime = 60 * 24;           /* keep 24 hours by default */
   m_iEpgUpdateCheckInterval = 300; /* check if tables need to be updated every 5 minutes */
   m_iEpgCleanupInterval = 900;     /* remove old entries from the EPG every 15 minutes */
   m_iEpgActiveTagCheckInterval = 60; /* check for updated active tags every minute */
@@ -387,11 +386,7 @@ void CAdvancedSettings::Initialize()
 
   m_enableMultimediaKeys = false;
 
-#if defined(TARGET_DARWIN_IOS)
-  m_canWindowed = false;
-#else
   m_canWindowed = true;
-#endif
   m_guiVisualizeDirtyRegions = false;
   m_guiAlgorithmDirtyRegions = 3;
   m_guiSmartRedraw = false;
@@ -918,7 +913,6 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
   pElement = pRootElement->FirstChildElement("epg");
   if (pElement)
   {
-    XMLUtils::GetInt(pElement, "lingertime", m_iEpgLingerTime);
     XMLUtils::GetInt(pElement, "updatecheckinterval", m_iEpgUpdateCheckInterval);
     XMLUtils::GetInt(pElement, "cleanupinterval", m_iEpgCleanupInterval);
     XMLUtils::GetInt(pElement, "activetagcheckinterval", m_iEpgActiveTagCheckInterval);
@@ -1410,17 +1404,17 @@ void CAdvancedSettings::AddSettingsFile(const std::string &filename)
   m_settingsFiles.push_back(filename);
 }
 
-float CAdvancedSettings::GetDisplayLatency(float refreshrate)
+float CAdvancedSettings::GetLatencyTweak(float refreshrate)
 {
-  float delay = m_videoDefaultLatency / 1000.0f;
+  float delay = m_videoDefaultLatency;
   for (int i = 0; i < (int) m_videoRefreshLatency.size(); i++)
   {
     RefreshVideoLatency& videolatency = m_videoRefreshLatency[i];
     if (refreshrate >= videolatency.refreshmin && refreshrate <= videolatency.refreshmax)
-      delay = videolatency.delay / 1000.0f;
+      delay = videolatency.delay;
   }
 
-  return delay; // in seconds
+  return delay; // in milliseconds
 }
 
 #ifdef HAS_DS_PLAYER
@@ -1477,6 +1471,7 @@ void CAdvancedSettings::SettingOptionsLoggingComponentsFiller(SettingConstPtr se
   list.push_back(std::make_pair(g_localizeStrings.Get(672), LOGFFMPEG));
   list.push_back(std::make_pair(g_localizeStrings.Get(676), LOGAUDIO));
   list.push_back(std::make_pair(g_localizeStrings.Get(680), LOGVIDEO));
+  list.push_back(std::make_pair(g_localizeStrings.Get(683), LOGAVTIMING));
 #ifdef HAS_DBUS
   list.push_back(std::make_pair(g_localizeStrings.Get(674), LOGDBUS));
 #endif
@@ -1495,6 +1490,7 @@ void CAdvancedSettings::SettingOptionsLoggingComponentsFiller(SettingConstPtr se
 #ifdef HAVE_LIBCEC
   list.push_back(std::make_pair(g_localizeStrings.Get(679), LOGCEC));
 #endif
+  list.push_back(std::make_pair(g_localizeStrings.Get(682), LOGDATABASE));
 }
 
 void CAdvancedSettings::setExtraLogLevel(const std::vector<CVariant> &components)

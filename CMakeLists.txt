@@ -24,6 +24,7 @@ endif()
 include(cmake/modules/extra/ECMEnableSanitizers.cmake)
 include(cmake/scripts/common/GeneratorSetup.cmake)
 include(cmake/scripts/common/AddOptions.cmake)
+include(cmake/scripts/common/Platform.cmake)
 include(cmake/scripts/common/ArchSetup.cmake)
 include(cmake/scripts/common/Macros.cmake)
 include(cmake/scripts/common/ProjectMacros.cmake)
@@ -56,7 +57,7 @@ if(NOT WIN32)
   option(WITH_ARCH              "build with given arch" OFF)
   option(WITH_CPU               "build with given cpu" OFF)
 endif()
-if(CORE_SYSTEM_NAME STREQUAL linux OR CORE_SYSTEM_NAME STREQUAL rbpi)
+if(CORE_SYSTEM_NAME STREQUAL linux)
   option(ENABLE_LIRC            "Enable LIRC support?" ON)
   option(ENABLE_EVENTCLIENTS    "Enable event clients support?" OFF)
 endif()
@@ -95,32 +96,6 @@ endif()
 find_package(Threads REQUIRED QUIET)
 list(APPEND DEPLIBS ${CMAKE_THREAD_LIBS_INIT})
 
-# Platform
-if(CORE_SYSTEM_NAME STREQUAL linux)
-  # Set default CORE_PLATFORM_NAME to X11
-  # This is overridden by user setting -DCORE_PLATFORM_NAME=<platform>
-  set(_DEFAULT_PLATFORM X11)
-else()
-  string(TOLOWER ${CORE_SYSTEM_NAME} _DEFAULT_PLATFORM)
-endif()
-
-set(CORE_PLATFORM_NAME ${_DEFAULT_PLATFORM} CACHE STRING "Platform port to build")
-#
-# Note: please do not use CORE_PLATFORM_NAME in any checks,
-# use the normalized to lower case CORE_PLATFORM_NAME_LC (see below) instead
-#
-unset(_DEFAULT_PLATFORM)
-string(TOLOWER ${CORE_PLATFORM_NAME} CORE_PLATFORM_NAME_LC)
-
-list(APPEND final_message "Platform: ${CORE_PLATFORM_NAME}")
-if(EXISTS ${CMAKE_SOURCE_DIR}/cmake/platform/${CORE_SYSTEM_NAME}/${CORE_PLATFORM_NAME_LC}.cmake)
-  include(${CMAKE_SOURCE_DIR}/cmake/platform/${CORE_SYSTEM_NAME}/${CORE_PLATFORM_NAME_LC}.cmake)
-else()
-  file(GLOB _platformnames RELATIVE ${CMAKE_SOURCE_DIR}/cmake/platform/${CORE_SYSTEM_NAME}/
-                                    ${CMAKE_SOURCE_DIR}/cmake/platform/${CORE_SYSTEM_NAME}/*.cmake)
-  string(REPLACE ".cmake" " " _platformnames ${_platformnames})
-  message(FATAL_ERROR "invalid CORE_PLATFORM_NAME: ${CORE_PLATFORM_NAME_LC}\nValid platforms: ${_platformnames}")
-endif()
 
 foreach(dep ${PLATFORM_REQUIRED_DEPS})
   # We need to specify ENABLE_${PLATFORM_REQUIRED_DEPS} in order for the
@@ -269,6 +244,7 @@ add_compile_options(${ARCH_DEFINES} "${SYSTEM_DEFINES}" ${DEP_DEFINES} ${PATH_DE
 set(core_DEPENDS "" CACHE STRING "" FORCE)
 set(test_archives "" CACHE STRING "" FORCE)
 set(test_sources "" CACHE STRING "" FORCE)
+set(sca_sources "" CACHE STRING "" FORCE)
 mark_as_advanced(core_DEPENDS)
 mark_as_advanced(test_archives)
 mark_as_advanced(test_sources)
@@ -311,7 +287,7 @@ endif()
 # main library (used for main binary and tests)
 add_library(lib${APP_NAME_LC} STATIC $<TARGET_OBJECTS:compileinfo>)
 set_target_properties(lib${APP_NAME_LC} PROPERTIES PREFIX "")
-add_dependencies(lib${APP_NAME_LC} libcpluff ffmpeg dvdnav crossguid dsexternals)
+add_dependencies(lib${APP_NAME_LC} libcpluff ffmpeg dvdnav crossguid dsexternals ${PLATFORM_GLOBAL_TARGET_DEPS})
 
 # Other files (IDE)
 set(OTHER_FILES cmake/README.md)
@@ -368,6 +344,9 @@ add_dependencies(${APP_NAME_LC}-test ${APP_NAME_LC}-libraries export-files)
 if(CORE_HOST_IS_TARGET)
   enable_testing()
   gtest_add_tests(${APP_NAME_LC}-test "" ${test_sources})
+  if(NOT WIN32)
+    sca_add_tests()
+  endif()
   add_custom_target(check ${CMAKE_CTEST_COMMAND} WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
   add_dependencies(check ${APP_NAME_LC}-test)
 
@@ -388,8 +367,8 @@ if(CORE_HOST_IS_TARGET)
 
   # code coverage
   if(CMAKE_BUILD_TYPE STREQUAL Coverage)
-    if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/${CORE_SYSTEM_NAME}/CodeCoverage.cmake)
-      include(${CMAKE_SOURCE_DIR}/scripts/${CORE_SYSTEM_NAME}/CodeCoverage.cmake)
+    if(EXISTS ${CMAKE_SOURCE_DIR}/cmake/scripts/${CORE_SYSTEM_NAME}/CodeCoverage.cmake)
+      include(${CMAKE_SOURCE_DIR}/cmake/scripts/${CORE_SYSTEM_NAME}/CodeCoverage.cmake)
     else()
       message(FATAL_ERROR "Code coverage not (yet) implemented for platform ${CORE_SYSTEM_NAME}")
     endif()

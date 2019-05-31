@@ -102,7 +102,6 @@ public:
   virtual bool CanSeek()  override { return g_dsGraph->CanSeek(); }
   virtual void Seek(bool bPlus, bool bLargeStep, bool bChapterOverride) override;
   virtual void SeekPercentage(float iPercent) override;
-  virtual float GetPercentage() override { return g_dsGraph->GetPercentage(); }
   virtual float GetCachePercentage() override { return g_dsGraph->GetCachePercentage(); }
   virtual void SetVolume(float nVolume)  override { g_dsGraph->SetVolume(nVolume); }
   virtual void SetMute(bool bOnOff)  override { if (bOnOff) g_dsGraph->SetVolume(VOLUME_MINIMUM); }
@@ -136,17 +135,13 @@ public:
 
   virtual void SeekTime(__int64 iTime = 0) override;
   virtual bool SeekTimeRelative(__int64 iTime) override;
-  virtual __int64 GetTime() override { CSingleLock lock(m_StateSection); return llrint(DS_TIME_TO_MSEC(g_dsGraph->GetTime())); }
-  virtual __int64 GetTotalTime() override { CSingleLock lock(m_StateSection); return llrint(DS_TIME_TO_MSEC(g_dsGraph->GetTotalTime())); }
   virtual void SetSpeed(float iSpeed) override;
-  virtual float GetSpeed() override;
+  virtual void SetTempo(float tempo) override;
   virtual bool SupportsTempo() override;
   virtual bool OnAction(const CAction &action) override;
   virtual bool HasMenu() const override { return g_dsGraph->IsDvd(); };
   bool IsInMenu() const override { return g_dsGraph->IsInMenu(); };
   virtual void GetAudioStreamInfo(int index, SPlayerAudioStreamInfo &info) override;
-
-  virtual bool SwitchChannel(const PVR::CPVRChannelPtr &channel) override;
 
   // RenderManager
   void FrameMove() override;
@@ -298,7 +293,6 @@ protected:
   bool m_bEof;
 
   bool SelectChannel(bool bNext);
-  bool SwitchChannel(unsigned int iChannelNumber);
   void LoadMadvrSettings(int id);
   void SetCurrentVideoRenderer(const std::string &videoRenderer);
 
@@ -332,5 +326,9 @@ protected:
   int m_renderOverCount;
   DS_RENDER_LAYER m_currentVideoLayer;
   DIRECTSHOW_RENDERER m_CurrentVideoRenderer;
+
+private:
+  uint64_t GetTime() { CSingleLock lock(m_StateSection); return llrint(DS_TIME_TO_MSEC(g_dsGraph->GetTime())); }
+  uint64_t GetTotalTime() { CSingleLock lock(m_StateSection); return llrint(DS_TIME_TO_MSEC(g_dsGraph->GetTotalTime())); }
 };
 

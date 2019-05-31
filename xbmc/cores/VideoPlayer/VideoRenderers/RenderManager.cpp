@@ -364,7 +364,7 @@ void CRenderManager::PreInit()
     CreateRenderer();
   }
 
-  UpdateDisplayLatency();
+  UpdateLatencyTweak();
 
   m_QueueSize   = 2;
   m_QueueSkip   = 0;
@@ -392,7 +392,7 @@ void CRenderManager::UnInit()
   RemoveCaptures();
 }
 
-bool CRenderManager::Flush()
+bool CRenderManager::Flush(bool wait)
 {
   if (!m_pRenderer)
     return true;
@@ -428,13 +428,16 @@ bool CRenderManager::Flush()
   {
     m_flushEvent.Reset();
     CApplicationMessenger::GetInstance().PostMsg(TMSG_RENDERER_FLUSH);
-    if (!m_flushEvent.WaitMSec(1000))
+    if (wait)
     {
-      CLog::Log(LOGERROR, "%s - timed out waiting for renderer to flush", __FUNCTION__);
-      return false;
+      if (!m_flushEvent.WaitMSec(1000))
+      {
+        CLog::Log(LOGERROR, "%s - timed out waiting for renderer to flush", __FUNCTION__);
+        return false;
+      }
+      else
+        return true;
     }
-    else
-      return true;
   }
   return true;
 }
@@ -793,7 +796,7 @@ void CRenderManager::Render(bool clear, DWORD flags, DWORD alpha, bool gui)
 
       double refreshrate, clockspeed;
       int missedvblanks;
-      vsync = StringUtils::Format("VSyncOff: %.1f  ", m_clockSync.m_syncOffset / 1000);
+      vsync = StringUtils::Format("VSyncOff: %.1f latency: %.3f  ", m_clockSync.m_syncOffset / 1000, DVD_TIME_TO_MSEC(m_displayLatency) / 1000.0f);
       if (m_dvdClock.GetClockInfo(missedvblanks, clockspeed, refreshrate))
       {
         vsync += StringUtils::Format("VSync: refresh:%.3f missed:%i speed:%.3f%%",
@@ -917,17 +920,13 @@ void CRenderManager::PresentBlend(bool clear, DWORD flags, DWORD alpha)
   }
 }
 
-void CRenderManager::UpdateDisplayLatency()
+void CRenderManager::UpdateLatencyTweak()
 {
   float fps = g_graphicsContext.GetFPS();
   float refresh = fps;
   if (g_graphicsContext.GetVideoResolution() == RES_WINDOW)
     refresh = 0; // No idea about refresh rate when windowed, just get the default latency
-  m_displayLatency = (double) g_advancedSettings.GetDisplayLatency(refresh);
-
-  int buffers = g_Windowing.NoOfBuffers();
-  m_displayLatency += (buffers - 1) / fps;
-
+  m_latencyTweak = g_advancedSettings.GetLatencyTweak(refresh);
 }
 
 void CRenderManager::UpdateResolution()
@@ -940,7 +939,7 @@ void CRenderManager::UpdateResolution()
       {
         RESOLUTION res = CResolutionUtils::ChooseBestResolution(m_fps, m_width, CONF_FLAGS_STEREO_MODE_MASK(m_flags) != 0);
         g_graphicsContext.SetVideoResolution(res);
-        UpdateDisplayLatency();
+        UpdateLatencyTweak();
       }
       m_bTriggerUpdateResolution = false;
       m_playerPort->VideoParamsChange();
@@ -965,23 +964,37 @@ void CRenderManager::ToggleDebug()
   m_debugTimer.SetExpired();
 }
 
-int CRenderManager::AddVideoPicture(const VideoPicture& pic)
+bool CRenderManager::AddVideoPicture(const VideoPicture& picture, volatile std::atomic_bool& bStop, EINTERLACEMETHOD deintMethod, bool wait)
 {
   int index;
   {
     CSingleLock lock(m_presentlock);
     if (m_free.empty())
-      return -1;
+      return false;
     index = m_free.front();
   }
 
   CSingleLock lock(m_datalock);
   if (!m_pRenderer)
-    return -1;
+    return false;
 
-  m_pRenderer->AddVideoPicture(pic, index, m_dvdClock.GetClock());
+  m_pRenderer->AddVideoPicture(picture, index, m_dvdClock.GetClock());
 
-  return index;
+  // set fieldsync if picture is interlaced
+  EFIELDSYNC displayField = FS_NONE;
+  if (picture.iFlags & DVP_FLAG_INTERLACED)
+  {
+    if (deintMethod != EINTERLACEMETHOD::VS_INTERLACEMETHOD_NONE)
+    {
+      if (picture.iFlags & DVP_FLAG_TOP_FIELD_FIRST)
+        displayField = FS_TOP;
+      else
+        displayField = FS_BOT;
+    }
+  }
+
+  FlipPage(bStop, picture.pts, deintMethod, displayField, wait);
+  return true;
 }
 
 void CRenderManager::AddOverlay(CDVDOverlay* o, double pts)
@@ -1083,11 +1096,9 @@ void CRenderManager::PrepareNextRender()
   double frameOnScreen = m_dvdClock.GetClock();
   double frametime = 1.0 / g_graphicsContext.GetFPS() * DVD_TIME_BASE;
 
-  // correct display latency
-  // internal buffers of driver, assume that driver lets us go one frame in advance
-  double totalLatency = DVD_SEC_TO_TIME(m_displayLatency) - DVD_MSEC_TO_TIME(m_videoDelay) + 2* frametime;
+  m_displayLatency = DVD_MSEC_TO_TIME(m_latencyTweak + g_graphicsContext.GetDisplayLatency() - m_videoDelay - g_Windowing.GetFrameLatencyAdjustment());
 
-  double renderPts = frameOnScreen + totalLatency;
+  double renderPts = frameOnScreen + m_displayLatency;
 
   double nextFramePts = m_Queue[m_queued.front()].pts;
   if (m_dvdClock.GetClockSpeed() < 0)
@@ -1113,6 +1124,8 @@ void CRenderManager::PrepareNextRender()
   {
     m_dvdClock.SetVsyncAdjust(0);
   }
+
+  CLog::LogF(LOGDEBUG, LOGAVTIMING, "frameOnScreen: %f renderPts: %f nextFramePts: %f -> diff: %f  render: %u forceNext: %u", frameOnScreen, renderPts, nextFramePts, (renderPts - nextFramePts), renderPts >= nextFramePts, m_forceNext);
 
   if (renderPts >= nextFramePts || m_forceNext)
   {
@@ -1150,7 +1163,7 @@ void CRenderManager::PrepareNextRender()
     m_discard.push_back(m_presentsource);
     m_presentsource = idx;
     m_queued.pop_front();
-    m_presentpts = m_Queue[idx].pts - totalLatency;
+    m_presentpts = m_Queue[idx].pts - m_displayLatency;
     m_presentevent.notifyAll();
 
     m_playerPort->UpdateRenderBuffers(m_queued.size(), m_discard.size(), m_free.size());
@@ -1194,13 +1207,15 @@ void CRenderManager::CheckEnableClockSync()
       fps *= clockspeed;
     }
 
-    if (g_graphicsContext.GetFPS() >= fps)
-      diff = fmod(g_graphicsContext.GetFPS(), fps);
-    else
-      diff = fps - g_graphicsContext.GetFPS();
+    diff = g_graphicsContext.GetFPS() / fps;
+    if (diff < 1.0)
+      diff = 1.0 / diff;
+
+    // Calculate distance from nearest integer proportion
+    diff = std::abs(std::round(diff) - diff);
   }
 
-  if (diff < 0.01)
+  if (diff < 0.0005)
   {
     m_clockSync.m_enabled = true;
   }

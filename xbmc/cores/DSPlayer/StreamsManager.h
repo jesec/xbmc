@@ -36,7 +36,6 @@
 #include <dmodshow.h>
 #include <D3d9.h>
 
-#include "Filters/ffdshow_constants.h"
 #include "DSGraph.h"
 #include "utils/log.h"
 #include "utils/CharsetConverter.h"
@@ -48,8 +47,6 @@
 #include "utils/StreamDetails.h"
 #include "Filters/IDirectVobSub.h"
 #include "Filters/LAVAudioSettings.h"
-#include "Filters/IffdshowBase.h"
-#include "Filters/IffdshowDecAudio.h"
 
 #include <cassert>
 
@@ -297,7 +294,6 @@ protected:
   std::vector<CDSStreamDetailEdition *> m_editionStreams;
   bool m_mkveditions;
   Com::SmartPtr<IDirectVobSub> m_pIDirectVobSub;
-  Com::SmartPtr<IffdshowBaseW> m_pIFFDSwhoAudioSettings;
   Com::SmartPtr<ILAVAudioSettings> m_pILAVAudioSettings;
   Com::SmartPtr<IAMStreamSelect> m_pIAMStreamSelect;
   Com::SmartPtr<IAMStreamSelect> m_pIAMStreamSelectSub;
@@ -310,7 +306,6 @@ protected:
   bool m_init;
   bool m_bIsXYVSFilter;
   bool m_bIsLavAudio;
-  bool m_bIsFFDSAudio;
   float m_InitialAudioDelay;
   float m_InitialSubsDelay;
   int m_lastDelay;

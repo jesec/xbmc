@@ -478,8 +478,6 @@ HRESULT LoadExternalObject(CStdStringW path, REFCLSID clsid, REFIID iid, void** 
       if(SUCCEEDED(hr = p(clsid, __uuidof(IClassFactory), (void**)&pCF)))
       {
         hr = pCF->CreateInstance(NULL, iid, ppv);
-        /*if (FAILED(hr))
-          CLog::Log(LOGERROR, "%s CreateInstance on IClassFactory failed! (hr : 0x%X). If you use ffdshow, please check that XBMC is on the white list!", __FUNCTION__, hr);*/
       }
     }
   }

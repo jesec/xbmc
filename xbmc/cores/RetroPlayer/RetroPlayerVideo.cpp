@@ -37,10 +37,11 @@
 using namespace KODI;
 using namespace RETRO;
 
-CRetroPlayerVideo::CRetroPlayerVideo(CRenderManager& renderManager, CProcessInfo& processInfo) :
+CRetroPlayerVideo::CRetroPlayerVideo(CRenderManager& renderManager, CProcessInfo& processInfo, CDVDClock &clock) :
   //CThread("RetroPlayerVideo"),
   m_renderManager(renderManager),
   m_processInfo(processInfo),
+  m_clock(clock),
   m_framerate(0.0),
   m_orientation(0),
   m_bConfigured(false),
@@ -119,6 +120,9 @@ void CRetroPlayerVideo::AddData(const uint8_t* data, unsigned int size)
 
   if (GetPicture(data, size, picture))
   {
+    picture.pts = m_clock.GetClock(); // Show immediately
+    picture.iDuration = DVD_SEC_TO_TIME(1.0 / m_framerate);
+
     if (!Configure(picture))
     {
       CLog::Log(LOGERROR, "RetroPlayerVideo: Failed to configure renderer");
@@ -133,7 +137,7 @@ void CRetroPlayerVideo::AddData(const uint8_t* data, unsigned int size)
 
 void CRetroPlayerVideo::CloseStream()
 {
-  m_renderManager.Flush();
+  m_renderManager.Flush(true);
   m_pixelConverter.reset();
   m_pVideoCodec.reset();
 }
@@ -208,14 +212,9 @@ void CRetroPlayerVideo::SendPicture(VideoPicture& picture)
 {
   std::atomic_bool bAbortOutput(false); //! @todo
 
-  int index = m_renderManager.AddVideoPicture(picture);
-  if (index < 0)
+  if (!m_renderManager.AddVideoPicture(picture, bAbortOutput, VS_INTERLACEMETHOD_NONE, false))
   {
     // Video device might not be done yet, drop the frame
     m_droppedFrames++;
-  }
-  else
-  {
-    m_renderManager.FlipPage(bAbortOutput, 0.0, VS_INTERLACEMETHOD_NONE, FS_NONE, false);
   }
 }

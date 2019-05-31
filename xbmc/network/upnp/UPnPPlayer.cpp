@@ -37,6 +37,7 @@
 #include "messaging/ApplicationMessenger.h"
 #include "messaging/helpers/DialogHelper.h"
 #include "Application.h"
+#include "cores/DataCacheCore.h"
 #include "dialogs/GUIDialogBusy.h"
 #include "guilib/GUIWindowManager.h"
 #include "input/Key.h"
@@ -378,6 +379,8 @@ bool CUPnPPlayer::OpenFile(const CFileItem& file, const CPlayerOptions& options)
   if(dialog)
     dialog->Close();
 
+  m_updateTimer.Set(0);
+
   return true;
 failed:
   CLog::Log(LOGERROR, "UPNP: CUPnPPlayer::OpenFile - unable to open file %s", file.GetPath().c_str());
@@ -449,14 +452,20 @@ failed:
 void CUPnPPlayer::Pause()
 {
   if(IsPaused())
+  {
     NPT_CHECK_LABEL(m_control->Play(m_delegate->m_device
                                   , m_delegate->m_instance
                                   , "1"
                                   , m_delegate), failed);
+    CDataCacheCore::GetInstance().SetSpeed(1.0, 1.0);
+  }
   else
+  {
     NPT_CHECK_LABEL(m_control->Pause(m_delegate->m_device
                                    , m_delegate->m_instance
                                    , m_delegate), failed);
+    CDataCacheCore::GetInstance().SetSpeed(1.0, 0.0);
+  }
 
   return;
 failed:
@@ -605,12 +614,13 @@ void CUPnPPlayer::SetSpeed(float speed)
 
 }
 
-float CUPnPPlayer::GetSpeed()
+void CUPnPPlayer::FrameMove()
 {
-  if (IsPaused())
-    return 0;
-  else
-    return 1;
+  if (m_updateTimer.IsTimePast())
+  {
+    CDataCacheCore::GetInstance().SetPlayTimes(0, GetTime(), 0, GetTotalTime());
+    m_updateTimer.Set(500);
+  }
 }
 
 } /* namespace UPNP */

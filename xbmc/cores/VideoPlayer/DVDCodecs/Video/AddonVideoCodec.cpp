@@ -26,7 +26,6 @@
 #include "cores/VideoPlayer/Process/VideoBuffer.h"
 #include "cores/VideoPlayer/TimingConstants.h"
 #include "utils/log.h"
-#include "settings/AdvancedSettings.h"
 
 using namespace kodi::addon;
 
@@ -135,6 +134,9 @@ bool CAddonVideoCodec::CopyToInitData(VIDEOCODEC_INITDATA &initData, CDVDStreamI
   m_height = hints.height;
 
   m_processInfo.SetVideoDimensions(hints.width, hints.height);
+  m_processInfo.SetVideoDAR(m_displayAspect);
+  if (hints.fpsscale)
+    m_processInfo.SetVideoFps(static_cast<float>(hints.fpsrate) / hints.fpsscale);
 
   return true;
 }
@@ -147,9 +149,6 @@ bool CAddonVideoCodec::Open(CDVDStreamInfo &hints, CDVDCodecOptions &options)
   unsigned int nformats(0);
   m_formats[nformats++] = VideoFormatYV12;
   m_formats[nformats] = UnknownVideoFormat;
-
-  if (nformats == 0)
-    return false;
 
   VIDEOCODEC_INITDATA initData;
   if (!CopyToInitData(initData, hints))
@@ -210,10 +209,13 @@ CDVDVideoCodec::VCReturn CAddonVideoCodec::GetPicture(VideoPicture* pVideoPictur
 
     pVideoPicture->videoBuffer = static_cast<CVideoBuffer*>(picture.buffer);
 
-    int strides[YuvImage::MAX_PLANES];
+    int strides[YuvImage::MAX_PLANES], planeOffsets[YuvImage::MAX_PLANES];
     for (int i = 0; i<YuvImage::MAX_PLANES; ++i)
       strides[i] = picture.stride[i];
-    pVideoPicture->videoBuffer->SetDimensions(picture.width, picture.height, strides);
+    for (int i = 0; i<YuvImage::MAX_PLANES; ++i)
+      planeOffsets[i] = picture.planeOffsets[i];
+
+    pVideoPicture->videoBuffer->SetDimensions(picture.width, picture.height, strides, planeOffsets);
 
     pVideoPicture->iDisplayWidth = pVideoPicture->iWidth;
     pVideoPicture->iDisplayHeight = pVideoPicture->iHeight;
@@ -227,8 +229,7 @@ CDVDVideoCodec::VCReturn CAddonVideoCodec::GetPicture(VideoPicture* pVideoPictur
       }
     }
 
-    if (g_advancedSettings.CanLogComponent(LOGVIDEO))
-      CLog::Log(LOGDEBUG, "CAddonVideoCodec: GetPicture::VC_PICTURE with pts %llu %dx%d (%dx%d) %f %p:%d offset:%d,%d,%d, stride:%d,%d,%d", picture.pts, pVideoPicture->iWidth, pVideoPicture->iHeight, pVideoPicture->iDisplayWidth, pVideoPicture->iDisplayHeight, m_displayAspect,
+    CLog::Log(LOGDEBUG, LOGVIDEO, "CAddonVideoCodec: GetPicture::VC_PICTURE with pts %llu %dx%d (%dx%d) %f %p:%d offset:%d,%d,%d, stride:%d,%d,%d", picture.pts, pVideoPicture->iWidth, pVideoPicture->iHeight, pVideoPicture->iDisplayWidth, pVideoPicture->iDisplayHeight, m_displayAspect,
           picture.decodedData, picture.decodedDataSize, picture.planeOffsets[0], picture.planeOffsets[1], picture.planeOffsets[2], picture.stride[0], picture.stride[1], picture.stride[2]);
 
     if (picture.width != m_width || picture.height != m_height)

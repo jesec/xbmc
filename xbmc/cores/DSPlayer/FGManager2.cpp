@@ -116,7 +116,6 @@ HRESULT CFGManager2::RenderFileXbmc(const CFileItem& pFileItem)
   // ASSIGN FILTER
   IDirectVobSub *pSub;
   ILAVAudioSettings *pAudioLav;
-  IffdshowBaseW *pAudioFFDS;
   BeginEnumFilters(g_dsGraph->pFilterGraph, pEF, pBF)
   {
     if (pBF == CGraphFilters::Get()->AudioRenderer.pBF || pBF == CGraphFilters::Get()->VideoRenderer.pBF)
@@ -129,10 +128,6 @@ HRESULT CFGManager2::RenderFileXbmc(const CFileItem& pFileItem)
     } 
 
     hr = pBF->QueryInterface(__uuidof(pAudioLav), (void **)&pAudioLav);
-    if (SUCCEEDED(hr))
-      CGraphFilters::Get()->Audio.pBF = pBF;
-
-    hr = pBF->QueryInterface(IID_IffdshowDecAudioW, (void **)&pAudioFFDS);
     if (SUCCEEDED(hr))
       CGraphFilters::Get()->Audio.pBF = pBF;
   }

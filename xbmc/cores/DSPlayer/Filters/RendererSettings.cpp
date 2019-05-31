@@ -41,7 +41,6 @@ CDSSettings::CDSSettings(void)
 {
   m_hD3DX9Dll = NULL;
   pRendererSettings = NULL;
-  isEVR = false;
 
   m_pDwmIsCompositionEnabled = NULL;
   m_pDwmEnableComposition = NULL;
@@ -58,17 +57,7 @@ void CDSSettings::Initialize()
   std::string videoRender;
   videoRender = CServiceBroker::GetSettings().GetString(CSettings::SETTING_DSPLAYER_VIDEORENDERER);
 
-  if (videoRender == "EVR")
-  {
-    isEVR = true;
-    pRendererSettings = new CEVRRendererSettings();
-  }
-
-  if (videoRender == "VMR9")
-    pRendererSettings = new CVMR9RendererSettings();
-
-  if (videoRender == "madVR")
-    pRendererSettings = new CMADVRRendererSettings();
+  pRendererSettings = new CMADVRRendererSettings();
 
   // Create the pixel shader list
   pixelShaderList.reset(new CPixelShaderList());
@@ -128,22 +117,6 @@ void CDSSettings::LoadConfig()
   
     // Misc
     XMLUtils::GetBoolean(pElement, "DisableDesktopComposition", pRendererSettings->disableDesktopComposition);
-  }
-
-  pElement = pRootElement->FirstChildElement((isEVR) ? "evrsettings" : "vmr9settings");
-  if (pElement)
-  {
-    if (isEVR)
-    {
-      CEVRRendererSettings *pSettings = (CEVRRendererSettings *) pRendererSettings;
-      XMLUtils::GetBoolean(pElement, "HighColorResolution", pSettings->highColorResolution);
-      XMLUtils::GetBoolean(pElement, "EnableFrameTimeCorrection", pSettings->enableFrameTimeCorrection);
-      XMLUtils::GetInt(pElement, "OutputRange", (int &) pSettings->outputRange, 0, 1);
-      XMLUtils::GetInt(pElement, "Buffers", pSettings->buffers, 4, 60);
-    } else {
-      CVMR9RendererSettings * pSettings = (CVMR9RendererSettings *) pRendererSettings;
-      XMLUtils::GetBoolean(pElement, "MixerMode", pSettings->mixerMode);
-    }
   }
 
   // Subtitles

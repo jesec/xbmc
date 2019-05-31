@@ -100,13 +100,14 @@ public:
   virtual void GetPlanes(uint8_t*(&planes)[YuvImage::MAX_PLANES]) {};
   virtual void GetStrides(int(&strides)[YuvImage::MAX_PLANES]) {};
   virtual void SetDimensions(int width, int height, const int (&strides)[YuvImage::MAX_PLANES]) {};
+  virtual void SetDimensions(int width, int height, const int (&strides)[YuvImage::MAX_PLANES], const int (&planeOffsets)[YuvImage::MAX_PLANES]) {};
 
   static bool CopyPicture(YuvImage* pDst, YuvImage *pSrc);
   static bool CopyNV12Picture(YuvImage* pDst, YuvImage *pSrc);
   static bool CopyYUV422PackedPicture(YuvImage* pDst, YuvImage *pSrc);
 
 protected:
-  CVideoBuffer(int id);
+  explicit CVideoBuffer(int id);
   AVPixelFormat m_pixFormat = AV_PIX_FMT_NONE;
   std::atomic_int m_refCount;
   int m_id;
@@ -122,6 +123,7 @@ public:
   void GetPlanes(uint8_t*(&planes)[YuvImage::MAX_PLANES]) override;
   void GetStrides(int(&strides)[YuvImage::MAX_PLANES]) override;
   void SetDimensions(int width, int height, const int (&strides)[YuvImage::MAX_PLANES]) override;
+  void SetDimensions(int width, int height, const int (&strides)[YuvImage::MAX_PLANES], const int (&planeOffsets)[YuvImage::MAX_PLANES]) override;
   bool Alloc();
 
 protected:

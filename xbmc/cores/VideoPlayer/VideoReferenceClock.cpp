@@ -32,7 +32,6 @@ CVideoReferenceClock::CVideoReferenceClock() : CThread("RefClock")
 {
   m_SystemFrequency = CurrentHostFrequency();
   m_ClockSpeed = 1.0;
-  m_ClockOffset = 0;
   m_TotalMissedVblanks = 0;
   m_UseVblank = false;
 
@@ -48,12 +47,12 @@ CVideoReferenceClock::CVideoReferenceClock() : CThread("RefClock")
 
 CVideoReferenceClock::~CVideoReferenceClock()
 {
+  m_vsyncStopEvent.Set();
   StopThread();
 }
 
 void CVideoReferenceClock::Start()
 {
-  m_ClockOffset = CurrentHostCounter();
   if(CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOPLAYER_USEDISPLAYASCLOCK) && !IsRunning())
     Create();
 }
@@ -85,7 +84,7 @@ void CVideoReferenceClock::Process()
 
     CSingleLock SingleLock(m_CritSection);
     Now = CurrentHostCounter();
-    m_CurrTime = Now + m_ClockOffset; //add the clock offset from the previous time we stopped
+    m_CurrTime = Now;
     m_LastIntTime = m_CurrTime;
     m_CurrTimeFract = 0.0;
     m_ClockSpeed = 1.0;
@@ -98,8 +97,9 @@ void CVideoReferenceClock::Process()
       m_VblankTime = Now;          //initialize the timestamp of the last vblank
       SingleLock.Leave();
 
+      m_vsyncStopEvent.Reset();
       //run the clock
-      m_pVideoSync->Run(m_bStop);
+      m_pVideoSync->Run(m_vsyncStopEvent);
     }
     else
     {
@@ -109,8 +109,6 @@ void CVideoReferenceClock::Process()
 
     SingleLock.Enter();
     m_UseVblank = false;                       //we're back to using the systemclock
-    Now = CurrentHostCounter();                //set the clockoffset between the vblank clock and systemclock
-    m_ClockOffset = m_CurrTime - Now;
     SingleLock.Leave();
 
     //clean up the vblank clock
@@ -204,7 +202,7 @@ int64_t CVideoReferenceClock::GetTime(bool interpolated /* = true*/)
   }
   else
   {
-    return CurrentHostCounter() + m_ClockOffset;
+    return CurrentHostCounter();
   }
 }
 

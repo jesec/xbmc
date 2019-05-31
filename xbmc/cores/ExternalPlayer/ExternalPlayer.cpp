@@ -38,6 +38,7 @@
 #include "utils/Variant.h"
 #include "ServiceBroker.h"
 #include "cores/AudioEngine/Interfaces/AE.h"
+#include "cores/DataCacheCore.h"
 #include "input/InputManager.h"
 #if defined(TARGET_WINDOWS)
   #include "utils/CharsetConverter.h"
@@ -523,8 +524,8 @@ void CExternalPlayer::SeekPercentage(float iPercent)
 
 float CExternalPlayer::GetPercentage()
 {
-  int64_t iTime = GetTime();
-  int64_t iTotalTime = GetTotalTime();
+  int64_t iTime = 0;
+  int64_t iTotalTime = 0;
 
   if (iTotalTime != 0)
   {
@@ -557,29 +558,10 @@ void CExternalPlayer::SeekTime(int64_t iTime)
 {
 }
 
-int64_t CExternalPlayer::GetTime() // in millis
-{
-  if ((XbmcThreads::SystemClockMillis() - m_playbackStartTime) / 1000 > m_playCountMinTime)
-  {
-    m_time = m_totalTime * 1000;
-  }
-
-  return m_time;
-}
-
-int64_t CExternalPlayer::GetTotalTime() // in milliseconds
-{
-  return (int64_t)m_totalTime * 1000;
-}
-
 void CExternalPlayer::SetSpeed(float speed)
 {
   m_speed = speed;
-}
-
-float CExternalPlayer::GetSpeed()
-{
-  return m_speed;
+  CDataCacheCore::GetInstance().SetSpeed(1.0, speed);
 }
 
 std::string CExternalPlayer::GetPlayerState()

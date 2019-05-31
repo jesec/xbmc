@@ -28,6 +28,8 @@
 #include "Application.h"
 #include "mvrInterfaces.h"
 
+#include "rendering/dx/DeviceResources.h"
+
 CMadvrSharedRender::CMadvrSharedRender()
 {
   g_application.m_pPlayer->Register(this);
@@ -103,7 +105,7 @@ void CMadvrSharedRender::RenderToTexture(DS_RENDER_LAYER layer)
 void CMadvrSharedRender::EndRender()
 {
   // Force to complete the rendering on Kodi device
-  g_Windowing.FinishCommandList();
+  DX::DeviceResources::Get()->FinishCommandList();
   ForceComplete();
 
   m_bGuiVisible = GuiVisible();

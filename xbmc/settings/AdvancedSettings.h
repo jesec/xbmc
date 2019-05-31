@@ -291,7 +291,6 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
 
     std::set<std::string> m_vecTokens;
 
-    int m_iEpgLingerTime;           // minutes
     int m_iEpgUpdateCheckInterval;  // seconds
     int m_iEpgCleanupInterval;      // seconds
     int m_iEpgActiveTagCheckInterval; // seconds
@@ -378,11 +377,12 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
     std::vector<std::string> m_settingsFiles;
     void ParseSettingsFile(const std::string &file);
 
-    float GetDisplayLatency(float refreshrate);
 #ifdef HAS_DS_PLAYER
     float GetDisplayAuxDelay(float refreshrate);
     std::string GetAuxDeviceName();
 #endif
+
+    float GetLatencyTweak(float refreshrate);
     bool m_initialized;
 
     //! \brief Returns a list of picture extension for filtering in the GUI

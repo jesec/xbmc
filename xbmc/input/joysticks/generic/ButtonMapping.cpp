@@ -264,7 +264,7 @@ CButtonMapping::CButtonMapping(IButtonMapper* buttonMapper, IButtonMap* buttonMa
     CControllerManager& controllerManager = CServiceBroker::GetGameControllerManager();
     ControllerPtr controller = controllerManager.GetController(m_keymap->ControllerID());
 
-    const auto& features = controller->Layout().Features();
+    const auto& features = controller->Features();
     for (const auto& feature : features)
     {
       bool bIsSelectAction = false;

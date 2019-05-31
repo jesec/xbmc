@@ -361,7 +361,7 @@ bool CDVDVideoCodecFFmpeg::Open(CDVDStreamInfo &hints, CDVDCodecOptions &options
   m_iOrientation = hints.orientation;
 
   m_formats.clear();
-  m_formats = m_processInfo.GetRenderFormats();
+  m_formats = m_processInfo.GetPixFormats();
   m_formats.push_back(AV_PIX_FMT_NONE); /* always add none to get a terminated list in ffmpeg world */
   m_processInfo.SetSwDeinterlacingMethods();
 
@@ -379,7 +379,7 @@ bool CDVDVideoCodecFFmpeg::Open(CDVDStreamInfo &hints, CDVDCodecOptions &options
   if (!m_pCodecContext)
     return false;
 
-  m_pCodecContext->opaque = (ICallbackHWAccel*)this;
+  m_pCodecContext->opaque = static_cast<ICallbackHWAccel*>(this);
   m_pCodecContext->debug_mv = 0;
   m_pCodecContext->debug = 0;
   m_pCodecContext->workaround_bugs = FF_BUG_AUTODETECT;
@@ -507,7 +507,7 @@ void CDVDVideoCodecFFmpeg::SetFilters()
 
   unsigned int filters = 0;
 
-  if (mInt != VS_INTERLACEMETHOD_NONE)
+  if (mInt != VS_INTERLACEMETHOD_NONE && m_interlaced)
   {
     if (mInt == VS_INTERLACEMETHOD_DEINTERLACE)
       filters = FILTER_DEINTERLACE_ANY;
@@ -887,8 +887,7 @@ bool CDVDVideoCodecFFmpeg::SetPictureParams(VideoPicture* pVideoPicture)
   if (CMediaSettings::GetInstance().GetCurrentVideoSettings().m_PostProcess)
   {
     m_postProc.SetType(g_advancedSettings.m_videoPPFFmpegPostProc, false);
-    if (m_postProc.Process(pVideoPicture))
-      m_postProc.GetPicture(pVideoPicture);
+    m_postProc.Process(pVideoPicture);
   }
 
   return true;
@@ -1131,6 +1130,10 @@ int CDVDVideoCodecFFmpeg::FilterOpen(const std::string& filters, bool scale)
     {
       m_processInfo.SetVideoDeintMethod(filters);
     }
+    else
+    {
+      m_processInfo.SetVideoDeintMethod("none");
+    }
   }
   else
   {
@@ -1149,11 +1152,14 @@ int CDVDVideoCodecFFmpeg::FilterOpen(const std::string& filters, bool scale)
     return result;
   }
 
-  char* graphDump = avfilter_graph_dump(m_pFilterGraph, nullptr);
-  if (graphDump)
+  if (g_advancedSettings.CanLogComponent(LOGVIDEO))
   {
-    CLog::Log(LOGDEBUG, "CDVDVideoCodecFFmpeg::FilterOpen - Final filter graph:\n%s", graphDump);
-    av_freep(&graphDump);
+    char* graphDump = avfilter_graph_dump(m_pFilterGraph, nullptr);
+    if (graphDump)
+    {
+      CLog::Log(LOGDEBUG, "CDVDVideoCodecFFmpeg::FilterOpen - Final filter graph:\n%s", graphDump);
+      av_freep(&graphDump);
+    }
   }
 
   m_filterEof = false;
@@ -1164,7 +1170,7 @@ void CDVDVideoCodecFFmpeg::FilterClose()
 {
   if (m_pFilterGraph)
   {
-    CLog::Log(LOGDEBUG, "CDVDVideoCodecFFmpeg::FilterClose - Freeing filter graph");
+    CLog::Log(LOGDEBUG, LOGVIDEO, "CDVDVideoCodecFFmpeg::FilterClose - Freeing filter graph");
     avfilter_graph_free(&m_pFilterGraph);
 
     // Disposed by above code

@@ -25,9 +25,9 @@
 class CVideoSyncDRM : public CVideoSync, IDispResource
 {
 public:
-  CVideoSyncDRM(void *clock) : CVideoSync(clock) {};
+  explicit CVideoSyncDRM(void *clock) : CVideoSync(clock) {};
   bool Setup(PUPDATECLOCK func) override;
-  void Run(std::atomic<bool>& stop) override;
+  void Run(CEvent& stopEvent) override;
   void Cleanup() override;
   float GetFps() override;
   void OnResetDisplay() override;

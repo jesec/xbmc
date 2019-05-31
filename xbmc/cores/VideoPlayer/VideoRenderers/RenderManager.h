@@ -66,7 +66,7 @@ class CRenderManager
 {
 public:
   CRenderManager(CDVDClock &clock, IRenderMsg *player);
-  ~CRenderManager();
+  virtual ~CRenderManager();
 
   // Functions called from render thread
   void GetVideoRect(CRect &source, CRect &dest, CRect &view);
@@ -81,7 +81,7 @@ public:
   void SetViewMode(int iViewMode);
   void PreInit();
   void UnInit();
-  bool Flush();
+  bool Flush(bool wait);
   bool IsConfigured() const;
   void ToggleDebug();
 
@@ -107,24 +107,7 @@ public:
    */
   bool Configure(const VideoPicture& picture, float fps, unsigned flags, unsigned int orientation, int buffers = 0);
 
-  int AddVideoPicture(const VideoPicture& picture);
-
-  /**
-   * Called by video player to flip render buffers
-   * If buffering is enabled this method does not block. In case of disabled buffering
-   * this method blocks waiting for the render thread to pass by.
-   * When buffering is used there might be no free buffer available after the call to
-   * this method. Player has to call WaitForBuffer. A free buffer will become
-   * available after the main thread has flipped front / back buffers.
-   *
-   * @param bStop reference to stop flag of calling thread
-   * @param timestamp of frame delivered with AddVideoPicture
-   * @param pts used for lateness detection
-   * @param method for deinterlacing
-   * @param sync signals frame, top, or bottom field
-   * @param wait: block until pic has been rendered
-   */
-  void FlipPage(volatile std::atomic_bool& bStop, double pts, EINTERLACEMETHOD deintMethod, EFIELDSYNC sync, bool wait);
+  bool AddVideoPicture(const VideoPicture& picture, volatile std::atomic_bool& bStop, EINTERLACEMETHOD deintMethod, bool wait);
 
   void AddOverlay(CDVDOverlay* o, double pts);
 
@@ -167,8 +150,10 @@ protected:
   void DeleteRenderer();
   void ManageCaptures();
 
-  void UpdateDisplayLatency();
+  void UpdateLatencyTweak();
   void CheckEnableClockSync();
+
+  void FlipPage(volatile std::atomic_bool& bStop, double pts, EINTERLACEMETHOD deintMethod, EFIELDSYNC sync, bool wait);
 
   CBaseRenderer *m_pRenderer = nullptr;
   OVERLAY::CRenderer m_overlays;
@@ -211,6 +196,10 @@ protected:
   ERENDERSTATE m_renderState;
   CEvent m_stateEvent;
 
+  /// Display latency tweak value from AdvancedSettings for the current refresh rate
+  /// in milliseconds
+  double m_latencyTweak = 0.0;
+  /// Display latency updated in PrepareNextRender in DVD clock units, includes m_latencyTweak
   double m_displayLatency = 0.0;
   std::atomic_int m_videoDelay = {0};
 

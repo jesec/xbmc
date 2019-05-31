@@ -3,7 +3,6 @@ set(SOURCES AudioEnumerator.cpp
             DSFilterEnumerator.cpp
             DSTemplate.cpp
             IPinHook.cpp
-            MacrovisionKicker.cpp
             uri.cpp)
 
 set(HEADERS AudioEnumerator.h
@@ -11,7 +10,6 @@ set(HEADERS AudioEnumerator.h
             DSFilterEnumerator.h
             DSTemplate.h
             IPinHook.h
-            MacrovisionKicker.h
             SmartList.h
             StdString.h
             uri.h)

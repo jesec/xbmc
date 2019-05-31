@@ -43,7 +43,7 @@
 #include "utils/StreamDetails.h"
 #include "guilib/DispResource.h"
 
-#ifdef HAS_OMXPLAYER
+#ifdef TARGET_RASPBERRY_PI
 #include "OMXCore.h"
 #include "OMXClock.h"
 #include "linux/RBP.h"
@@ -93,7 +93,9 @@ struct SPlayerState
   {
     timestamp = 0;
     time = 0;
-    time_total = 0;
+    startTime = 0;
+    timeMin = 0;
+    timeMax = 0;
     time_offset = 0;
     dts = DVD_NOPTS_VALUE;
     player_state  = "";
@@ -118,7 +120,9 @@ struct SPlayerState
   double time_offset;       // difference between time and pts
 
   double time;              // current playback time
-  double time_total;        // total playback time
+  double timeMax;
+  double timeMin;
+  time_t startTime;
   double dts;               // last known dts
 
   std::string player_state; // full player state
@@ -292,7 +296,7 @@ class CProcessInfo;
 class CVideoPlayer : public IPlayer, public CThread, public IVideoPlayer, public IDispResource, public IRenderMsg
 {
 public:
-  CVideoPlayer(IPlayerCallback& callback);
+  explicit CVideoPlayer(IPlayerCallback& callback);
   ~CVideoPlayer() override;
   bool OpenFile(const CFileItem& file, const CPlayerOptions &options) override;
   bool CloseFile(bool reopen = false) override;
@@ -306,7 +310,6 @@ public:
   void Seek(bool bPlus, bool bLargeStep, bool bChapterOverride) override;
   bool SeekScene(bool bPlus = true) override;
   void SeekPercentage(float iPercent) override;
-  float GetPercentage() override;
   float GetCachePercentage() override;
 
   void SetVolume(float nVolume) override;
@@ -353,23 +356,18 @@ public:
 
   void SeekTime(int64_t iTime) override;
   bool SeekTimeRelative(int64_t iTime) override;
-  int64_t GetTime() override;
-  int64_t GetTotalTime() override;
   void SetSpeed(float speed) override;
-  float GetSpeed() override;
+  void SetTempo(float tempo) override;
   bool SupportsTempo() override;
   bool OnAction(const CAction &action) override;
 
   int GetSourceBitrate() override;
-  bool GetStreamDetails(CStreamDetails &details) override;
   void GetAudioStreamInfo(int index, SPlayerAudioStreamInfo &info) override;
 
   std::string GetPlayerState() override;
   bool SetPlayerState(const std::string& state) override;
 
   std::string GetPlayingTitle() override;
-
-  bool SwitchChannel(const PVR::CPVRChannelPtr &channel) override;
 
   void FrameMove() override;
   void Render(bool clear, uint32_t alpha = 255, bool gui = true) override;
@@ -415,6 +413,7 @@ protected:
   void CreatePlayers();
   void DestroyPlayers();
 
+  void Prepare();
   bool OpenStream(CCurrentStream& current, int64_t demuxerId, int iStream, int source, bool reset = true);
   bool OpenAudioStream(CDVDStreamInfo& hint, bool reset = true);
   bool OpenVideoStream(CDVDStreamInfo& hint, bool reset = true);
@@ -436,8 +435,6 @@ protected:
   void ProcessTeletextData(CDemuxStream* pStream, DemuxPacket* pPacket);
   void ProcessRadioRDSData(CDemuxStream* pStream, DemuxPacket* pPacket);
 
-  bool ShowPVRChannelInfo();
-
   int  AddSubtitleFile(const std::string& filename, const std::string& subfilename = "");
   void SetSubtitleVisibleInternal(bool bVisible);
 
@@ -456,8 +453,6 @@ protected:
   };
 
   void SetCaching(ECacheState state);
-
-  int64_t GetTotalTimeInMsec();
 
   double GetQueueTime();
   bool GetCachingTimes(double& play_left, double& cache_left, double& file_offset);
@@ -482,27 +477,28 @@ protected:
   bool IsBetterStream(CCurrentStream& current, CDemuxStream* stream);
   void CheckBetterStream(CCurrentStream& current, CDemuxStream* stream);
   void CheckStreamChanges(CCurrentStream& current, CDemuxStream* stream);
-  bool CheckDelayedChannelEntry(void);
 
   bool OpenInputStream();
   bool OpenDemuxStream();
   void CloseDemuxer();
   void OpenDefaultStreams(bool reset = true);
 
-  void UpdateApplication(double timeout);
   void UpdatePlayState(double timeout);
-  void UpdateStreamInfos();
   void GetGeneralInfo(std::string& strVideoInfo);
-
-  double m_UpdateApplication;
+  int64_t GetUpdatedTime();
+  int64_t GetTime();
+  float GetPercentage();
 
   bool m_players_created;
+
+  CFileItem m_item;
+  CEvent m_openEvent;
+  CPlayerOptions m_playerOptions;
   bool m_bAbortRequest;
 
   ECacheState  m_caching;
   XbmcThreads::EndTime m_cachingTimer;
-  CFileItem    m_item;
-  XbmcThreads::EndTime m_ChannelEntryTimeOut;
+
   std::unique_ptr<CProcessInfo> m_processInfo;
 
   CCurrentStream m_CurrentAudio;
@@ -513,8 +509,7 @@ protected:
 
   CSelectionStreams m_SelectionStreams;
 
-  std::atomic_int m_playSpeed;
-  std::atomic_int m_newPlaySpeed;
+  int m_playSpeed;
   int m_streamPlayerSpeed;
   struct SSpeedState
   {
@@ -570,7 +565,7 @@ protected:
 
   friend class CVideoPlayerVideo;
   friend class CVideoPlayerAudio;
-#ifdef HAS_OMXPLAYER
+#ifdef TARGET_RASPBERRY_PI
   friend class OMXPlayerVideo;
   friend class OMXPlayerAudio;
 #endif
@@ -579,12 +574,8 @@ protected:
   CCriticalSection m_StateSection;
   XbmcThreads::EndTime m_syncTimer;
 
-  CEvent m_ready;
-
   CEdl m_Edl;
   bool m_SkipCommercials;
-
-  CPlayerOptions m_PlayerOptions;
 
   bool m_HasVideo;
   bool m_HasAudio;
@@ -594,6 +585,4 @@ protected:
   // omxplayer variables
   struct SOmxPlayerState m_OmxPlayerState;
   bool m_omxplayer_mode;            // using omxplayer acceleration
-
-  XbmcThreads::EndTime m_player_status_timer;
 };

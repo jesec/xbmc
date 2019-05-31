@@ -59,12 +59,10 @@ public:
   bool        SelectChannel(const PVR::CPVRChannelPtr &channel);
   bool        NextChannel(bool preview = false);
   bool        PrevChannel(bool preview = false);
-  bool        UpdateItem(CFileItem& item);
 
   uint64_t    GetTotalTime();
   uint64_t    GetTime();
 protected:
-  std::string TranslatePVRFilename(const std::string& pathFile);
   bool m_isRecording;
 };
 
