@@ -3229,7 +3229,6 @@ PlayBackRet CApplication::PlayFile(CFileItem item, const std::string& player, bo
 
     // Switch to default options
     CMediaSettings::GetInstance().GetCurrentVideoSettings() = CMediaSettings::GetInstance().GetDefaultVideoSettings();
-    CMediaSettings::GetInstance().GetCurrentAudioSettings() = CMediaSettings::GetInstance().GetDefaultAudioSettings();
 #ifdef HAS_DS_PLAYER
     CMediaSettings::GetInstance().GetAtStartVideoSettings() = CMediaSettings::GetInstance().GetCurrentVideoSettings();
 
@@ -3687,8 +3686,7 @@ void CApplication::SaveFileState(bool bForeground /* = false */)
       *m_stackFileItemToUpdate,
       m_progressTrackingVideoResumeBookmark,
       m_progressTrackingPlayCountUpdate,
-      CMediaSettings::GetInstance().GetCurrentVideoSettings(),
-      CMediaSettings::GetInstance().GetCurrentAudioSettings()
+      CMediaSettings::GetInstance().GetCurrentVideoSettings()
 #ifdef HAS_DS_PLAYER
       , CMediaSettings::GetInstance().GetCurrentMadvrSettings()
 #endif
