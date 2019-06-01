@@ -70,7 +70,7 @@ public:
   virtual bool ClearBuffers(color_t color) = 0;
   virtual bool IsExtSupported(const char* extension) = 0;
 
-  virtual void SetViewPort(CRect& viewPort) = 0;
+  virtual void SetViewPort(const CRect& viewPort) = 0;
   virtual void GetViewPort(CRect& viewPort) = 0;
   virtual void RestoreViewPort() {};
 
@@ -97,6 +97,8 @@ public:
    * Project (x,y,z) 3d scene coordinates to (x,y) 2d screen coordinates
    */
   virtual void Project(float &x, float &y, float &z) { }
+
+  virtual std::string GetShaderPath() { return ""; }
 
   void GetRenderVersion(unsigned int& major, unsigned int& minor) const;
   const std::string& GetRenderVendor() const { return m_RenderVendor; }

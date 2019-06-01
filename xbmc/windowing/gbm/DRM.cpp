@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2010-2013 Team XBMC
+ *      Copyright (C) 2005-2013 Team XBMC
  *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -18,21 +18,33 @@
  *
  */
 
-varying vec2 m_cordY;
-varying vec2 m_cordU;
-varying vec2 m_cordV;
+#include "utils/log.h"
 
-void main()
+#include "DRM.h"
+#include "DRMLegacy.h"
+
+void CDRM::FlipPage(CGLContextEGL *pGLContext)
 {
-#if(XBMC_texture_rectangle_hack)
-  m_cordY = vec2(gl_TextureMatrix[0] * gl_MultiTexCoord0 / 2);
-  m_cordU = vec2(gl_TextureMatrix[1] * gl_MultiTexCoord1 * 2);
-  m_cordV = vec2(gl_TextureMatrix[2] * gl_MultiTexCoord2);
-#else
-  m_cordY = vec2(gl_TextureMatrix[0] * gl_MultiTexCoord0);
-  m_cordU = vec2(gl_TextureMatrix[1] * gl_MultiTexCoord1);
-  m_cordV = vec2(gl_TextureMatrix[2] * gl_MultiTexCoord2);
-#endif
-  gl_Position = ftransform();
-  gl_FrontColor = gl_Color;
+  CDRMLegacy::FlipPage(pGLContext);
+}
+
+bool CDRM::SetVideoMode(RESOLUTION_INFO res)
+{
+  return CDRMLegacy::SetVideoMode(res);
+}
+
+bool CDRM::InitDrm(drm *drm, gbm *gbm)
+{
+  if (CDRMLegacy::InitDrmLegacy(drm, gbm))
+  {
+    CLog::Log(LOGNOTICE, "CDRM::%s - initialized Legacy DRM", __FUNCTION__);
+    return true;
+  }
+
+  return false;
+}
+
+void CDRM::DestroyDrm()
+{
+  CDRMLegacy::DestroyDrmLegacy();
 }

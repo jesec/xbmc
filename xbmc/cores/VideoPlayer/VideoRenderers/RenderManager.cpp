@@ -22,7 +22,7 @@
 #include "RenderManager.h"
 #include "RenderFlags.h"
 #include "RenderFactory.h"
-#include "cores/VideoPlayer/TimingConstants.h"
+#include "cores/VideoPlayer/Interface/Addon/TimingConstants.h"
 #include "guilib/GraphicContext.h"
 #include "utils/MathUtils.h"
 #include "threads/SingleLock.h"
@@ -274,6 +274,7 @@ bool CRenderManager::IsPresenting()
 
 void CRenderManager::FrameMove()
 {
+  bool firstFrame = false;
   UpdateResolution();
 
   {
@@ -287,6 +288,7 @@ void CRenderManager::FrameMove()
       if (!Configure())
         return;
 
+      firstFrame = true;
       FrameWait(50);
 
       if (m_flags & CONF_FLAGS_FULLSCREEN)
@@ -337,7 +339,7 @@ void CRenderManager::FrameMove()
     m_bRenderGUI = true;
   }
 
-  m_playerPort->UpdateGuiRender(IsGuiLayer());
+  m_playerPort->UpdateGuiRender(IsGuiLayer() || firstFrame);
 
   ManageCaptures();
 }
