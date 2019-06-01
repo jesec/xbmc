@@ -19,17 +19,19 @@
  */
 
 #include "GUIDialogSelectGameClient.h"
+#include "ServiceBroker.h"
 #include "addons/AddonInstaller.h"
 #include "addons/AddonManager.h"
 #include "addons/GUIWindowAddonBrowser.h"
 #include "dialogs/GUIDialogContextMenu.h"
-#include "dialogs/GUIDialogOK.h"
 #include "games/addons/GameClient.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/WindowIDs.h"
+#include "messaging/helpers/DialogOKHelper.h" 
 #include "utils/log.h"
 
 using namespace KODI;
+using namespace KODI::MESSAGING;
 using namespace GAME;
 
 std::string CGUIDialogSelectGameClient::ShowAndGetGameClient(const GameClientVector& candidates, const GameClientVector& installable)
@@ -102,7 +104,7 @@ std::string CGUIDialogSelectGameClient::InstallGameClient(const GameClientVector
   {
     CLog::Log(LOGDEBUG, "Select game client dialog: User installed %s", chosenClientId.c_str());
     AddonPtr addon;
-    if (CAddonMgr::GetInstance().GetAddon(chosenClientId, addon, ADDON_GAMEDLL))
+    if (CServiceBroker::GetAddonMgr().GetAddon(chosenClientId, addon, ADDON_GAMEDLL))
       gameClient = addon->ID();
 
     if (gameClient.empty())
@@ -134,8 +136,8 @@ std::string CGUIDialogSelectGameClient::InstallGameClient(const GameClientVector
       CLog::Log(LOGDEBUG, "Select game client dialog: Successfully installed %s", installedAddon->ID().c_str());
 
       // if the addon is disabled we need to enable it
-      if (CAddonMgr::GetInstance().IsAddonDisabled(installedAddon->ID()))
-        CAddonMgr::GetInstance().EnableAddon(installedAddon->ID());
+      if (CServiceBroker::GetAddonMgr().IsAddonDisabled(installedAddon->ID()))
+        CServiceBroker::GetAddonMgr().EnableAddon(installedAddon->ID());
 
       gameClient = installedAddon->ID();
     }
@@ -144,7 +146,7 @@ std::string CGUIDialogSelectGameClient::InstallGameClient(const GameClientVector
       CLog::Log(LOGERROR, "Select game client dialog: Failed to install %s", gameClientId.c_str());
       // "Error"
       // "Failed to install add-on."
-      CGUIDialogOK::ShowAndGetInput(257, 35256);
+      HELPERS::ShowOKDialogText(257, 35256);
     }
   }
   else if (result == iAddonBrowser)

@@ -90,6 +90,9 @@
 #define TMSG_LOADPROFILE                  TMSG_MASK_APPLICATION + 27
 #define TMSG_VIDEORESIZE                  TMSG_MASK_APPLICATION + 28
 #define TMSG_SETAUDIODSPSTATE             TMSG_MASK_APPLICATION + 29
+#define TMSG_SYSTEM_POWERDOWN             TMSG_MASK_APPLICATION + 30
+#define TMSG_RENDERER_PREINIT             TMSG_MASK_APPLICATION + 31
+#define TMSG_RENDERER_UNINIT              TMSG_MASK_APPLICATION + 32
 
 #define TMSG_GUI_INFOLABEL                TMSG_MASK_GUIINFOMANAGER + 0
 #define TMSG_GUI_INFOBOOL                 TMSG_MASK_GUIINFOMANAGER + 1
@@ -132,6 +135,7 @@
   \sa HELPERS::DialogYesNoMessage
 */
 #define TMSG_GUI_DIALOG_YESNO             TMSG_MASK_WINDOWMANAGER + 8
+#define TMSG_GUI_DIALOG_OK                TMSG_MASK_WINDOWMANAGER + 9
 
 /*!
   \def TMSG_GUI_PREVIOUS_WINDOW
@@ -140,7 +144,7 @@
   This is an alternative to TMSG_GUI_ACTIVATE_WINDOW, but it keeps
   all configured parameters, like startup directory.
 */
-#define TMSG_GUI_PREVIOUS_WINDOW          TMSG_MASK_WINDOWMANAGER + 9
+#define TMSG_GUI_PREVIOUS_WINDOW          TMSG_MASK_WINDOWMANAGER + 10
 
 
 #define TMSG_CALLBACK                     800

@@ -427,6 +427,7 @@ CCurlFile::CCurlFile()
   m_seekable = true;
   m_useOldHttpVersion = false;
   m_connecttimeout = 0;
+  m_redirectlimit = 5;
   m_lowspeedtime = 0;
   m_ftpauth = "";
   m_ftpport = "";
@@ -503,9 +504,9 @@ void CCurlFile::SetCommonOptions(CReadState* state)
 
   g_curlInterface.easy_setopt(h, CURLOPT_FTP_USE_EPSV, 0); // turn off epsv
 
-  // Allow us to follow two redirects
-  g_curlInterface.easy_setopt(h, CURLOPT_FOLLOWLOCATION, TRUE);
-  g_curlInterface.easy_setopt(h, CURLOPT_MAXREDIRS, 5);
+  // Allow us to follow redirects
+  g_curlInterface.easy_setopt(h, CURLOPT_FOLLOWLOCATION, m_redirectlimit != 0);
+  g_curlInterface.easy_setopt(h, CURLOPT_MAXREDIRS, m_redirectlimit);
 
   // Enable cookie engine for current handle
   g_curlInterface.easy_setopt(h, CURLOPT_COOKIEFILE, "");
@@ -821,6 +822,8 @@ void CCurlFile::ParseAndCorrectUrl(CURL &url2)
           m_cipherlist = value;
         else if (name == "connection-timeout")
           m_connecttimeout = strtol(value.c_str(), NULL, 10);
+        else if (name == "redirect-limit")
+          m_redirectlimit = strtol(value.c_str(), NULL, 10);
         else if (name == "postdata")
         {
           m_postdata = Base64::Decode(value);
@@ -829,6 +832,10 @@ void CCurlFile::ParseAndCorrectUrl(CURL &url2)
         else if (name == "active-remote")// needed for DACP!
         {
           SetRequestHeader(it->first, value);
+        }
+        else if (name == "customrequest")
+        {
+          SetCustomRequest(value);
         }
         else
         {
@@ -1766,14 +1773,6 @@ void CCurlFile::SetRequestHeader(const std::string& header, long value)
   m_requestheaders[header] = StringUtils::Format("%ld", value);
 }
 
-std::string CCurlFile::GetServerReportedCharset(void)
-{
-  if (!m_state)
-    return "";
-
-  return m_state->m_httpheader.GetCharset();
-}
-
 std::string CCurlFile::GetURL(void)
 {
   return m_url;
@@ -1812,7 +1811,7 @@ bool CCurlFile::GetMimeType(const CURL &url, std::string &content, const std::st
     if (buffer.st_mode == _S_IFDIR)
       content = "x-directory/normal";
     else
-      content = file.GetMimeType();
+      content = file.GetProperty(XFILE::FILE_PROPERTY_MIME_TYPE);
     CLog::Log(LOGDEBUG, "CCurlFile::GetMimeType - %s -> %s", redactUrl.c_str(), content.c_str());
     return true;
   }
@@ -1834,7 +1833,7 @@ bool CCurlFile::GetContentType(const CURL &url, std::string &content, const std:
     if (buffer.st_mode == _S_IFDIR)
       content = "x-directory/normal";
     else
-      content = file.GetContent();
+      content = file.GetProperty(XFILE::FILE_PROPERTY_CONTENT_TYPE, "");
     CLog::Log(LOGDEBUG, "CCurlFile::GetContentType - %s -> %s", redactUrl.c_str(), content.c_str());
     return true;
   }
@@ -1916,6 +1915,40 @@ int CCurlFile::IoControl(EIoControl request, void* param)
   }
 
   return -1;
+}
+
+const std::string CCurlFile::GetProperty(XFILE::FileProperty type, const std::string &name) const
+{
+  switch (type)
+  {
+  case FILE_PROPERTY_RESPONSE_PROTOCOL:
+    return m_state->m_httpheader.GetProtoLine();
+  case FILE_PROPERTY_RESPONSE_HEADER:
+    return m_state->m_httpheader.GetValue(name);
+  case FILE_PROPERTY_CONTENT_TYPE:
+    return m_state->m_httpheader.GetValue("content-type");
+  case FILE_PROPERTY_CONTENT_CHARSET:
+    return m_state->m_httpheader.GetCharset();
+  case FILE_PROPERTY_MIME_TYPE:
+    return m_state->m_httpheader.GetMimeType();
+  default:
+    return "";
+  }
+}
+
+const std::vector<std::string> CCurlFile::GetPropertyValues(XFILE::FileProperty type, const std::string &name) const
+{
+  if (type == FILE_PROPERTY_RESPONSE_HEADER)
+  {
+    return m_state->m_httpheader.GetValues(name);
+  }
+  std::vector<std::string> values;
+  std::string value = GetProperty(type, name);
+  if (!value.empty())
+  {
+    values.emplace_back(value);
+  }
+  return values;
 }
 
 double CCurlFile::GetDownloadSpeed()

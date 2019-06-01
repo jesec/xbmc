@@ -96,7 +96,7 @@ bool CVideoLibraryMarkWatchedJob::Work(CVideoDatabase &db)
     if (m_mark)
     {
       std::string path(item->GetPath());
-      if (item->HasVideoInfoTag())
+      if (item->HasVideoInfoTag() && !item->GetVideoInfoTag()->GetPath().empty())
         path = item->GetVideoInfoTag()->GetPath();
 
 #ifdef HAS_DS_PLAYER

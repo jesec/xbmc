@@ -22,11 +22,16 @@
 #include "AddonBase.h"
 
 #include <map>
+#include <vector>
 
 #if !defined(_WIN32)
   #include <sys/stat.h>
   #if !defined(__stat64)
-    #define __stat64 stat64
+    #if defined(TARGET_DARWIN) || defined(TARGET_FREEBSD)
+      #define __stat64 stat
+    #else
+      #define __stat64 stat64
+    #endif
   #endif
 #endif
 #ifdef _WIN32                   // windows
@@ -110,6 +115,7 @@ extern "C"
     double (*get_file_download_speed)(void* kodiBase, void* file);
     void (*close_file)(void* kodiBase, void* file);
     int (*get_file_chunk_size)(void* kodiBase, void* file);
+    char** (*get_property_values)(void* kodiBase, void* file, int type, const char *name, int *numValues);
 
     void* (*curl_create)(void* kodiBase, const char* url);
     bool (*curl_add_option)(void* kodiBase, void* file, int type, const char* name, const char* value);
@@ -179,19 +185,64 @@ typedef enum OpenFileFlags
 
 //==============================================================================
 /// \ingroup cpp_kodi_vfs_Defs
-/// @brief Used CURL message types
+/// @brief CURL message types
+///
+/// Used on kodi::vfs::CFile::CURLAddOption()
 ///
 typedef enum CURLOptiontype
 {
   /// Set a general option
   ADDON_CURL_OPTION_OPTION,
+
   /// Set a protocol option
+  ///
+  /// The following names for *ADDON_CURL_OPTION_PROTOCOL* are possible:
+  ///
+  /// | Option name                | Description
+  /// |---------------------------:|:----------------------------------------------------------
+  /// | accept-charset             | Set the "accept-charset" header
+  /// | acceptencoding or encoding | Set the "accept-encoding" header
+  /// | active-remote              | Set the "active-remote" header
+  /// | auth                       | Set the authentication method. Possible values: any, anysafe, digest, ntlm
+  /// | connection-timeout         | Set the connection timeout in seconds
+  /// | cookie                     | Set the "cookie" header
+  /// | customrequest              | Set a custom HTTP request like DELETE
+  /// | noshout                    | Set to true if kodi detects a stream as shoutcast by mistake.
+  /// | postdata                   | Set the post body (value needs to be base64 encoded). (Implicitly sets the request to POST)
+  /// | referer                    | Set the "referer" header
+  /// | user-agent                 | Set the "user-agent" header
+  /// | seekable                   | Set the stream seekable. 1: enable, 0: disable
+  /// | sslcipherlist              | Set list of accepted SSL ciphers.
+  ///
   ADDON_CURL_OPTION_PROTOCOL,
+
   /// Set User and password
   ADDON_CURL_OPTION_CREDENTIALS,
+
   /// Add a Header
   ADDON_CURL_OPTION_HEADER
 } CURLOptiontype;
+//------------------------------------------------------------------------------
+
+//==============================================================================
+/// \ingroup cpp_kodi_vfs_Defs
+/// @brief CURL message types
+///
+/// Used on kodi::vfs::CFile::GetPropertyValue() and kodi::vfs::CFile::GetPropertyValues()
+///
+typedef enum FilePropertyTypes
+{
+  /// Get protocol response line
+  ADDON_FILE_PROPERTY_RESPONSE_PROTOCOL,
+  /// Get a response header
+  ADDON_FILE_PROPERTY_RESPONSE_HEADER,
+  /// Get file content type
+  ADDON_FILE_PROPERTY_CONTENT_TYPE,
+  /// Get file content charset
+  ADDON_FILE_PROPERTY_CONTENT_CHARSET,
+  /// Get file mime type
+  ADDON_FILE_PROPERTY_MIME_TYPE
+} FilePropertyTypes;
 //------------------------------------------------------------------------------
 
 //============================================================================
@@ -906,6 +957,37 @@ namespace vfs
   }
   //----------------------------------------------------------------------------
 
+
+  //============================================================================
+  ///
+  /// @ingroup cpp_kodi_vfs
+  /// @brief Remove the slash on given path name
+  ///
+  /// @param[in,out] path The complete path
+  ///
+  ///
+  /// ------------------------------------------------------------------------
+  ///
+  /// **Example:**
+  /// ~~~~~~~~~~~~~{.cpp}
+  /// #include <kodi/Filesystem.h>
+  /// ...
+  /// std::string dirName = "special://temp/";
+  /// kodi::vfs::RemoveSlashAtEnd(dirName);
+  /// fprintf(stderr, "Directory name is '%s'\n", dirName.c_str());
+  /// ~~~~~~~~~~~~~
+  ///
+  inline void RemoveSlashAtEnd(std::string& path)
+  {
+    if (!path.empty())
+    {
+      char last = path[path.size() - 1];
+      if (last == '/' || last == '\\')
+        path.erase(path.size() - 1);
+    }
+  }
+  //----------------------------------------------------------------------------
+
   //============================================================================
   ///
   /// @ingroup cpp_kodi_vfs
@@ -976,7 +1058,7 @@ namespace vfs
   /// #include <kodi/Filesystem.h>
   /// ...
   /// STAT_STRUCTURE statFile;
-  /// int ret = kodi::vfs::StatFile("special://temp/kodi.log", &statFile);
+  /// int ret = kodi::vfs::StatFile("special://temp/kodi.log", statFile);
   /// fprintf(stderr, "deviceId (ID of device containing file)       = %u\n"
   ///                 "size (total size, in bytes)                   = %lu\n"
   ///                 "accessTime (time of last access)              = %lu\n"
@@ -1477,6 +1559,63 @@ namespace vfs
       if (!m_file)
         return -1;
       return ::kodi::addon::CAddonBase::m_interface->toKodi->kodi_filesystem->get_file_chunk_size(::kodi::addon::CAddonBase::m_interface->toKodi->kodiBase, m_file);
+    }
+    //--------------------------------------------------------------------------
+
+    //==========================================================================
+    ///
+    /// @ingroup cpp_kodi_vfs_CFile
+    /// @brief retrieve a file property
+    ///
+    /// @param[in] type         The type of the file property to retrieve the value for
+    /// @param[in] name         The name of a named property value (e.g. Header)
+    /// @return                 value of requested property, empty on failure / non-existance
+    ///
+    const std::string GetPropertyValue(FilePropertyTypes type, const std::string &name) const
+    {
+      if (!m_file)
+      {
+        kodi::Log(ADDON_LOG_ERROR, "kodi::vfs::CURLCreate(...) needed to call before GetPropertyValue!");
+        return "";
+      }
+      std::vector<std::string> values = GetPropertyValues(type, name);
+      if (values.empty()) {
+        return "";
+      }
+      return values[0];
+    }
+    //--------------------------------------------------------------------------
+
+    //==========================================================================
+    ///
+    /// @ingroup cpp_kodi_vfs_CFile
+    /// @brief retrieve file property values
+    ///
+    /// @param[in] type         The type of the file property values to retrieve the value for
+    /// @param[in] name         The name of the named property (e.g. Header)
+    /// @return                 values of requested property, empty vector on failure / non-existance
+    ///
+    const std::vector<std::string> GetPropertyValues(FilePropertyTypes type, const std::string &name) const
+    {
+      if (!m_file)
+      {
+        kodi::Log(ADDON_LOG_ERROR, "kodi::vfs::CURLCreate(...) needed to call before GetPropertyValues!");
+        return std::vector<std::string>();
+      }
+      int numValues;
+      char **res(::kodi::addon::CAddonBase::m_interface->toKodi->kodi_filesystem->get_property_values(
+        ::kodi::addon::CAddonBase::m_interface->toKodi->kodiBase, m_file, type, name.c_str(), &numValues));
+      if (res)
+      {
+        std::vector<std::string> vecReturn;
+        for (int i = 0; i < numValues; ++i)
+        {
+          vecReturn.emplace_back(res[i]);
+        }
+        ::kodi::addon::CAddonBase::m_interface->toKodi->free_string_array(::kodi::addon::CAddonBase::m_interface->toKodi->kodiBase, res, numValues);
+        return vecReturn;
+      }
+      return std::vector<std::string>();
     }
     //--------------------------------------------------------------------------
 

@@ -23,12 +23,12 @@
 #include <set>
 #include <utility>
 
+#include "ServiceBroker.h"
 #include "addons/AddonManager.h"
 #include "addons/GUIWindowAddonBrowser.h"
 #include "addons/settings/SettingUrlEncodedString.h"
 #include "dialogs/GUIDialogFileBrowser.h"
 #include "dialogs/GUIDialogNumeric.h"
-#include "dialogs/GUIDialogOK.h"
 #include "dialogs/GUIDialogSelect.h"
 #include "dialogs/GUIDialogSlider.h"
 #include "FileItem.h"
@@ -718,7 +718,7 @@ void CGUIControlButtonSetting::Update(bool updateDisplayOnly /* = false */)
         if (controlFormat == "addon")
         {
           ADDON::AddonPtr addon;
-          if (ADDON::CAddonMgr::GetInstance().GetAddon(strValue, addon))
+          if (CServiceBroker::GetAddonMgr().GetAddon(strValue, addon))
             strText = addon->Name();
           if (strText.empty())
             strText = g_localizeStrings.Get(231); // None

@@ -51,7 +51,7 @@ CDialogGameVideoSelect::CDialogGameVideoSelect(int windowId) :
 
 CDialogGameVideoSelect::~CDialogGameVideoSelect() = default;
 
-void CDialogGameVideoSelect::RegisterCallback(RETRO::IRenderSettingsCallback *callback)
+void CDialogGameVideoSelect::RegisterCallback(RETRO::IRenderCallback *callback)
 {
   m_callback = callback;
 }
@@ -118,6 +118,8 @@ void CDialogGameVideoSelect::FrameMove()
   CGUIBaseContainer *thumbs = dynamic_cast<CGUIBaseContainer*>(GetControl(CONTROL_THUMBS));
   if (thumbs != nullptr)
     OnItemFocus(thumbs->GetSelectedItem());
+
+  CGUIDialog::FrameMove();
 }
 
 void CDialogGameVideoSelect::OnWindowLoaded()

@@ -26,7 +26,6 @@
 #include "dialogs/GUIDialogBusy.h"
 #include "dialogs/GUIDialogKaiToast.h"
 #include "dialogs/GUIDialogNumeric.h"
-#include "dialogs/GUIDialogOK.h"
 #include "dialogs/GUIDialogProgress.h"
 #include "dialogs/GUIDialogSelect.h"
 #include "dialogs/GUIDialogYesNo.h"
@@ -46,6 +45,7 @@
 #include "pvr/PVRDatabase.h"
 #include "pvr/PVRItem.h"
 #include "pvr/PVRManager.h"
+#include "messaging/helpers/DialogOKHelper.h"
 #include "pvr/addons/PVRClients.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
 #include "pvr/dialogs/GUIDialogPVRChannelGuide.h"
@@ -313,14 +313,14 @@ namespace PVR
     CPVRTimerInfoTagPtr rule (bCreateRule ? CServiceBroker::GetPVRManager().Timers()->GetTimerRule(timer) : nullptr);
     if (timer || rule)
     {
-      CGUIDialogOK::ShowAndGetInput(CVariant{19033}, CVariant{19034}); // "Information", "There is already a timer set for this event"
+      HELPERS::ShowOKDialogText(CVariant{ 19033 }, CVariant{ 19034 }); // "Information", "There is already a timer set for this event"
       return false;
     }
 
     CPVRTimerInfoTagPtr newTimer(epgTag ? CPVRTimerInfoTag::CreateFromEpg(epgTag, bCreateRule) : CPVRTimerInfoTag::CreateInstantTimerTag(channel));
     if (!newTimer)
     {
-      CGUIDialogOK::ShowAndGetInput(CVariant{19033},
+      HELPERS::ShowOKDialogText(CVariant{19033},
                                     bCreateRule
                                       ? CVariant{19095} // "Information", "Timer rule creation failed. The PVR add-on does not support a suitable timer rule type."
                                       : CVariant{19094}); // "Information", "Timer creation failed. The PVR add-on does not support a suitable timer type."
@@ -341,19 +341,19 @@ namespace PVR
     if (!item->Channel() && item->GetTimerType() && !item->GetTimerType()->IsEpgBasedTimerRule())
     {
       CLog::Log(LOGERROR, "CPVRGUIActions - %s - no channel given", __FUNCTION__);
-      CGUIDialogOK::ShowAndGetInput(CVariant{19033}, CVariant{19109}); // "Information", "Couldn't save timer. Check the log for more information about this message."
+      HELPERS::ShowOKDialogText(CVariant{19033}, CVariant{19109}); // "Information", "Couldn't save timer. Check the log for more information about this message."
       return false;
     }
 
     if (!CServiceBroker::GetPVRManager().Clients()->GetClientCapabilities(item->m_iClientId).SupportsTimers())
     {
-      CGUIDialogOK::ShowAndGetInput(CVariant{19033}, CVariant{19215}); // "Information", "The PVR backend does not support timers."
+      HELPERS::ShowOKDialogText(CVariant{19033}, CVariant{19215}); // "Information", "The PVR backend does not support timers."
       return false;
     }
 
     if (!item->IsTimerRule() && item->GetEpgInfoTag() && !item->GetEpgInfoTag()->IsRecordable())
     {
-      CGUIDialogOK::ShowAndGetInput(CVariant{19033}, CVariant{19189}); // "Information", "The PVR backend does not allow to record this event."
+      HELPERS::ShowOKDialogText(CVariant{19033}, CVariant{19189}); // "Information", "The PVR backend does not allow to record this event."
       return false;
     }
 
@@ -591,7 +591,7 @@ namespace PVR
           bReturn = CServiceBroker::GetPVRManager().Timers()->AddTimer(newTimer);
 
         if (!bReturn)
-          CGUIDialogOK::ShowAndGetInput(CVariant{19033}, CVariant{19164}); // "Information", "Can't start recording. Check the log for more information about this message."
+          HELPERS::ShowOKDialogText(CVariant{19033}, CVariant{19164}); // "Information", "Can't start recording. Check the log for more information about this message."
       }
       else if (!bOnOff && channel->IsRecording())
       {
@@ -718,7 +718,14 @@ namespace PVR
 
   bool CPVRGUIActions::DeleteTimer(const CFileItemPtr &item, bool bIsRecording, bool bDeleteRule) const
   {
-    CPVRTimerInfoTagPtr timer(CPVRItem(item).GetTimerInfoTag());
+    CPVRTimerInfoTagPtr timer;
+    const CPVRRecordingPtr recording(CPVRItem(item).GetRecording());
+    if (recording)
+      timer = CServiceBroker::GetPVRManager().Timers()->GetRecordingTimerForRecording(*recording);
+
+    if (!timer)
+      timer = CPVRItem(item).GetTimerInfoTag();
+
     if (!timer)
     {
       CLog::Log(LOGERROR, "CPVRGUIActions - %s - no timer!", __FUNCTION__);
@@ -851,7 +858,7 @@ namespace PVR
 
     if (!AsyncRenameRecording(strNewName).Execute(item))
     {
-      CGUIDialogOK::ShowAndGetInput(CVariant{257}, CVariant{19111}); // "Error", "PVR backend error. Check the log for more information about this message."
+      HELPERS::ShowOKDialogText(CVariant{257}, CVariant{19111}); // "Error", "PVR backend error. Check the log for more information about this message."
       return false;
     }
 
@@ -868,7 +875,7 @@ namespace PVR
 
     if (!AsyncDeleteRecording().Execute(item))
     {
-      CGUIDialogOK::ShowAndGetInput(CVariant{257}, CVariant{19111}); // "Error", "PVR backend error. Check the log for more information about this message."
+      HELPERS::ShowOKDialogText(CVariant{257}, CVariant{19111}); // "Error", "PVR backend error. Check the log for more information about this message."
       return false;
     }
 
@@ -911,7 +918,7 @@ namespace PVR
 
     if (!AsyncUndeleteRecording().Execute(item))
     {
-      CGUIDialogOK::ShowAndGetInput(CVariant{257}, CVariant{19111}); // "Error", "PVR backend error. Check the log for more information about this message."
+      HELPERS::ShowOKDialogText(CVariant{257}, CVariant{19111}); // "Error", "PVR backend error. Check the log for more information about this message."
       return false;
     }
 
@@ -1283,7 +1290,7 @@ namespace PVR
     /* no clients found */
     else if (!scanClient)
     {
-      CGUIDialogOK::ShowAndGetInput(CVariant{19033},  // "Information"
+      HELPERS::ShowOKDialogText(CVariant{19033},  // "Information"
                                     CVariant{19192}); // "None of the connected PVR backends supports scanning for channels."
       m_bChannelScanRunning = false;
       return false;
@@ -1296,7 +1303,7 @@ namespace PVR
 
     /* do the scan */
     if (scanClient->StartChannelScan() != PVR_ERROR_NO_ERROR)
-      CGUIDialogOK::ShowAndGetInput(CVariant{257},    // "Error"
+      HELPERS::ShowOKDialogText(CVariant{257},    // "Error"
                                     CVariant{19193}); // "The channel scan can't be started. Check the log for more information about this message."
 
     CLog::Log(LOGNOTICE, "CPVRGUIActions - %s - channel scan finished after %li.%li seconds",
@@ -1403,19 +1410,21 @@ namespace PVR
       pDialog->Reset();
       pDialog->SetHeading(CVariant{19196}); // "PVR client specific actions"
 
-      PVR_MENUHOOKS *hooks = client->GetMenuHooks();
+      PVR_MENUHOOKS& hooks = client->GetMenuHooks();
       std::vector<int> hookIDs;
-      int selection = 0;
+      unsigned int i = 0;
 
-      for (unsigned int i = 0; i < hooks->size(); ++i)
+      for (const auto& hook : hooks)
       {
-        if (hooks->at(i).category == menuCategory || hooks->at(i).category == PVR_MENUHOOK_ALL)
+        if (hook.category == menuCategory || hook.category == PVR_MENUHOOK_ALL)
         {
-          pDialog->Add(g_localizeStrings.GetAddonString(client->ID(), hooks->at(i).iLocalizedStringId));
-          hookIDs.push_back(i);
+          pDialog->Add(g_localizeStrings.GetAddonString(client->ID(), hook.iLocalizedStringId));
+          hookIDs.emplace_back(i);
         }
+        ++i;
       }
 
+      int selection = 0;
       if (hookIDs.size() > 1)
       {
         pDialog->Open();
@@ -1423,7 +1432,7 @@ namespace PVR
       }
 
       if (selection >= 0)
-        client->CallMenuHook(hooks->at(hookIDs.at(selection)), item.get());
+        client->CallMenuHook(hooks.at(hookIDs.at(selection)), item);
       else
         return false;
     }
@@ -1562,7 +1571,7 @@ namespace PVR
     if (!bValidPIN)
     {
       // display message: The entered PIN number was incorrect
-      CGUIDialogOK::ShowAndGetInput(CVariant{19264}, CVariant{19265}); // "Incorrect PIN", "The entered PIN was incorrect."
+      HELPERS::ShowOKDialogText(CVariant{19264}, CVariant{19265}); // "Incorrect PIN", "The entered PIN was incorrect."
     }
     else
     {

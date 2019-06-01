@@ -72,16 +72,16 @@ namespace ADDON
   class CAddonMgr
   {
   public:
-    static CAddonMgr &GetInstance();
     bool ReInit() { DeInit(); return Init(); }
     bool Init();
     void DeInit();
 
     CAddonMgr();
-    CAddonMgr(const CAddonMgr&);
+    CAddonMgr(const CAddonMgr&) = delete;
     virtual ~CAddonMgr();
 
     CEventStream<AddonEvent>& Events() { return m_events; }
+    CEventStream<AddonEvent>& UnloadEvents() { return m_unloadEvents; }
 
     IAddonMgrCallback* GetCallbackForType(TYPE type);
     bool RegisterAddonMgrCallback(TYPE type, IAddonMgrCallback* cb);
@@ -95,6 +95,8 @@ namespace ADDON
      \return true if an addon matching the id of the given type is available and is enabled (if enabledOnly is true).
      */
     bool GetAddon(const std::string &id, AddonPtr &addon, const TYPE &type = ADDON_UNKNOWN, bool enabledOnly = true);
+
+    bool HasType(const std::string &id, const TYPE &type);
 
     bool HasAddons(const TYPE &type);
 
@@ -171,14 +173,14 @@ namespace ADDON
      *
      * Unload addon from the system. Returns true if it was unloaded, otherwise false.
      */
-    bool UnloadAddon(const AddonPtr& addon);
+    bool UnloadAddon(const std::string& addonId);
 
     /*!
      * @note: should only be called by AddonInstaller
      *
      * Returns true if the addon was successfully loaded and enabled; otherwise false.
      */
-    bool ReloadAddon(AddonPtr& addon);
+    bool LoadAddon(const std::string& addonId);
 
     /*! @note: should only be called by AddonInstaller
      *
@@ -312,6 +314,7 @@ namespace ADDON
     CCriticalSection m_critSection;
     CAddonDatabase m_database;
     CEventSource<AddonEvent> m_events;
+    CBlockingEventSource<AddonEvent> m_unloadEvents;
     std::set<std::string> m_systemAddons;
     std::set<std::string> m_optionalAddons;
   };

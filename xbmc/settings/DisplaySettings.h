@@ -109,8 +109,8 @@ public:
 
 protected:
   CDisplaySettings();
-  CDisplaySettings(const CDisplaySettings&);
-  CDisplaySettings& operator=(CDisplaySettings const&);
+  CDisplaySettings(const CDisplaySettings&) = delete;
+  CDisplaySettings& operator=(CDisplaySettings const&) = delete;
   ~CDisplaySettings() override;
 
   DisplayMode GetCurrentDisplayMode() const;

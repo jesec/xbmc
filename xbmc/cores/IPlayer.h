@@ -336,6 +336,7 @@ public:
   virtual void SetSpeed(float speed) = 0;
   virtual void SetTempo(float tempo) { };
   virtual bool SupportsTempo() { return false; }
+  virtual void FrameAdvance(int frames) { };
 
   //Returns true if not playback (paused or stopped being filled)
   virtual bool IsCaching() const {return false;};

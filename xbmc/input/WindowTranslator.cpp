@@ -141,7 +141,7 @@ const CWindowTranslator::WindowMapByName CWindowTranslator::WindowMappingByName 
     { "fullscreenvideo"          , WINDOW_FULLSCREEN_VIDEO },
     { "fullscreenlivetv"         , WINDOW_FULLSCREEN_LIVETV },         // virtual window/keymap section for PVR specific bindings in fullscreen playback (which internally uses WINDOW_FULLSCREEN_VIDEO)
     { "fullscreenradio"          , WINDOW_FULLSCREEN_RADIO },          // virtual window for fullscreen radio, uses WINDOW_VISUALISATION as fallback
-    { "fullscreengame"           , WINDOW_FULLSCREEN_GAME },           // virtual window for fullscreen games, uses WINDOW_FULLSCREEN_VIDEO as fallback
+    { "fullscreengame"           , WINDOW_FULLSCREEN_GAME },
     { "visualisation"            , WINDOW_VISUALISATION },
     { "slideshow"                , WINDOW_SLIDESHOW },
     { "weather"                  , WINDOW_WEATHER },
@@ -161,6 +161,7 @@ const CWindowTranslator::WindowMapByName CWindowTranslator::WindowMappingByName 
     { "gameosd"                  , WINDOW_DIALOG_GAME_OSD },
     { "gamevideofilter"          , WINDOW_DIALOG_GAME_VIDEO_FILTER },
     { "gameviewmode"             , WINDOW_DIALOG_GAME_VIEW_MODE },
+    { "gamevolume"               , WINDOW_DIALOG_GAME_VOLUME },
 };
 
 namespace

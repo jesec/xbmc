@@ -49,6 +49,13 @@ public:
     m_timer.Set(interval);
   }
 
+  void SetErrorInterval(int interval = 100)
+  {
+    m_buffer = 0.0f;
+    m_count = 0;
+    m_timer.Set(interval);
+  }
+
   bool Get(double& error, int interval = 100)
   {
     if(m_timer.IsTimePast())
@@ -121,6 +128,10 @@ public:
 protected:
   CActiveAEBufferPoolResample *m_resampleBuffers;
   CActiveAEBufferPoolAtempo *m_atempoBuffers;
+
+private:
+  CActiveAEStreamBuffers(const CActiveAEStreamBuffers&) = delete;
+  CActiveAEStreamBuffers& operator=(const CActiveAEStreamBuffers&) = delete;
 };
 
 class CActiveAEStream : public IAEStream
@@ -147,6 +158,7 @@ public:
   bool IsBuffering() override;
   double GetCacheTime() override;
   double GetCacheTotal() override;
+  double GetMaxDelay() override;
 
   void Pause() override;
   void Resume() override;

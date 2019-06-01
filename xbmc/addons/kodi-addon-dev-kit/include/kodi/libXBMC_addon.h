@@ -139,6 +139,7 @@ typedef struct CB_AddOn
   char* (*GetLocalizedString)(const void* addonData, long dwCode);
   char* (*GetDVDMenuLanguage)(const void* addonData);
   void (*FreeString)(const void* addonData, char* str);
+  void (*FreeStringArray)(const void* addonData, char** arr, int numElements);
 
   void* (*OpenFile)(const void* addonData, const char* strFileName, unsigned int flags);
   void* (*OpenFileForWrite)(const void* addonData, const char* strFileName, bool bOverWrite);
@@ -155,6 +156,8 @@ typedef struct CB_AddOn
   int (*GetFileChunkSize)(const void* addonData, void* file);
   bool (*FileExists)(const void* addonData, const char *strFileName, bool bUseCache);
   int (*StatFile)(const void* addonData, const char *strFileName, struct __stat64* buffer);
+  char *(*GetFilePropertyValue)(const void* addonData, void* file, XFILE::FileProperty type, const char *name);
+  char **(*GetFilePropertyValues)(const void* addonData, void* file, XFILE::FileProperty type, const char *name, int *numPorperties);
   bool (*DeleteFile)(const void* addonData, const char *strFileName);
   bool (*CanOpenDirectory)(const void* addonData, const char* strURL);
   bool (*CreateDirectory)(const void* addonData, const char *strPath);
@@ -297,6 +300,16 @@ namespace ADDON
     void FreeString(char* str)
     {
       m_Callbacks->FreeString(m_Handle->addonData, str);
+    }
+    
+    /*!
+     * @brief Free the memory used by arr including its elements
+     * @param arr The string array to free
+     * @param numElements The length of the array
+     */
+    void FreeStringArray(char** arr, int numElements)
+    {
+      m_Callbacks->FreeStringArray(m_Handle->addonData, arr, numElements);
     }
 
     /*!
@@ -462,6 +475,31 @@ namespace ADDON
     int StatFile(const char *strFileName, struct __stat64* buffer)
     {
       return m_Callbacks->StatFile(m_Handle->addonData, strFileName, buffer);
+    }
+
+    /*!
+    * @brief Get a property from an open file.
+    * @param file The file to get an property for
+    * @param type Type of the requested property.
+    * @param name Name of the requested property / can be null.
+    * @return The value of the requested property, must be FreeString'ed.
+    */
+    char *GetFilePropertyValue(void* file, XFILE::FileProperty type, const char *name)
+    {
+      return m_Callbacks->GetFilePropertyValue(m_Handle->addonData, file, type, name);
+    }
+
+    /*!
+    * @brief Get multiple property values from an open file.
+    * @param file The file to get the property values for
+    * @param type Type of the requested property.
+    * @param name Name of the requested property / can be null.
+    * @param numValues Number of property values returned.
+    * @return List of values of the requested property, must be FreeStringArray'ed.
+    */
+    char **GetFilePropertyValues(void* file, XFILE::FileProperty type, const char *name, int *numValues)
+    {
+      return m_Callbacks->GetFilePropertyValues(m_Handle->addonData, file, type, name, numValues);
     }
 
     /*!

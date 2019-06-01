@@ -57,13 +57,13 @@ CPVRClients::CPVRClients(void) :
 
 CPVRClients::~CPVRClients(void)
 {
-  CAddonMgr::GetInstance().UnregisterAddonMgrCallback(ADDON_PVRDLL);
+  CServiceBroker::GetAddonMgr().UnregisterAddonMgrCallback(ADDON_PVRDLL);
   Unload();
 }
 
 void CPVRClients::Start(void)
 {
-  CAddonMgr::GetInstance().RegisterAddonMgrCallback(ADDON_PVRDLL, this);
+  CServiceBroker::GetAddonMgr().RegisterAddonMgrCallback(ADDON_PVRDLL, this);
 
   UpdateAddons();
 }
@@ -179,7 +179,7 @@ int CPVRClients::EnabledClientAmount(void) const
   }
 
   for (const auto &client : clientMap)
-    if (!CAddonMgr::GetInstance().IsAddonDisabled(client.second->ID()))
+    if (!CServiceBroker::GetAddonMgr().IsAddonDisabled(client.second->ID()))
       ++iReturn;
 
   return iReturn;
@@ -194,7 +194,7 @@ bool CPVRClients::HasEnabledClients(void) const
   }
 
   for (const auto &client : clientMap)
-    if (!CAddonMgr::GetInstance().IsAddonDisabled(client.second->ID()))
+    if (!CServiceBroker::GetAddonMgr().IsAddonDisabled(client.second->ID()))
       return true;
   return false;
 }
@@ -305,7 +305,7 @@ std::vector<SBackend> CPVRClients::GetBackendProperties() const
 
     SBackend properties;
 
-    if (client->GetDriveSpace(&properties.diskTotal, &properties.diskUsed) == PVR_ERROR_NO_ERROR)
+    if (client->GetDriveSpace(properties.diskTotal, properties.diskUsed) == PVR_ERROR_NO_ERROR)
     {
       properties.diskTotal *= 1024;  
       properties.diskUsed *= 1024;
@@ -1032,14 +1032,14 @@ bool CPVRClients::IsKnownClient(const AddonPtr &client) const
 void CPVRClients::UpdateAddons(void)
 {
   VECADDONS addons;
-  CAddonMgr::GetInstance().GetInstalledAddons(addons, ADDON_PVRDLL);
+  CServiceBroker::GetAddonMgr().GetInstalledAddons(addons, ADDON_PVRDLL);
 
   if (addons.empty())
     return;
 
   for (auto &addon : addons)
   {
-    bool bEnabled = !CAddonMgr::GetInstance().IsAddonDisabled(addon->ID());
+    bool bEnabled = !CServiceBroker::GetAddonMgr().IsAddonDisabled(addon->ID());
 
     if (bEnabled && (!IsKnownClient(addon) || !IsCreatedClient(addon)))
     {
@@ -1077,7 +1077,7 @@ void CPVRClients::UpdateAddons(void)
         CLog::Log(LOGERROR, "%s - failed to create add-on %s, status = %d", __FUNCTION__, addon->Name().c_str(), status);
         if (status == ADDON_STATUS_PERMANENT_FAILURE)
         {
-          CAddonMgr::GetInstance().DisableAddon(addon->ID());
+          CServiceBroker::GetAddonMgr().DisableAddon(addon->ID());
           CJobManager::GetInstance().AddJob(new CPVREventlogJob(true, true, addon->Name(), g_localizeStrings.Get(24070), addon->Icon()), nullptr);
         }
       }
@@ -1142,7 +1142,7 @@ bool CPVRClients::FillRecordingStreamFileItem(CFileItem &fileItem)
   return false;
 }
 
-bool CPVRClients::OpenStream(const CPVRChannelPtr &channel, bool bIsSwitchingChannel)
+bool CPVRClients::OpenStream(const CPVRChannelPtr &channel)
 {
   bool bReturn(false);
   CloseStream();
@@ -1150,7 +1150,7 @@ bool CPVRClients::OpenStream(const CPVRChannelPtr &channel, bool bIsSwitchingCha
   /* try to open the stream on the client */
   PVR_CLIENT client;
   if (GetCreatedClient(channel->ClientID(), client))
-    bReturn = client->OpenStream(channel, bIsSwitchingChannel);
+    bReturn = client->OpenStream(channel);
 
   if (bReturn)
     SetPlayingChannel(channel);

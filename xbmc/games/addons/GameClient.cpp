@@ -29,7 +29,6 @@
 #include "addons/AddonManager.h"
 #include "addons/BinaryAddonCache.h"
 #include "cores/AudioEngine/Utils/AEChannelInfo.h"
-#include "dialogs/GUIDialogOK.h"
 #include "filesystem/Directory.h"
 #include "filesystem/SpecialProtocol.h"
 #include "games/addons/playback/GameClientRealtimePlayback.h"
@@ -43,6 +42,7 @@
 #include "input/joysticks/JoystickTypes.h"
 #include "input/InputManager.h"
 #include "messaging/ApplicationMessenger.h"
+#include "messaging/helpers/DialogOKHelper.h"
 #include "peripherals/Peripherals.h"
 #include "profiles/ProfilesManager.h"
 #include "settings/Settings.h"
@@ -61,6 +61,7 @@
 
 using namespace KODI;
 using namespace GAME;
+using namespace KODI::MESSAGING;
 
 #define EXTENSION_SEPARATOR          "|"
 #define EXTENSION_WILDCARD           "*"
@@ -110,7 +111,7 @@ std::unique_ptr<CGameClient> CGameClient::FromExtension(ADDON::CAddonInfo addonI
 
   for (const auto& property : properties)
   {
-    std::string strProperty = CAddonMgr::GetInstance().GetExtValue(ext->configuration, property.c_str());
+    std::string strProperty = CServiceBroker::GetAddonMgr().GetExtValue(ext->configuration, property.c_str());
     if (!strProperty.empty())
       addonInfo.AddExtraInfo(property, strProperty);
   }
@@ -428,13 +429,13 @@ void CGameClient::NotifyError(GAME_ERROR error)
   {
     // Failed to play game
     // This game requires the following add-on: %s
-    CGUIDialogOK::ShowAndGetInput(CVariant{ 35210 }, StringUtils::Format(g_localizeStrings.Get(35211).c_str(), missingResource.c_str()));
+    HELPERS::ShowOKDialogText(CVariant{ 35210 }, CVariant{ StringUtils::Format(g_localizeStrings.Get(35211).c_str(), missingResource.c_str()) });
   }
   else
   {
     // Failed to play game
     // The emulator "%s" had an internal error.
-    CGUIDialogOK::ShowAndGetInput(CVariant{ 35210 }, StringUtils::Format(g_localizeStrings.Get(35213).c_str(), Name().c_str()));
+    HELPERS::ShowOKDialogText(CVariant{ 35210 }, CVariant{ StringUtils::Format(g_localizeStrings.Get(35213).c_str(), Name().c_str()) });
   }
 }
 
@@ -451,7 +452,7 @@ std::string CGameClient::GetMissingResource()
     if (StringUtils::StartsWith(strDependencyId, "resource.games"))
     {
       AddonPtr addon;
-      const bool bInstalled = CAddonMgr::GetInstance().GetAddon(strDependencyId, addon);
+      const bool bInstalled = CServiceBroker::GetAddonMgr().GetAddon(strDependencyId, addon);
       if (!bInstalled)
       {
         strAddonId = strDependencyId;
@@ -584,7 +585,7 @@ bool CGameClient::OpenPixelStream(GAME_PIXEL_FORMAT format, unsigned int width, 
     break;
   }
 
-  return m_video->OpenPixelStream(pixelFormat, width, height, m_timing.GetFrameRate(), orientation);
+  return m_video->OpenPixelStream(pixelFormat, width, height, orientation);
 }
 
 bool CGameClient::OpenVideoStream(GAME_VIDEO_CODEC codec)
