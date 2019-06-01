@@ -455,15 +455,6 @@ const std::string CSettings::SETTING_DSPLAYER_DEFAULTVIDEOPLAYER = "dsplayer.def
 const std::string CSettings::SETTING_DSPLAYER_AUTOFILTERSETTINGS = "dsplayer.autofiltersettings";
 const std::string CSettings::SETTING_DSPLAYER_CHANGEREFRESHWITH = "videoplayer.changerefreshwith";
 const std::string CSettings::SETTING_DSPLAYER_LASTTVSHOWSELECT = "videolibrary.lasttvshowsselect";
-const std::string CSettings::SETTING_DSPLAYER_MANAGEMADVRWITHKODI = "dsplayer.madvrsettingswithkodi";
-const std::string CSettings::SETTING_DSPLAYER_DELAYMADVRPLAYBACK = "dsplayer.delaymadvrplayback";
-const std::string CSettings::SETTING_DSPLAYER_EXCLUSIVEMODE = "dsplayer.exclusivemode";
-//todo evr
-//const std::string CSettings::SETTING_DSPLAYER_EXCLUSIVEMODE_EVR = "dsplayer.exclusivemodeevr";
-const std::string CSettings::SETTING_DSPLAYER_EXITMADVRFULLSCREEN = "dsplayer.exitmadvrfullscreen";
-const std::string CSettings::SETTING_DSPLAYER_D3DPRESNTATION = "dsplayer.d3dpresentation";
-const std::string CSettings::SETTING_DSPLAYER_NUMPRESENTWINDOWED = "dsplayer.numpresentwindowed";
-const std::string CSettings::SETTING_DSPLAYER_NUMPRESENTEXCLUSIVE = "dsplayer.numpresentexclusive";
 const std::string CSettings::SETTING_DSPLAYER_MINTITLELENGTH = "dsplayer.mintitlelength";
 const std::string CSettings::SETTING_DSPLAYER_SHOWBDTITLECHOICE = "dsplayer.showbdtitlechoice";
 const std::string CSettings::SETTING_DSPLAYER_BDAUTOLOADINDEX = "dsplayer.bdautoloadindex";
@@ -1049,10 +1040,6 @@ void CSettings::InitializeISettingCallbacks()
 
   settingSet.clear();
   settingSet.insert(CSettings::SETTING_VIDEOSCREEN_FAKEFULLSCREEN);
-#ifdef HAS_DS_PLAYER
-  //todo evr
-  //settingSet.insert(CSettings::SETTING_DSPLAYER_EXCLUSIVEMODE_EVR);
-#endif
   GetSettingsManager()->RegisterCallback(&g_graphicsContext, settingSet);
 
   settingSet.clear();

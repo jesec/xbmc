@@ -57,7 +57,7 @@
 #include "Application.h"
 #include "GUIUserMessages.h"
 #include "input/Key.h"
-#include "TimingConstants.h"
+#include "cores/VideoPlayer/Interface/Addon/TimingConstants.h"
 #include "settings/MediaSettings.h"
 #include "settings/MediaSourceSettings.h"
 #include "cores/DSPlayer/dsgraph.h"
@@ -87,7 +87,6 @@ CDSPlayer::CDSPlayer(IPlayerCallback& callback)
 {
   m_CurrentVideoRenderer = DIRECTSHOW_RENDERER_UNDEF;
   m_pAllocatorCallback = nullptr;
-  m_pSettingCallback = nullptr;
   m_pPaintCallback = nullptr;
   m_renderOnDs = false;
   m_bPerformStop = false;
@@ -217,7 +216,7 @@ bool CDSPlayer::OpenFileInternal(const CFileItem& file)
     Create();
 
     // wait for the ready event
-    CGUIDialogBusy::WaitOnEvent(m_hReadyEvent, g_advancedSettings.m_videoBusyDialogDelay_ms, false);
+    CGUIDialogBusy::WaitOnEvent(m_hReadyEvent, 200, false);
 
     return (PlayerState != DSPLAYER_ERROR);
   }
@@ -230,57 +229,7 @@ bool CDSPlayer::OpenFileInternal(const CFileItem& file)
 
 void CDSPlayer::LoadVideoSettings(const CFileItem& file)
 {
-  CMediaSettings::GetInstance().GetAtStartVideoSettings() = CMediaSettings::GetInstance().GetCurrentVideoSettings();
 
-  CDSPlayerDatabase dsdbs;
-  if (!dsdbs.Open())
-    return;
-
-  CFileItem fileItem = file;
-  std::string sUrl = CURL::GetRedacted(file.GetPath()).c_str();
-
-  if (!fileItem.HasVideoInfoTag() || !fileItem.GetVideoInfoTag()->HasStreamDetails())
-  {
-    CLog::Log(LOGDEBUG, "%s - trying to extract filestream details from video file %s", __FUNCTION__, sUrl.c_str());
-    CDVDFileInfo::GetFileStreamDetails(&fileItem);
-  }
-
-  CStreamDetails streamDetails = fileItem.GetVideoInfoTag()->m_streamDetails;
-  CMadvrSettings &madvrSettings = CMediaSettings::GetInstance().GetCurrentMadvrSettings();
-
-  madvrSettings.m_Resolution = VideoDimsToResolution(streamDetails.GetVideoWidth(), streamDetails.GetVideoHeight());
-  madvrSettings.m_TvShowName = fileItem.GetVideoInfoTag()->m_strShowTitle;
-
-  // Load stored files settings
-  if (dsdbs.GetVideoSettings(fileItem.GetPath().c_str(), madvrSettings))
-  {
-    CLog::Log(LOGDEBUG, "Loaded madVR for file settings for %s", sUrl.c_str());
-  }
-  // if not present Load stored TvShowName settings
-  else if (dsdbs.GetTvShowSettings(madvrSettings.m_TvShowName, madvrSettings))
-  {
-    CLog::Log(LOGDEBUG, "Loaded madVR for tvshow %s settings for %s", madvrSettings.m_TvShowName.c_str(), sUrl.c_str());
-  }
-  // if not present Load stored Resolution settings
-  else if (dsdbs.GetResSettings(madvrSettings.m_Resolution, madvrSettings))
-  {
-    CLog::Log(LOGDEBUG, "Loaded madVR for resolution %ip settings for %s", madvrSettings.m_Resolution, sUrl.c_str());
-  }
-  // if not present Load stored for all setting
-  else if (dsdbs.GetResSettings(MADVR_RES_ALL, madvrSettings))
-  {
-    CLog::Log(LOGDEBUG, "Loaded madVR for all settings for %s", sUrl.c_str());
-  }
-  // restore default settings
-  else
-  {
-    CLog::Log(LOGDEBUG, "Restored madVR default settings for %s", sUrl.c_str());
-    madvrSettings.RestoreDefaultSettings();
-  }
-
-  madvrSettings.StoreAtStartSettings();
-
-  dsdbs.Close();
 }
 
 void CDSPlayer::SetCurrentVideoRenderer(const std::string &videoRenderer)
@@ -307,9 +256,6 @@ bool CDSPlayer::OpenFile(const CFileItem& file, const CPlayerOptions &options)
   CGraphFilters::Get()->SetAuxAudioDelay();
 
   CLog::Log(LOGNOTICE, "%s - DSPlayer: Opening: %s", __FUNCTION__, CURL::GetRedacted(file.GetPath()).c_str());
-
-  if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_MANAGEMADVRWITHKODI) == KODIGUI_LOAD_DSPLAYER)
-    LoadVideoSettings(file);
 
   CFileItem fileItem = file;
   m_PlayerOptions = options;
@@ -661,9 +607,7 @@ void CDSPlayer::Process()
   m_pGraphThread.Create();
   UpdateApplication();
 
-  g_dsSettings.pRendererSettings->bAllowFullscreen = m_PlayerOptions.fullscreen;
-
-  m_callback.OnPlayBackStarted();
+  m_callback.OnPlayBackStarted(m_currentFileItem);
 
   // Start playback
   // If there's an error, the lock must be released in order to show the error dialog
@@ -676,14 +620,12 @@ void CDSPlayer::Process()
 
     // Select Audio Stream, Delay
     if (CStreamsManager::Get()) CStreamsManager::Get()->SelectBestAudio();
-    SetAVDelay(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_AudioDelay);
+    SetAVDelay(g_application.m_pPlayer->GetVideoSettings().m_AudioDelay);
 
     // Select Subtitle Stream, Delay, On/Off
     if (CStreamsManager::Get()) CStreamsManager::Get()->SelectBestSubtitle(m_currentFileItem.GetPath());
-    SetSubTitleDelay(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_SubtitleDelay);
-    SetSubtitleVisible(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_SubtitleOn);
-
-    CMediaSettings::GetInstance().GetAtStartVideoSettings() = CMediaSettings::GetInstance().GetCurrentVideoSettings();
+    SetSubTitleDelay(g_application.m_pPlayer->GetVideoSettings().m_SubtitleDelay);
+    SetSubtitleVisible(g_application.m_pPlayer->GetVideoSettings().m_SubtitleOn);
 
     if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_SHOWBDTITLECHOICE))
       ShowEditionDlg(true);
@@ -1027,74 +969,10 @@ bool CDSPlayer::OnAction(const CAction &action)
       return true;
     }
     break;  
-  case ACTION_DSPLAYER_USERSETTINGS_1:
-    LoadMadvrSettings(1);
-    break;
-  case ACTION_DSPLAYER_USERSETTINGS_2:
-    LoadMadvrSettings(2);
-    break;
-  case ACTION_DSPLAYER_USERSETTINGS_3:
-    LoadMadvrSettings(3);
-    break;
-  case ACTION_DSPLAYER_USERSETTINGS_SD:
-    LoadMadvrSettings(MADVR_RES_SD);
-    break;
-  case ACTION_DSPLAYER_USERSETTINGS_720:
-    LoadMadvrSettings(MADVR_RES_720);
-    break;
-  case ACTION_DSPLAYER_USERSETTINGS_1080:
-    LoadMadvrSettings(MADVR_RES_1080);
-    break;
-  case ACTION_DSPLAYER_USERSETTINGS_2160:
-    LoadMadvrSettings(MADVR_RES_2160);
-    break;
-  case ACTION_DSPLAYER_USERSETTINGS_ATSTART:
-    LoadMadvrSettings(0);
-    break;
   }
 
   // return false to inform the caller we didn't handle the message
   return false;
-}
-
-void CDSPlayer::LoadMadvrSettings(int id)
-{
-  if (id < 0 || !m_isMadvr || CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_MANAGEMADVRWITHKODI) != KODIGUI_LOAD_DSPLAYER)
-    return;
-
-  CMadvrSettings &madvrSettings = CMediaSettings::GetInstance().GetCurrentMadvrSettings();
-
-  if (id != 0)
-  {
-    CDSPlayerDatabase dspdb;
-    if (!dspdb.Open())
-      return;
-    std::string sId;
-
-    if (id < MADVR_RES_SD)
-    {
-      dspdb.GetUserSettings(id, madvrSettings);
-      sId = StringUtils::Format("User settings #%i", id);
-    }
-    else
-    {
-      dspdb.GetResSettings(id, madvrSettings);
-      sId = StringUtils::Format("Resolution settings %ip", id);
-      if (id == MADVR_RES_SD)
-        sId = StringUtils::Format("Resolution settings SD", id);
-    }
-
-    g_application.m_pPlayer->RestoreSettings();
-    dspdb.Close();
-    CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Info, "DSPlayer", sId, TOAST_MESSAGE_TIME, false);
-  }
-  else
-  {
-    madvrSettings.RestoreAtStartSettings();
-    g_application.m_pPlayer->RestoreSettings();
-
-    CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Info, "DSPlayer", "Restored original video settings", TOAST_MESSAGE_TIME, false);
-  }
 }
 
 // Time is in millisecond
@@ -1138,7 +1016,7 @@ void CDSPlayer::UpdateChannelSwitchSettings()
 #ifdef HAS_VIDEO_PLAYBACK
   // when using fast channel switching some shortcuts are taken which 
   // means we'll have to update the view mode manually
-  m_renderManager.SetViewMode(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_ViewMode);
+  m_renderManager.SetViewMode(g_application.m_pPlayer->GetVideoSettings().m_ViewMode);
 #endif
 }
 
@@ -1179,7 +1057,7 @@ void CDSPlayer::FlushRenderer()
   m_renderManager.Flush();
 }
 
-void CDSPlayer::SetRenderViewMode(int mode)
+void CDSPlayer::SetRenderViewMode(int mode, float zoom, float par, float shift, bool stretch)
 {
   m_renderManager.SetViewMode(mode);
 }
@@ -1298,48 +1176,6 @@ void CDSPlayer::DisplayChange(bool bExternalChange)
     m_pAllocatorCallback->DisplayChange(bExternalChange);
 }
 
-int CDSPlayer::VideoDimsToResolution(int iWidth, int iHeight)
-{
-  int res = 0;
-  int madvr_res = -1;
-
-  if (iWidth == 0 || iHeight == 0)
-    res = 0;
-  else if (iWidth <= 720 && iHeight <= 480)
-    res = 480;
-  // 720x576 (PAL) (768 when rescaled for square pixels)
-  else if (iWidth <= 768 && iHeight <= 576)
-    res = 576;
-  // 960x540 (sometimes 544 which is multiple of 16)
-  else if (iWidth <= 960 && iHeight <= 544)
-    res = 540;
-  // 1280x720
-  else if (iWidth <= 1280 && iHeight <= 720)
-    res = 720;
-  // 1920x1080
-  else if (iWidth <= 1920 && iHeight <= 1080)
-    res = 1080;
-  // 4K
-  else if (iWidth * iHeight >= 6000000)
-    res = 2160;
-  else
-    res = 0;
-
-  if (res == 480 || res == 540 || res == 576)
-    madvr_res = MADVR_RES_SD;
-
-  if (res == 720)
-    madvr_res = MADVR_RES_720;
-
-  if (res == 1080)
-    madvr_res = MADVR_RES_1080;
-
-  if (res == 2160)
-    madvr_res = MADVR_RES_2160;
-
-  return madvr_res;
-}
-
 void CDSPlayer::SetVisibleScreenArea(CRect activeVideoRect)
 {
   if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_OSDINTOACTIVEAREA)
@@ -1450,42 +1286,6 @@ void CDSPlayer::IncRenderCount()
 {
   if (m_pPaintCallback && ReadyDS())
     m_pPaintCallback->IncRenderCount();
-}
-
-// IMadvrSettingCallback
-void CDSPlayer::RestoreSettings()
-{
-  if (m_pSettingCallback)
-    m_pSettingCallback->RestoreSettings();
-}
-
-void CDSPlayer::LoadSettings(int iSectionId)
-{
-  if (m_pSettingCallback)
-    m_pSettingCallback->LoadSettings(iSectionId);
-}
-
-void CDSPlayer::GetProfileActiveName(const std::string &path, std::string *profile)
-{
-  if (m_pSettingCallback)
-    m_pSettingCallback->GetProfileActiveName(path, profile);
-}
-void CDSPlayer::OnSettingChanged(int iSectionId, CSettingsManager* settingsManager, std::shared_ptr<const CSetting> setting)
-{
-  if (m_pSettingCallback)
-    m_pSettingCallback->OnSettingChanged(iSectionId, settingsManager, setting);
-}
-
-void CDSPlayer::AddDependencies(const std::string &xml, CSettingsManager *settingsManager, std::shared_ptr<CSetting> setting)
-{
-  if (m_pSettingCallback)
-    m_pSettingCallback->AddDependencies(xml, settingsManager, setting);
-}
-
-void CDSPlayer::ListSettings(const std::string &path)
-{
-  if (m_pSettingCallback)
-    m_pSettingCallback->ListSettings(path);
 }
 
 // IDSPlayer

@@ -37,33 +37,6 @@ enum DS_RENDER_LAYER
   RENDER_LAYER_OVER
 };
 
-enum MADVR_GUI_SETTINGS
-{
-  KODIGUI_NEVER,
-  KODIGUI_LOAD_DSPLAYER,
-  KODIGUI_LOAD_MADVR
-};
-
-enum MADVR_D3D_MODE
-{
-  MADVR_D3D9,
-  MADVR_D3D11_VSYNC,
-  MADVR_D3D11_NOVSYNC,
-};
-
-enum MADVR_RES_SETTINGS
-{
-  MADVR_RES_SD = 480,
-  MADVR_RES_720 = 720,
-  MADVR_RES_1080 = 1080,
-  MADVR_RES_2160 = 2160,
-  MADVR_RES_ALL = 0,
-  MADVR_RES_USER = 1,
-  MADVR_RES_TVSHOW,
-  MADVR_RES_ATSTART,
-  MADVR_RES_DEFAULT
-};
-
 enum DIRECTSHOW_RENDERER
 {
   DIRECTSHOW_RENDERER_MADVR = 3,
@@ -97,19 +70,6 @@ public:
   virtual void IncRenderCount() {};
 };
 
-class IMadvrSettingCallback
-{
-public:
-  virtual ~IMadvrSettingCallback() {};
-
-  virtual void LoadSettings(int iSectionId) {};
-  virtual void RestoreSettings() {};
-  virtual void GetProfileActiveName(const std::string &path, std::string *profile) {};
-  virtual void OnSettingChanged(int iSectionId, CSettingsManager* settingsManager, std::shared_ptr<const CSetting> setting) {};
-  virtual void AddDependencies(const std::string &xml, CSettingsManager *settingsManager, std::shared_ptr<CSetting> setting) {};
-  virtual void ListSettings(const std::string &path) {};
-};
-
 class IDSPlayer
 {
 public:
@@ -120,10 +80,8 @@ public:
   virtual bool ReadyDS(DIRECTSHOW_RENDERER renderer = DIRECTSHOW_RENDERER_UNDEF) { return false; };
   virtual void Register(IDSRendererAllocatorCallback* pAllocatorCallback) {};
   virtual void Register(IDSRendererPaintCallback* pPaintCallback) {};
-  virtual void Register(IMadvrSettingCallback* pSettingCallback) {};
   virtual void Unregister(IDSRendererAllocatorCallback* pAllocatorCallback) {};
   virtual void Unregister(IDSRendererPaintCallback* pPaintCallback) {};
-  virtual void Unregister(IMadvrSettingCallback* pSettingCallback) {};
 
   virtual int  GetEditionsCount() { return 0; };
   virtual int  GetEdition() { return -1; }

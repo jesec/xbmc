@@ -68,7 +68,7 @@ bool CRendererAML::Configure(const VideoPicture &picture, float fps, unsigned fl
 
   // Calculate the input frame aspect ratio.
   CalculateFrameAspectRatio(picture.iDisplayWidth, picture.iDisplayHeight);
-  SetViewMode(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_ViewMode);
+  SetViewMode(g_application.m_pPlayer->GetVideoSettings().m_ViewMode);
   ManageRenderArea();
 
   m_bConfigured = true;

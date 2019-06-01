@@ -147,7 +147,7 @@ public:
   void FrameMove() override;
   void Render(bool clear, uint32_t alpha = 255, bool gui = true) override;
   void FlushRenderer() override;
-  void SetRenderViewMode(int mode) override;
+  void SetRenderViewMode(int mode, float zoom = 0, float par = 0, float shift = 0, bool stretch = 0) override;
   float GetRenderAspectRatio() override;
   void TriggerUpdateResolution() override;
   bool IsRenderingVideo() override;
@@ -172,24 +172,14 @@ public:
   void EndRender() override;
   void IncRenderCount() override;
 
-  // IMadvrSettingCallback
-  void LoadSettings(int iSectionId);
-  void RestoreSettings();
-  void GetProfileActiveName(const std::string &path, std::string *profile) override;
-  void OnSettingChanged(int iSectionId, CSettingsManager* settingsManager, std::shared_ptr<const CSetting> setting) override;
-  void AddDependencies(const std::string &xml, CSettingsManager *settingsManager, std::shared_ptr<CSetting> setting) override;
-  void ListSettings(const std::string &path) override;
-
   // IDSPlayer
   bool Configure(unsigned int width, unsigned int height, unsigned int d_width, unsigned int d_height, float fps, unsigned flags) override;
   bool UsingDS(DIRECTSHOW_RENDERER renderer = DIRECTSHOW_RENDERER_UNDEF) override;
   bool ReadyDS(DIRECTSHOW_RENDERER renderer = DIRECTSHOW_RENDERER_UNDEF) override;
   void Register(IDSRendererAllocatorCallback* pAllocatorCallback) override { m_pAllocatorCallback = pAllocatorCallback; }
   void Register(IDSRendererPaintCallback* pPaintCallback) override { m_pPaintCallback = pPaintCallback; }
-  void Register(IMadvrSettingCallback* pSettingCallback) override { m_pSettingCallback = pSettingCallback; }
   void Unregister(IDSRendererAllocatorCallback* pAllocatorCallback) override { m_pAllocatorCallback = nullptr; }
   void Unregister(IDSRendererPaintCallback* pPaintCallback) override { m_pPaintCallback = nullptr; }
-  void Unregister(IMadvrSettingCallback* pSettingCallback) override { m_pSettingCallback = nullptr; }
 
   int  GetEditionsCount() override { return (CStreamsManager::Get()) ? CStreamsManager::Get()->GetEditionsCount() : 0; }
   int  GetEdition() override { return (CStreamsManager::Get()) ? CStreamsManager::Get()->GetEdition() : 0; }
@@ -293,7 +283,6 @@ protected:
   bool m_bEof;
 
   bool SelectChannel(bool bNext);
-  void LoadMadvrSettings(int id);
   void SetCurrentVideoRenderer(const std::string &videoRenderer);
 
   // CThread
@@ -318,7 +307,6 @@ protected:
   CRect m_lastActiveVideoRect;
 
   IDSRendererAllocatorCallback* m_pAllocatorCallback;
-  IMadvrSettingCallback* m_pSettingCallback;
   IDSRendererPaintCallback* m_pPaintCallback;
   bool m_renderOnDs;
   bool m_bPerformStop;

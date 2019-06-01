@@ -25,7 +25,6 @@
 #include "AllocatorCommon.h"
 #include "mvrInterfaces.h"
 #include "MadvrSharedRender.h"
-#include "MadvrSettingsManager.h"
 #include "threads/Event.h"
 
 class CmadVRAllocatorPresenter
@@ -149,20 +148,17 @@ public:
   void DisplayChange(bool bExternalChange) override;
 
 private:
-  void ConfigureMadvr();
   bool SetResolutionInternal(const RESOLUTION res, bool forceChange = false);
   Com::SmartPtr<IUnknown> m_pDXR;
   Com::SmartPtr<IOsdRenderCallback> m_pORCB;
   Com::SmartPtr<ISubRenderCallback2> m_pSRCB;
   Com::SmartSize m_ScreenSize;
-  EXCLUSIVEMODECALLBACK m_exclusiveCallback;
   bool m_bIsFullscreen;
   bool m_firstBoot;
   bool m_isEnteringExclusive;
   int m_shaderStage;
   int m_kodiGuiDirtyAlgo;
   CMadvrSharedRender *m_pMadvrShared;
-  CMadvrSettingsManager *m_pSettingsManager;
   CRect m_activeVideoRect;
   int m_frameCount;
   IDirect3DDevice9Ex* m_pD3DDev;

@@ -13,8 +13,8 @@
 
 BOOL g_overrideUserStyles;
 
-CSubManager::CSubManager(IDirect3DDevice9* d3DDev, SIZE size, SSubSettings settings, HRESULT& hr) :
-  m_d3DDev(d3DDev), m_iSubtitleSel(-1), m_rtNow(-1), m_lastSize(size),
+CSubManager::CSubManager(IDirect3DDevice9* d3DDev, SIZE size, HRESULT& hr) :
+  m_d3DDev(d3DDev), m_iSubtitleSel(-1), m_rtNow(-1), m_textureSize(1920, 1080), m_lastSize(size),
   m_rtTimePerFrame(0), m_bOverrideStyle(false), m_pSubPicProvider(NULL)
 {
   if (! d3DDev)
@@ -23,33 +23,9 @@ CSubManager::CSubManager(IDirect3DDevice9* d3DDev, SIZE size, SSubSettings setti
     return;
   }
 
-  //memcpy(&m_settings, settings, sizeof(m_settings));
-  /*m_settings.bufferAhead = settings.bufferAhead;
-  m_settings.disableAnimations = settings.disableAnimations;
-  m_settings.forcePowerOfTwoTextures = settings.forcePowerOfTwoTextures;
-  m_settings.textureSize = settings.textureSize;*/
-  m_settings = settings;
-
-  if (! m_settings.forcePowerOfTwoTextures)
-  {
-    // Test if GC can handle no power of two textures
-    D3DCAPS9 caps;
-    d3DDev->GetDeviceCaps(&caps);
-    if ((caps.TextureCaps & D3DPTEXTURECAPS_POW2) == D3DPTEXTURECAPS_POW2)
-    {
-      m_settings.forcePowerOfTwoTextures = true;
-      g_log->Log(LOGNOTICE, "%s Forced usage of power of two textures.", __FUNCTION__);
-    }
-  }
-
-  g_log->Log(LOGDEBUG, "%s texture size %dx%d, buffer ahead: %d, pow2tex: %d", __FUNCTION__, m_settings.textureSize.cx,
-    m_settings.textureSize.cy, m_settings.bufferAhead, m_settings.forcePowerOfTwoTextures);
-  m_pAllocator = (new CDX9SubPicAllocator(d3DDev, m_settings.textureSize, m_settings.forcePowerOfTwoTextures));
+  m_pAllocator = (new CDX9SubPicAllocator(d3DDev, m_textureSize, false));
   hr = S_OK;
-  if (m_settings.bufferAhead > 0)
-    m_pSubPicQueue.reset(new CSubPicQueue(m_settings.bufferAhead, m_settings.disableAnimations, m_pAllocator, &hr));
-  else
-    m_pSubPicQueue.reset(new CSubPicQueueNoThread(m_pAllocator, &hr));
+  m_pSubPicQueue.reset(new CSubPicQueueNoThread(m_pAllocator, &hr));
   if (FAILED(hr))
     g_log->Log(LOGERROR, "%s SubPicQueue creation error: %x", __FUNCTION__, hr);
 }
@@ -70,10 +46,7 @@ void CSubManager::StartThread(IDirect3DDevice9* pD3DDevice)
   HRESULT hr = S_OK;
   m_d3DDev = pD3DDevice;
   m_pAllocator->ChangeDevice(pD3DDevice);
-  if (m_settings.bufferAhead > 0)
-    m_pSubPicQueue.reset(new CSubPicQueue(m_settings.bufferAhead, m_settings.disableAnimations, m_pAllocator, &hr));
-  else
-    m_pSubPicQueue.reset(new CSubPicQueueNoThread(m_pAllocator, &hr));
+  m_pSubPicQueue.reset(new CSubPicQueueNoThread(m_pAllocator, &hr));
 
   m_pSubPicQueue->SetSubPicProvider(m_pSubPicProvider);
 }
@@ -377,10 +350,10 @@ HRESULT CSubManager::SetSubPicProviderToInternal()
 
 void CSubManager::SetTextureSize( Com::SmartSize& pSize )
 {
-  m_settings.textureSize = pSize;
+  m_textureSize = pSize;
   if (m_pAllocator)
   {
-    m_pAllocator->SetMaxTextureSize(m_settings.textureSize);
+    m_pAllocator->SetMaxTextureSize(m_textureSize);
     m_pSubPicQueue->Invalidate(m_rtNow + 1000000);
   }
 }

@@ -5,8 +5,6 @@ set(SOURCES AllocatorCommon.cpp
             FocusThread.cpp
             LavSettings.cpp
             madVRAllocatorPresenter.cpp
-            MadvrSettings.cpp
-            MadvrSettingsManager.cpp
             MadvrSharedRender.cpp
             RendererSettings.cpp
             XBMCFileReader.cpp
@@ -26,8 +24,6 @@ set(HEADERS AllocatorCommon.h
             LAVSplitterSettings.h
             LAVVideoSettings.h
             madVRAllocatorPresenter.h
-            MadvrSettings.h
-            MadvrSettingsManager.h
             MadvrSharedRender.h
             mvrInterfaces.h
             RendererSettings.h

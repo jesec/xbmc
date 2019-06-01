@@ -11,7 +11,7 @@ extern BOOL g_overrideUserStyles;
 class CSubManager: public ISubManager
 {
 public:
-  CSubManager(IDirect3DDevice9* d3DDev, SIZE size, SSubSettings settings, HRESULT& hr);
+  CSubManager(IDirect3DDevice9* d3DDev, SIZE size, HRESULT& hr);
   ~CSubManager(void);
 
   void SetEnable(bool enable);
@@ -57,7 +57,7 @@ private:
   STSStyle m_style;
   bool m_bOverrideStyle;
 
-  SSubSettings m_settings;
+  Com::SmartSize m_textureSize;
   Com::SmartSize m_lastSize;
 
   std::shared_ptr<ISubPicQueue> m_pSubPicQueue;

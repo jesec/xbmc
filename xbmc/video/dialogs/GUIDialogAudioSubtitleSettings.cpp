@@ -62,7 +62,6 @@
 #define SETTING_AUDIO_VOLUME_AMPLIFICATION     "audio.volumeamplification"
 #define SETTING_AUDIO_DELAY                    "audio.delay"
 #define SETTING_AUDIO_STREAM                   "audio.stream"
-#define SETTING_AUDIO_OUTPUT_TO_ALL_SPEAKERS   "audio.outputtoallspeakers"
 #define SETTING_AUDIO_PASSTHROUGH           "audio.digitalanalog"
 #define SETTING_AUDIO_DSP                      "audio.dsp"
 
@@ -96,20 +95,16 @@ void CGUIDialogAudioSubtitleSettings::FrameMove()
 
   if (g_application.m_pPlayer->HasPlayer())
   {
-    const CVideoSettings &videoSettings = CMediaSettings::GetInstance().GetCurrentVideoSettings();
-
+    const CVideoSettings videoSettings = g_application.m_pPlayer->GetVideoSettings();
+    
     // these settings can change on the fly
     //! @todo (needs special handling): m_settingsManager->SetInt(SETTING_AUDIO_STREAM, g_application.m_pPlayer->GetAudioStream());
-    if (!m_dspEnabled) //< The follow settings are on enabled DSP system separated to them and need no update here.
-    {
 #ifdef HAS_DS_PLAYER
     if (m_bIsDSPlayer)
       GetSettingsManager()->SetNumber(SETTING_AUDIO_DELAY, -videoSettings.m_AudioDelay);
     else
 #endif
-      GetSettingsManager()->SetNumber(SETTING_AUDIO_DELAY, videoSettings.m_AudioDelay);
-      GetSettingsManager()->SetBool(SETTING_AUDIO_OUTPUT_TO_ALL_SPEAKERS, videoSettings.m_OutputToAllSpeakers);
-    }
+    GetSettingsManager()->SetNumber(SETTING_AUDIO_DELAY, videoSettings.m_AudioDelay);
     GetSettingsManager()->SetBool(SETTING_AUDIO_PASSTHROUGH, CServiceBroker::GetSettings().GetBool(CSettings::SETTING_AUDIOOUTPUT_PASSTHROUGH));
 
     //! @todo m_settingsManager->SetBool(SETTING_SUBTITLE_ENABLE, g_application.m_pPlayer->GetSubtitleVisible());
@@ -152,8 +147,7 @@ void CGUIDialogAudioSubtitleSettings::OnSettingChanged(std::shared_ptr<const CSe
     return;
 
   CGUIDialogSettingsManualBase::OnSettingChanged(setting);
-
-  CVideoSettings &videoSettings = CMediaSettings::GetInstance().GetCurrentVideoSettings();
+  
   const std::string &settingId = setting->GetId();
   if (settingId == SETTING_AUDIO_VOLUME)
   {
@@ -162,18 +156,16 @@ void CGUIDialogAudioSubtitleSettings::OnSettingChanged(std::shared_ptr<const CSe
   }
   else if (settingId == SETTING_AUDIO_VOLUME_AMPLIFICATION)
   {
-    videoSettings.m_VolumeAmplification = static_cast<float>(std::static_pointer_cast<const CSettingNumber>(setting)->GetValue());
-    g_application.m_pPlayer->SetDynamicRangeCompression((long)(videoSettings.m_VolumeAmplification * 100));
+    float value = static_cast<float>(std::static_pointer_cast<const CSettingNumber>(setting)->GetValue());
+    g_application.m_pPlayer->SetDynamicRangeCompression((long)(value * 100));
   }
   else if (settingId == SETTING_AUDIO_DELAY)
   {
+    float value = static_cast<float>(std::static_pointer_cast<const CSettingNumber>(setting)->GetValue());
 #ifdef HAS_DS_PLAYER
-    double dValue = static_cast<float>(std::static_pointer_cast<const CSettingNumber>(setting)->GetValue());
-    m_bIsDSPlayer ? videoSettings.m_AudioDelay = -dValue : videoSettings.m_AudioDelay = dValue;
-#else
-    videoSettings.m_AudioDelay = static_cast<float>(std::static_pointer_cast<const CSettingNumber>(setting)->GetValue());
+    if (m_bIsDSPlayer) value = -value;
 #endif
-    g_application.m_pPlayer->SetAVDelay(videoSettings.m_AudioDelay);
+    g_application.m_pPlayer->SetAVDelay(value);
   }
   else if (settingId == SETTING_AUDIO_STREAM)
   {
@@ -181,14 +173,8 @@ void CGUIDialogAudioSubtitleSettings::OnSettingChanged(std::shared_ptr<const CSe
     // only change the audio stream if a different one has been asked for
     if (g_application.m_pPlayer->GetAudioStream() != m_audioStream)
     {
-      videoSettings.m_AudioStream = m_audioStream;
       g_application.m_pPlayer->SetAudioStream(m_audioStream);    // Set the audio stream to the one selected
     }
-  }
-  else if (settingId == SETTING_AUDIO_OUTPUT_TO_ALL_SPEAKERS)
-  {
-    videoSettings.m_OutputToAllSpeakers = std::static_pointer_cast<const CSettingBool>(setting)->GetValue();
-    g_application.Restart();
   }
   else if (settingId == SETTING_AUDIO_PASSTHROUGH)
   {
@@ -197,22 +183,20 @@ void CGUIDialogAudioSubtitleSettings::OnSettingChanged(std::shared_ptr<const CSe
   }
   else if (settingId == SETTING_SUBTITLE_ENABLE)
   {
-    m_subtitleVisible = videoSettings.m_SubtitleOn = std::static_pointer_cast<const CSettingBool>(setting)->GetValue();
-    g_application.m_pPlayer->SetSubtitleVisible(videoSettings.m_SubtitleOn);
+    bool value = std::static_pointer_cast<const CSettingBool>(setting)->GetValue();
+    g_application.m_pPlayer->SetSubtitleVisible(value);
   }
   else if (settingId == SETTING_SUBTITLE_DELAY)
   {
+    float value = static_cast<float>(std::static_pointer_cast<const CSettingNumber>(setting)->GetValue());
 #ifdef HAS_DS_PLAYER
-    double dValue = static_cast<float>(std::static_pointer_cast<const CSettingNumber>(setting)->GetValue());
-    m_bIsDSPlayer ? videoSettings.m_SubtitleDelay = -dValue : videoSettings.m_SubtitleDelay = dValue;
-#else
-    videoSettings.m_SubtitleDelay = static_cast<float>(std::static_pointer_cast<const CSettingNumber>(setting)->GetValue());
+    if (m_bIsDSPlayer) value = -value;
 #endif
-    g_application.m_pPlayer->SetSubTitleDelay(videoSettings.m_SubtitleDelay);
+    g_application.m_pPlayer->SetSubTitleDelay(value);
   }
   else if (settingId == SETTING_SUBTITLE_STREAM)
   {
-    m_subtitleStream = videoSettings.m_SubtitleStream = std::static_pointer_cast<const CSettingInt>(setting)->GetValue();
+    m_subtitleStream = std::static_pointer_cast<const CSettingInt>(setting)->GetValue();
     g_application.m_pPlayer->SetSubtitle(m_subtitleStream);
   }
 }
@@ -303,7 +287,7 @@ void CGUIDialogAudioSubtitleSettings::Save()
   db.EraseVideoSettings();
   db.Close();
 
-  CMediaSettings::GetInstance().GetDefaultVideoSettings() = CMediaSettings::GetInstance().GetCurrentVideoSettings();
+  CMediaSettings::GetInstance().GetDefaultVideoSettings() = g_application.m_pPlayer->GetVideoSettings();
   CMediaSettings::GetInstance().GetDefaultVideoSettings().m_SubtitleStream = -1;
   CMediaSettings::GetInstance().GetDefaultVideoSettings().m_AudioStream = -1;
   CServiceBroker::GetSettings().Save();
@@ -367,8 +351,8 @@ void CGUIDialogAudioSubtitleSettings::InitializeSettings()
 
   bool usePopup = g_SkinInfo->HasSkinFile("DialogSlider.xml");
 
-  CVideoSettings &videoSettings = CMediaSettings::GetInstance().GetCurrentVideoSettings();
-
+  const CVideoSettings videoSettings = g_application.m_pPlayer->GetVideoSettings();
+  
   if (g_application.m_pPlayer->HasPlayer())
   {
     g_application.m_pPlayer->GetAudioCapabilities(m_audioCaps);
@@ -414,11 +398,6 @@ void CGUIDialogAudioSubtitleSettings::InitializeSettings()
   // audio stream setting
   if (SupportsAudioFeature(IPC_AUD_SELECT_STREAM))
     AddAudioStreams(groupAudio, SETTING_AUDIO_STREAM);
-
-  // audio output to all speakers setting
-  //! @todo remove this setting
-  if (SupportsAudioFeature(IPC_AUD_OUTPUT_STEREO) && !m_dspEnabled)
-    AddToggle(groupAudio, SETTING_AUDIO_OUTPUT_TO_ALL_SPEAKERS, 252, SettingLevel::Basic, videoSettings.m_OutputToAllSpeakers);
 
   // audio digital/analog setting
   if (SupportsAudioFeature(IPC_AUD_SELECT_OUTPUT))
@@ -668,7 +647,6 @@ void CGUIDialogAudioSubtitleSettings::ShowAudioSelector()
 
   if (selected != -1 && g_application.m_pPlayer->GetAudioStream() != selected)
   {
-    CMediaSettings::GetInstance().GetCurrentVideoSettings().m_AudioStream = selected;
     g_application.m_pPlayer->SetAudioStream(selected);    // Set the audio stream to the one selected
   }
 }
@@ -707,7 +685,7 @@ void CGUIDialogAudioSubtitleSettings::ShowSubsSelector()
 
   pDlg->SetHeading(462);
   pDlg->SetSelected(selected);
-  pDlg->EnableButton(true, CMediaSettings::GetInstance().GetCurrentVideoSettings().m_SubtitleOn ? 55058 : 13397);
+  pDlg->EnableButton(true, g_application.m_pPlayer->GetVideoSettings().m_SubtitleOn ? 55058 : 13397);
   pDlg->Open();
 
   selected = pDlg->GetSelectedItem();

@@ -30,7 +30,7 @@
 #include "threads/CriticalSection.h"
 #include "guilib/D3DResource.h"
 #include "../VideoPlayer/VideoRenderers/RenderCapture.h"
-#include "settings/VideoSettings.h"
+#include "cores/VideoSettings.h"
 #include "../VideoPlayer/VideoRenderers/BaseRenderer.h"
 
 #define AUTOSOURCE -1
@@ -63,7 +63,7 @@ public:
   virtual bool         Supports(ERENDERFEATURE feature);
   virtual bool         Supports(ESCALINGMETHOD method);
 
-  void                 RenderUpdate(bool clear, unsigned int flags = 0, unsigned int alpha = 255);
+  void                 RenderUpdate(int index, int index2, bool clear, unsigned int flags, unsigned int alpha);
   virtual bool         ConfigChanged(const VideoPicture &picture) { return false; };
 
 protected:

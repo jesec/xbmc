@@ -21351,10 +21351,6 @@ msgctxt "#55075"
 msgid "Load and Save with DSPlayer database"
 msgstr ""
 
-msgctxt "#55076"
-msgid "Load from madVR active profile"
-msgstr ""
-
 msgctxt "#55077"
 msgid "Video decoder"
 msgstr ""
@@ -21457,74 +21453,6 @@ msgstr ""
 
 msgctxt "#55102"
 msgid "madshi Video Renderer"
-msgstr ""
-
-msgctxt "#55103"
-msgid "Direct3D presentation"
-msgstr ""
-
-msgctxt "#55104"
-msgid "Direct3D 9"
-msgstr ""
-
-msgctxt "#55105"
-msgid "Direct3D 11"
-msgstr ""
-
-msgctxt "#55106"
-msgid "Direct3D 11 (no vsync)"
-msgstr ""
-
-msgctxt "#55107"
-msgid "Pre-Rendered frames in windowed mode"
-msgstr ""
-
-msgctxt "#55108"
-msgid "Pre-Rendered frames in exclusive mode"
-msgstr ""
-
-msgctxt "#55109"
-msgid "1 frame"
-msgstr ""
-
-msgctxt "#55110"
-msgid "2 frames"
-msgstr ""
-
-msgctxt "#55111"
-msgid "3 frames"
-msgstr ""
-
-msgctxt "#55112"
-msgid "4 frames"
-msgstr ""
-
-msgctxt "#55113"
-msgid "6 frames"
-msgstr ""
-
-msgctxt "#55114"
-msgid "8 frames"
-msgstr ""
-
-msgctxt "#55115"
-msgid "10 frames"
-msgstr ""
-
-msgctxt "#55116"
-msgid "12 frames"
-msgstr ""
-
-msgctxt "#55117"
-msgid "14 frames"
-msgstr ""
-
-msgctxt "#55118"
-msgid "16 frames"
-msgstr ""
-
-msgctxt "#55119"
-msgid "(madVR tray icon setting)"
 msgstr ""
 
 msgctxt "#55120"
@@ -22284,22 +22212,6 @@ msgctxt "#90002"
 msgid "DSPlayer uses the madshi Video Renderer (madVR). madVR must be installed manually before playback."
 msgstr ""
 
-msgctxt "#90003"
-msgid "These settings determine the way madVR settings are managed: [CR][Never] The Kodi madVR GUI is disabled. [CR][Load and Save with DSPlayer database] madVR settings are configurable in OSD Video Settings. Global profiles will be loaded and saved in the DSPlayer database. [CR][Load from madVR active profile] madVR settings are configurable in OSD Video Settings. Settings profiles are loaded externally from madVR."
-msgstr ""
-
-msgctxt "#90004"
-msgid "Delay the start of video playback until the amount frames set in the pre-buffer are rendered. This can improve the stability of the Kodi refresh rate change mechanism when interacting with madVR."
-msgstr ""
-
-msgctxt "#90005"
-msgid "Enable madVR�s fullscreen exclusive mode, which takes full control of the display during playback making it impossible to take screen captures or steal focus away from the player. This may reduce screen tearing and improve player stability slightly but can cause compatibility issues with some graphics cards."
-msgstr ""
-
-msgctxt "#90006"
-msgid "This setting should only be used if experiencing problems during playback stop. Black screens and failure to return to the Kodi menu can often be countered by forcing madVR to exit fullscreen before stopping."
-msgstr ""
-
 msgctxt "#90007"
 msgid "The choice of audio renderer in this menu overrides the same setting in System -> Audio output. DSPlayer is compatible with any DirectShow audio renderer."
 msgstr ""
@@ -22386,14 +22298,6 @@ msgstr ""
 
 msgctxt "#90028"
 msgid "Force to select the preferred audio track that will match the priority codec string defined in the option (ex. dts|ac3) and the language GUI defined in Kodi."
-msgstr ""
-
-msgctxt "#90029"
-msgid "The present queue, a final buffer in DirectX, after madVR sends completed frames to Windows."
-msgstr ""
-
-msgctxt "#90030"
-msgid "Select the Direct3D presentation method to use, Direct3d 11 is required for >8 bit output, with Direct3D 11 (no vsync) madVR only presents new frames when needed, relying on D3D11 to repeat frames for each VSync, this may improve performance but may also cause presentation glitches."
 msgstr ""
 
 msgctxt "#909001"

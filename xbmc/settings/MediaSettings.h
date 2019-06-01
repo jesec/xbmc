@@ -26,9 +26,8 @@
 #include "settings/lib/ISettingsHandler.h"
 #include "settings/lib/ISubSettings.h"
 #include "settings/GameSettings.h"
-#include "settings/VideoSettings.h"
+#include "cores/VideoSettings.h"
 #ifdef HAS_DS_PLAYER
-#include "cores/DSplayer/Filters/MadvrSettings.h"
 #include "cores/DSplayer/Filters/LavSettings.h"
 #endif
 #include "threads/CriticalSection.h"
@@ -60,8 +59,6 @@ public:
 
   const CVideoSettings& GetDefaultVideoSettings() const { return m_defaultVideoSettings; }
   CVideoSettings& GetDefaultVideoSettings() { return m_defaultVideoSettings; }
-  const CVideoSettings& GetCurrentVideoSettings() const { return m_currentVideoSettings; }
-  CVideoSettings& GetCurrentVideoSettings() { return m_currentVideoSettings; }
 
   const CGameSettings& GetDefaultGameSettings() const { return m_defaultGameSettings; }
   CGameSettings& GetDefaultGameSettings() { return m_defaultGameSettings; }
@@ -69,12 +66,6 @@ public:
   CGameSettings& GetCurrentGameSettings() { return m_currentGameSettings; }
 
 #ifdef HAS_DS_PLAYER
-  const CVideoSettings& GetAtStartVideoSettings() const { return m_atstartVideoSettings; }
-  CVideoSettings& GetAtStartVideoSettings() { return m_atstartVideoSettings; }
-
-  const CMadvrSettings& GetCurrentMadvrSettings() const { return m_currentMadvrSettings; }
-  CMadvrSettings& GetCurrentMadvrSettings() { return m_currentMadvrSettings; }
-
   const CLavSettings& GetCurrentLavSettings() const { return m_currentLavSettings; }
   CLavSettings& GetCurrentLavSettings() { return m_currentLavSettings; }
 #endif
@@ -125,14 +116,11 @@ protected:
 
 private:
   CVideoSettings m_defaultVideoSettings;
-  CVideoSettings m_currentVideoSettings;
 
   CGameSettings m_defaultGameSettings;
   CGameSettings m_currentGameSettings;
 
 #ifdef HAS_DS_PLAYER
-  CVideoSettings m_atstartVideoSettings;
-  CMadvrSettings m_currentMadvrSettings;
   CLavSettings m_currentLavSettings;
 #endif
 

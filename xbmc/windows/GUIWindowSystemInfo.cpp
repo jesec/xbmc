@@ -33,6 +33,7 @@
 
 #ifdef HAS_DS_PLAYER
 #include "DSFilterVersion.h"
+#include "settings/Settings.h"
 #endif
 
 #define CONTROL_TB_POLICY   30

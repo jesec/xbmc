@@ -633,7 +633,6 @@ void CApplicationPlayer::SetAudioStream(int iStream)
     player->SetAudioStream(iStream);
     m_iAudioStream = iStream;
     m_audioStreamUpdate.Set(1000);
-    CMediaSettings::GetInstance().GetCurrentVideoSettings().m_AudioStream = iStream;
   }
 }
 
@@ -652,7 +651,6 @@ void CApplicationPlayer::SetSubtitle(int iStream)
     player->SetSubtitle(iStream);
     m_iSubtitleStream = iStream;
     m_subtitleStreamUpdate.Set(1000);
-    CMediaSettings::GetInstance().GetCurrentVideoSettings().m_SubtitleStream = iStream;
   }
 }
 
@@ -662,8 +660,6 @@ void CApplicationPlayer::SetSubtitleVisible(bool bVisible)
   if (player)
   {
     player->SetSubtitleVisible(bVisible);
-    CMediaSettings::GetInstance().GetCurrentVideoSettings().m_SubtitleOn = bVisible;
-    CMediaSettings::GetInstance().GetCurrentVideoSettings().m_SubtitleStream = player->GetSubtitle();
   }
 }
 
@@ -689,7 +685,6 @@ void CApplicationPlayer::SetVideoStream(int iStream)
     player->SetVideoStream(iStream);
     m_iVideoStream = iStream;
     m_videoStreamUpdate.Set(1000);
-    CMediaSettings::GetInstance().GetCurrentVideoSettings().m_VideoStream = iStream;
   }
 }
 
@@ -868,61 +863,6 @@ void CApplicationPlayer::IncRenderCount()
   }
 }
 
-// IMadvrSettingCallback
-void CApplicationPlayer::LoadSettings(int iSectionId)
-{
-  std::shared_ptr<IPlayer> player = GetInternal();
-  if (player)
-  {
-    player->LoadSettings(iSectionId);
-  }
-}
-
-void CApplicationPlayer::RestoreSettings()
-{
-  std::shared_ptr<IPlayer> player = GetInternal();
-  if (player)
-  {
-    player->RestoreSettings();
-  }
-}
-
-void CApplicationPlayer::GetProfileActiveName(const std::string &path, std::string *profile)
-{
-  std::shared_ptr<IPlayer> player = GetInternal();
-  if (player)
-  {
-    player->GetProfileActiveName(path, profile);
-  }
-}
-
-void CApplicationPlayer::OnSettingChanged(int iSectionId, CSettingsManager* settingsManager, std::shared_ptr<const CSetting> setting)
-{
-  std::shared_ptr<IPlayer> player = GetInternal();
-  if (player)
-  {
-    player->OnSettingChanged(iSectionId, settingsManager, setting);
-  }
-}
-
-void CApplicationPlayer::AddDependencies(const std::string &xml, CSettingsManager *settingsManager, std::shared_ptr<CSetting> setting)
-{
-  std::shared_ptr<IPlayer> player = GetInternal();
-  if (player)
-  {
-    player->AddDependencies(xml, settingsManager, setting);
-  }
-}
-
-void CApplicationPlayer::ListSettings(const std::string &path)
-{
-  std::shared_ptr<IPlayer> player = GetInternal();
-  if (player)
-  {
-    player->ListSettings(path);
-  }
-}
-
 // IDSPlayer
 bool CApplicationPlayer::Configure(unsigned int width, unsigned int height, unsigned int d_width, unsigned int d_height, float fps, unsigned flags)
 {
@@ -975,15 +915,6 @@ void CApplicationPlayer::Register(IDSRendererPaintCallback* pPaintCallback)
   }
 }
 
-void CApplicationPlayer::Register(IMadvrSettingCallback* pSettingCallback)
-{
-  std::shared_ptr<IPlayer> player = GetInternal();
-  if (player)
-  {
-    player->Register(pSettingCallback);
-  }
-}
-
 void CApplicationPlayer::Unregister(IDSRendererAllocatorCallback* pAllocatorCallback)
 {
   std::shared_ptr<IPlayer> player = GetInternal();
@@ -999,15 +930,6 @@ void CApplicationPlayer::Unregister(IDSRendererPaintCallback* pPaintCallback)
   if (player)
   {
     player->Unregister(pPaintCallback);
-  }
-}
-
-void CApplicationPlayer::Unregister(IMadvrSettingCallback* pSettingCallback)
-{
-  std::shared_ptr<IPlayer> player = GetInternal();
-  if (player)
-  {
-    player->Unregister(pSettingCallback);
   }
 }
 
@@ -1150,11 +1072,11 @@ void CApplicationPlayer::FlushRenderer()
     player->FlushRenderer();
 }
 
-void CApplicationPlayer::SetRenderViewMode(int mode)
+void CApplicationPlayer::SetRenderViewMode(int mode, float zoom, float par, float shift, bool stretch)
 {
   std::shared_ptr<IPlayer> player = GetInternal();
   if (player)
-    player->SetRenderViewMode(mode);
+    player->SetRenderViewMode(mode, zoom, par, shift, stretch);
 }
 
 float CApplicationPlayer::GetRenderAspectRatio()
@@ -1277,4 +1199,23 @@ bool CApplicationPlayer::IsExternalPlaying()
       return true;
   }
   return false;
+}
+
+CVideoSettings CApplicationPlayer::GetVideoSettings()
+{
+  std::shared_ptr<IPlayer> player = GetInternal();
+  if (player)
+  {
+    return player->GetVideoSettings();
+  }
+  return CVideoSettings();
+}
+
+void CApplicationPlayer::SetVideoSettings(CVideoSettings& settings)
+{
+  std::shared_ptr<IPlayer> player = GetInternal();
+  if (player)
+  {
+    return player->SetVideoSettings(settings);
+  }
 }

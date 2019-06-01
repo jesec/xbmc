@@ -17,12 +17,6 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
-// MadvrSettings.h: interface for the CMadvrSettings class.
-//
-//////////////////////////////////////////////////////////////////////
-
-//#if !defined(AFX_MADVRSETTINGS_H__562A722A_CD2A_4B4A_8A67_32DE8088A7D3__INCLUDED_)
-//#define AFX_MADVRSETTINGS_H__562A722A_CD2A_4B4A_8A67_32DE8088A7D3__INCLUDED_
 
 #pragma once
 
@@ -99,5 +93,3 @@ public:
 
 private:
 };
-
-//#endif // !defined(AFX_MADVRSETTINGS_H__562A722A_CD2A_4B4A_8A67_32DE8088A7D3__INCLUDED_)

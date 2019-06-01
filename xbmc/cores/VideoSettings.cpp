@@ -17,15 +17,10 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
-// VideoSettings.cpp: implementation of the CVideoSettings class.
-//
-//////////////////////////////////////////////////////////////////////
 
 #include "VideoSettings.h"
-
-//////////////////////////////////////////////////////////////////////
-// Construction/Destruction
-//////////////////////////////////////////////////////////////////////
+#include "threads/CriticalSection.h"
+#include "threads/SingleLock.h"
 
 CVideoSettings::CVideoSettings()
 {
@@ -43,7 +38,6 @@ CVideoSettings::CVideoSettings()
   m_SubtitleStream = -1;
   m_SubtitleDelay = 0.0f;
   m_SubtitleOn = true;
-  m_SubtitleCached = false;
   m_Brightness = 50.0f;
   m_Contrast = 50.0f;
   m_Gamma = 20.0f;
@@ -52,29 +46,11 @@ CVideoSettings::CVideoSettings()
   m_PostProcess = false;
   m_VolumeAmplification = 0;
   m_AudioDelay = 0.0f;
-  m_OutputToAllSpeakers = false;
   m_ResumeTime = 0;
   m_StereoMode = 0;
   m_StereoInvert = false;
   m_VideoStream = -1;
-
 }
-
-#ifdef HAS_DS_PLAYER
-void CVideoSettings::SetDSPlayerScalingMethod(EDSSCALINGMETHOD method)
-{
-  m_ScalingMethod &= 0xFFFF0000; // Clear dsplayer scaling method
-  m_ScalingMethod += method & 0xFFFF;
-  //m_ScalingMethod += (method << 16) & 0xFFFF0000; <----- why this
-}
-
-EDSSCALINGMETHOD CVideoSettings::GetDSPlayerScalingMethod()
-{
-  if (m_ScalingMethod > DS_SCALINGMETHOD_BILINEAR_2_100)
-    m_ScalingMethod = DS_SCALINGMETHOD_BILINEAR_2_100;
-  return (EDSSCALINGMETHOD) (m_ScalingMethod & 0xFFFF);
-}
-#endif
 
 bool CVideoSettings::operator!=(const CVideoSettings &right) const
 {
@@ -89,7 +65,6 @@ bool CVideoSettings::operator!=(const CVideoSettings &right) const
   if (m_SubtitleStream != right.m_SubtitleStream) return true;
   if (m_SubtitleDelay != right.m_SubtitleDelay) return true;
   if (m_SubtitleOn != right.m_SubtitleOn) return true;
-  if (m_SubtitleCached != right.m_SubtitleCached) return true;
   if (m_Brightness != right.m_Brightness) return true;
   if (m_Contrast != right.m_Contrast) return true;
   if (m_Gamma != right.m_Gamma) return true;
@@ -98,10 +73,69 @@ bool CVideoSettings::operator!=(const CVideoSettings &right) const
   if (m_PostProcess != right.m_PostProcess) return true;
   if (m_VolumeAmplification != right.m_VolumeAmplification) return true;
   if (m_AudioDelay != right.m_AudioDelay) return true;
-  if (m_OutputToAllSpeakers != right.m_OutputToAllSpeakers) return true;
   if (m_ResumeTime != right.m_ResumeTime) return true;
   if (m_StereoMode != right.m_StereoMode) return true;
   if (m_StereoInvert != right.m_StereoInvert) return true;
   if (m_VideoStream != right.m_VideoStream) return true;
   return false;
+}
+
+//------------------------------------------------------------------------------
+// CVideoSettingsLocked
+//------------------------------------------------------------------------------
+CVideoSettingsLocked::CVideoSettingsLocked(CVideoSettings &vs, CCriticalSection &critSection) :
+  m_videoSettings(vs), m_critSection(critSection)
+{
+}
+
+void CVideoSettingsLocked::SetSubtitleStream(int stream)
+{
+  CSingleLock lock(m_critSection);
+  m_videoSettings.m_SubtitleStream = stream;
+}
+
+void CVideoSettingsLocked::SetSubtitleVisible(bool visible)
+{
+  CSingleLock lock(m_critSection);
+  m_videoSettings.m_SubtitleOn = visible;
+}
+
+void CVideoSettingsLocked::SetAudioStream(int stream)
+{
+  CSingleLock lock(m_critSection);
+  m_videoSettings.m_AudioStream = stream;
+}
+
+void CVideoSettingsLocked::SetVideoStream(int stream)
+{
+  CSingleLock lock(m_critSection);
+  m_videoSettings.m_VideoStream = stream;
+}
+
+void CVideoSettingsLocked::SetAudioDelay(float delay)
+{
+  CSingleLock lock(m_critSection);
+  m_videoSettings.m_AudioDelay = delay;
+}
+
+void CVideoSettingsLocked::SetSubtitleDelay(float delay)
+{
+  CSingleLock lock(m_critSection);
+  m_videoSettings.m_SubtitleDelay = delay;
+}
+
+void CVideoSettingsLocked::SetViewMode(int mode, float zoom, float par, float shift, bool stretch)
+{
+  CSingleLock lock(m_critSection);
+  m_videoSettings.m_ViewMode = mode;
+  m_videoSettings.m_CustomZoomAmount = zoom;
+  m_videoSettings.m_CustomPixelRatio = par;
+  m_videoSettings.m_CustomVerticalShift = shift;
+  m_videoSettings.m_CustomNonLinStretch = stretch;
+}
+
+void CVideoSettingsLocked::SetVolumeAmplification(float amp)
+{
+  CSingleLock lock(m_critSection);
+  m_videoSettings.m_VolumeAmplification = amp;
 }

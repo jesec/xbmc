@@ -223,7 +223,7 @@ void CGUIDialogAudioDSPSettings::FrameMove()
 
   if (g_application.m_pPlayer->HasPlayer())
   {
-    const CVideoSettings &videoSettings = CMediaSettings::GetInstance().GetCurrentVideoSettings();
+    const CVideoSettings &videoSettings = g_application.m_pPlayer->GetVideoSettings();
 
     // these settings can change on the fly
     if (SupportsAudioFeature(IPC_AUD_OFFSET))
@@ -308,7 +308,7 @@ void CGUIDialogAudioDSPSettings::OnSettingChanged(std::shared_ptr<const CSetting
 
   CGUIDialogSettingsManualBase::OnSettingChanged(setting);
 
-  CVideoSettings &videoSettings = CMediaSettings::GetInstance().GetCurrentVideoSettings();
+  CVideoSettings &videoSettings = g_application.m_pPlayer->GetVideoSettings();
   const std::string &settingId = setting->GetId();
   if (settingId == SETTING_AUDIO_MAIN_STREAMTYPE)
   {
@@ -442,7 +442,7 @@ void CGUIDialogAudioDSPSettings::InitializeSettings()
 
   bool usePopup = g_SkinInfo->HasSkinFile("DialogSlider.xml");
 
-  CVideoSettings &videoSettings = CMediaSettings::GetInstance().GetCurrentVideoSettings();
+  CVideoSettings &videoSettings = g_application.m_pPlayer->GetVideoSettings();
 
   m_audioCaps.clear();
   if (g_application.m_pPlayer->HasPlayer())

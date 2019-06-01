@@ -91,23 +91,6 @@ public:
   AP_SURFACE_USAGE apSurfaceUsage;
   bool d3dFullscreen;
   bool bAllowFullscreen;
-  SSubSettings subtitlesSettings;
-};
-
-class CMADVRRendererSettings : public CRendererSettings
-{
-public:
-  CMADVRRendererSettings()
-  {
-    SetDefault();
-  }
-  void SetDefault()
-  {
-    CRendererSettings::SetDefault();
-  };
-
-public:
-
 };
 
 class CDSSettings
@@ -118,7 +101,6 @@ public:
   int            m_nDXSdkRelease;
   std::wstring   D3D9RenderDevice;
 
-  CRendererSettings* pRendererSettings;
   std::auto_ptr<CPixelShaderList> pixelShaderList;
 
   //TODO

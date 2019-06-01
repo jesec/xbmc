@@ -40,7 +40,6 @@ using namespace XFILE;
 CDSSettings::CDSSettings(void)
 {
   m_hD3DX9Dll = NULL;
-  pRendererSettings = NULL;
 
   m_pDwmIsCompositionEnabled = NULL;
   m_pDwmEnableComposition = NULL;
@@ -56,8 +55,6 @@ void CDSSettings::Initialize()
 {
   std::string videoRender;
   videoRender = CServiceBroker::GetSettings().GetString(CSettings::SETTING_DSPLAYER_VIDEORENDERER);
-
-  pRendererSettings = new CMADVRRendererSettings();
 
   // Create the pixel shader list
   pixelShaderList.reset(new CPixelShaderList());
@@ -75,64 +72,7 @@ CDSSettings::~CDSSettings(void)
 
 void CDSSettings::LoadConfig()
 {
-  std::string strDsConfigFile = CProfilesManager::GetInstance().GetUserDataItem("dsplayer/renderersettings.xml");
-  if (!CFile::Exists(strDsConfigFile))
-  {
-    CLog::Log(LOGNOTICE, "No renderersettings.xml to load (%s)", strDsConfigFile.c_str());
-    return;
-  }
-  
-  // load the xml file
-  CXBMCTinyXML xmlDoc;
 
-  if (!xmlDoc.LoadFile(strDsConfigFile))
-  {
-    CLog::Log(LOGERROR, "Error loading %s, Line %d\n%s", strDsConfigFile.c_str(), xmlDoc.ErrorRow(), xmlDoc.ErrorDesc());
-    return;
-  }
-
-  TiXmlElement *pRootElement = xmlDoc.RootElement();
-  if (pRootElement && (strcmpi(pRootElement->Value(), "renderersettings") != 0))
-  {
-    CLog::Log(LOGERROR, "Error loading %s, no <renderersettings> node", strDsConfigFile.c_str());
-    return;
-  }
-
-  // First, shared settings
-  TiXmlElement *pElement = pRootElement->FirstChildElement("sharedsettings");
-  if (pElement)
-  {
-
-    // Default values are set by SetDefault. We don't need a default parameter in GetXXX.
-    // If XMLUtils::GetXXX fails, the value is not modified
-
-    // VSync
-    XMLUtils::GetBoolean(pElement, "VSync", pRendererSettings->vSync);
-    XMLUtils::GetBoolean(pElement, "AlterativeVSync", pRendererSettings->alterativeVSync);
-    XMLUtils::GetBoolean(pElement, "AccurateVSync", pRendererSettings->vSyncAccurate);
-    XMLUtils::GetBoolean(pElement, "FlushGPUBeforeVSync", pRendererSettings->flushGPUBeforeVSync);
-    XMLUtils::GetBoolean(pElement, "FlushGPUWait", pRendererSettings->flushGPUWait);
-    XMLUtils::GetBoolean(pElement, "FlushGPUAfterPresent", pRendererSettings->flushGPUAfterPresent);
-    XMLUtils::GetInt(pElement, "VSyncOffset", pRendererSettings->vSyncOffset, 0, 100);
-  
-    // Misc
-    XMLUtils::GetBoolean(pElement, "DisableDesktopComposition", pRendererSettings->disableDesktopComposition);
-  }
-
-  // Subtitles
-  pElement = pRootElement->FirstChildElement("subtitlessettings");
-  if (pElement)
-  {
-    XMLUtils::GetBoolean(pElement, "ForcePowerOfTwoTextures", pRendererSettings->subtitlesSettings.forcePowerOfTwoTextures);
-    XMLUtils::GetUInt(pElement, "BufferAhead", pRendererSettings->subtitlesSettings.bufferAhead);
-    XMLUtils::GetBoolean(pElement, "DisableAnimations", pRendererSettings->subtitlesSettings.disableAnimations);
-    pElement = pElement->FirstChildElement("TextureSize");
-    if (pElement)
-    {
-      XMLUtils::GetUInt(pElement, "width", (uint32_t&) pRendererSettings->subtitlesSettings.textureSize.cx);
-      XMLUtils::GetUInt(pElement, "height", (uint32_t&) pRendererSettings->subtitlesSettings.textureSize.cy);
-    }
-  }
 }
 
 HINSTANCE CDSSettings::GetD3X9Dll()

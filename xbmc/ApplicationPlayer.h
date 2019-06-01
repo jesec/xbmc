@@ -80,7 +80,7 @@ public:
   void FrameMove();
   void Render(bool clear, uint32_t alpha = 255, bool gui = true);
   void FlushRenderer();
-  void SetRenderViewMode(int mode);
+  void SetRenderViewMode(int mode, float zoom, float par, float shift, bool stretch);
   float GetRenderAspectRatio();
   void TriggerUpdateResolution();
   bool IsRenderingVideo();
@@ -174,6 +174,9 @@ public:
   void  SetSpeed(float speed);
   bool SupportsTempo();
 
+  CVideoSettings GetVideoSettings();
+  void SetVideoSettings(CVideoSettings& settings);
+
 #ifdef HAS_DS_PLAYER
   // IDSRendererAllocatorCallback
   CRect GetActiveVideoRect();
@@ -192,24 +195,14 @@ public:
   void EndRender();
   void IncRenderCount();
 
-  // IMadvrSettingCallback
-  void LoadSettings(int iSectionId);
-  void RestoreSettings();
-  void GetProfileActiveName(const std::string &path, std::string *profile);
-  void OnSettingChanged(int iSectionId, CSettingsManager* settingsManager, std::shared_ptr<const CSetting> setting);
-  void AddDependencies(const std::string &xml, CSettingsManager *settingsManager, std::shared_ptr<CSetting> setting);
-  void ListSettings(const std::string &path);
-
   // IDSPlayer
   bool Configure(unsigned int width, unsigned int height, unsigned int d_width, unsigned int d_height, float fps, unsigned flags);
   bool UsingDS(DIRECTSHOW_RENDERER renderer = DIRECTSHOW_RENDERER_UNDEF);
   bool ReadyDS(DIRECTSHOW_RENDERER renderer = DIRECTSHOW_RENDERER_UNDEF);
   void Register(IDSRendererAllocatorCallback* pAllocatorCallback);
   void Register(IDSRendererPaintCallback* pPaintCallback);
-  void Register(IMadvrSettingCallback* pSettingCallback);
   void Unregister(IDSRendererAllocatorCallback* pAllocatorCallback);
   void Unregister(IDSRendererPaintCallback* pPaintCallback);
-  void Unregister(IMadvrSettingCallback* pSettingCallback);
 
   int  GetEditionsCount();
   int  GetEdition();
@@ -218,7 +211,7 @@ public:
   bool IsMatroskaEditions();
   void ShowEditionDlg(bool playStart);
 #endif
-  
+
   protected:
     std::shared_ptr<IPlayer> GetInternal() const;
 };

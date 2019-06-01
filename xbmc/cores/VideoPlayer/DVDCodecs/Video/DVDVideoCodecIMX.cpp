@@ -1467,14 +1467,14 @@ void CIMXContext::SetFieldData(uint8_t fieldFmt, double fps)
   if (!!fieldFmt != deint ||
       dr != IsDoubleRate()||
       fps != m_fps        ||
-      imPrev != CMediaSettings::GetInstance().GetCurrentVideoSettings().m_InterlaceMethod)
+      imPrev != g_application.m_pPlayer->GetVideoSettings().m_InterlaceMethod)
     m_bFbIsConfigured = false;
 
   if (m_bFbIsConfigured)
     return;
 
   m_fps = fps;
-  imPrev = CMediaSettings::GetInstance().GetCurrentVideoSettings().m_InterlaceMethod;
+  imPrev = g_application.m_pPlayer->GetVideoSettings().m_InterlaceMethod;
   CLog::Log(LOGDEBUG, "iMX : Output parameters changed - deinterlace %s%s, fps: %.3f\n", !!fieldFmt ? "active" : "not active", IsDoubleRate() ? " DR" : "", m_fps);
   SetIPUMotion(imPrev);
 
@@ -1602,7 +1602,7 @@ void CIMXContext::SetProcessInfo(CProcessInfo *m_pProcessInfo)
   if (!m_processInfo)
     return;
 
-  SetIPUMotion(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_InterlaceMethod);
+  SetIPUMotion(g_application.m_pPlayer->GetVideoSettings().m_InterlaceMethod);
 }
 
 void CIMXContext::Clear(int page)

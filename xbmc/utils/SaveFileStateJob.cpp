@@ -38,6 +38,7 @@
 #ifdef HAS_DS_PLAYER
 #include "DSPlayerDatabase.h"
 #include "settings/Settings.h"
+#include "xbmc/Application.h"
 #endif
 
 bool CSaveFileStateJob::DoWork()
@@ -81,14 +82,7 @@ bool CSaveFileStateJob::DoWork()
 	  {
 		  dspdb.AddEdition(progressTrackingFile, m_bookmark.edition);
 	  }
-      if (m_madvrSettings.SettingsChanged() && CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_MANAGEMADVRWITHKODI) == KODIGUI_LOAD_DSPLAYER)
-      {
-          dspdb.SetVideoSettings(progressTrackingFile, m_madvrSettings);
-      }
-      if (m_videoSettings.m_SubtitleExtTrackName != CMediaSettings::GetInstance().GetAtStartVideoSettings().m_SubtitleExtTrackName)
-      {
-        dspdb.SetSubtitleExtTrackName(progressTrackingFile, m_videoSettings.m_SubtitleExtTrackName);
-      }
+    dspdb.SetSubtitleExtTrackName(progressTrackingFile, g_application.m_pPlayer->GetVideoSettings().m_SubtitleExtTrackName);
 #endif
       CVideoDatabase videodatabase;
       if (!videodatabase.Open())
@@ -161,14 +155,6 @@ bool CSaveFileStateJob::DoWork()
 
             updateListing = true;
           }
-        }
-#ifdef HAS_DS_PLAYER
-        if (m_videoSettings != CMediaSettings::GetInstance().GetAtStartVideoSettings())
-#else
-        if (m_videoSettings != CMediaSettings::GetInstance().GetDefaultVideoSettings())
-#endif
-        {
-          videodatabase.SetVideoSettings(progressTrackingFile, m_videoSettings);
         }
 
         if (m_item.HasVideoInfoTag() && m_item.GetVideoInfoTag()->HasStreamDetails())

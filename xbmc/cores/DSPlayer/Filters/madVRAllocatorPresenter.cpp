@@ -27,7 +27,6 @@
 #include "settings/Settings.h"
 #include "settings/DisplaySettings.h"
 #include "settings/AdvancedSettings.h"
-#include "cores/DSPlayer/Filters/MadvrSettings.h"
 #include "PixelShaderList.h"
 #include "DSPlayer.h"
 #include "utils/log.h"
@@ -53,7 +52,6 @@ CmadVRAllocatorPresenter::CmadVRAllocatorPresenter(HWND hWnd, HRESULT& hr, std::
 {
 
   //Init Variable
-  m_exclusiveCallback = ExclusiveCallback;
   m_firstBoot = true;
   m_isEnteringExclusive = false;
   m_kodiGuiDirtyAlgo = g_advancedSettings.m_guiAlgorithmDirtyRegions;
@@ -79,10 +77,6 @@ CmadVRAllocatorPresenter::~CmadVRAllocatorPresenter()
     // nasty, but we have to let it know about our death somehow
     ((COsdRenderCallback*)(IOsdRenderCallback*)m_pORCB)->SetDXRAP(nullptr);
   }
-
-  // Unregister madVR Exclusive Callback
-  if (Com::SmartQIPtr<IMadVRExclusiveModeCallback> pEXL = m_pDXR)
-    pEXL->Unregister(m_exclusiveCallback, this);
 
   g_advancedSettings.m_guiAlgorithmDirtyRegions = m_kodiGuiDirtyAlgo;
   
@@ -130,84 +124,9 @@ void CmadVRAllocatorPresenter::SetResolution()
   }
 }
 
-void CmadVRAllocatorPresenter::ExclusiveCallback(LPVOID context, int event)
-{
-  CmadVRAllocatorPresenter *pThis = (CmadVRAllocatorPresenter*)context;
-
-  std::vector<std::string> strEvent = { "IsAboutToBeEntered", "WasJustEntered", "IsAboutToBeLeft", "WasJustLeft" };
-
-  if (event == ExclusiveModeIsAboutToBeEntered || event == ExclusiveModeIsAboutToBeLeft)
-    pThis->m_isEnteringExclusive = true;
-
-  if (event == ExclusiveModeWasJustEntered || event == ExclusiveModeWasJustLeft)
-    pThis->m_isEnteringExclusive = false;
-
-  CLog::Log(LOGDEBUG, "%s madVR %s in Fullscreen Exclusive-Mode", __FUNCTION__, strEvent[event - 1].c_str());
-}
-
 void CmadVRAllocatorPresenter::EnableExclusive(bool bEnable)
 {
-  if (Com::SmartQIPtr<IMadVRCommand> pMadVrCmd = m_pDXR)
-    pMadVrCmd->SendCommandBool("disableExclusiveMode", !bEnable);
 };
-
-void CmadVRAllocatorPresenter::ConfigureMadvr()
-{
-  // Disable SeekBar
-  if (Com::SmartQIPtr<IMadVRCommand> pMadVrCmd = m_pDXR)
-    pMadVrCmd->SendCommandBool("disableSeekbar", true);
-
-  // Delay Playback
-  m_pSettingsManager->SetBool("delayPlaybackStart2", CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_DELAYMADVRPLAYBACK));
-
-  if (Com::SmartQIPtr<IMadVRExclusiveModeCallback> pEXL = m_pDXR)
-    pEXL->Register(m_exclusiveCallback, this);
-
-  // Exclusive Mode
-  if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_EXCLUSIVEMODE))
-  {
-      m_pSettingsManager->SetBool("exclusiveDelay", true);
-      m_pSettingsManager->SetBool("enableExclusive", true);
-  }
-  else
-  {
-    if (Com::SmartQIPtr<IMadVRCommand> pMadVrCmd = m_pDXR)
-      pMadVrCmd->SendCommandBool("disableExclusiveMode", true);
-  }
-
-  // Direct3D Mode
-  int iD3DMode = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_D3DPRESNTATION);
-  switch (iD3DMode)
-  {
-  case MADVR_D3D9:
-  {
-    m_pSettingsManager->SetBool("useD3d11", false);
-    break;
-  }
-  case MADVR_D3D11_VSYNC:
-  {
-    m_pSettingsManager->SetBool("useD3d11", true);
-    m_pSettingsManager->SetBool("d3d11noDelay", true);
-    break;
-  }
-  case MADVR_D3D11_NOVSYNC:
-  {
-    m_pSettingsManager->SetBool("useD3d11", true);
-    m_pSettingsManager->SetBool("d3d11noDelay", false);
-    break;
-  }
-  }
-
-  // Pre-Presented Frames
-  int iNumPresentWindowed = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_NUMPRESENTWINDOWED);
-  int iNumPresentExclusive = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_NUMPRESENTEXCLUSIVE);
-
-  if (iNumPresentWindowed > 0)
-    m_pSettingsManager->SetInt("preRenderFramesWindowed", iNumPresentWindowed);
-
-  if (iNumPresentExclusive > 0)
-    m_pSettingsManager->SetInt("preRenderFrames", iNumPresentExclusive);
-}
 
 bool CmadVRAllocatorPresenter::ParentWindowProc(HWND hWnd, UINT uMsg, WPARAM *wParam, LPARAM *lParam, LRESULT *ret)
 {
@@ -321,9 +240,7 @@ HRESULT CmadVRAllocatorPresenter::SetDevice(IDirect3DDevice9* pD3DDev)
 
   if (!m_pSubPicQueue) {
     CAutoLock cAutoLock(this);
-    m_pSubPicQueue = g_dsSettings.pRendererSettings->subtitlesSettings.bufferAhead > 0
-      ? (ISubPicQueue*)DNew CSubPicQueue(g_dsSettings.pRendererSettings->subtitlesSettings.bufferAhead, g_dsSettings.pRendererSettings->subtitlesSettings.disableAnimations, m_pAllocator, &hr)
-      : (ISubPicQueue*)DNew CSubPicQueueNoThread(m_pAllocator, &hr);
+    m_pSubPicQueue = (ISubPicQueue*)DNew CSubPicQueueNoThread(m_pAllocator, &hr);
   }
   else {
     m_pSubPicQueue->Invalidate();
@@ -414,9 +331,6 @@ STDMETHODIMP CmadVRAllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
     return E_FAIL;
   }
 
-  // Init Settings Manager
-  m_pSettingsManager = DNew CMadvrSettingsManager(m_pDXR);
-
   Com::SmartQIPtr<ISubRender> pSR = m_pDXR;
   if (!pSR) {
     m_pDXR = nullptr;
@@ -458,9 +372,6 @@ STDMETHODIMP CmadVRAllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
     // madVR supports calling IVideoWindow::put_Owner before the pins are connected
     pVW->put_Owner((OAHWND)CDSPlayer::GetDShWnd());
   }
-
-  // Configure initial Madvr Settings
-  ConfigureMadvr();
 
   g_application.m_pPlayer->Register(this);
 

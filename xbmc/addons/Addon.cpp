@@ -406,13 +406,6 @@ void OnPreInstall(const AddonPtr& addon)
 
 void OnPostInstall(const AddonPtr& addon, bool update, bool modal)
 {
-#ifdef HAS_DS_PLAYER
-  if (addon->ID() == "script.madvrsettings") 
-  {
-    CMediaSettings::GetInstance().GetCurrentMadvrSettings().UpdateSettings();
-  }
-#endif
-
   addon->OnPostInstall(update, modal);
 }
 

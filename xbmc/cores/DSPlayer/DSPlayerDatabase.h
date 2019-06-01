@@ -24,7 +24,6 @@
 #error DSPlayer's header file included without HAS_DS_PLAYER defined
 #endif
 
-#include "Filters/MadvrSettings.h"
 #include "Filters/LavSettings.h"
 #include "dbwrappers/Database.h"
 #include "FileItem.h"
@@ -53,22 +52,6 @@ public:
   void GetEditionForFile(const std::string& strFilenameAndPath, VECEDITIONS &ditions);
   void AddEdition(const std::string& strFilenameAndPath, const CEdition &edition);
   void ClearEditionOfFile(const std::string& strFilenameAndPath);
-
-  bool GetVideoSettings(const std::string &strFilenameAndPath, CMadvrSettings &settings);
-  void SetVideoSettings(const std::string &strFilenameAndPath, const CMadvrSettings &settings);
-  void EraseVideoSettings();
-
-  bool GetTvShowSettings(const std::string &tvShowName, CMadvrSettings &settings);
-  void SetTvShowSettings(const std::string &tvShowName, const CMadvrSettings &settings);
-  void EraseTvShowSettings(const std::string &tvShowName);
-
-  bool GetResSettings(int resolution, CMadvrSettings &settings);
-  void SetResSettings(int resolution, const CMadvrSettings &settings);
-  void EraseResSettings(int resolution);
-
-  bool GetUserSettings(int userId, CMadvrSettings &settings);
-  void SetUserSettings(int userId, const CMadvrSettings &settings);
-  void EraseUserSettings(int userId);
   
   bool GetLAVVideoSettings(CLavSettings &settings);
   bool GetLAVAudioSettings(CLavSettings &settings);
@@ -96,7 +79,6 @@ protected:
   const char *GetBaseDBName() const { return "DSPlayer"; };
 
 private:
-  void JsonToVariant(const std::string &strJson, CMadvrSettings &settings);
   void InitOldSettings();
   std::map < std::string, std::map<int, std::string> > m_oldSettings;
 };

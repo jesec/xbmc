@@ -639,6 +639,9 @@ RECT CWinSystemWin32::ScreenRect(int screen) const
 
 bool CWinSystemWin32::ChangeResolution(const RESOLUTION_INFO& res, bool forceChange /*= false*/)
 {
+#ifdef HAS_DS_PLAYER
+  return true;
+#endif
   const MONITOR_DETAILS* details = GetMonitor(res.iScreen);
 
   if (!details)

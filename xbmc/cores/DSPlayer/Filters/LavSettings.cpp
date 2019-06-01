@@ -17,9 +17,6 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
-// MadvrSettings.cpp: implementation of the CMadvrSettings class.
-//
-//////////////////////////////////////////////////////////////////////
 
 #include "LavSettings.h"
 

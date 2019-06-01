@@ -66,7 +66,7 @@ bool CWinDsRenderer::Configure(const VideoPicture &picture, float fps, unsigned 
   // calculate the input frame aspect ratio
   CalculateFrameAspectRatio(picture.iDisplayWidth, picture.iDisplayHeight);
 
-  SetViewMode(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_ViewMode);
+  SetViewMode(g_application.m_pPlayer->GetVideoSettings().m_ViewMode);
   ManageRenderArea();
 
   m_bConfigured = true;
@@ -119,7 +119,7 @@ bool CWinDsRenderer::RenderCapture(CRenderCapture* capture)
   return succeeded;
 }
 
-void CWinDsRenderer::RenderUpdate(bool clear, unsigned int flags, unsigned int alpha)
+void CWinDsRenderer::RenderUpdate(int index, int index2, bool clear, unsigned int flags, unsigned int alpha)
 {
   if (clear)
     g_graphicsContext.Clear(m_clearColour);
@@ -141,7 +141,7 @@ void CWinDsRenderer::RenderUpdate(bool clear, unsigned int flags, unsigned int a
 
 void CWinDsRenderer::Flush()
 {
-  SetViewMode(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_ViewMode);
+  SetViewMode(g_application.m_pPlayer->GetVideoSettings().m_ViewMode);
   ManageRenderArea();
 
   m_bConfigured = true;

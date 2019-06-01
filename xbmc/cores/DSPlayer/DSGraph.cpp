@@ -132,7 +132,6 @@ HRESULT CDSGraph::SetFile(const CFileItem& file, const CPlayerOptions &options)
   
   g_application.m_pPlayer->SetResolution();
   g_application.m_pPlayer->SetPixelShader();
-  g_application.m_pPlayer->RestoreSettings();
 
   if (m_pVideoWindow)
   {
@@ -210,11 +209,6 @@ void CDSGraph::CloseFile()
     CGraphFilters::Destroy();
     CLog::Log(LOGDEBUG, "%s ... done!", __FUNCTION__);
     CGraphFilters::Get()->DVD.Clear();
-
-    if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_EXITMADVRFULLSCREEN))
-    {
-      g_application.m_pPlayer->EnableExclusive(false);
-    }
 
     pFilterGraph.Release();
 

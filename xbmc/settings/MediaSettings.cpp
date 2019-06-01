@@ -130,8 +130,6 @@ bool CMediaSettings::Load(const TiXmlNode *settings)
     XMLUtils::GetBoolean(pElement, "nonlinstretch", m_defaultVideoSettings.m_CustomNonLinStretch);
     if (!XMLUtils::GetInt(pElement, "stereomode", m_defaultVideoSettings.m_StereoMode))
       m_defaultVideoSettings.m_StereoMode = 0;
-
-    m_defaultVideoSettings.m_SubtitleCached = false;
   }
 
   m_defaultGameSettings.Reset();

@@ -419,7 +419,7 @@ bool CRenderDSManager::IsVideoLayer()
 /* simple present method */
 void CRenderDSManager::PresentSingle(bool clear, DWORD flags, DWORD alpha)
 {
-  m_pRenderer->RenderUpdate(clear, flags, alpha);
+  m_pRenderer->RenderUpdate(0, 0, clear, flags, alpha);
 }
 
 void CRenderDSManager::UpdateDisplayLatency()
@@ -432,7 +432,7 @@ void CRenderDSManager::UpdateDisplayLatency()
   if (CGraphFilters::Get()->GetAuxAudioDelay())
     m_displayLatency += (double)g_advancedSettings.GetDisplayAuxDelay(refresh);
 
-  g_application.m_pPlayer->SetAVDelay(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_AudioDelay);
+  g_application.m_pPlayer->SetAVDelay(g_application.m_pPlayer->GetVideoSettings().m_AudioDelay);
 
   CLog::Log(LOGDEBUG, "CRenderDSManager::UpdateDisplayLatency - Latency set to %1.0f msec", m_displayLatency * 1000.0f);
 }

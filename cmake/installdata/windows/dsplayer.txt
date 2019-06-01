@@ -1,2 +1,1 @@
 system/players/dsplayer/*
-addons/script.madvrsettings/*

@@ -28,7 +28,7 @@
 
 #include "guilib/Resolution.h"
 #include "threads/CriticalSection.h"
-#include "settings/VideoSettings.h"
+#include "cores/VideoSettings.h"
 #include "Videorenderers/WinDsRenderer.h"
 #include "../VideoPlayer/Videorenderers/DebugRenderer.h"
 #include "threads/Event.h"

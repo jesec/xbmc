@@ -97,7 +97,7 @@ bool CRendererIMX::Supports(ESCALINGMETHOD method)
 
 bool CRendererIMX::WantsDoublePass()
 {
-  if (CMediaSettings::GetInstance().GetCurrentVideoSettings().m_InterlaceMethod ==
+  if (g_application.m_pPlayer->GetVideoSettings().m_InterlaceMethod ==
       VS_INTERLACEMETHOD_IMX_ADVMOTION)
     return true;
   else

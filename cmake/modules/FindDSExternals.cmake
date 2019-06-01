@@ -13,19 +13,19 @@ else ()
 endif ()
 
 ExternalProject_Add(dsexternals
-            SOURCE_DIR "${CORE_SOURCE_DIR}/xbmc/cores/dsplayer/libs/"
-            PREFIX "${CORE_SOURCE_DIR}/xbmc/cores/dsplayer/libs/"
+            SOURCE_DIR "${CMAKE_SOURCE_DIR}/xbmc/cores/dsplayer/libs/"
+            PREFIX "${CMAKE_SOURCE_DIR}/xbmc/cores/dsplayer/libs/"
             CONFIGURE_COMMAND ""
-            BUILD_COMMAND msbuild "${CORE_SOURCE_DIR}/xbmc/cores/dsplayer/libs/dsplayer_externals.sln"
+            BUILD_COMMAND msbuild "${CMAKE_SOURCE_DIR}/xbmc/cores/dsplayer/libs/dsplayer_externals.sln"
                                   /p:Configuration=${CORE_BUILD_CONFIG} /p:Platform=${DS_PLATFORM}
             INSTALL_COMMAND ""
             BUILD_BYPRODUCTS "${DSUTIL_LIBRARY_DEBUG} ${DSUTIL_LIBRARY_RELEASE} ${SUBPIC_LIBRARY_DEBUG} ${SUBPIC_LIBRARY_RELEASE}")
 set_target_properties(dsexternals PROPERTIES FOLDER "External Projects")
 
-set(DSUTIL_LIBRARY_DEBUG "${CORE_SOURCE_DIR}/kodi-build/build/dsutil/Debug/dsutild.lib" )
-set(DSUTIL_LIBRARY_RELEASE "${CORE_SOURCE_DIR}/kodi-build/build/dsutil/Release/dsutil.lib")
-set(SUBPIC_LIBRARY_DEBUG "${CORE_SOURCE_DIR}/kodi-build/build/subpic/Debug/subpicd.lib" )
-set(SUBPIC_LIBRARY_RELEASE "${CORE_SOURCE_DIR}/kodi-build/build/subpic/Release/subpic.lib" )
+set(DSUTIL_LIBRARY_DEBUG "${CMAKE_SOURCE_DIR}/kodi-build/build/dsutil/Debug/dsutild.lib" )
+set(DSUTIL_LIBRARY_RELEASE "${CMAKE_SOURCE_DIR}/kodi-build/build/dsutil/Release/dsutil.lib")
+set(SUBPIC_LIBRARY_DEBUG "${CMAKE_SOURCE_DIR}/kodi-build/build/subpic/Debug/subpicd.lib" )
+set(SUBPIC_LIBRARY_RELEASE "${CMAKE_SOURCE_DIR}/kodi-build/build/subpic/Release/subpic.lib" )
 
 set(DSEXTERNALS_FOUND 1)
 

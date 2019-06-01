@@ -3127,8 +3127,6 @@ PlayBackRet CApplication::PlayStack(const CFileItem& item, bool bRestart)
   // case 2: all other stacks
   else
   {
-    LoadVideoSettings(item);
-
     // see if we have the info in the database
     //! @todo If user changes the time speed (FPS via framerate conversion stuff)
     //!       then these times will be wrong.
@@ -3227,16 +3225,6 @@ PlayBackRet CApplication::PlayFile(CFileItem item, const std::string& player, bo
   {
     SaveFileState(true);
 
-    // Switch to default options
-    CMediaSettings::GetInstance().GetCurrentVideoSettings() = CMediaSettings::GetInstance().GetDefaultVideoSettings();
-#ifdef HAS_DS_PLAYER
-    CMediaSettings::GetInstance().GetAtStartVideoSettings() = CMediaSettings::GetInstance().GetCurrentVideoSettings();
-
-    CMediaSettings::GetInstance().GetCurrentMadvrSettings().RestoreDefaultSettings();
-    CMediaSettings::GetInstance().GetCurrentMadvrSettings().StoreAtStartSettings();
-#endif
-    // see if we have saved options in the database
-
     m_pPlayer->SetPlaySpeed(1);
 
     m_itemCurrentFile.reset(new CFileItem(item));
@@ -3320,7 +3308,6 @@ PlayBackRet CApplication::PlayFile(CFileItem item, const std::string& player, bo
   else
   {
     options.starttime = item.m_lStartOffset / 75.0;
-    LoadVideoSettings(item);
 
     if (item.IsVideo())
     {
@@ -3665,6 +3652,37 @@ void CApplication::OnPlayBackSeekChapter(int iChapter)
 #endif
 }
 
+void CApplication::RequestVideoSettings(const CFileItem &fileItem)
+{
+  CVideoDatabase dbs;
+  if (dbs.Open())
+  {
+    CLog::Log(LOGDEBUG, "Loading settings for %s", CURL::GetRedacted(fileItem.GetPath()).c_str());
+
+    // Load stored settings if they exist, otherwise use default
+    CVideoSettings vs;
+    if (!dbs.GetVideoSettings(fileItem, vs))
+      vs = CMediaSettings::GetInstance().GetDefaultVideoSettings();
+
+    m_pPlayer->SetVideoSettings(vs);
+
+    dbs.Close();
+  }
+}
+
+void CApplication::StoreVideoSettings(const CFileItem &fileItem, CVideoSettings vs)
+{
+  if (vs != CMediaSettings::GetInstance().GetDefaultVideoSettings())
+  {
+    CVideoDatabase dbs;
+    if (dbs.Open())
+    {
+      dbs.SetVideoSettings(fileItem, vs);
+      dbs.Close();
+    }
+  }
+}
+
 bool CApplication::IsPlayingFullScreenVideo() const
 {
   return m_pPlayer->IsPlayingVideo() && g_graphicsContext.IsFullScreenVideo();
@@ -3683,14 +3701,9 @@ void CApplication::SaveFileState(bool bForeground /* = false */)
     return;
 
   CJob* job = new CSaveFileStateJob(*m_progressTrackingItem,
-      *m_stackFileItemToUpdate,
-      m_progressTrackingVideoResumeBookmark,
-      m_progressTrackingPlayCountUpdate,
-      CMediaSettings::GetInstance().GetCurrentVideoSettings()
-#ifdef HAS_DS_PLAYER
-      , CMediaSettings::GetInstance().GetCurrentMadvrSettings()
-#endif
-      );
+                                    *m_stackFileItemToUpdate,
+                                    m_progressTrackingVideoResumeBookmark,
+                                    m_progressTrackingPlayCountUpdate);
 
   if (bForeground)
   {
@@ -3779,25 +3792,6 @@ void CApplication::UpdateFileState()
       }
     }
   }
-}
-
-void CApplication::LoadVideoSettings(const CFileItem& item)
-{
-  CVideoDatabase dbs;
-  if (dbs.Open())
-  {
-    CLog::Log(LOGDEBUG, "Loading settings for %s", CURL::GetRedacted(item.GetPath()).c_str());
-
-    // Load stored settings if they exist, otherwise use default
-    if (!dbs.GetVideoSettings(item, CMediaSettings::GetInstance().GetCurrentVideoSettings()))
-      CMediaSettings::GetInstance().GetCurrentVideoSettings() = CMediaSettings::GetInstance().GetDefaultVideoSettings();
-
-    dbs.Close();
-  }
-
-#ifdef HAS_DS_PLAYER
-  CMediaSettings::GetInstance().GetAtStartVideoSettings() = CMediaSettings::GetInstance().GetCurrentVideoSettings();
-#endif
 }
 
 void CApplication::StopPlaying()
@@ -4806,13 +4800,13 @@ void CApplication::VolumeChanged() const
 int CApplication::GetSubtitleDelay() const
 {
   // converts subtitle delay to a percentage
-  return int(((float)(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_SubtitleDelay + g_advancedSettings.m_videoSubsDelayRange)) / (2 * g_advancedSettings.m_videoSubsDelayRange)*100.0f + 0.5f);
+  return int(((float)(m_pPlayer->GetVideoSettings().m_SubtitleDelay + g_advancedSettings.m_videoSubsDelayRange)) / (2 * g_advancedSettings.m_videoSubsDelayRange)*100.0f + 0.5f);
 }
 
 int CApplication::GetAudioDelay() const
 {
   // converts audio delay to a percentage
-  return int(((float)(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_AudioDelay + g_advancedSettings.m_videoAudioDelayRange)) / (2 * g_advancedSettings.m_videoAudioDelayRange)*100.0f + 0.5f);
+  return int(((float)(m_pPlayer->GetVideoSettings().m_AudioDelay + g_advancedSettings.m_videoAudioDelayRange)) / (2 * g_advancedSettings.m_videoAudioDelayRange)*100.0f + 0.5f);
 }
 
 // Returns the total time in seconds of the current media.  Fractional

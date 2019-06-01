@@ -163,7 +163,6 @@
 #include "cores/DSPlayer/Dialogs/GUIDialogLAVVideo.h"
 #include "cores/DSPlayer/Dialogs/GUIDialogLAVAudio.h"
 #include "cores/DSPlayer/Dialogs/GUIDialogLAVSplitter.h"
-#include "cores/DSPlayer/Dialogs/GUIDIalogMadvrSettings.h"
 #include "cores/DSPlayer/Dialogs/GUIDIalogSanear.h"
 #include "cores/DSPlayer/Dialogs/GUIDialogDSPlayerProcessInfo.h"
 #endif
@@ -248,7 +247,6 @@ void CGUIWindowManager::CreateWindows()
   Add(new CGUIDialogLAVVideo);
   Add(new CGUIDialogLAVAudio);
   Add(new CGUIDialogLAVSplitter);
-  Add(new CGUIDialogMadvrSettings);
   Add(new CGUIDialogSanear);
   Add(new CGUIDialogDSPlayerProcessInfo);
 #endif
@@ -375,7 +373,6 @@ bool CGUIWindowManager::DestroyWindows()
     DestroyWindow(WINDOW_DIALOG_DSRULES);
     DestroyWindow(WINDOW_DIALOG_DSFILTERS);
     DestroyWindow(WINDOW_DIALOG_DSPLAYERCORE);
-    DestroyWindow(WINDOW_DIALOG_MADVR);
     DestroyWindow(WINDOW_DIALOG_LAVVIDEO);
     DestroyWindow(WINDOW_DIALOG_LAVAUDIO);
     DestroyWindow(WINDOW_DIALOG_LAVSPLITTER);
@@ -1173,14 +1170,12 @@ void CGUIWindowManager::RenderPass() const
       // Don't show video settings dialog under madVR/lavvideo/lavaudio/lavsplitter settings
       if (window->GetID() == WINDOW_DIALOG_VIDEO_OSD_SETTINGS)
       {
-        CGUIDialog* pDialogMadvr = (CGUIDialog *)g_windowManager.GetWindow(WINDOW_DIALOG_MADVR);
         CGUIDialog* pDialogLAVVideo = (CGUIDialog *)g_windowManager.GetWindow(WINDOW_DIALOG_LAVVIDEO);
         CGUIDialog* pDialogLAVAudio = (CGUIDialog *)g_windowManager.GetWindow(WINDOW_DIALOG_LAVAUDIO);
         CGUIDialog* pDialogLAVSplitter = (CGUIDialog *)g_windowManager.GetWindow(WINDOW_DIALOG_LAVSPLITTER);
         CGUIDialog* pDialogSanear = (CGUIDialog *)g_windowManager.GetWindow(WINDOW_DIALOG_SANEAR);
 
-        if ((pDialogMadvr && pDialogMadvr->IsDialogRunning())
-          || (pDialogLAVVideo && pDialogLAVVideo->IsDialogRunning())
+        if ((pDialogLAVVideo && pDialogLAVVideo->IsDialogRunning())
           || (pDialogLAVAudio && pDialogLAVAudio->IsDialogRunning())
           || (pDialogLAVSplitter && pDialogLAVSplitter->IsDialogRunning())
           || (pDialogSanear && pDialogSanear->IsDialogRunning()))
