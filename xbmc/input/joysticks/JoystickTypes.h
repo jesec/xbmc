@@ -47,6 +47,8 @@ namespace JOYSTICK
    *   4) rumble motor
    *   5) relative pointer
    *   6) absolute pointer
+   *   7) wheel
+   *   8) throttle
    *
    * [*] All three driver primitives (buttons, hats and axes) have a state that
    *     can be represented using a single scalar value. For this reason,
@@ -61,6 +63,8 @@ namespace JOYSTICK
     MOTOR,
     RELPOINTER,
     ABSPOINTER,
+    WHEEL,
+    THROTTLE,
   };
 
   /*!
@@ -82,6 +86,8 @@ namespace JOYSTICK
     KEY, // A keyboard key
     KEYPAD, // A key on a numeric keymap, including star and pound
     HARDWARE, // A button or functionality on the console
+    WHEEL,
+    JOYSTICK,
   };
 
   /*!
@@ -128,6 +134,26 @@ namespace JOYSTICK
   };
 
   /*!
+   * \brief Directions on a wheel
+   */
+  enum class WHEEL_DIRECTION
+  {
+    UNKNOWN,
+    RIGHT,
+    LEFT,
+  };
+
+  /*!
+   * \brief Directions on a throttle
+   */
+  enum class THROTTLE_DIRECTION
+  {
+    UNKNOWN,
+    UP,
+    DOWN,
+  };
+
+  /*!
    * \brief Types of input available for scalar features
    */
   enum class INPUT_TYPE
@@ -170,6 +196,10 @@ namespace JOYSTICK
    * \ingroup joystick
    * \brief Container that sorts action entries by their holdtime
    */
-  using KeymapActions = std::set<KeymapAction>;
+  struct KeymapActionGroup
+  {
+    int windowId = -1;
+    std::set<KeymapAction> actions;
+  };
 }
 }

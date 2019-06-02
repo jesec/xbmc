@@ -20,23 +20,24 @@
 
 #pragma once
 
-#include <xf86drm.h>
-#include <xf86drmMode.h>
 #include <gbm.h>
-#include <vector>
-
-#include "guilib/Resolution.h"
-
-struct gbm
-{
-  struct gbm_device *dev;
-  struct gbm_surface *surface;
-  int width, height;
-};
 
 class CGBMUtils
 {
 public:
-  static bool InitGbm(struct gbm *gbm, int hdisplay, int vdisplay);
-  static void DestroyGbm(struct gbm *gbm);
+  CGBMUtils() = default;
+  ~CGBMUtils() = default;
+  bool CreateDevice(int fd);
+  void DestroyDevice();
+  bool CreateSurface(int width, int height);
+  void DestroySurface();
+  struct gbm_bo *LockFrontBuffer();
+  void ReleaseBuffer();
+
+  struct gbm_device *m_device = nullptr;
+  struct gbm_surface *m_surface = nullptr;
+
+protected:
+  struct gbm_bo *m_bo = nullptr;
+  struct gbm_bo *m_next_bo = nullptr;
 };

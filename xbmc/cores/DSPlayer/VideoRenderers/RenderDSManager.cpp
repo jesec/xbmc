@@ -241,7 +241,7 @@ void CRenderDSManager::FrameMove()
 
 void CRenderDSManager::EndRender()
 {
-  if (m_renderState == STATE_CONFIGURED && !g_application.m_pPlayer->ReadyDS())
+  if (m_renderState == STATE_CONFIGURED && !g_application.GetAppPlayer().ReadyDS())
     g_graphicsContext.Clear(0);
 }
 
@@ -353,7 +353,7 @@ void CRenderDSManager::Render(bool clear, DWORD flags, DWORD alpha, bool gui)
       return;
   }
 
-  g_application.m_pPlayer->RenderToTexture(RENDER_LAYER_OVER);
+  g_application.GetAppPlayer().RenderToTexture(RENDER_LAYER_OVER);
 
   if (!gui && m_pRenderer->IsGuiLayer())
     return;
@@ -432,7 +432,7 @@ void CRenderDSManager::UpdateDisplayLatency()
   if (CGraphFilters::Get()->GetAuxAudioDelay())
     m_displayLatency += (double)g_advancedSettings.GetDisplayAuxDelay(refresh);
 
-  g_application.m_pPlayer->SetAVDelay(g_application.m_pPlayer->GetVideoSettings().m_AudioDelay);
+  g_application.GetAppPlayer().SetAVDelay(g_application.GetAppPlayer().GetVideoSettings().m_AudioDelay);
 
   CLog::Log(LOGDEBUG, "CRenderDSManager::UpdateDisplayLatency - Latency set to %1.0f msec", m_displayLatency * 1000.0f);
 }

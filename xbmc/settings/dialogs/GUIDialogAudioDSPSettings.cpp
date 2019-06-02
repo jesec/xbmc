@@ -221,9 +221,9 @@ void CGUIDialogAudioDSPSettings::FrameMove()
   if (newVolume != m_volume)
     GetSettingsManager()->SetNumber(SETTING_AUDIO_MAIN_VOLUME, newVolume);
 
-  if (g_application.m_pPlayer->HasPlayer())
+  if (g_application.GetAppPlayer().HasPlayer())
   {
-    const CVideoSettings &videoSettings = g_application.m_pPlayer->GetVideoSettings();
+    const CVideoSettings &videoSettings = g_application.GetAppPlayer().GetVideoSettings();
 
     // these settings can change on the fly
     if (SupportsAudioFeature(IPC_AUD_OFFSET))
@@ -308,7 +308,7 @@ void CGUIDialogAudioDSPSettings::OnSettingChanged(std::shared_ptr<const CSetting
 
   CGUIDialogSettingsManualBase::OnSettingChanged(setting);
 
-  CVideoSettings &videoSettings = g_application.m_pPlayer->GetVideoSettings();
+  CVideoSettings &videoSettings = g_application.GetAppPlayer().GetVideoSettings();
   const std::string &settingId = setting->GetId();
   if (settingId == SETTING_AUDIO_MAIN_STREAMTYPE)
   {
@@ -350,12 +350,12 @@ void CGUIDialogAudioDSPSettings::OnSettingChanged(std::shared_ptr<const CSetting
   else if (settingId == SETTING_AUDIO_MAIN_VOLUME_AMPLIFICATION)
   {
     videoSettings.m_VolumeAmplification = static_cast<float>(std::static_pointer_cast<const CSettingNumber>(setting)->GetValue());
-    g_application.m_pPlayer->SetDynamicRangeCompression((long)(videoSettings.m_VolumeAmplification * 100));
+    g_application.GetAppPlayer().SetDynamicRangeCompression((long)(videoSettings.m_VolumeAmplification * 100));
   }
   else if (settingId == SETTING_AUDIO_POST_PROC_AUDIO_DELAY)
   {
     videoSettings.m_AudioDelay = static_cast<float>(std::static_pointer_cast<const CSettingNumber>(setting)->GetValue());
-    g_application.m_pPlayer->SetAVDelay(videoSettings.m_AudioDelay);
+    g_application.GetAppPlayer().SetAVDelay(videoSettings.m_AudioDelay);
   }
 }
 
@@ -442,11 +442,11 @@ void CGUIDialogAudioDSPSettings::InitializeSettings()
 
   bool usePopup = g_SkinInfo->HasSkinFile("DialogSlider.xml");
 
-  CVideoSettings &videoSettings = g_application.m_pPlayer->GetVideoSettings();
+  CVideoSettings &videoSettings = g_application.GetAppPlayer().GetVideoSettings();
 
   m_audioCaps.clear();
-  if (g_application.m_pPlayer->HasPlayer())
-    g_application.m_pPlayer->GetAudioCapabilities(m_audioCaps);
+  if (g_application.GetAppPlayer().HasPlayer())
+    g_application.GetAppPlayer().GetAudioCapabilities(m_audioCaps);
 
   m_ActiveStreamId      = CServiceBroker::GetADSP().GetActiveStreamId();
   m_ActiveStreamProcess = CServiceBroker::GetADSP().GetDSPProcess(m_ActiveStreamId);

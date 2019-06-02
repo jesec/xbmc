@@ -82,7 +82,7 @@ CmadVRAllocatorPresenter::~CmadVRAllocatorPresenter()
   
   // the order is important here
   SAFE_DELETE(m_pMadvrShared);
-  g_application.m_pPlayer->Unregister(this);
+  g_application.GetAppPlayer().Unregister(this);
   m_pSubPicQueue = nullptr;
   m_pAllocator = nullptr;
   m_pDXR = nullptr;
@@ -268,13 +268,13 @@ HRESULT CmadVRAllocatorPresenter::Render( REFERENCE_TIME rtStart, REFERENCE_TIME
     m_pSubPicQueue->SetFPS(m_fps);
   }
 
-  if (!g_application.m_pPlayer->IsRenderingVideo())
+  if (!g_application.GetAppPlayer().IsRenderingVideo())
   {
     m_NativeVideoSize = GetVideoSize(false);
     m_AspectRatio = GetVideoSize(true);
 
     // Configure Render Manager
-    g_application.m_pPlayer->Configure(m_NativeVideoSize.cx, m_NativeVideoSize.cy, m_AspectRatio.cx, m_AspectRatio.cy, m_fps, CONF_FLAGS_FULLSCREEN);
+    g_application.GetAppPlayer().Configure(m_NativeVideoSize.cx, m_NativeVideoSize.cy, m_AspectRatio.cx, m_AspectRatio.cy, m_fps, CONF_FLAGS_FULLSCREEN);
     CLog::Log(LOGDEBUG, "%s Render manager configured (FPS: %f) %i %i %i %i", __FUNCTION__, m_fps, m_NativeVideoSize.cx, m_NativeVideoSize.cy, m_AspectRatio.cx, m_AspectRatio.cy);
   }
 
@@ -373,7 +373,7 @@ STDMETHODIMP CmadVRAllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
     pVW->put_Owner((OAHWND)CDSPlayer::GetDShWnd());
   }
 
-  g_application.m_pPlayer->Register(this);
+  g_application.GetAppPlayer().Register(this);
 
   (*ppRenderer = (IUnknown*)(INonDelegatingUnknown*)(this))->AddRef();
 

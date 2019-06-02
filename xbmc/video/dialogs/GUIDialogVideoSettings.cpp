@@ -104,15 +104,15 @@ void CGUIDialogVideoSettings::OnSettingChanged(std::shared_ptr<const CSetting> s
 #ifndef HAS_DS_PLAYER
   if (settingId == SETTING_VIDEO_INTERLACEMETHOD)
   {
-    CVideoSettings vs = g_application.m_pPlayer->GetVideoSettings();
+    CVideoSettings vs = g_application.GetAppPlayer().GetVideoSettings();
     vs.m_InterlaceMethod = static_cast<EINTERLACEMETHOD>(std::static_pointer_cast<const CSettingInt>(setting)->GetValue());
-    g_application.m_pPlayer->SetVideoSettings(vs);
+    g_application.GetAppPlayer().SetVideoSettings(vs);
   }
   else if (settingId == SETTING_VIDEO_SCALINGMETHOD)
   {
-    CVideoSettings vs = g_application.m_pPlayer->GetVideoSettings();
+    CVideoSettings vs = g_application.GetAppPlayer().GetVideoSettings();
     vs.m_ScalingMethod = static_cast<ESCALINGMETHOD>(std::static_pointer_cast<const CSettingInt>(setting)->GetValue());
-    g_application.m_pPlayer->SetVideoSettings(vs);
+    g_application.GetAppPlayer().SetVideoSettings(vs);
   }
   else
 #endif
@@ -120,17 +120,17 @@ void CGUIDialogVideoSettings::OnSettingChanged(std::shared_ptr<const CSetting> s
   {
     m_videoStream = std::static_pointer_cast<const CSettingInt>(setting)->GetValue();
     // only change the video stream if a different one has been asked for
-    if (g_application.m_pPlayer->GetVideoStream() != m_videoStream)
+    if (g_application.GetAppPlayer().GetVideoStream() != m_videoStream)
     {
-      g_application.m_pPlayer->SetVideoStream(m_videoStream);    // Set the video stream to the one selected
+      g_application.GetAppPlayer().SetVideoStream(m_videoStream);    // Set the video stream to the one selected
     }
   }
   else if (settingId == SETTING_VIDEO_VIEW_MODE)
   {
     int value = std::static_pointer_cast<const CSettingInt>(setting)->GetValue();
-    const CVideoSettings vs = g_application.m_pPlayer->GetVideoSettings();
+    const CVideoSettings vs = g_application.GetAppPlayer().GetVideoSettings();
 
-    g_application.m_pPlayer->SetRenderViewMode(value, vs.m_CustomZoomAmount,
+    g_application.GetAppPlayer().SetRenderViewMode(value, vs.m_CustomZoomAmount,
                                                vs.m_CustomPixelRatio, vs.m_CustomVerticalShift,
                                                vs.m_CustomNonLinStretch);
 
@@ -146,7 +146,7 @@ void CGUIDialogVideoSettings::OnSettingChanged(std::shared_ptr<const CSetting> s
            settingId == SETTING_VIDEO_PIXEL_RATIO ||
            settingId == SETTING_VIDEO_NONLIN_STRETCH)
   {
-    CVideoSettings vs = g_application.m_pPlayer->GetVideoSettings();
+    CVideoSettings vs = g_application.GetAppPlayer().GetVideoSettings();
     if (settingId == SETTING_VIDEO_ZOOM)
       vs.m_CustomZoomAmount = static_cast<float>(std::static_pointer_cast<const CSettingNumber>(setting)->GetValue());
     else if (settingId == SETTING_VIDEO_VERTICAL_SHIFT)
@@ -161,57 +161,57 @@ void CGUIDialogVideoSettings::OnSettingChanged(std::shared_ptr<const CSetting> s
     if (GetSettingsManager()->GetInt(SETTING_VIDEO_VIEW_MODE) != ViewModeCustom)
       GetSettingsManager()->SetInt(SETTING_VIDEO_VIEW_MODE, ViewModeCustom);
     else
-      g_application.m_pPlayer->SetRenderViewMode(vs.m_ViewMode, vs.m_CustomZoomAmount,
+      g_application.GetAppPlayer().SetRenderViewMode(vs.m_ViewMode, vs.m_CustomZoomAmount,
                                                  vs.m_CustomPixelRatio, vs.m_CustomVerticalShift,
                                                  vs.m_CustomNonLinStretch);
   }
   else if (settingId == SETTING_VIDEO_POSTPROCESS)
   {
-    CVideoSettings vs = g_application.m_pPlayer->GetVideoSettings();
+    CVideoSettings vs = g_application.GetAppPlayer().GetVideoSettings();
     vs.m_PostProcess = std::static_pointer_cast<const CSettingBool>(setting)->GetValue();
-    g_application.m_pPlayer->SetVideoSettings(vs);
+    g_application.GetAppPlayer().SetVideoSettings(vs);
   }
   else if (settingId == SETTING_VIDEO_BRIGHTNESS)
   {
-    CVideoSettings vs = g_application.m_pPlayer->GetVideoSettings();
+    CVideoSettings vs = g_application.GetAppPlayer().GetVideoSettings();
     vs.m_Brightness = static_cast<float>(std::static_pointer_cast<const CSettingInt>(setting)->GetValue());
-    g_application.m_pPlayer->SetVideoSettings(vs);
+    g_application.GetAppPlayer().SetVideoSettings(vs);
   }
   else if (settingId == SETTING_VIDEO_CONTRAST)
   {
-    CVideoSettings vs = g_application.m_pPlayer->GetVideoSettings();
+    CVideoSettings vs = g_application.GetAppPlayer().GetVideoSettings();
     vs.m_Contrast = static_cast<float>(std::static_pointer_cast<const CSettingInt>(setting)->GetValue());
-    g_application.m_pPlayer->SetVideoSettings(vs);
+    g_application.GetAppPlayer().SetVideoSettings(vs);
   }
   else if (settingId == SETTING_VIDEO_GAMMA)
   {
-    CVideoSettings vs = g_application.m_pPlayer->GetVideoSettings();
+    CVideoSettings vs = g_application.GetAppPlayer().GetVideoSettings();
     vs.m_Gamma = static_cast<float>(std::static_pointer_cast<const CSettingInt>(setting)->GetValue());
-    g_application.m_pPlayer->SetVideoSettings(vs);
+    g_application.GetAppPlayer().SetVideoSettings(vs);
   }
   else if (settingId == SETTING_VIDEO_VDPAU_NOISE)
   {
-    CVideoSettings vs = g_application.m_pPlayer->GetVideoSettings();
+    CVideoSettings vs = g_application.GetAppPlayer().GetVideoSettings();
     vs.m_NoiseReduction = static_cast<float>(std::static_pointer_cast<const CSettingNumber>(setting)->GetValue());
-    g_application.m_pPlayer->SetVideoSettings(vs);
+    g_application.GetAppPlayer().SetVideoSettings(vs);
   }
   else if (settingId == SETTING_VIDEO_VDPAU_SHARPNESS)
   {
-    CVideoSettings vs = g_application.m_pPlayer->GetVideoSettings();
+    CVideoSettings vs = g_application.GetAppPlayer().GetVideoSettings();
     vs.m_Sharpness = static_cast<float>(std::static_pointer_cast<const CSettingNumber>(setting)->GetValue());
-    g_application.m_pPlayer->SetVideoSettings(vs);
+    g_application.GetAppPlayer().SetVideoSettings(vs);
   }
   else if (settingId == SETTING_VIDEO_STEREOSCOPICMODE)
   {
-    CVideoSettings vs = g_application.m_pPlayer->GetVideoSettings();
+    CVideoSettings vs = g_application.GetAppPlayer().GetVideoSettings();
     vs.m_StereoMode = std::static_pointer_cast<const CSettingInt>(setting)->GetValue();
-    g_application.m_pPlayer->SetVideoSettings(vs);
+    g_application.GetAppPlayer().SetVideoSettings(vs);
   }
   else if (settingId == SETTING_VIDEO_STEREOSCOPICINVERT)
   {
-    CVideoSettings vs = g_application.m_pPlayer->GetVideoSettings();
+    CVideoSettings vs = g_application.GetAppPlayer().GetVideoSettings();
     vs.m_StereoInvert = std::static_pointer_cast<const CSettingBool>(setting)->GetValue();
-    g_application.m_pPlayer->SetVideoSettings(vs);
+    g_application.GetAppPlayer().SetVideoSettings(vs);
   }
 }
 
@@ -313,7 +313,7 @@ void CGUIDialogVideoSettings::Save()
     db.EraseVideoSettings();
     db.Close();
 
-    CMediaSettings::GetInstance().GetDefaultVideoSettings() = g_application.m_pPlayer->GetVideoSettings();
+    CMediaSettings::GetInstance().GetDefaultVideoSettings() = g_application.GetAppPlayer().GetVideoSettings();
     CMediaSettings::GetInstance().GetDefaultVideoSettings().m_SubtitleStream = -1;
     CMediaSettings::GetInstance().GetDefaultVideoSettings().m_AudioStream = -1;
     CServiceBroker::GetSettings().Save();
@@ -384,8 +384,8 @@ void CGUIDialogVideoSettings::InitializeSettings()
 
   bool usePopup = g_SkinInfo->HasSkinFile("DialogSlider.xml");
 
-  const CVideoSettings videoSettings = g_application.m_pPlayer->GetVideoSettings();
-  
+  const CVideoSettings videoSettings = g_application.GetAppPlayer().GetVideoSettings();
+
   TranslatableIntegerSettingOptions entries;
 
 #ifdef HAS_DS_PLAYER
@@ -413,15 +413,12 @@ void CGUIDialogVideoSettings::InitializeSettings()
   entries.push_back(std::make_pair(16331, VS_INTERLACEMETHOD_MMAL_ADVANCED_HALF));
   entries.push_back(std::make_pair(16332, VS_INTERLACEMETHOD_MMAL_BOB));
   entries.push_back(std::make_pair(16333, VS_INTERLACEMETHOD_MMAL_BOB_HALF));
-  entries.push_back(std::make_pair(16334, VS_INTERLACEMETHOD_IMX_FASTMOTION));
-  entries.push_back(std::make_pair(16335, VS_INTERLACEMETHOD_IMX_ADVMOTION_HALF));
-  entries.push_back(std::make_pair(16336, VS_INTERLACEMETHOD_IMX_ADVMOTION));
   entries.push_back(std::make_pair(16320, VS_INTERLACEMETHOD_DXVA_AUTO));
 
   /* remove unsupported methods */
   for (TranslatableIntegerSettingOptions::iterator it = entries.begin(); it != entries.end(); )
   {
-    if (g_application.m_pPlayer->Supports((EINTERLACEMETHOD)it->second))
+    if (g_application.GetAppPlayer().Supports((EINTERLACEMETHOD)it->second))
       ++it;
     else
       it = entries.erase(it);
@@ -430,9 +427,9 @@ void CGUIDialogVideoSettings::InitializeSettings()
   if (!entries.empty())
   {
     EINTERLACEMETHOD method = videoSettings.m_InterlaceMethod;
-    if (!g_application.m_pPlayer->Supports(method))
+    if (!g_application.GetAppPlayer().Supports(method))
     {
-      method = g_application.m_pPlayer->GetDeinterlacingMethodDefault();
+      method = g_application.GetAppPlayer().GetDeinterlacingMethodDefault();
     }
     AddSpinner(groupVideo, SETTING_VIDEO_INTERLACEMETHOD, 16038, SettingLevel::Basic, static_cast<int>(method), entries);
   }
@@ -458,7 +455,7 @@ void CGUIDialogVideoSettings::InitializeSettings()
   /* remove unsupported methods */
   for(TranslatableIntegerSettingOptions::iterator it = entries.begin(); it != entries.end(); )
   {
-    if (g_application.m_pPlayer->Supports((ESCALINGMETHOD)it->second))
+    if (g_application.GetAppPlayer().Supports((ESCALINGMETHOD)it->second))
       ++it;
     else
       it = entries.erase(it);
@@ -475,29 +472,29 @@ void CGUIDialogVideoSettings::InitializeSettings()
 
   AddVideoStreams(groupVideoStream, SETTING_VIDEO_STREAM);
 
-  if (g_application.m_pPlayer->Supports(RENDERFEATURE_STRETCH) || g_application.m_pPlayer->Supports(RENDERFEATURE_PIXEL_RATIO))
+  if (g_application.GetAppPlayer().Supports(RENDERFEATURE_STRETCH) || g_application.GetAppPlayer().Supports(RENDERFEATURE_PIXEL_RATIO))
   {
     AddList(groupVideo, SETTING_VIDEO_VIEW_MODE, 629, SettingLevel::Basic, videoSettings.m_ViewMode, CViewModeSettings::ViewModesFiller, 629);
   }
-  if (g_application.m_pPlayer->Supports(RENDERFEATURE_ZOOM))
+  if (g_application.GetAppPlayer().Supports(RENDERFEATURE_ZOOM))
     AddSlider(groupVideo, SETTING_VIDEO_ZOOM, 216, SettingLevel::Basic, videoSettings.m_CustomZoomAmount, "%2.2f", 0.5f, 0.01f, 2.0f, 216, usePopup);
-  if (g_application.m_pPlayer->Supports(RENDERFEATURE_VERTICAL_SHIFT))
+  if (g_application.GetAppPlayer().Supports(RENDERFEATURE_VERTICAL_SHIFT))
     AddSlider(groupVideo, SETTING_VIDEO_VERTICAL_SHIFT, 225, SettingLevel::Basic, videoSettings.m_CustomVerticalShift, "%2.2f", -2.0f, 0.01f, 2.0f, 225, usePopup);
-  if (g_application.m_pPlayer->Supports(RENDERFEATURE_PIXEL_RATIO))
+  if (g_application.GetAppPlayer().Supports(RENDERFEATURE_PIXEL_RATIO))
     AddSlider(groupVideo, SETTING_VIDEO_PIXEL_RATIO, 217, SettingLevel::Basic, videoSettings.m_CustomPixelRatio, "%2.2f", 0.5f, 0.01f, 2.0f, 217, usePopup);
-  if (g_application.m_pPlayer->Supports(RENDERFEATURE_POSTPROCESS))
+  if (g_application.GetAppPlayer().Supports(RENDERFEATURE_POSTPROCESS))
     AddToggle(groupVideo, SETTING_VIDEO_POSTPROCESS, 16400, SettingLevel::Basic, videoSettings.m_PostProcess);
-  if (g_application.m_pPlayer->Supports(RENDERFEATURE_BRIGHTNESS))
+  if (g_application.GetAppPlayer().Supports(RENDERFEATURE_BRIGHTNESS))
     AddPercentageSlider(groupVideoPlayback, SETTING_VIDEO_BRIGHTNESS, 464, SettingLevel::Basic, static_cast<int>(videoSettings.m_Brightness), 14047, 1, 464, usePopup);
-  if (g_application.m_pPlayer->Supports(RENDERFEATURE_CONTRAST))
+  if (g_application.GetAppPlayer().Supports(RENDERFEATURE_CONTRAST))
     AddPercentageSlider(groupVideoPlayback, SETTING_VIDEO_CONTRAST, 465, SettingLevel::Basic, static_cast<int>(videoSettings.m_Contrast), 14047, 1, 465, usePopup);
-  if (g_application.m_pPlayer->Supports(RENDERFEATURE_GAMMA))
+  if (g_application.GetAppPlayer().Supports(RENDERFEATURE_GAMMA))
     AddPercentageSlider(groupVideoPlayback, SETTING_VIDEO_GAMMA, 466, SettingLevel::Basic, static_cast<int>(videoSettings.m_Gamma), 14047, 1, 466, usePopup);
-  if (g_application.m_pPlayer->Supports(RENDERFEATURE_NOISE))
+  if (g_application.GetAppPlayer().Supports(RENDERFEATURE_NOISE))
     AddSlider(groupVideoPlayback, SETTING_VIDEO_VDPAU_NOISE, 16312, SettingLevel::Basic, videoSettings.m_NoiseReduction, "%2.2f", 0.0f, 0.01f, 1.0f, 16312, usePopup);
-  if (g_application.m_pPlayer->Supports(RENDERFEATURE_SHARPNESS))
+  if (g_application.GetAppPlayer().Supports(RENDERFEATURE_SHARPNESS))
     AddSlider(groupVideoPlayback, SETTING_VIDEO_VDPAU_SHARPNESS, 16313, SettingLevel::Basic, videoSettings.m_Sharpness, "%2.2f", -1.0f, 0.02f, 1.0f, 16313, usePopup);
-  if (g_application.m_pPlayer->Supports(RENDERFEATURE_NONLINSTRETCH))
+  if (g_application.GetAppPlayer().Supports(RENDERFEATURE_NONLINSTRETCH))
     AddToggle(groupVideoPlayback, SETTING_VIDEO_NONLIN_STRETCH, 659, SettingLevel::Basic, videoSettings.m_CustomNonLinStretch);
 
   // stereoscopic settings
@@ -518,7 +515,7 @@ void CGUIDialogVideoSettings::AddVideoStreams(std::shared_ptr<CSettingGroup> gro
   if (group == NULL || settingId.empty())
     return;
 
-  m_videoStream = g_application.m_pPlayer->GetVideoStream();
+  m_videoStream = g_application.GetAppPlayer().GetVideoStream();
   if (m_videoStream < 0)
     m_videoStream = 0;
 
@@ -527,7 +524,7 @@ void CGUIDialogVideoSettings::AddVideoStreams(std::shared_ptr<CSettingGroup> gro
 
 void CGUIDialogVideoSettings::VideoStreamsOptionFiller(std::shared_ptr<const CSetting> setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data)
 {
-  int videoStreamCount = g_application.m_pPlayer->GetVideoStreamCount();
+  int videoStreamCount = g_application.GetAppPlayer().GetVideoStreamCount();
 
   // cycle through each video stream and add it to our list control
   for (int i = 0; i < videoStreamCount; ++i)
@@ -535,8 +532,8 @@ void CGUIDialogVideoSettings::VideoStreamsOptionFiller(std::shared_ptr<const CSe
     std::string strItem;
     std::string strLanguage;
 
-    SPlayerVideoStreamInfo info;
-    g_application.m_pPlayer->GetVideoStreamInfo(i, info);
+    VideoStreamInfo info;
+    g_application.GetAppPlayer().GetVideoStreamInfo(i, info);
 
     g_LangCodeExpander.Lookup(info.language, strLanguage);
 
@@ -548,20 +545,21 @@ void CGUIDialogVideoSettings::VideoStreamsOptionFiller(std::shared_ptr<const CSe
         strItem = info.name;
     }
     else if (!strLanguage.empty())
-    {      
+    {
         strItem = strLanguage;
     }
 
-    if (info.videoCodecName.empty())
+    if (info.codecName.empty())
       strItem += StringUtils::Format(" (%ix%i", info.width, info.height);
     else
-      strItem += StringUtils::Format(" (%s, %ix%i", info.videoCodecName.c_str(), info.width, info.height);
+      strItem += StringUtils::Format(" (%s, %ix%i", info.codecName.c_str(), info.width, info.height);
 
     if (info.bitrate)
       strItem += StringUtils::Format(", %i bps)", info.bitrate);
     else
       strItem += ")";
 
+    strItem += FormatFlags(info.flags);
     strItem += StringUtils::Format(" (%i/%i)", i + 1, videoStreamCount);
     list.push_back(make_pair(strItem, i));
   }
@@ -571,4 +569,24 @@ void CGUIDialogVideoSettings::VideoStreamsOptionFiller(std::shared_ptr<const CSe
     list.push_back(make_pair(g_localizeStrings.Get(231), -1));
     current = -1;
   }
+}
+
+std::string CGUIDialogVideoSettings::FormatFlags(StreamFlags flags)
+{
+  std::vector<std::string> localizedFlags;
+  if (flags & StreamFlags::FLAG_DEFAULT)
+    localizedFlags.emplace_back(g_localizeStrings.Get(39104));
+  if (flags & StreamFlags::FLAG_FORCED)
+    localizedFlags.emplace_back(g_localizeStrings.Get(39105));
+  if (flags & StreamFlags::FLAG_HEARING_IMPAIRED)
+    localizedFlags.emplace_back(g_localizeStrings.Get(39106));
+  if (flags &  StreamFlags::FLAG_VISUAL_IMPAIRED)
+    localizedFlags.emplace_back(g_localizeStrings.Get(39107));
+
+  std::string formated = StringUtils::Join(localizedFlags, ", ");
+
+  if (!formated.empty())
+    formated = StringUtils::Format(" [%s]", formated);
+
+  return formated;
 }

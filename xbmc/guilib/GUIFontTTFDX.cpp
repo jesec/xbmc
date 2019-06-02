@@ -22,13 +22,18 @@
 #include "GUIFontManager.h"
 #include "GUIShaderDX.h"
 #include "Texture.h"
-#include "windowing/WindowingFactory.h"
+#include "rendering/dx/DeviceResources.h"
+#include "rendering/dx/RenderContext.h"
 #include "utils/log.h"
 #ifdef HAS_DS_PLAYER
 #include "Application.h"
 #endif
 // stuff for freetype
 #include <ft2build.h>
+
+#ifdef TARGET_WINDOWS_STORE
+#define generic GenericFromFreeTypeLibrary
+#endif
 
 #include FT_FREETYPE_H
 #include FT_GLYPH_H
@@ -40,12 +45,12 @@ CGUIFontTTFDX::CGUIFontTTFDX(const std::string& strFileName)
   m_vertexBuffer   = nullptr;
   m_vertexWidth    = 0;
   m_buffers.clear();
-  g_Windowing.Register(this);
+  DX::Windowing().Register(this);
 }
 
 CGUIFontTTFDX::~CGUIFontTTFDX(void)
 {
-  g_Windowing.Unregister(this);
+  DX::Windowing().Unregister(this);
 
   SAFE_DELETE(m_speedupTexture);
   SAFE_RELEASE(m_vertexBuffer);
@@ -62,11 +67,11 @@ CGUIFontTTFDX::~CGUIFontTTFDX(void)
 
 bool CGUIFontTTFDX::FirstBegin()
 {
-  ID3D11DeviceContext* pContext = g_Windowing.Get3D11Context();
+  ID3D11DeviceContext* pContext = DX::DeviceResources::Get()->GetD3DContext();
   if (!pContext)
     return false;
 
-  CGUIShaderDX* pGUIShader = g_Windowing.GetGUIShader();
+  CGUIShaderDX* pGUIShader = DX::Windowing().GetGUIShader();
   pGUIShader->Begin(SHADER_METHOD_RENDER_FONT);
 
   return true;
@@ -74,7 +79,7 @@ bool CGUIFontTTFDX::FirstBegin()
 
 void CGUIFontTTFDX::LastEnd()
 {
-  ID3D11DeviceContext* pContext = g_Windowing.Get3D11Context();
+  ID3D11DeviceContext* pContext = DX::DeviceResources::Get()->GetD3DContext();
   if (!pContext)
     return;
 
@@ -87,7 +92,7 @@ void CGUIFontTTFDX::LastEnd()
 
 #ifdef HAS_DS_PLAYER
   // Render count to detect when the GUI it's active or deactive (useful for madVR latency mode)
-  g_application.m_pPlayer->IncRenderCount();
+  g_application.GetAppPlayer().IncRenderCount();
 #endif
 
   CreateStaticIndexBuffer();
@@ -95,11 +100,11 @@ void CGUIFontTTFDX::LastEnd()
   unsigned int offset = 0;
   unsigned int stride = sizeof(SVertex);
 
-  CGUIShaderDX* pGUIShader = g_Windowing.GetGUIShader();
+  CGUIShaderDX* pGUIShader = DX::Windowing().GetGUIShader();
   // Set font texture as shader resource
   pGUIShader->SetShaderViews(1, m_speedupTexture->GetAddressOfSRV());
   // Enable alpha blend
-  g_Windowing.SetAlphaBlendEnable(true);
+  DX::Windowing().SetAlphaBlendEnable(true);
   // Set our static index buffer
   pContext->IASetIndexBuffer(m_staticIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
   // Set the type of primitive that should be rendered from this vertex buffer, in this case triangles.
@@ -143,7 +148,7 @@ void CGUIFontTTFDX::LastEnd()
         continue;
 
       // Apply the clip rectangle
-      CRect clip = g_Windowing.ClipRectToScissorRect(m_vertexTrans[i].clip);
+      CRect clip = DX::Windowing().ClipRectToScissorRect(m_vertexTrans[i].clip);
       // Intersect with current scissors
       clip.Intersect(scissor);
 
@@ -151,7 +156,7 @@ void CGUIFontTTFDX::LastEnd()
       if (clip.IsEmpty())
         continue;
 
-      g_Windowing.SetScissors(clip);
+      DX::Windowing().SetScissors(clip);
 
       // Apply the translation to the model view matrix
       XMMATRIX translation = XMMatrixTranslation(m_vertexTrans[i].translateX, m_vertexTrans[i].translateY, m_vertexTrans[i].translateZ);
@@ -175,7 +180,7 @@ void CGUIFontTTFDX::LastEnd()
     }
 
     // restore scissor
-    g_Windowing.SetScissors(scissor);
+    DX::Windowing().SetScissors(scissor);
 
     // Restore the original transform
     pGUIShader->SetView(view);
@@ -245,7 +250,7 @@ CBaseTexture* CGUIFontTTFDX::ReallocTexture(unsigned int& newHeight)
     return NULL;
   }
 
-  ID3D11DeviceContext* pContext = g_Windowing.GetImmediateContext();
+  ID3D11DeviceContext* pContext = DX::DeviceResources::Get()->GetImmediateContext();
 
   // There might be data to copy from the previous texture
   if (newSpeedupTexture && m_speedupTexture)
@@ -267,7 +272,7 @@ bool CGUIFontTTFDX::CopyCharToTexture(FT_BitmapGlyph bitGlyph, unsigned int x1, 
 {
   FT_Bitmap bitmap = bitGlyph->bitmap;
 
-  ID3D11DeviceContext* pContext = g_Windowing.GetImmediateContext();
+  ID3D11DeviceContext* pContext = DX::DeviceResources::Get()->GetImmediateContext();
   if (m_speedupTexture && m_speedupTexture->Get() && pContext && bitmap.buffer)
   {
     CD3D11_BOX dstBox(x1, y1, 0, x2, y2, 1);
@@ -284,8 +289,8 @@ void CGUIFontTTFDX::DeleteHardwareTexture()
 
 bool CGUIFontTTFDX::UpdateDynamicVertexBuffer(const SVertex* pSysMem, unsigned int vertex_count)
 {
-  ID3D11Device* pDevice = g_Windowing.Get3D11Device();
-  ID3D11DeviceContext* pContext = g_Windowing.Get3D11Context();
+  ID3D11Device* pDevice = DX::DeviceResources::Get()->GetD3DDevice();
+  ID3D11DeviceContext* pContext = DX::DeviceResources::Get()->GetD3DContext();
 
   if (!pDevice || !pContext)
     return false;
@@ -327,7 +332,7 @@ void CGUIFontTTFDX::CreateStaticIndexBuffer(void)
   if (m_staticIndexBufferCreated)
     return;
 
-  ID3D11Device* pDevice = g_Windowing.Get3D11Device();
+  ID3D11Device* pDevice = DX::DeviceResources::Get()->GetD3DDevice();
   if (!pDevice)
     return;
 

@@ -23,7 +23,7 @@
 #include "GUIDialogSeekBar.h"
 #include "Application.h"
 #include "GUIInfoManager.h"
-#include "utils/SeekHandler.h"
+#include "SeekHandler.h"
 
 #define POPUP_SEEK_PROGRESS     401
 #define POPUP_SEEK_LABEL        402
@@ -61,13 +61,13 @@ bool CGUIDialogSeekBar::OnMessage(CGUIMessage& message)
 
 void CGUIDialogSeekBar::FrameMove()
 {
-  if (!g_application.m_pPlayer->HasPlayer())
+  if (!g_application.GetAppPlayer().HasPlayer())
   {
     Close(true);
     return;
   }
 
-  unsigned int percent((!CSeekHandler::GetInstance().InProgress() && g_infoManager.GetTotalPlayTime())
+  unsigned int percent((!g_application.GetAppPlayer().GetSeekHandler().InProgress() && g_infoManager.GetTotalPlayTime())
     ? lrintf(g_application.GetPercentage())
     : (unsigned int)g_infoManager.GetSeekPercent());
 

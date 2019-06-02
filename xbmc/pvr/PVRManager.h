@@ -257,19 +257,31 @@ namespace PVR
      * @brief Return the channel that is currently playing.
      * @return The channel or NULL if none is playing.
      */
-    CPVRChannelPtr GetCurrentChannel(void) const;
+    CPVRChannelPtr GetPlayingChannel(void) const;
 
     /*!
      * @brief Return the recording that is currently playing.
      * @return The recording or NULL if none is playing.
      */
-    CPVRRecordingPtr GetCurrentRecording(void) const;
+    CPVRRecordingPtr GetPlayingRecording(void) const;
 
     /*!
      * @brief Return the epg tag that is currently playing.
      * @return The tag or NULL if none is playing.
      */
-    CPVREpgInfoTagPtr GetCurrentEpgTag(void) const;
+    CPVREpgInfoTagPtr GetPlayingEpgTag(void) const;
+
+    /*!
+     * @brief Check whether there is an active recording on the currenlyt playing channel.
+     * @return True if there is a playing channel and there is an active recording on that channel, false otherwise.
+     */
+    bool IsRecordingOnPlayingChannel(void) const;
+
+    /*!
+     * @brief Check whether the currently playing channel can be recorded.
+     * @return True if there is a playing channel that can be recorded, false otherwise.
+     */
+    bool CanRecordOnPlayingChannel(void) const;
 
     /*!
      * @brief Check whether EPG tags for channels have been created.
@@ -320,28 +332,10 @@ namespace PVR
     bool OpenRecordedStream(const CPVRRecordingPtr &tag);
 
     /*!
-     * @brief Start or stop recording on the channel that is currently being played.
-     * @param bOnOff True to start recording, false to stop.
-     */
-    void StartRecordingOnPlayingChannel(bool bOnOff);
-
-    /*!
      * @brief Check whether there are active recordings.
      * @return True if there are active recordings, false otherwise.
      */
     bool IsRecording(void) const;
-
-    /*!
-     * @brief Check whether the system Kodi is running on can be powered down
-     *        (shutdown/reboot/suspend/hibernate) without stopping any active
-     *        recordings and/or without preventing the start of recordings
-     *        scheduled for now + pvrpowermanagement.backendidletime.
-     * @param bAskUser True to informs user in case of potential
-     *        data loss. User can decide to allow powerdown anyway. False to
-     *        not to ask user and to not confirm power down.
-     * @return True if system can be safely powered down, false otherwise.
-     */
-    bool CanSystemPowerdown(bool bAskUser = true) const;
 
     /*!
      * @brief Set the current playing group, used to load the right channel.
@@ -423,10 +417,22 @@ namespace PVR
     bool IsPlayingRadio(void) const;
 
     /*!
+     * @brief Check if a an encrypted TV or radio channel is playing.
+     * @return True if it's playing, false otherwise.
+     */
+    bool IsPlayingEncryptedChannel(void) const;
+
+    /*!
      * @brief Check if a recording is playing.
      * @return True if it's playing, false otherwise.
      */
     bool IsPlayingRecording(void) const;
+
+    /*!
+     * @brief Check if an epg tag is playing.
+     * @return True if it's playing, false otherwise.
+     */
+    bool IsPlayingEpgTag(void) const;
 
     /*!
      * @brief Try to find missing channel icons automatically
@@ -546,10 +552,6 @@ namespace PVR
      */
     void SetState(ManagerState state);
 
-    bool AllLocalBackendsIdle(CPVRTimerInfoTagPtr& causingEvent) const;
-    bool EventOccursOnLocalBackend(const CFileItemPtr& item) const;
-    bool IsNextEventWithinBackendIdleTime(void) const;
-
     /** @name containers */
     //@{
     CPVRChannelGroupsContainerPtr  m_channelGroups;               /*!< pointer to the channel groups container */
@@ -578,5 +580,9 @@ namespace PVR
 
     CPVRActionListener m_actionListener;
     CPVRSettings m_settings;
+
+    CPVRChannelPtr m_playingChannel;
+    CPVRRecordingPtr m_playingRecording;
+    CPVREpgInfoTagPtr m_playingEpgTag;
   };
 }

@@ -124,7 +124,7 @@ CFileItem::CFileItem(const CVideoInfoTag& movie)
   SetFromVideoInfoTag(movie);
 }
 
-void CFileItem::FillMusicInfoTag(const CPVRChannelPtr channel, const CPVREpgInfoTagPtr tag)
+void CFileItem::FillMusicInfoTag(const CPVRChannelPtr& channel, const CPVREpgInfoTagPtr& tag)
 {
   if (channel && channel->IsRadio() && !HasMusicInfoTag())
   {
@@ -185,6 +185,10 @@ CFileItem::CFileItem(const CPVRChannelPtr& channel)
 
   if (!channel->IconPath().empty())
     SetIconImage(channel->IconPath());
+  else if (channel->IsRadio())
+    SetIconImage("DefaultAudio.png");
+  else
+    SetIconImage("DefaultTVShows.png");
 
   SetProperty("channelid", channel->ChannelID());
   SetProperty("path", channel->Path());
@@ -1300,12 +1304,12 @@ void CFileItem::FillInDefaultIcon()
         if (GetPVRChannelInfoTag()->IsRadio())
           SetIconImage("DefaultAudio.png");
         else
-          SetIconImage("DefaultVideo.png");
+          SetIconImage("DefaultTVShows.png");
       }
       else if ( IsLiveTV() )
       {
         // Live TV Channel
-        SetIconImage("DefaultVideo.png");
+        SetIconImage("DefaultTVShows.png");
       }
       else if ( URIUtils::IsArchive(m_strPath) )
       { // archive
@@ -1833,7 +1837,7 @@ bool CFileItem::LoadTracksFromCueDocument(CFileItemList& scannedItems)
         tag.GetReleaseDate(dateTime);
         if (dateTime.wYear)
           song.iYear = dateTime.wYear;
-        if (song.embeddedArt.empty() && !tag.GetCoverArtInfo().empty())
+        if (song.embeddedArt.Empty() && !tag.GetCoverArtInfo().Empty())
           song.embeddedArt = tag.GetCoverArtInfo();
       }
 

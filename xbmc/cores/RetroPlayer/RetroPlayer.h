@@ -42,7 +42,7 @@ namespace RETRO
   class CRPProcessInfo;
   class CRPRenderManager;
 
-  class CRetroPlayer : public IPlayer
+  class CRetroPlayer : public IPlayer, public IRenderLoop
   {
   public:
     explicit CRetroPlayer(IPlayerCallback& callback);
@@ -70,16 +70,13 @@ namespace RETRO
     void SetMute(bool bOnOff) override;
     //virtual void SetVolume(float volume) override { }
     //virtual void SetDynamicRangeCompression(long drc) override { }
-    //virtual bool CanRecord() override { return false; }
-    //virtual bool IsRecording() override { return false; }
-    //virtual bool Record(bool bOnOff) override { return false; }
     //virtual void SetAVDelay(float fValue = 0.0f) override { return; }
     //virtual float GetAVDelay() override { return 0.0f; }
     //virtual void SetSubTitleDelay(float fValue = 0.0f) override { }
     //virtual float GetSubTitleDelay() override { return 0.0f; }
     //virtual int GetSubtitleCount() override { return 0; }
     //virtual int GetSubtitle() override { return -1; }
-    //virtual void GetSubtitleStreamInfo(int index, SPlayerSubtitleStreamInfo &info) override { }
+    //virtual void GetSubtitleStreamInfo(int index, SubtitleStreamInfo &info) override { }
     //virtual void SetSubtitle(int iStream) override { }
     //virtual bool GetSubtitleVisible() override { return false; }
     //virtual void SetSubtitleVisible(bool bVisible) override { }
@@ -87,10 +84,10 @@ namespace RETRO
     //virtual int GetAudioStreamCount() override { return 0; }
     //virtual int GetAudioStream() override { return -1; }
     //virtual void SetAudioStream(int iStream) override { }
-    //virtual void GetAudioStreamInfo(int index, SPlayerAudioStreamInfo &info) override { }
+    //virtual void GetAudioStreamInfo(int index, AudioStreamInfo &info) override { }
     //virtual int GetVideoStream() const override { return -1; }
     //virtual int GetVideoStreamCount() const override { return 0; }
-    //virtual void GetVideoStreamInfo(int streamId, SPlayerVideoStreamInfo &info) override { }
+    //virtual void GetVideoStreamInfo(int streamId, VideoStreamInfo &info) override { }
     //virtual void SetVideoStream(int iStream) override { }
     //virtual TextCacheStruct_t* GetTeletextCache() override { return NULL; }
     //virtual void LoadPage(int p, int sp, unsigned char* buffer) override { }
@@ -104,7 +101,6 @@ namespace RETRO
     void SeekTime(int64_t iTime = 0) override;
     bool SeekTimeRelative(int64_t iTime) override;
     //virtual void SetTotalTime(int64_t time) override { } // Only used by Air Tunes Server
-    //virtual int GetSourceBitrate() override { return 0; }
     void SetSpeed(float speed) override;
     //virtual bool IsCaching() const override { return false; }
     //virtual int GetCacheLevel() const override { return -1; }
@@ -115,7 +111,6 @@ namespace RETRO
     bool OnAction(const CAction &action) override;
     std::string GetPlayerState() override;
     bool SetPlayerState(const std::string& state) override;
-    //virtual std::string GetPlayingTitle() override { return ""; }
     //virtual bool SwitchChannel(const PVR::CPVRChannelPtr &channel) override { return false; }
     //virtual void GetAudioCapabilities(std::vector<int> &audioCaps) override { audioCaps.assign(1,IPC_AUD_ALL); }
     //virtual void GetSubtitleCapabilities(std::vector<int> &subCaps) override { subCaps.assign(1,IPC_SUBS_ALL); }

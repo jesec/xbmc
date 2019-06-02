@@ -19,17 +19,17 @@
  */
 
 #include "system.h"
+#include "ServiceBroker.h"
 #include "Texture.h"
-#include "windowing/WindowingFactory.h"
+#include "rendering/RenderSystem.h"
 #include "utils/log.h"
 #include "utils/GLUtils.h"
 #include "guilib/TextureManager.h"
 #include "settings/AdvancedSettings.h"
 #ifdef TARGET_POSIX
-#include "linux/XMemUtils.h"
+#include "platform/linux/XMemUtils.h"
 #endif
 
-#if defined(HAS_GL) || defined(HAS_GLES)
 
 /************************************************************************/
 /*    CGLTexture                                                       */
@@ -37,7 +37,10 @@
 CGLTexture::CGLTexture(unsigned int width, unsigned int height, unsigned int format)
 : CBaseTexture(width, height, format)
 {
-  m_texture = 0;
+  unsigned int major, minor;
+  CServiceBroker::GetRenderSystem().GetRenderVersion(major, minor);
+  if (major >= 3)
+    m_isOglVersion3orNewer = true;
 }
 
 CGLTexture::~CGLTexture()
@@ -84,7 +87,8 @@ void CGLTexture::LoadToGPU()
 #ifndef HAS_GLES
     // Lower LOD bias equals more sharpness, but less smooth animation
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, -0.5f);
-    glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
+    if (!m_isOglVersion3orNewer)
+      glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
 #endif
   }
   else
@@ -96,7 +100,7 @@ void CGLTexture::LoadToGPU()
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-  unsigned int maxSize = g_Windowing.GetMaxTextureSize();
+  unsigned int maxSize = CServiceBroker::GetRenderSystem().GetMaxTextureSize();
   if (m_textureHeight > maxSize)
   {
     CLog::Log(LOGERROR, "GL: Image height %d too big to fit into single texture unit, truncating to %u", m_textureHeight, maxSize);
@@ -107,9 +111,11 @@ void CGLTexture::LoadToGPU()
     CLog::Log(LOGERROR, "GL: Image width %d too big to fit into single texture unit, truncating to %u", m_textureWidth, maxSize);
 #ifndef HAS_GLES
     glPixelStorei(GL_UNPACK_ROW_LENGTH, m_textureWidth);
+#endif
     m_textureWidth = maxSize;
   }
 
+#ifndef HAS_GLES
   GLenum format = GL_BGRA;
   GLint numcomponents = GL_RGBA;
 
@@ -136,20 +142,25 @@ void CGLTexture::LoadToGPU()
 
   if ((m_format & XB_FMT_DXT_MASK) == 0)
   {
-    glTexImage2D(GL_TEXTURE_2D, 0, numcomponents, m_textureWidth, m_textureHeight, 0,
-      format, GL_UNSIGNED_BYTE, m_pixels);
+    glTexImage2D(GL_TEXTURE_2D, 0, numcomponents,
+                 m_textureWidth, m_textureHeight, 0,
+                 format, GL_UNSIGNED_BYTE, m_pixels);
   }
   else
   {
-    // changed from glCompressedTexImage2D to support GL < 1.3
-    glCompressedTexImage2DARB(GL_TEXTURE_2D, 0, format,
-      m_textureWidth, m_textureHeight, 0, GetPitch() * GetRows(), m_pixels);
+    glCompressedTexImage2D(GL_TEXTURE_2D, 0, format,
+                           m_textureWidth, m_textureHeight, 0,
+                           GetPitch() * GetRows(), m_pixels);
+  }
+
+  if (IsMipmapped() && m_isOglVersion3orNewer)
+  {
+    glGenerateMipmap(GL_TEXTURE_2D);
   }
 
   glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+
 #else	// GLES version
-    m_textureWidth = maxSize;
-  }
 
   // All incoming textures are BGRA, which GLES does not necessarily support.
   // Some (most?) hardware supports BGRA textures via an extension.
@@ -173,11 +184,11 @@ void CGLTexture::LoadToGPU()
       internalformat = pixelformat = GL_RGB;
       break;
     case XB_FMT_A8R8G8B8:
-      if (g_Windowing.SupportsBGRA())
+      if (CServiceBroker::GetRenderSystem().SupportsBGRA())
       {
         internalformat = pixelformat = GL_BGRA_EXT;
       }
-      else if (g_Windowing.SupportsBGRAApple())
+      else if (CServiceBroker::GetRenderSystem().SupportsBGRAApple())
       {
         // Apple's implementation does not conform to spec. Instead, they require
         // differing format/internalformat, more like GL.
@@ -217,4 +228,3 @@ void CGLTexture::BindToUnit(unsigned int unit)
   glBindTexture(GL_TEXTURE_2D, m_texture);
 }
 
-#endif // HAS_GL

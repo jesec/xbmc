@@ -28,7 +28,7 @@
 #include "threads/SingleLock.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
-#include "windowing/WindowingFactory.h"
+#include "windowing/WinSystem.h"
 
 #include "Application.h"
 #include "ServiceBroker.h"
@@ -39,7 +39,7 @@
 
 
 #if defined(TARGET_POSIX)
-#include "linux/XTimeUtils.h"
+#include "platform/linux/XTimeUtils.h"
 #endif
 
 #include "RenderCapture.h"
@@ -869,7 +869,7 @@ void CRenderManager::UpdateResolution()
       if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) != ADJUST_REFRESHRATE_OFF && m_fps > 0.0f)
       {
         RESOLUTION res = CResolutionUtils::ChooseBestResolution(m_fps, m_width, CONF_FLAGS_STEREO_MODE_MASK(m_flags) != 0);
-        g_graphicsContext.SetVideoResolution(res);
+        g_graphicsContext.SetVideoResolution(res, false);
         UpdateLatencyTweak();
       }
       m_bTriggerUpdateResolution = false;
@@ -1082,7 +1082,7 @@ void CRenderManager::PrepareNextRender()
   double frameOnScreen = m_dvdClock.GetClock();
   double frametime = 1.0 / g_graphicsContext.GetFPS() * DVD_TIME_BASE;
 
-  m_displayLatency = DVD_MSEC_TO_TIME(m_latencyTweak + g_graphicsContext.GetDisplayLatency() - m_videoDelay - g_Windowing.GetFrameLatencyAdjustment());
+  m_displayLatency = DVD_MSEC_TO_TIME(m_latencyTweak + g_graphicsContext.GetDisplayLatency() - m_videoDelay - CServiceBroker::GetWinSystem().GetFrameLatencyAdjustment());
 
   double renderPts = frameOnScreen + m_displayLatency;
 

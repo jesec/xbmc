@@ -26,7 +26,6 @@
 #include "settings/AdvancedSettings.h"
 #include "utils/log.h"
 #include "utils/GLUtils.h"
-#include "windowing/WindowingFactory.h"
 
 using namespace VDPAU;
 
@@ -193,7 +192,7 @@ EShaderFormat CRendererVDPAU::GetShaderFormat()
   EShaderFormat ret = SHADER_NONE;
 
   if (m_isYuv)
-    ret = SHADER_NV12_RRG;
+    ret = SHADER_NV12;
 
   return ret;
 }

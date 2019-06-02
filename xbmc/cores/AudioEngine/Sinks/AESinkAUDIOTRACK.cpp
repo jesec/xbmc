@@ -26,6 +26,7 @@
 #include <androidjni/Build.h>
 
 #include "cores/AudioEngine/Utils/AEUtil.h"
+#include "cores/AudioEngine/AESinkFactory.h"
 #include "platform/android/activity/XBMCApp.h"
 #include "settings/Settings.h"
 #include "utils/log.h"
@@ -344,9 +345,6 @@ bool CAESinkAUDIOTRACK::Initialize(AEAudioFormat &format, std::string &device)
         m_format.m_streamInfo.m_type == CAEStreamInfo::STREAM_TYPE_TRUEHD)
     {
       m_format.m_channelLayout = AE_CH_LAYOUT_7_1;
-      // Shield v5 workaround
-      if (!m_info.m_wantsIECPassthrough && CJNIAudioManager::GetSDKVersion() == 22 && m_sink_sampleRate > 48000)
-        m_sink_sampleRate = 48000;
     }
 
     // EAC3 needs real samplerate not the modulation
@@ -829,6 +827,25 @@ void CAESinkAUDIOTRACK::Drain()
   m_headPos = 0;
   m_extTimer.SetExpired();
   m_linearmovingaverage.clear();
+}
+
+void CAESinkAUDIOTRACK::Register()
+{
+  AE::AESinkRegEntry entry;
+  entry.sinkName = "AUDIOTRACK";
+  entry.createFunc = CAESinkAUDIOTRACK::Create;
+  entry.enumerateFunc = CAESinkAUDIOTRACK::EnumerateDevicesEx;
+  AE::CAESinkFactory::RegisterSink(entry);
+}
+
+IAESink* CAESinkAUDIOTRACK::Create(std::string &device, AEAudioFormat& desiredFormat)
+{
+  IAESink* sink = new CAESinkAUDIOTRACK();
+  if (sink->Initialize(desiredFormat, device))
+    return sink;
+
+  delete sink;
+  return nullptr;
 }
 
 void CAESinkAUDIOTRACK::EnumerateDevicesEx(AEDeviceInfoList &list, bool force)

@@ -272,7 +272,7 @@ void CGUIDialogLAVAudio::InitializeSettings()
   AddList(groupEncoding, LAVAUDIO_MIXINGMODE, 81027, SettingLevel::Basic, lavSettings.audio_dwMixingMode, entries, 81027);
 
   // BUTTON RESET
-  if (!g_application.m_pPlayer->IsPlayingVideo())
+  if (!g_application.GetAppPlayer().IsPlayingVideo())
     AddButton(groupReset, LAVAUDIO_RESET, 10041, SettingLevel::Basic);
 }
 

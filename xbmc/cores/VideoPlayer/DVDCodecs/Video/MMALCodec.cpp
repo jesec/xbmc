@@ -31,7 +31,6 @@
 #include "ServiceBroker.h"
 #include "DVDClock.h"
 #include "DVDStreamInfo.h"
-#include "windowing/WindowingFactory.h"
 #include "cores/VideoPlayer/DVDCodecs/DVDCodecs.h"
 #include "cores/VideoPlayer/DVDCodecs/DVDFactoryCodec.h"
 #include "DVDVideoCodec.h"
@@ -48,7 +47,7 @@
 #include "settings/AdvancedSettings.h"
 #include "cores/VideoPlayer/Interface/Addon/TimingConstants.h"
 
-#include "linux/RBP.h"
+#include "platform/linux/RBP.h"
 
 using namespace KODI::MESSAGING;
 using namespace MMAL;

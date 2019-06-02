@@ -20,8 +20,11 @@
 
 #include "PVRGUIInfo.h"
 
+#include <ctime>
+
 #include "Application.h"
 #include "ServiceBroker.h"
+#include "cores/DataCacheCore.h"
 #include "guiinfo/GUIInfoLabels.h"
 #include "guilib/LocalizeStrings.h"
 #include "settings/AdvancedSettings.h"
@@ -74,9 +77,13 @@ void CPVRGUIInfo::ResetProperties(void)
   m_bIsPlayingRecording         = false;
   m_bIsPlayingEpgTag            = false;
   m_bIsPlayingEncryptedStream   = false;
+  m_bIsRecordingPlayingChannel  = false;
+  m_bCanRecordPlayingChannel    = false;
   m_bHasTVChannels              = false;
   m_bHasRadioChannels           = false;
+  m_bHasTimeshiftData           = false;
   m_bIsTimeshifting             = false;
+  m_iStartTime                  = time_t(0);
   m_iTimeshiftStartTime         = time_t(0);
   m_iTimeshiftEndTime           = time_t(0);
   m_iTimeshiftPlayTime          = time_t(0);
@@ -184,14 +191,11 @@ void CPVRGUIInfo::UpdateQualityData(void)
   PVR_SIGNAL_STATUS qualityInfo;
   ClearQualityInfo(qualityInfo);
 
-  PVR_CLIENT client;
+  CPVRClientPtr client;
   if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_PVRPLAYBACK_SIGNALQUALITY) &&
-      CServiceBroker::GetPVRManager().Clients()->GetPlayingClient(client))
-  {
-    client->SignalQuality(qualityInfo);
-  }
-
-  memcpy(&m_qualityInfo, &qualityInfo, sizeof(m_qualityInfo));
+      CServiceBroker::GetPVRManager().Clients()->GetPlayingClient(client) &&
+      client->SignalQuality(qualityInfo) == PVR_ERROR_NO_ERROR)
+    memcpy(&m_qualityInfo, &qualityInfo, sizeof(m_qualityInfo));
 }
 
 void CPVRGUIInfo::UpdateDescrambleData(void)
@@ -199,9 +203,9 @@ void CPVRGUIInfo::UpdateDescrambleData(void)
   PVR_DESCRAMBLE_INFO descrambleInfo;
   ClearDescrambleInfo(descrambleInfo);
 
-  PVR_CLIENT client;
+  CPVRClientPtr client;
   if (CServiceBroker::GetPVRManager().Clients()->GetPlayingClient(client) &&
-      client->GetDescrambleInfo(descrambleInfo))
+      client->GetDescrambleInfo(descrambleInfo) == PVR_ERROR_NO_ERROR)
     memcpy(&m_descrambleInfo, &descrambleInfo, sizeof(m_descrambleInfo));
 }
 
@@ -212,13 +216,15 @@ void CPVRGUIInfo::UpdateMisc(void)
   std::string strPlayingClientName     = bStarted ? CServiceBroker::GetPVRManager().Clients()->GetPlayingClientName() : "";
   bool       bHasTVRecordings          = bStarted && CServiceBroker::GetPVRManager().Recordings()->GetNumTVRecordings() > 0;
   bool       bHasRadioRecordings       = bStarted && CServiceBroker::GetPVRManager().Recordings()->GetNumRadioRecordings() > 0;
-  bool       bIsPlayingTV              = bStarted && CServiceBroker::GetPVRManager().Clients()->IsPlayingTV();
-  bool       bIsPlayingRadio           = bStarted && CServiceBroker::GetPVRManager().Clients()->IsPlayingRadio();
-  bool       bIsPlayingRecording       = bStarted && CServiceBroker::GetPVRManager().Clients()->IsPlayingRecording();
-  bool       bIsPlayingEpgTag          = bStarted && CServiceBroker::GetPVRManager().Clients()->IsPlayingEpgTag();
-  bool       bIsPlayingEncryptedStream = bStarted && CServiceBroker::GetPVRManager().Clients()->IsEncrypted();
+  bool       bIsPlayingTV              = bStarted && CServiceBroker::GetPVRManager().IsPlayingTV();
+  bool       bIsPlayingRadio           = bStarted && CServiceBroker::GetPVRManager().IsPlayingRadio();
+  bool       bIsPlayingRecording       = bStarted && CServiceBroker::GetPVRManager().IsPlayingRecording();
+  bool       bIsPlayingEpgTag          = bStarted && CServiceBroker::GetPVRManager().IsPlayingEpgTag();
+  bool       bIsPlayingEncryptedStream = bStarted && CServiceBroker::GetPVRManager().IsPlayingEncryptedChannel();
   bool       bHasTVChannels            = bStarted && CServiceBroker::GetPVRManager().ChannelGroups()->GetGroupAllTV()->HasChannels();
   bool       bHasRadioChannels         = bStarted && CServiceBroker::GetPVRManager().ChannelGroups()->GetGroupAllRadio()->HasChannels();
+  bool bCanRecordPlayingChannel        = bStarted && CServiceBroker::GetPVRManager().CanRecordOnPlayingChannel();
+  bool bIsRecordingPlayingChannel      = bStarted && CServiceBroker::GetPVRManager().IsRecordingOnPlayingChannel();
   std::string strPlayingTVGroup        = (bStarted && bIsPlayingTV) ? CServiceBroker::GetPVRManager().GetPlayingGroup(false)->GroupName() : "";
 
   CSingleLock lock(m_critSection);
@@ -233,34 +239,64 @@ void CPVRGUIInfo::UpdateMisc(void)
   m_bHasTVChannels            = bHasTVChannels;
   m_bHasRadioChannels         = bHasRadioChannels;
   m_strPlayingTVGroup         = strPlayingTVGroup;
+  m_bCanRecordPlayingChannel  = bCanRecordPlayingChannel;
+  m_bIsRecordingPlayingChannel = bIsRecordingPlayingChannel;
 }
 
 void CPVRGUIInfo::UpdateTimeshift(void)
 {
-  bool bStarted = CServiceBroker::GetPVRManager().IsStarted();
+  if (!CServiceBroker::GetPVRManager().IsPlayingTV() && !CServiceBroker::GetPVRManager().IsPlayingRadio())
+  {
+    // If nothing is playing (anymore), there is no need to poll the timeshift values from the clients.
+    CSingleLock lock(m_critSection);
+    if (m_bHasTimeshiftData)
+    {
+      m_bHasTimeshiftData = false;
+      m_bIsTimeshifting = false;
+      m_iStartTime = 0;
+      m_iTimeshiftStartTime = 0;
+      m_iTimeshiftEndTime = 0;
+      m_iTimeshiftPlayTime = 0;
+      m_strTimeshiftStartTime.clear();
+      m_strTimeshiftEndTime.clear();
+      m_strTimeshiftPlayTime.clear();
+    }
+    return;
+  }
 
-  bool bIsTimeshifting = bStarted && CServiceBroker::GetPVRManager().Clients()->IsTimeshifting();
-  CDateTime tmp;
-  time_t iTimeshiftStartTime = CServiceBroker::GetPVRManager().Clients()->GetBufferTimeStart();
-  tmp.SetFromUTCDateTime(iTimeshiftStartTime);
-  std::string strTimeshiftStartTime = tmp.GetAsLocalizedTime("", false);
-
-  time_t iTimeshiftEndTime = CServiceBroker::GetPVRManager().Clients()->GetBufferTimeEnd();
-  tmp.SetFromUTCDateTime(iTimeshiftEndTime);
-  std::string strTimeshiftEndTime = tmp.GetAsLocalizedTime("", false);
-
-  time_t iTimeshiftPlayTime = CServiceBroker::GetPVRManager().Clients()->GetPlayingTime();
-  tmp.SetFromUTCDateTime(iTimeshiftPlayTime);
-  std::string strTimeshiftPlayTime = tmp.GetAsLocalizedTime("", true);
+  bool bIsTimeshifting = CServiceBroker::GetPVRManager().Clients()->IsTimeshifting();
+  time_t iStartTime = CServiceBroker::GetDataCacheCore().GetStartTime();
+  time_t iPlayTime = CServiceBroker::GetDataCacheCore().GetPlayTime() / 1000;
+  time_t iMinTime = bIsTimeshifting ? CServiceBroker::GetDataCacheCore().GetMinTime() / 1000 : 0;
+  time_t iMaxTime = bIsTimeshifting ? CServiceBroker::GetDataCacheCore().GetMaxTime() / 1000 : 0;
 
   CSingleLock lock(m_critSection);
+
+  if (!iStartTime)
+  {
+    if (m_iStartTime == 0)
+      iStartTime = std::time(nullptr);
+    else
+      iStartTime = m_iStartTime;
+  }
+
   m_bIsTimeshifting = bIsTimeshifting;
-  m_iTimeshiftStartTime = iTimeshiftStartTime;
-  m_iTimeshiftEndTime = iTimeshiftEndTime;
-  m_iTimeshiftPlayTime = iTimeshiftPlayTime;
-  m_strTimeshiftStartTime = strTimeshiftStartTime;
-  m_strTimeshiftEndTime = strTimeshiftEndTime;
-  m_strTimeshiftPlayTime = strTimeshiftPlayTime;
+  m_iStartTime = iStartTime;
+  m_iTimeshiftStartTime = iStartTime + iMinTime;
+  m_iTimeshiftEndTime = iStartTime + iMaxTime;
+  m_iTimeshiftPlayTime = iStartTime + iPlayTime;
+
+  CDateTime tmp;
+  tmp.SetFromUTCDateTime(m_iTimeshiftStartTime);
+  m_strTimeshiftStartTime = tmp.GetAsLocalizedTime("", false);
+
+  tmp.SetFromUTCDateTime(m_iTimeshiftEndTime);
+  m_strTimeshiftEndTime = tmp.GetAsLocalizedTime("", false);
+
+  tmp.SetFromUTCDateTime(m_iTimeshiftPlayTime);
+  m_strTimeshiftPlayTime = tmp.GetAsLocalizedTime("", true);
+
+  m_bHasTimeshiftData = true;
 }
 
 bool CPVRGUIInfo::TranslateCharInfo(DWORD dwInfo, std::string &strValue) const
@@ -268,7 +304,7 @@ bool CPVRGUIInfo::TranslateCharInfo(DWORD dwInfo, std::string &strValue) const
   bool bReturn(true);
   CSingleLock lock(m_critSection);
 
-  switch(dwInfo)
+  switch (dwInfo)
   {
   case PVR_NOW_RECORDING_TITLE:
     m_anyTimersInfo.CharInfoActiveTimerTitle(strValue);
@@ -342,11 +378,17 @@ bool CPVRGUIInfo::TranslateCharInfo(DWORD dwInfo, std::string &strValue) const
   case PVR_RADIO_NEXT_RECORDING_DATETIME:
     m_radioTimersInfo.CharInfoNextTimerDateTime(strValue);
     break;
-  case PVR_PLAYING_DURATION:
-    CharInfoPlayingDuration(strValue);
+  case PVR_EPG_EVENT_DURATION:
+    CharInfoEpgEventDuration(strValue);
     break;
-  case PVR_PLAYING_TIME:
-    CharInfoPlayingTime(strValue);
+  case PVR_EPG_EVENT_ELAPSED_TIME:
+    CharInfoEpgEventElapsedTime(strValue);
+    break;
+  case PVR_EPG_EVENT_REMAINING_TIME:
+    CharInfoEpgEventRemainingTime(strValue);
+    break;
+  case PVR_EPG_EVENT_FINISH_TIME:
+    CharInfoEpgEventFinishTime(strValue);
     break;
   case PVR_NEXT_TIMER:
     m_anyTimersInfo.CharInfoNextTimer(strValue);
@@ -490,6 +532,12 @@ bool CPVRGUIInfo::TranslateBoolInfo(DWORD dwInfo) const
   case PVR_IS_TIMESHIFTING:
     bReturn = m_bIsTimeshifting;
     break;
+  case PVR_CAN_RECORD_PLAYING_CHANNEL:
+    bReturn = m_bCanRecordPlayingChannel;
+    break;
+  case PVR_IS_RECORDING_PLAYING_CHANNEL:
+    bReturn = m_bIsRecordingPlayingChannel;
+    break;
   default:
     break;
   }
@@ -502,7 +550,7 @@ int CPVRGUIInfo::TranslateIntInfo(DWORD dwInfo) const
   int iReturn(0);
   CSingleLock lock(m_critSection);
 
-  if (dwInfo == PVR_PLAYING_PROGRESS)
+  if (dwInfo == PVR_EPG_EVENT_PROGRESS)
     iReturn = (int) ((float) GetStartTime() / m_iDuration * 100);
   else if (dwInfo == PVR_ACTUAL_STREAM_SIG_PROGR)
     iReturn = (int) ((float) m_qualityInfo.iSignal / 0xFFFF * 100);
@@ -606,22 +654,12 @@ bool CPVRGUIInfo::GetVideoLabel(const CFileItem &item, int iLabel, std::string &
         strValue = recording->m_strChannelName;
         return true;
       }
-      case VIDEOPLAYER_SUB_CHANNEL_NUMBER:
+      case VIDEOPLAYER_CHANNEL_NUMBER:
       {
         const CPVRChannelPtr channel = recording->Channel();
         if (channel)
         {
-          strValue = StringUtils::Format("%i", channel->SubChannelNumber());
-          return true;
-        }
-        break;
-      }
-      case VIDEOPLAYER_CHANNEL_NUMBER_LBL:
-      {
-        const CPVRChannelPtr channel = recording->Channel();
-        if (channel)
-        {
-          strValue = channel->FormattedChannelNumber();
+          strValue = channel->ChannelNumber().FormattedChannelNumber();
           return true;
         }
         break;
@@ -656,7 +694,7 @@ bool CPVRGUIInfo::GetVideoLabel(const CFileItem &item, int iLabel, std::string &
       }
       case VIDEOPLAYER_GENRE:
       {
-        GET_CURRENT_VIDEO_LABEL(StringUtils::Join(epgTag->Genre(), g_advancedSettings.m_videoItemSeparator));
+        GET_CURRENT_VIDEO_LABEL(epgTag->GetGenresLabel());
       }
       case VIDEOPLAYER_PLOT:
       {
@@ -714,15 +752,15 @@ bool CPVRGUIInfo::GetVideoLabel(const CFileItem &item, int iLabel, std::string &
       }
       case VIDEOPLAYER_CAST:
       {
-        GET_CURRENT_VIDEO_LABEL(epgTag->Cast());
+        GET_CURRENT_VIDEO_LABEL(epgTag->GetCastLabel());
       }
       case VIDEOPLAYER_DIRECTOR:
       {
-        GET_CURRENT_VIDEO_LABEL(epgTag->Director());
+        GET_CURRENT_VIDEO_LABEL(epgTag->GetDirectorsLabel());
       }
       case VIDEOPLAYER_WRITER:
       {
-        GET_CURRENT_VIDEO_LABEL(epgTag->Writer());
+        GET_CURRENT_VIDEO_LABEL(epgTag->GetWritersLabel());
       }
       case VIDEOPLAYER_PARENTAL_RATING:
       {
@@ -739,7 +777,7 @@ bool CPVRGUIInfo::GetVideoLabel(const CFileItem &item, int iLabel, std::string &
       }
       case VIDEOPLAYER_NEXT_GENRE:
       {
-        GET_NEXT_VIDEO_LABEL(StringUtils::Join(epgTag->Genre(), g_advancedSettings.m_videoItemSeparator));
+        GET_NEXT_VIDEO_LABEL(epgTag->GetGenresLabel());
       }
       case VIDEOPLAYER_NEXT_PLOT:
       {
@@ -782,31 +820,7 @@ bool CPVRGUIInfo::GetVideoLabel(const CFileItem &item, int iLabel, std::string &
 
         if (channel)
         {
-          strValue = StringUtils::Format("%i", channel->ChannelNumber());
-          return true;
-        }
-        break;
-      }
-      case VIDEOPLAYER_SUB_CHANNEL_NUMBER:
-      {
-        if (!channel && epgTag)
-          channel = epgTag->Channel();
-
-        if (channel)
-        {
-          strValue = StringUtils::Format("%i", channel->SubChannelNumber());
-          return true;
-        }
-        break;
-      }
-      case VIDEOPLAYER_CHANNEL_NUMBER_LBL:
-      {
-        if (!channel && epgTag)
-          channel = epgTag->Channel();
-
-        if (channel)
-        {
-          strValue = channel->FormattedChannelNumber();
+          strValue = channel->ChannelNumber().FormattedChannelNumber();
           return true;
         }
         break;
@@ -829,7 +843,7 @@ bool CPVRGUIInfo::GetVideoLabel(const CFileItem &item, int iLabel, std::string &
   return false;
 }
 
-void CPVRGUIInfo::CharInfoPlayingDuration(std::string &strValue) const
+void CPVRGUIInfo::CharInfoEpgEventDuration(std::string &strValue) const
 {
   strValue = StringUtils::SecondsToTimeString(m_iDuration / 1000, TIME_FORMAT_GUESS).c_str();
 }
@@ -849,9 +863,21 @@ void CPVRGUIInfo::CharInfoTimeshiftPlayTime(std::string &strValue) const
   strValue = m_strTimeshiftPlayTime;
 }
 
-void CPVRGUIInfo::CharInfoPlayingTime(std::string &strValue) const
+void CPVRGUIInfo::CharInfoEpgEventElapsedTime(std::string &strValue) const
 {
-  strValue = StringUtils::SecondsToTimeString(GetStartTime()/1000, TIME_FORMAT_GUESS).c_str();
+  strValue = StringUtils::SecondsToTimeString(GetStartTime() / 1000, TIME_FORMAT_GUESS).c_str();
+}
+
+void CPVRGUIInfo::CharInfoEpgEventRemainingTime(std::string &strValue) const
+{
+  strValue = StringUtils::SecondsToTimeString((m_iDuration - GetStartTime()) / 1000, TIME_FORMAT_GUESS).c_str();
+}
+
+void CPVRGUIInfo::CharInfoEpgEventFinishTime(std::string &strValue) const
+{
+  CDateTime finishTime = CDateTime::GetCurrentDateTime();
+  finishTime += CDateTimeSpan(0, 0, 0, (m_iDuration - GetStartTime()) / 1000);
+  strValue = finishTime.GetAsLocalizedTime("", false);
 }
 
 void CPVRGUIInfo::CharInfoBackendNumber(std::string &strValue) const
@@ -982,7 +1008,7 @@ void CPVRGUIInfo::CharInfoEncryption(std::string &strValue) const
   }
   else
   {
-    const CPVRChannelPtr channel(CServiceBroker::GetPVRManager().Clients()->GetPlayingChannel());
+    const CPVRChannelPtr channel(CServiceBroker::GetPVRManager().GetPlayingChannel());
     if (channel)
     {
       strValue = channel->EncryptionName();
@@ -1141,8 +1167,8 @@ CPVREpgInfoTagPtr CPVRGUIInfo::GetPlayingTag() const
 
 void CPVRGUIInfo::UpdatePlayingTag(void)
 {
-  const CPVRChannelPtr currentChannel(CServiceBroker::GetPVRManager().GetCurrentChannel());
-  const CPVREpgInfoTagPtr currentTag(CServiceBroker::GetPVRManager().Clients()->GetPlayingEpgTag());
+  const CPVRChannelPtr currentChannel(CServiceBroker::GetPVRManager().GetPlayingChannel());
+  const CPVREpgInfoTagPtr currentTag(CServiceBroker::GetPVRManager().GetPlayingEpgTag());
   if (currentChannel || currentTag)
   {
     CPVREpgInfoTagPtr epgTag(GetPlayingTag());
@@ -1153,9 +1179,9 @@ void CPVRGUIInfo::UpdatePlayingTag(void)
     if (!epgTag || !epgTag->IsActive() ||
         !channel || !currentChannel || *channel != *currentChannel)
     {
-      CSingleLock lock(m_critSection);
-      ResetPlayingTag();
       const CPVREpgInfoTagPtr newTag(currentTag ? currentTag : currentChannel->GetEPGNow());
+
+      CSingleLock lock(m_critSection);
       if (newTag)
       {
         m_playingEpgTag = newTag;
@@ -1163,16 +1189,23 @@ void CPVRGUIInfo::UpdatePlayingTag(void)
       }
       else if (m_iTimeshiftEndTime > m_iTimeshiftStartTime)
       {
+        m_playingEpgTag.reset();
         m_iDuration = (m_iTimeshiftEndTime - m_iTimeshiftStartTime) * 1000;
+      }
+      else
+      {
+        m_playingEpgTag.reset();
+        m_iDuration = 0;
       }
     }
   }
   else
   {
-    const CPVRRecordingPtr recording(CServiceBroker::GetPVRManager().Clients()->GetPlayingRecording());
+    const CPVRRecordingPtr recording(CServiceBroker::GetPVRManager().GetPlayingRecording());
     if (recording)
     {
-      ResetPlayingTag();
+      CSingleLock lock(m_critSection);
+      m_playingEpgTag.reset();
       m_iDuration = recording->GetDuration() * 1000;
     }
   }

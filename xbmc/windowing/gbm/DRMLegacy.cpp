@@ -25,7 +25,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <drm/drm_mode.h>
+#include <drm_mode.h>
 #include <EGL/egl.h>
 #include <unistd.h>
 
@@ -36,54 +36,40 @@
 
 #include "DRMLegacy.h"
 
-static struct drm *m_drm = nullptr;
-static struct gbm *m_gbm = nullptr;
-
-static struct drm_fb *m_drm_fb = new drm_fb;
-
-static struct gbm_bo *m_bo = nullptr;
-static struct gbm_bo *m_next_bo = nullptr;
-
 static int flip_happening = 0;
 
-static struct pollfd m_drm_fds;
-static drmEventContext m_drm_evctx;
-
-bool CDRMLegacy::SetVideoMode(RESOLUTION_INFO res)
+bool CDRMLegacy::SetVideoMode(RESOLUTION_INFO res, struct gbm_bo *bo)
 {
-  gbm_surface_release_buffer(m_gbm->surface, m_bo);
+  struct drm_fb *drm_fb = DrmFbGetFromBo(bo);
 
-  m_bo = gbm_surface_lock_front_buffer(m_gbm->surface);
-  m_drm_fb = CDRMUtils::DrmFbGetFromBo(m_bo);
-
-  auto ret = drmModeSetCrtc(m_drm->fd,
-                            m_drm->crtc_id,
-                            m_drm_fb->fb_id,
+  auto ret = drmModeSetCrtc(m_fd,
+                            m_crtc->crtc->crtc_id,
+                            drm_fb->fb_id,
                             0,
                             0,
-                            &m_drm->connector_id,
+                            &m_connector->connector->connector_id,
                             1,
-                            m_drm->mode);
+                            m_mode);
 
   if(ret < 0)
   {
     CLog::Log(LOGERROR,
-              "CDRMUtils::%s - failed to set crtc mode: %dx%d%s @ %d Hz",
+              "CDRMLegacy::%s - failed to set crtc mode: %dx%d%s @ %d Hz",
               __FUNCTION__,
-              m_drm->mode->hdisplay,
-              m_drm->mode->vdisplay,
-              m_drm->mode->flags & DRM_MODE_FLAG_INTERLACE ? "i" : "",
-              m_drm->mode->vrefresh);
+              m_mode->hdisplay,
+              m_mode->vdisplay,
+              m_mode->flags & DRM_MODE_FLAG_INTERLACE ? "i" : "",
+              m_mode->vrefresh);
 
     return false;
   }
 
-  CLog::Log(LOGDEBUG, "CDRMUtils::%s - set crtc mode: %dx%d%s @ %d Hz",
+  CLog::Log(LOGDEBUG, "CDRMLegacy::%s - set crtc mode: %dx%d%s @ %d Hz",
             __FUNCTION__,
-            m_drm->mode->hdisplay,
-            m_drm->mode->vdisplay,
-            m_drm->mode->flags & DRM_MODE_FLAG_INTERLACE ? "i" : "",
-            m_drm->mode->vrefresh);
+            m_mode->hdisplay,
+            m_mode->vdisplay,
+            m_mode->flags & DRM_MODE_FLAG_INTERLACE ? "i" : "",
+            m_mode->vrefresh);
 
   return true;
 }
@@ -104,48 +90,53 @@ bool CDRMLegacy::WaitingForFlip()
     return false;
   }
 
-  m_drm_fds.fd = m_drm->fd;
-  m_drm_fds.events = POLLIN;
+  struct pollfd drm_fds =
+  {
+    m_fd,
+    POLLIN,
+    0,
+  };
 
-  m_drm_evctx.version = DRM_EVENT_CONTEXT_VERSION;
-  m_drm_evctx.page_flip_handler = PageFlipHandler;
-
-  m_drm_fds.revents = 0;
+  drmEventContext drm_evctx =
+  {
+    DRM_EVENT_CONTEXT_VERSION,
+    nullptr,
+    PageFlipHandler,
+  #if DRM_EVENT_CONTEXT_VERSION > 2
+    nullptr,
+  #endif
+  };
 
   while(flip_happening)
   {
-    auto ret = poll(&m_drm_fds, 1, -1);
+    auto ret = poll(&drm_fds, 1, -1);
 
     if(ret < 0)
     {
       return true;
     }
 
-    if(m_drm_fds.revents & (POLLHUP | POLLERR))
+    if(drm_fds.revents & (POLLHUP | POLLERR))
     {
       return true;
     }
 
-    if(m_drm_fds.revents & POLLIN)
+    if(drm_fds.revents & POLLIN)
     {
-      drmHandleEvent(m_drm->fd, &m_drm_evctx);
+      drmHandleEvent(m_fd, &drm_evctx);
     }
   }
-
-  gbm_surface_release_buffer(m_gbm->surface, m_bo);
-  m_bo = m_next_bo;
 
   return false;
 }
 
-bool CDRMLegacy::QueueFlip()
+bool CDRMLegacy::QueueFlip(struct gbm_bo *bo)
 {
-  m_next_bo = gbm_surface_lock_front_buffer(m_gbm->surface);
-  m_drm_fb = CDRMUtils::DrmFbGetFromBo(m_next_bo);
+  struct drm_fb *drm_fb = DrmFbGetFromBo(bo);
 
-  auto ret = drmModePageFlip(m_drm->fd,
-                             m_drm->crtc_id,
-                             m_drm_fb->fb_id,
+  auto ret = drmModePageFlip(m_fd,
+                             m_crtc->crtc->crtc_id,
+                             drm_fb->fb_id,
                              DRM_MODE_PAGE_FLIP_EVENT,
                              &flip_happening);
 
@@ -158,54 +149,24 @@ bool CDRMLegacy::QueueFlip()
   return true;
 }
 
-void CDRMLegacy::FlipPage(CGLContextEGL *pGLContext)
+void CDRMLegacy::FlipPage(struct gbm_bo *bo)
 {
-  if(WaitingForFlip())
-  {
-    return;
-  }
-
-  flip_happening = QueueFlip();
-
-  if(g_Windowing.NoOfBuffers() >= 3 && gbm_surface_has_free_buffers(m_gbm->surface))
-  {
-    return;
-  }
-
+  flip_happening = QueueFlip(bo);
   WaitingForFlip();
 }
 
-bool CDRMLegacy::InitDrmLegacy(drm *drm, gbm *gbm)
+bool CDRMLegacy::InitDrm()
 {
-  m_drm = drm;
-  m_gbm = gbm;
-
-  if (!CDRMUtils::InitDrm(m_drm))
+  if (!CDRMUtils::OpenDrm())
   {
     return false;
   }
 
-  m_gbm->dev = gbm_create_device(m_drm->fd);
-
-  if (!CGBMUtils::InitGbm(m_gbm, m_drm->mode->hdisplay, m_drm->mode->vdisplay))
+  if (!CDRMUtils::InitDrm())
   {
     return false;
   }
 
+  CLog::Log(LOGDEBUG, "CDRMLegacy::%s - initialized legacy DRM", __FUNCTION__);
   return true;
-}
-
-void CDRMLegacy::DestroyDrmLegacy()
-{
-  CDRMUtils::DestroyDrm();
-
-  if(m_gbm->surface)
-  {
-    gbm_surface_destroy(m_gbm->surface);
-  }
-
-  if(m_gbm->dev)
-  {
-    gbm_device_destroy(m_gbm->dev);
-  }
 }

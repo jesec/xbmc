@@ -48,7 +48,7 @@
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
 #ifdef TARGET_POSIX
-#include "linux/XTimeUtils.h"
+#include "platform/linux/XTimeUtils.h"
 #endif
 
 #ifdef TARGET_WINDOWS
@@ -230,6 +230,15 @@ bool CPythonInvoker::execute(const std::string &script, const std::vector<std::s
       PyObject *e = PyList_GetItem(pathObj, i); // borrowed ref, no need to delete
       if (e != NULL && PyString_Check(e))
         addNativePath(PyString_AsString(e)); // returns internal data, don't delete or modify
+#ifdef TARGET_WINDOWS_STORE
+      // uwp python operates unicodes
+      else if (e != NULL && PyUnicode_Check(e))
+      {
+        PyObject *utf8 = PyUnicode_AsUTF8String(e);
+        addNativePath(PyString_AsString(utf8));
+        Py_DECREF(utf8);
+      }
+#endif
     }
   }
   else

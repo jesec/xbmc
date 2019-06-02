@@ -38,9 +38,7 @@
 #include "guilib/StereoscopicsManager.h"
 #include "input/Key.h"
 #include "interfaces/builtins/Builtins.h"
-#ifdef HAS_JSONRPC
 #include "interfaces/json-rpc/JSONRPC.h"
-#endif
 #include "messaging/ApplicationMessenger.h"
 #include "messaging/helpers/DialogOKHelper.h"
 #include "network/Network.h"
@@ -48,13 +46,14 @@
 #include "profiles/Profile.h"
 #include "profiles/ProfilesManager.h"
 #include "profiles/dialogs/GUIDialogProfileSettings.h"
+#include "pvr/PVRGUIActions.h"
 #include "pvr/PVRManager.h"
 #include "settings/Settings.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
-#include "utils/Weather.h"
 #include "utils/Variant.h"
 #include "view/ViewState.h"
+#include "weather/WeatherManager.h"
 
 using namespace KODI::MESSAGING;
 
@@ -152,7 +151,7 @@ bool CGUIWindowLoginScreen::OnAction(const CAction &action)
     std::string actionName = action.GetName();
     StringUtils::ToLower(actionName);
     if ((actionName.find("shutdown") != std::string::npos) &&
-        CServiceBroker::GetPVRManager().CanSystemPowerdown())
+        CServiceBroker::GetPVRManager().GUIActions()->CanSystemPowerdown())
       CBuiltins::GetInstance().Execute(action.GetName());
     return true;
   }
@@ -283,7 +282,7 @@ void CGUIWindowLoginScreen::LoadProfile(unsigned int profile)
 
   if (profile != 0 || !CProfilesManager::GetInstance().IsMasterProfile())
   {
-    g_application.getNetwork().NetworkMessage(CNetwork::SERVICES_DOWN,1);
+    CServiceBroker::GetNetwork().NetworkMessage(CNetwork::SERVICES_DOWN, 1);
     CProfilesManager::GetInstance().LoadProfile(profile);
   }
   else
@@ -292,7 +291,7 @@ void CGUIWindowLoginScreen::LoadProfile(unsigned int profile)
     if (pWindow)
       pWindow->ResetControlStates();
   }
-  g_application.getNetwork().NetworkMessage(CNetwork::SERVICES_UP,1);
+  CServiceBroker::GetNetwork().NetworkMessage(CNetwork::SERVICES_UP, 1);
 
   CProfilesManager::GetInstance().UpdateCurrentProfileDate();
   CProfilesManager::GetInstance().Save();
@@ -316,11 +315,9 @@ void CGUIWindowLoginScreen::LoadProfile(unsigned int profile)
     return;
   }
 
-  g_weatherManager.Refresh();
+  CServiceBroker::GetWeatherManager().Refresh();
 
-#ifdef HAS_JSONRPC
   JSONRPC::CJSONRPC::Initialize();
-#endif
 
   // Restart context menu manager
   CServiceBroker::GetContextMenuManager().Init();

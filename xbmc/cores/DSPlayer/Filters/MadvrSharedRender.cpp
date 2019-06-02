@@ -32,12 +32,12 @@
 
 CMadvrSharedRender::CMadvrSharedRender()
 {
-  g_application.m_pPlayer->Register(this);
+  g_application.GetAppPlayer().Register(this);
 }
 
 CMadvrSharedRender::~CMadvrSharedRender()
 {
-  g_application.m_pPlayer->Unregister(this);
+  g_application.GetAppPlayer().Unregister(this);
 }
 
 HRESULT CMadvrSharedRender::Render(DS_RENDER_LAYER layer)
@@ -46,7 +46,7 @@ HRESULT CMadvrSharedRender::Render(DS_RENDER_LAYER layer)
   if (m_bWaitKodiRendering)
     m_dsWait.Wait(100);
 
-  if (!g_application.m_pPlayer->ReadyDS() || (g_graphicsContext.IsFullScreenVideo() && layer == RENDER_LAYER_UNDER))
+  if (!g_application.GetAppPlayer().ReadyDS() || (g_graphicsContext.IsFullScreenVideo() && layer == RENDER_LAYER_UNDER))
     return CALLBACK_INFO_DISPLAY;
 
   // Render the GUI on madVR

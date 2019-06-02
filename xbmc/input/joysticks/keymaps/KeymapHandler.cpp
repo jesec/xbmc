@@ -75,7 +75,7 @@ bool CKeymapHandler::AcceptsInput(const FeatureName& feature) const
   if (HasAction(CJoystickUtils::MakeKeyName(feature)))
     return true;
   
-  for (auto dir : CJoystickUtils::GetDirections())
+  for (auto dir : CJoystickUtils::GetAnalogStickDirections())
   {
     if (HasAction(CJoystickUtils::MakeKeyName(feature, dir)))
       return true;
@@ -122,7 +122,7 @@ bool CKeymapHandler::OnAnalogStickMotion(const FeatureName& feature, float x, fl
   const float magnitude = std::max(std::fabs(x), std::fabs(y));
 
   // Deactivate directions in which the stick is not pointing first
-  for (auto dir : CJoystickUtils::GetDirections())
+  for (auto dir : CJoystickUtils::GetAnalogStickDirections())
   {
     if (dir != analogStickDir)
       DeactivateDirection(feature, dir);
@@ -131,6 +131,54 @@ bool CKeymapHandler::OnAnalogStickMotion(const FeatureName& feature, float x, fl
   // Now activate direction the analog stick is pointing
   if (analogStickDir != ANALOG_STICK_DIRECTION::UNKNOWN)
     bHandled = ActivateDirection(feature, magnitude, analogStickDir, motionTimeMs);
+
+  return bHandled;
+}
+
+bool CKeymapHandler::OnWheelMotion(const FeatureName& feature, float position, unsigned int motionTimeMs)
+{
+  bool bHandled = false;
+
+  // Calculate the direction of the wheel's position
+  const WHEEL_DIRECTION direction = CJoystickTranslator::PositionToWheelDirection(position);
+
+  // Calculate the magnitude projected onto that direction
+  const float magnitude = std::fabs(position);
+
+  // Deactivate directions in which the wheel is not pointing first
+  for (auto dir : CJoystickUtils::GetWheelDirections())
+  {
+    if (dir != direction)
+      DeactivateDirection(feature, dir);
+  }
+
+  // Now activate direction in which the wheel is positioned
+  if (direction != WHEEL_DIRECTION::UNKNOWN)
+    bHandled = ActivateDirection(feature, magnitude, direction, motionTimeMs);
+
+  return bHandled;
+}
+
+bool CKeymapHandler::OnThrottleMotion(const FeatureName& feature, float position, unsigned int motionTimeMs)
+{
+  bool bHandled = false;
+
+  // Calculate the direction of the throttle's position
+  const THROTTLE_DIRECTION direction = CJoystickTranslator::PositionToThrottleDirection(position);
+
+  // Calculate the magnitude projected onto that direction
+  const float magnitude = std::fabs(position);
+
+  // Deactivate directions in which the throttle is not pointing first
+  for (auto dir : CJoystickUtils::GetThrottleDirections())
+  {
+    if (dir != direction)
+      DeactivateDirection(feature, dir);
+  }
+
+  // Now activate direction in which the throttle is positioned
+  if (direction != THROTTLE_DIRECTION::UNKNOWN)
+    bHandled = ActivateDirection(feature, magnitude, direction, motionTimeMs);
 
   return bHandled;
 }
@@ -156,6 +204,38 @@ void CKeymapHandler::DeactivateDirection(const FeatureName& feature, ANALOG_STIC
   handler->OnAnalogMotion(0.0f, 0);
 }
 
+bool CKeymapHandler::ActivateDirection(const FeatureName& feature, float magnitude, WHEEL_DIRECTION dir, unsigned int motionTimeMs)
+{
+  const std::string keyName = CJoystickUtils::MakeKeyName(feature, dir);
+
+  IKeyHandler *handler = GetKeyHandler(keyName);
+  return handler->OnAnalogMotion(magnitude, motionTimeMs);
+}
+
+void CKeymapHandler::DeactivateDirection(const FeatureName& feature, WHEEL_DIRECTION dir)
+{
+  const std::string keyName = CJoystickUtils::MakeKeyName(feature, dir);
+
+  IKeyHandler *handler = GetKeyHandler(keyName);
+  handler->OnAnalogMotion(0.0f, 0);
+}
+
+bool CKeymapHandler::ActivateDirection(const FeatureName& feature, float magnitude, THROTTLE_DIRECTION dir, unsigned int motionTimeMs)
+{
+  const std::string keyName = CJoystickUtils::MakeKeyName(feature, dir);
+
+  IKeyHandler *handler = GetKeyHandler(keyName);
+  return handler->OnAnalogMotion(magnitude, motionTimeMs);
+}
+
+void CKeymapHandler::DeactivateDirection(const FeatureName& feature, THROTTLE_DIRECTION dir)
+{
+  const std::string keyName = CJoystickUtils::MakeKeyName(feature, dir);
+
+  IKeyHandler *handler = GetKeyHandler(keyName);
+  handler->OnAnalogMotion(0.0f, 0);
+}
+
 IKeyHandler *CKeymapHandler::GetKeyHandler(const std::string &keyName)
 {
   auto it = m_keyHandlers.find(keyName);
@@ -173,7 +253,7 @@ bool CKeymapHandler::HasAction(const std::string &keyName) const
 {
   bool bHasAction = false;
 
-  const auto &actions = m_keymap->GetActions(keyName);
+  const auto &actions = m_keymap->GetActions(keyName).actions;
   for (const auto &action : actions)
   {
     if (HotkeysPressed(action.hotkeys))

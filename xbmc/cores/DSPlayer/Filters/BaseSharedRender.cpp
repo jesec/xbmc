@@ -69,7 +69,7 @@ void CRenderWait::Unlock()
 
 void CBaseSharedRender::IncRenderCount()
 {
-  if (!g_application.m_pPlayer->ReadyDS())
+  if (!g_application.GetAppPlayer().ReadyDS())
     return;
 
   m_currentVideoLayer == RENDER_LAYER_UNDER ? m_renderUnderCount += 1 : m_renderOverCount += 1;

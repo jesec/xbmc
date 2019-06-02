@@ -675,7 +675,7 @@ void CStreamsManager::LoadStreams()
   }
   SubtitleManager->SelectBestSubtitle();
 
-  SubtitleManager->SetSubtitleVisible(g_application.m_pPlayer->GetVideoSettings().m_SubtitleOn);
+  SubtitleManager->SetSubtitleVisible(g_application.GetAppPlayer().GetVideoSettings().m_SubtitleOn);
 }
 
 int CStreamsManager::GetSubtitle()
@@ -749,9 +749,9 @@ void CStreamsManager::SetSubtitleVisible(bool bVisible)
     return;
   }
 
-  CVideoSettings vs = g_application.m_pPlayer->GetVideoSettings();
+  CVideoSettings vs = g_application.GetAppPlayer().GetVideoSettings();
   vs.m_SubtitleOn = bVisible;
-  g_application.m_pPlayer->SetVideoSettings(vs);
+  g_application.GetAppPlayer().SetVideoSettings(vs);
   m_bSubfilterVisible = bVisible;
 
   if (!m_bIsXYVSFilter)
@@ -956,13 +956,13 @@ void CStreamsManager::SetSubtitle(int iStream)
   m_readyEvent.Reset();
   CAutoSetEvent event(&m_readyEvent);
 
-  CVideoSettings vs = g_application.m_pPlayer->GetVideoSettings();
+  CVideoSettings vs = g_application.GetAppPlayer().GetVideoSettings();
   vs.m_SubtitleStream = enableIndex;
-  g_application.m_pPlayer->SetVideoSettings(vs);
+  g_application.GetAppPlayer().SetVideoSettings(vs);
 
   if (m_subfilterStreams[enableIndex]->m_subType == EXTERNAL)
   {    
-    g_application.m_pPlayer->GetVideoSettings().m_SubtitleExtTrackName = m_subfilterStreams[enableIndex]->displayname;
+    g_application.GetAppPlayer().GetVideoSettings().m_SubtitleExtTrackName = m_subfilterStreams[enableIndex]->displayname;
     
     DisconnectCurrentSubtitlePins();
 
@@ -975,7 +975,7 @@ void CStreamsManager::SetSubtitle(int iStream)
 
   else if (m_pIAMStreamSelect)
   {
-    g_application.m_pPlayer->GetVideoSettings().m_SubtitleExtTrackName = "";
+    g_application.GetAppPlayer().GetVideoSettings().m_SubtitleExtTrackName = "";
 
     if (disableIndex >= 0 && m_subfilterStreams[disableIndex]->connected)
       DisconnectCurrentSubtitlePins();
@@ -989,7 +989,7 @@ void CStreamsManager::SetSubtitle(int iStream)
     }
   }
   CLog::Log(LOGDEBUG, "%s Successfully selected subfilter stream number %i", __FUNCTION__, enableIndex);
-  SetSubtitleVisible(g_application.m_pPlayer->GetVideoSettings().m_SubtitleOn);
+  SetSubtitleVisible(g_application.GetAppPlayer().GetVideoSettings().m_SubtitleOn);
 }
 
 void CStreamsManager::SubInterface(SelectSubType action)
@@ -1043,7 +1043,7 @@ void CStreamsManager::SubInterface(SelectSubType action)
 void CStreamsManager::SelectBestAudio()
 {
   std::string sPrefCodec = CServiceBroker::GetSettings().GetString(CSettings::SETTING_DSPLAYER_PREFAUDIOCODEC);
-  int iLibrary = g_application.m_pPlayer->GetVideoSettings().m_AudioStream;
+  int iLibrary = g_application.GetAppPlayer().GetVideoSettings().m_AudioStream;
   if ((iLibrary < GetAudioStreamCount()) && !(iLibrary < 0))
   {
     SetAudioStream(iLibrary);
@@ -1113,8 +1113,8 @@ void CStreamsManager::SelectBestSubtitle(const std::string &fileName /* ="" */)
   }
 
   // set previuos selected stream
-  iLibrary = g_application.m_pPlayer->GetVideoSettings().m_SubtitleStream;
-  if ((iLibrary < g_application.m_pPlayer->GetSubtitleCount()) && !(iLibrary < 0))
+  iLibrary = g_application.GetAppPlayer().GetVideoSettings().m_SubtitleStream;
+  if ((iLibrary < g_application.GetAppPlayer().GetSubtitleCount()) && !(iLibrary < 0))
     select = iLibrary;
     
   // set prefered external sub or first external sub
@@ -1554,8 +1554,8 @@ m_dll(), m_pStreamManager(pStreamManager), m_rtSubtitleDelay(0)
   memset(&m_subtitleMediaType, 0, sizeof(AM_MEDIA_TYPE));
   m_subtitleMediaType.majortype = MEDIATYPE_Subtitle;
 
-  m_bSubtitlesVisible = g_application.m_pPlayer->GetVideoSettings().m_SubtitleOn;
-  SetSubtitleDelay(g_application.m_pPlayer->GetVideoSettings().m_SubtitleDelay);
+  m_bSubtitlesVisible = g_application.GetAppPlayer().GetVideoSettings().m_SubtitleOn;
+  SetSubtitleDelay(g_application.GetAppPlayer().GetVideoSettings().m_SubtitleDelay);
 
   m_pManager.reset();
 }
@@ -1776,9 +1776,9 @@ void CSubtitleManager::SetSubtitle(int iStream)
   std::string subtitlePath = "";
   Com::SmartPtr<IPin> newAudioStreamPin;
 
-  CVideoSettings vs = g_application.m_pPlayer->GetVideoSettings();
+  CVideoSettings vs = g_application.GetAppPlayer().GetVideoSettings();
   vs.m_SubtitleStream = enableIndex;
-  g_application.m_pPlayer->SetVideoSettings(vs);
+  g_application.GetAppPlayer().SetVideoSettings(vs);
 
   if (m_subtitleStreams[enableIndex]->m_subType == EXTERNAL)
   {
@@ -1792,7 +1792,7 @@ void CSubtitleManager::SetSubtitle(int iStream)
     s->flags = AMSTREAMSELECTINFO_ENABLED; // for gui
     s->connected = true;
 
-    SetSubtitleVisible(g_application.m_pPlayer->GetVideoSettings().m_SubtitleOn);
+    SetSubtitleVisible(g_application.GetAppPlayer().GetVideoSettings().m_SubtitleOn);
     return;
   }
 
@@ -1806,7 +1806,7 @@ void CSubtitleManager::SetSubtitle(int iStream)
       m_pManager->SetSubPicProviderToInternal();
       m_subtitleStreams[enableIndex]->flags = AMSTREAMSELECTINFO_ENABLED;
       m_subtitleStreams[enableIndex]->connected = true;
-      SetSubtitleVisible(g_application.m_pPlayer->GetVideoSettings().m_SubtitleOn);
+      SetSubtitleVisible(g_application.GetAppPlayer().GetVideoSettings().m_SubtitleOn);
       CLog::Log(LOGDEBUG, "%s Successfully selected subtitle stream", __FUNCTION__);
     }
   }
@@ -1892,9 +1892,9 @@ bool CSubtitleManager::GetSubtitleVisible()
 
 void CSubtitleManager::SetSubtitleVisible(bool bVisible)
 {
-  CVideoSettings vs = g_application.m_pPlayer->GetVideoSettings();
+  CVideoSettings vs = g_application.GetAppPlayer().GetVideoSettings();
   vs.m_SubtitleOn = bVisible;
-  g_application.m_pPlayer->SetVideoSettings(vs);
+  g_application.GetAppPlayer().SetVideoSettings(vs);
   m_bSubtitlesVisible = bVisible;
   if (m_pManager)
     m_pManager->SetEnable(bVisible);
@@ -2187,8 +2187,8 @@ void CSubtitleManager::SelectBestSubtitle()
   int iLibrary;
 
   // set previuos selected stream
-  iLibrary = g_application.m_pPlayer->GetVideoSettings().m_SubtitleStream;
-  if ((iLibrary < g_application.m_pPlayer->GetSubtitleCount()) && !(iLibrary < 0))
+  iLibrary = g_application.GetAppPlayer().GetVideoSettings().m_SubtitleStream;
+  if ((iLibrary < g_application.GetAppPlayer().GetSubtitleCount()) && !(iLibrary < 0))
     select = iLibrary;
 
   // set first external sub
@@ -2209,7 +2209,7 @@ void CSubtitleManager::SelectBestSubtitle()
   if (select != -1)
     SetSubtitle(select);
 
-  SetSubtitleVisible(g_application.m_pPlayer->GetVideoSettings().m_SubtitleOn);
+  SetSubtitleVisible(g_application.GetAppPlayer().GetVideoSettings().m_SubtitleOn);
 }
 
 #endif

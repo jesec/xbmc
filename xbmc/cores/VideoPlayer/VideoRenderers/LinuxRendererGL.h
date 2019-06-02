@@ -38,6 +38,7 @@
 #include "VideoShaders/ShaderFormats.h"
 
 class CRenderCapture;
+class CRenderSystemGL;
 
 class CBaseTexture;
 namespace Shaders { class BaseYUV2RGBGLSLShader; }
@@ -107,7 +108,6 @@ public:
   bool IsConfigured() override { return m_bConfigured; }
   void AddVideoPicture(const VideoPicture &picture, int index, double currentClock) override;
   void UnInit() override;
-  void Reset() override;
   void Flush() override;
   void SetBufferSize(int numBuffers) override { m_NumYV12Buffers = numBuffers; }
   void ReleaseBuffer(int idx) override;
@@ -178,6 +178,7 @@ protected:
   GLenum m_textureTarget;
   int m_renderMethod;
   RenderQuality m_renderQuality;
+  CRenderSystemGL *m_renderSystem;
   
   // Raw data used by renderer
   int m_currentField;

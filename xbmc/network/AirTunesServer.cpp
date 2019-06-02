@@ -21,9 +21,6 @@
  *
  */
 
-#include "system.h"
-
-#ifdef HAS_AIRTUNES
 #include "AirTunesServer.h"
 
 #include <map>
@@ -417,8 +414,8 @@ void CAirTunesServer::AudioOutputFunctions::audio_set_progress(void *cls, void *
   duration /= m_sampleRate;
   position /= m_sampleRate;
 
-  g_application.m_pPlayer->SetTime(position * 1000);
-  g_application.m_pPlayer->SetTotalTime(duration * 1000);
+  g_application.GetAppPlayer().SetTime(position * 1000);
+  g_application.GetAppPlayer().SetTotalTime(duration * 1000);
 }
 
 void CAirTunesServer::SetupRemoteControl()
@@ -549,7 +546,7 @@ bool CAirTunesServer::StartServer(int port, bool nonlocal, bool usePassword, con
 {
   bool success = false;
   std::string pw = password;
-  CNetworkInterface *net = g_application.getNetwork().GetFirstConnectedInterface();
+  CNetworkInterface *net = CServiceBroker::GetNetwork().GetFirstConnectedInterface();
   StopServer(true);
 
   if (net)
@@ -707,7 +704,7 @@ bool CAirTunesServer::Initialize(const std::string &password)
 
       m_pLibShairplay->raop_set_log_callback(m_pRaop, shairplay_log, NULL);
 
-      CNetworkInterface *net = g_application.getNetwork().GetFirstConnectedInterface();
+      CNetworkInterface *net = CServiceBroker::GetNetwork().GetFirstConnectedInterface();
 
       if (net)
       {
@@ -732,6 +729,3 @@ void CAirTunesServer::Deinitialize()
     m_pRaop = nullptr;
   }
 }
-
-#endif
-

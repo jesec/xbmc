@@ -561,7 +561,7 @@ void CBaseRenderer::SetViewMode(int viewMode)
     CDisplaySettings::GetInstance().SetPixelRatio(1.0f);
     CDisplaySettings::GetInstance().SetZoomAmount(fitHeightZoom < 1.0f ? 1.0f : (fitHeightZoom > 1.1f ? 1.1f : fitHeightZoom));
   }
-  else // if (g_application.m_pPlayer->GetVideoSettings().m_ViewMode == ViewModeNormal)
+  else // if (g_application.GetAppPlayer().GetVideoSettings().m_ViewMode == ViewModeNormal)
   {
     CDisplaySettings::GetInstance().SetPixelRatio(1.0);
     CDisplaySettings::GetInstance().SetZoomAmount(1.0);

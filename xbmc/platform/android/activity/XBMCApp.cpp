@@ -71,7 +71,11 @@
 #include "settings/DisplaySettings.h"
 #include "guilib/GraphicContext.h"
 #include "guilib/GUIWindowManager.h"
+// Audio Engine includes for Factory and interfaces
 #include "cores/AudioEngine/Interfaces/AE.h"
+#include "cores/AudioEngine/AESinkFactory.h"
+#include "cores/AudioEngine/Sinks/AESinkAUDIOTRACK.h"
+
 #include "ServiceBroker.h"
 #include "GUIInfoManager.h"
 #include "guiinfo/GUIInfoLabels.h"
@@ -194,6 +198,9 @@ void CXBMCApp::onStart()
 
   if (m_firstrun)
   {
+    // Register sink
+    AE::CAESinkFactory::ClearSinks();
+    CAESinkAUDIOTRACK::Register();
     pthread_attr_t attr;
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
@@ -209,7 +216,6 @@ void CXBMCApp::onStart()
     intentFilter.addAction("android.intent.action.SCREEN_OFF");
     intentFilter.addAction("android.net.conn.CONNECTIVITY_CHANGE");
     registerReceiver(*this, intentFilter);
-
     m_mediaSession.reset(new CJNIXBMCMediaSession());
   }
 }
@@ -241,11 +247,11 @@ void CXBMCApp::onPause()
 {
   android_printf("%s: ", __PRETTY_FUNCTION__);
 
-  if (g_application.m_pPlayer->IsPlaying())
+  if (g_application.GetAppPlayer().IsPlaying())
   {
-    if (g_application.m_pPlayer->HasVideo())
+    if (g_application.GetAppPlayer().HasVideo())
     {
-      if (!g_application.m_pPlayer->IsPaused() && !m_hasReqVisible)
+      if (!g_application.GetAppPlayer().IsPaused() && !m_hasReqVisible)
         CApplicationMessenger::GetInstance().SendMsg(TMSG_GUI_ACTION, WINDOW_INVALID, -1, static_cast<void*>(new CAction(ACTION_PAUSE)));
     }
   }
@@ -453,31 +459,11 @@ void CXBMCApp::run()
   SetupEnv();
   XBMC::Context context;
 
-  CJNIIntent startIntent = getIntent();
-
-  android_printf("%s Started with action: %s\n", CCompileInfo::GetAppName(), startIntent.getAction().c_str());
-
-  CAppParamParser appParamParser;
-  std::string filenameToPlay = GetFilenameFromIntent(startIntent);
-  if (!filenameToPlay.empty())
-  {
-    android_printf("-- filename: %s", filenameToPlay.c_str());
-    int argc = 2;
-    const char** argv = (const char**) malloc(argc*sizeof(char*));
-
-    std::string exe_name(CCompileInfo::GetAppName());
-    argv[0] = exe_name.c_str();
-    argv[1] = filenameToPlay.c_str();
-
-    appParamParser.Parse(argv, argc);
-
-    free(argv);
-  }
-
   m_firstrun=false;
   android_printf(" => running XBMC_Run...");
   try
   {
+    CAppParamParser appParamParser;
     status = XBMC_Run(true, appParamParser);
     android_printf(" => XBMC_Run finished with %d", status);
   }
@@ -627,7 +613,7 @@ void CXBMCApp::UpdateSessionMetadata()
   builder
       .putString(CJNIMediaMetadata::METADATA_KEY_DISPLAY_TITLE, g_infoManager.GetLabel(PLAYER_TITLE))
       .putString(CJNIMediaMetadata::METADATA_KEY_TITLE, g_infoManager.GetLabel(PLAYER_TITLE))
-      .putLong(CJNIMediaMetadata::METADATA_KEY_DURATION, g_application.m_pPlayer->GetTotalTime())
+      .putLong(CJNIMediaMetadata::METADATA_KEY_DURATION, g_application.GetAppPlayer().GetTotalTime())
 //      .putString(CJNIMediaMetadata::METADATA_KEY_ART_URI, thumb)
 //      .putString(CJNIMediaMetadata::METADATA_KEY_DISPLAY_ICON_URI, thumb)
 //      .putString(CJNIMediaMetadata::METADATA_KEY_ALBUM_ART_URI, thumb)
@@ -670,16 +656,16 @@ void CXBMCApp::UpdateSessionState()
   float speed = 0.0;
   if (m_playback_state != PLAYBACK_STATE_STOPPED)
   {
-    if (g_application.m_pPlayer->HasVideo())
+    if (g_application.GetAppPlayer().HasVideo())
       m_playback_state |= PLAYBACK_STATE_VIDEO;
     else
       m_playback_state &= ~PLAYBACK_STATE_VIDEO;
-    if (g_application.m_pPlayer->HasAudio())
+    if (g_application.GetAppPlayer().HasAudio())
       m_playback_state |= PLAYBACK_STATE_AUDIO;
     else
       m_playback_state &= ~PLAYBACK_STATE_AUDIO;
-    pos = g_application.m_pPlayer->GetTime();
-    speed = g_application.m_pPlayer->GetPlaySpeed();
+    pos = g_application.GetAppPlayer().GetTime();
+    speed = g_application.GetAppPlayer().GetPlaySpeed();
     if (m_playback_state & PLAYBACK_STATE_PLAYING)
       state = CJNIPlaybackState::STATE_PLAYING;
     else
@@ -699,11 +685,11 @@ void CXBMCApp::OnPlayBackStarted()
   CLog::Log(LOGDEBUG, "%s", __PRETTY_FUNCTION__);
 
   m_playback_state = PLAYBACK_STATE_PLAYING;
-  if (g_application.m_pPlayer->HasVideo())
+  if (g_application.GetAppPlayer().HasVideo())
     m_playback_state |= PLAYBACK_STATE_VIDEO;
-  if (g_application.m_pPlayer->HasAudio())
+  if (g_application.GetAppPlayer().HasAudio())
     m_playback_state |= PLAYBACK_STATE_AUDIO;
-  if (!g_application.m_pPlayer->CanPause())
+  if (!g_application.GetAppPlayer().CanPause())
     m_playback_state |= PLAYBACK_STATE_CANNOT_PAUSE;
 
   m_mediaSession->activate(true);
@@ -1029,7 +1015,7 @@ void CXBMCApp::onReceive(CJNIIntent intent)
   {
     if (g_application.IsInitialized())
     {
-      CNetwork& net = g_application.getNetwork();
+      CNetwork& net = CServiceBroker::GetNetwork();
       CNetworkAndroid* netdroid = static_cast<CNetworkAndroid*>(&net);
       netdroid->RetrieveInterfaces();
     }
@@ -1041,21 +1027,26 @@ void CXBMCApp::onNewIntent(CJNIIntent intent)
   std::string action = intent.getAction();
   CLog::Log(LOGDEBUG, "CXBMCApp::onNewIntent - Got intent. Action: %s", action.c_str());
   std::string targetFile = GetFilenameFromIntent(intent);
-  CLog::Log(LOGDEBUG, "-- targetFile: %s", targetFile.c_str());
-  if (action == "android.intent.action.VIEW" || action == "android.intent.action.GET_CONTENT")
+  if (!targetFile.empty() &&  (action == "android.intent.action.VIEW" || action == "android.intent.action.GET_CONTENT"))
   {
+    CLog::Log(LOGDEBUG, "-- targetFile: %s", targetFile.c_str());
+
     CURL targeturl(targetFile);
     std::string value;
     if (action == "android.intent.action.GET_CONTENT" || (targeturl.GetOption("showinfo", value) && value == "true"))
     {
-      if (targeturl.IsProtocol("videodb"))
+      if (targeturl.IsProtocol("videodb")
+          || (targeturl.IsProtocol("special") && targetFile.find("playlists/video") != std::string::npos)
+          || (targeturl.IsProtocol("special") && targetFile.find("playlists/mixed") != std::string::npos)
+          )
       {
         std::vector<std::string> params;
         params.push_back(targeturl.Get());
         params.push_back("return");
         CApplicationMessenger::GetInstance().PostMsg(TMSG_GUI_ACTIVATE_WINDOW, WINDOW_VIDEO_NAV, 0, nullptr, "", params);
       }
-      else if (targeturl.IsProtocol("musicdb"))
+      else if (targeturl.IsProtocol("musicdb")
+               || (targeturl.IsProtocol("special") && targetFile.find("playlists/music") != std::string::npos))
       {
         std::vector<std::string> params;
         params.push_back(targeturl.Get());

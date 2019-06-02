@@ -620,12 +620,12 @@ void CDSPlayer::Process()
 
     // Select Audio Stream, Delay
     if (CStreamsManager::Get()) CStreamsManager::Get()->SelectBestAudio();
-    SetAVDelay(g_application.m_pPlayer->GetVideoSettings().m_AudioDelay);
+    SetAVDelay(g_application.GetAppPlayer().GetVideoSettings().m_AudioDelay);
 
     // Select Subtitle Stream, Delay, On/Off
     if (CStreamsManager::Get()) CStreamsManager::Get()->SelectBestSubtitle(m_currentFileItem.GetPath());
-    SetSubTitleDelay(g_application.m_pPlayer->GetVideoSettings().m_SubtitleDelay);
-    SetSubtitleVisible(g_application.m_pPlayer->GetVideoSettings().m_SubtitleOn);
+    SetSubTitleDelay(g_application.GetAppPlayer().GetVideoSettings().m_SubtitleDelay);
+    SetSubtitleVisible(g_application.GetAppPlayer().GetVideoSettings().m_SubtitleOn);
 
     if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_SHOWBDTITLECHOICE))
       ShowEditionDlg(true);
@@ -670,7 +670,7 @@ void CDSPlayer::HandleMessages()
       if (pMsg->IsType(CDSMsg::RESET_DEVICE))
       {
         CDSMsgBool* speMsg = reinterpret_cast<CDSMsgBool *>(pMsg);
-        g_application.m_pPlayer->Reset(speMsg->m_value);
+        g_application.GetAppPlayer().Reset(speMsg->m_value);
       }
       if (pMsg->IsType(CDSMsg::SET_WINDOW_POS))
       {
@@ -1016,7 +1016,7 @@ void CDSPlayer::UpdateChannelSwitchSettings()
 #ifdef HAS_VIDEO_PLAYBACK
   // when using fast channel switching some shortcuts are taken which 
   // means we'll have to update the view mode manually
-  m_renderManager.SetViewMode(g_application.m_pPlayer->GetVideoSettings().m_ViewMode);
+  m_renderManager.SetViewMode(g_application.GetAppPlayer().GetVideoSettings().m_ViewMode);
 #endif
 }
 
@@ -1108,7 +1108,7 @@ void CDSPlayer::OnResetDisplay()
 void CDSPlayer::UpdateProcessInfo(int index)
 {
   if (index == CURRENT_STREAM)
-    index = g_application.m_pPlayer->GetAudioStream();
+    index = g_application.GetAppPlayer().GetAudioStream();
 
   std::string info;
 
@@ -1157,7 +1157,7 @@ void CDSPlayer::UpdateProcessInfo(int index)
 void CDSPlayer::SetAudioCodeDelayInfo(int index)
 {
   if (index == CURRENT_STREAM)
-    index = g_application.m_pPlayer->GetAudioStream();
+    index = g_application.GetAppPlayer().GetAudioStream();
 
   std::string info;
   int iAudioDelay = CStreamsManager::Get() ? CStreamsManager::Get()->GetLastAVDelay() : 0;

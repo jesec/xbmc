@@ -28,6 +28,7 @@
 #include "GUIInfoManager.h"
 #include "threads/SingleLock.h"
 #include "utils/URIUtils.h"
+#include "SeekHandler.h"
 #include "settings/AdvancedSettings.h"
 #include "addons/Skin.h"
 #include "GUITexture.h"
@@ -35,7 +36,6 @@
 #include "input/Key.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
-#include "utils/SeekHandler.h"
 
 #include "windows/GUIWindowHome.h"
 #include "events/windows/GUIWindowEventLog.h"
@@ -47,6 +47,7 @@
 #include "music/windows/GUIWindowMusicNav.h"
 #include "music/windows/GUIWindowMusicPlaylistEditor.h"
 #include "video/windows/GUIWindowVideoPlaylist.h"
+#include "music/dialogs/GUIDialogInfoProviderSettings.h"
 #include "music/dialogs/GUIDialogMusicInfo.h"
 #include "video/dialogs/GUIDialogVideoInfo.h"
 #include "video/windows/GUIWindowVideoNav.h"
@@ -60,7 +61,7 @@
 #include "settings/windows/GUIWindowSettingsScreenCalibration.h"
 #include "programs/GUIWindowPrograms.h"
 #include "pictures/GUIWindowPictures.h"
-#include "windows/GUIWindowWeather.h"
+#include "weather/GUIWindowWeather.h"
 #include "windows/GUIWindowLoginScreen.h"
 #include "addons/GUIWindowAddonBrowser.h"
 #include "music/windows/GUIWindowVisualisation.h"
@@ -90,6 +91,7 @@
 #include "profiles/dialogs/GUIDialogProfileSettings.h"
 #include "profiles/dialogs/GUIDialogLockSettings.h"
 #include "settings/dialogs/GUIDialogContentSettings.h"
+#include "settings/dialogs/GUIDialogLibExportSettings.h"
 #include "dialogs/GUIDialogBusy.h"
 #include "dialogs/GUIDialogKeyboardGeneric.h"
 #include "dialogs/GUIDialogKeyboardTouch.h"
@@ -128,6 +130,7 @@
 #include "pvr/windows/GUIWindowPVRSearch.h"
 #include "pvr/dialogs/GUIDialogPVRChannelManager.h"
 #include "pvr/dialogs/GUIDialogPVRChannelsOSD.h"
+#include "pvr/dialogs/GUIDialogPVRClientPriorities.h"
 #include "pvr/dialogs/GUIDialogPVRGroupManager.h"
 #include "pvr/dialogs/GUIDialogPVRGuideInfo.h"
 #include "pvr/dialogs/GUIDialogPVRChannelGuide.h"
@@ -143,6 +146,7 @@
 #include "dialogs/GUIDialogMediaFilter.h"
 #include "video/dialogs/GUIDialogSubtitles.h"
 
+#include "peripherals/dialogs/GUIDialogPeripherals.h"
 #include "peripherals/dialogs/GUIDialogPeripheralSettings.h"
 #include "addons/interfaces/AddonInterfaces.h"
 
@@ -270,9 +274,14 @@ void CGUIWindowManager::CreateWindows()
   Add(new CGUIDialogLockSettings);
 
   Add(new CGUIDialogContentSettings);
+  
+  Add(new CGUIDialogLibExportSettings);
+
+  Add(new CGUIDialogInfoProviderSettings);
 
   Add(new CGUIDialogPlayEject);
 
+  Add(new CGUIDialogPeripherals);
   Add(new CGUIDialogPeripheralSettings);
 
   Add(new CGUIDialogMediaFilter);
@@ -306,6 +315,7 @@ void CGUIWindowManager::CreateWindows()
   Add(new CGUIDialogPVRChannelsOSD);
   Add(new CGUIDialogPVRChannelGuide);
   Add(new CGUIDialogPVRRecordingSettings);
+  Add(new CGUIDialogPVRClientPriorities);
 
   Add(new CGUIDialogSelect);
   Add(new CGUIDialogMusicInfo);
@@ -381,6 +391,8 @@ bool CGUIWindowManager::DestroyWindows()
 #endif
     DestroyWindow(WINDOW_DIALOG_VIDEO_BOOKMARKS);
     DestroyWindow(WINDOW_DIALOG_CONTENT_SETTINGS);
+    DestroyWindow(WINDOW_DIALOG_INFOPROVIDER_SETTINGS);
+    DestroyWindow(WINDOW_DIALOG_LIBEXPORT_SETTINGS);
     DestroyWindow(WINDOW_DIALOG_FAVOURITES);
     DestroyWindow(WINDOW_DIALOG_SONG_INFO);
     DestroyWindow(WINDOW_DIALOG_SMART_PLAYLIST_EDITOR);
@@ -420,6 +432,7 @@ bool CGUIWindowManager::DestroyWindows()
     DestroyWindow(WINDOW_DIALOG_PVR_CHANNEL_GUIDE);
     DestroyWindow(WINDOW_DIALOG_OSD_TELETEXT);
     DestroyWindow(WINDOW_DIALOG_PVR_RECORDING_SETTING);
+    DestroyWindow(WINDOW_DIALOG_PVR_CLIENT_PRIORITIES);
 
     DestroyWindow(WINDOW_DIALOG_TEXT_VIEWER);
     DestroyWindow(WINDOW_DIALOG_PLAY_EJECT);
@@ -462,6 +475,9 @@ bool CGUIWindowManager::DestroyWindows()
     Remove(WINDOW_DIALOG_VOLUME_BAR);
 
     DestroyWindow(WINDOW_EVENT_LOG);
+
+    DestroyWindow(WINDOW_DIALOG_PERIPHERALS);
+    DestroyWindow(WINDOW_DIALOG_PERIPHERAL_SETTINGS);
   }
   catch (...)
   {
@@ -632,7 +648,7 @@ void CGUIWindowManager::AddCustomWindow(CGUIWindow* pWindow)
 {
   CSingleLock lock(g_graphicsContext);
   Add(pWindow);
-  m_vecCustomWindows.push_back(pWindow);
+  m_vecCustomWindows.emplace_back(pWindow);
 }
 
 void CGUIWindowManager::RegisterDialog(CGUIWindow* dialog)
@@ -644,7 +660,7 @@ void CGUIWindowManager::RegisterDialog(CGUIWindow* dialog)
     if (window->GetID() == dialog->GetID())
       return;
   }
-  m_activeDialogs.push_back(dialog);
+  m_activeDialogs.emplace_back(dialog);
 }
 
 void CGUIWindowManager::Remove(int id)
@@ -655,6 +671,10 @@ void CGUIWindowManager::Remove(int id)
   if (it != m_mapWindows.end())
   {
     CGUIWindow *window = it->second;
+    m_windowHistory.erase(std::remove_if(m_windowHistory.begin(),
+                                         m_windowHistory.end(),
+                                         [id](int winId){ return winId == id; }),
+                          m_windowHistory.end());
     m_activeDialogs.erase(std::remove_if(m_activeDialogs.begin(),
                                          m_activeDialogs.end(),
                                          [window](CGUIWindow* w){ return w == window; }),
@@ -678,7 +698,7 @@ void CGUIWindowManager::Delete(int id)
   if (pWindow)
   {
     Remove(id);
-    m_deleteWindows.push_back(pWindow);
+    m_deleteWindows.emplace_back(pWindow);
   }
 }
 
@@ -715,9 +735,9 @@ void CGUIWindowManager::PreviousWindow()
     }
     return;
   }
-  m_windowHistory.pop();
+  m_windowHistory.pop_back();
   int previousWindow = GetActiveWindow();
-  m_windowHistory.push(currentWindow);
+  m_windowHistory.emplace_back(currentWindow);
 
   CGUIWindow *pNewWindow = GetWindow(previousWindow);
   if (!pNewWindow)
@@ -741,7 +761,7 @@ void CGUIWindowManager::PreviousWindow()
   g_infoManager.SetPreviousWindow(currentWindow);
 
   // remove the current window off our window stack
-  m_windowHistory.pop();
+  m_windowHistory.pop_back();
 
   // ok, initialize the new window
   CLog::Log(LOGDEBUG,"CGUIWindowManager::PreviousWindow: Activate new");
@@ -756,7 +776,7 @@ void CGUIWindowManager::ChangeActiveWindow(int newWindow, const std::string& str
 {
   std::vector<std::string> params;
   if (!strPath.empty())
-    params.push_back(strPath);
+    params.emplace_back(strPath);
   ActivateWindow(newWindow, params, true);
 }
 
@@ -764,7 +784,7 @@ void CGUIWindowManager::ActivateWindow(int iWindowID, const std::string& strPath
 {
   std::vector<std::string> params;
   if (!strPath.empty())
-    params.push_back(strPath);
+    params.emplace_back(strPath);
   ActivateWindow(iWindowID, params, false);
 }
 
@@ -772,7 +792,7 @@ void CGUIWindowManager::ForceActivateWindow(int iWindowID, const std::string& st
 {
   std::vector<std::string> params;
   if (!strPath.empty())
-    params.push_back(strPath);
+    params.emplace_back(strPath);
   ActivateWindow(iWindowID, params, false, true);
 }
 
@@ -844,11 +864,11 @@ void CGUIWindowManager::ActivateWindow_Internal(int iWindowID, const std::vector
   }
 
   // pause game when leaving fullscreen or resume game when entering fullscreen
-  if (g_application.m_pPlayer->IsPlayingGame())
+  if (g_application.GetAppPlayer().IsPlayingGame())
   {
-    if (GetActiveWindow() == WINDOW_FULLSCREEN_GAME && !g_application.m_pPlayer->IsPaused())
+    if (GetActiveWindow() == WINDOW_FULLSCREEN_GAME && !g_application.GetAppPlayer().IsPaused())
       g_application.OnAction(ACTION_PAUSE);
-    else if (iWindowID == WINDOW_FULLSCREEN_GAME && g_application.m_pPlayer->IsPaused())
+    else if (iWindowID == WINDOW_FULLSCREEN_GAME && g_application.GetAppPlayer().IsPaused())
       g_application.OnAction(ACTION_PAUSE);
   }
 
@@ -866,7 +886,7 @@ void CGUIWindowManager::ActivateWindow_Internal(int iWindowID, const std::vector
   // topmost window).  If we are swapping windows, we pop the old window
   // off the history stack
   if (swappingWindows && !m_windowHistory.empty())
-    m_windowHistory.pop();
+    m_windowHistory.pop_back();
   AddToWindowHistory(iWindowID);
 
   g_infoManager.SetPreviousWindow(currentWindow);
@@ -1213,7 +1233,7 @@ bool CGUIWindowManager::Render()
   CSingleExit lock(g_graphicsContext);
 
 #ifdef HAS_DS_PLAYER
-  g_application.m_pPlayer->RenderToTexture(RENDER_LAYER_UNDER);
+  g_application.GetAppPlayer().RenderToTexture(RENDER_LAYER_UNDER);
 #endif
 
   CDirtyRegionList dirtyRegions = m_tracker.GetDirtyRegions();
@@ -1456,7 +1476,7 @@ void CGUIWindowManager::SendThreadMessage(CGUIMessage& message, int window /*= 0
   CSingleLock lock(m_critSection);
 
   CGUIMessage* msg = new CGUIMessage(message);
-  m_vecThreadMessages.push_back( std::pair<CGUIMessage*,int>(msg,window) );
+  m_vecThreadMessages.emplace_back(std::pair<CGUIMessage*, int>(msg,window));
 }
 
 void CGUIWindowManager::DispatchThreadMessages()
@@ -1529,15 +1549,15 @@ int CGUIWindowManager::RemoveThreadMessageByMessageIds(int *pMessageIDList)
   return removedMsgCount;
 }
 
-void CGUIWindowManager::AddMsgTarget( IMsgTargetCallback* pMsgTarget )
+void CGUIWindowManager::AddMsgTarget(IMsgTargetCallback* pMsgTarget)
 {
-  m_vecMsgTargets.push_back( pMsgTarget );
+  m_vecMsgTargets.emplace_back(pMsgTarget);
 }
 
 int CGUIWindowManager::GetActiveWindow() const
 {
   if (!m_windowHistory.empty())
-    return m_windowHistory.top();
+    return m_windowHistory.back();
   return WINDOW_INVALID;
 }
 
@@ -1554,13 +1574,13 @@ int CGUIWindowManager::GetActiveWindowID() const
   if (iWin == WINDOW_FULLSCREEN_VIDEO)
   {
     // check if we're in a DVD menu
-    if (g_application.m_pPlayer->IsInMenu())
+    if (g_application.GetAppPlayer().IsInMenu())
       iWin = WINDOW_VIDEO_MENU;
     // check for LiveTV and switch to it's virtual window
     else if (CServiceBroker::GetPVRManager().IsStarted() && g_application.CurrentFileItem().HasPVRChannelInfoTag())
       iWin = WINDOW_FULLSCREEN_LIVETV;
     // special casing for numeric seek
-    else if (CSeekHandler::GetInstance().HasTimeCode())
+    else if (g_application.GetAppPlayer().GetSeekHandler().HasTimeCode())
       iWin = WINDOW_VIDEO_TIME_SEEK;
   }
   if (iWin == WINDOW_VISUALISATION)
@@ -1569,7 +1589,7 @@ int CGUIWindowManager::GetActiveWindowID() const
     if (CServiceBroker::GetPVRManager().IsStarted() && g_application.CurrentFileItem().HasPVRChannelInfoTag())
       iWin = WINDOW_FULLSCREEN_RADIO;
     // special casing for numeric seek
-    else if (CSeekHandler::GetInstance().HasTimeCode())
+    else if (g_application.GetAppPlayer().GetSeekHandler().HasTimeCode())
       iWin = WINDOW_VIDEO_TIME_SEEK;
   }
   // Return the window id
@@ -1664,42 +1684,41 @@ void CGUIWindowManager::AddToWindowHistory(int newWindowID)
   // Check the window stack to see if this window is in our history,
   // and if so, pop all the other windows off the stack so that we
   // always have a predictable "Back" behaviour for each window
-  std::stack<int> historySave = m_windowHistory;
-  while (!historySave.empty())
+  std::deque<int> history = m_windowHistory;
+  while (!history.empty())
   {
-    if (historySave.top() == newWindowID)
+    if (history.back() == newWindowID)
       break;
-    historySave.pop();
+    history.pop_back();
   }
-  if (!historySave.empty())
+  if (!history.empty())
   { // found window in history
-    m_windowHistory = historySave;
+    m_windowHistory.swap(history);
   }
-  else if (newWindowID != WINDOW_SPLASH)
+  else
   {
     // didn't find window in history - add it to the stack
-    // but do not add the splash window to history, as we never want to travel back to it
-    m_windowHistory.push(newWindowID);
+    m_windowHistory.emplace_back(newWindowID);
   }
 }
 
 void CGUIWindowManager::RemoveFromWindowHistory(int windowID)
 {
-  std::stack<int> stack = m_windowHistory;
+  std::deque<int> history = m_windowHistory;
 
   // pop windows from stack until we found the window
-  while (!stack.empty())
+  while (!history.empty())
   {
-    if (stack.top() == windowID)
+    if (history.back() == windowID)
       break;
-    stack.pop();
+    history.pop_back();
   }
 
   // found window in history
-  if (!stack.empty())
+  if (!history.empty())
   {
-    stack.pop(); // remove window from stack
-    m_windowHistory = stack;
+    history.pop_back(); // remove window from stack
+    m_windowHistory.swap(history);
   }
 }
 
@@ -1749,7 +1768,7 @@ bool CGUIWindowManager::HasVisibleControls()
 void CGUIWindowManager::ClearWindowHistory()
 {
   while (!m_windowHistory.empty())
-    m_windowHistory.pop();
+    m_windowHistory.pop_back();
 }
 
 void CGUIWindowManager::CloseWindowSync(CGUIWindow *window, int nextWindowID /*= 0*/)

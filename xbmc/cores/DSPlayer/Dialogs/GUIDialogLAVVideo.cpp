@@ -304,7 +304,7 @@ void CGUIDialogLAVVideo::InitializeSettings()
   settingSWDeintOut->SetDependencies(depSWDeintEnabled);
 
   // BUTTON RESET
-  if (!g_application.m_pPlayer->IsPlayingVideo())
+  if (!g_application.GetAppPlayer().IsPlayingVideo())
     AddButton(groupReset, LAVVIDEO_RESET, 10041, SettingLevel::Basic);
 }
 

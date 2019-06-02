@@ -38,8 +38,8 @@
 #include "settings/Settings.h"
 #include "system.h"
 #include "utils/log.h"
-#include "utils/Weather.h"
-#include "windowing/WindowingFactory.h"
+#include "weather/WeatherManager.h"
+#include "windowing/WinSystem.h"
 
 #if defined(TARGET_DARWIN)
 #include "osx/CocoaPowerSyscall.h"
@@ -52,14 +52,14 @@
 #include "linux/LogindUPowerSyscall.h"
 #include "linux/UPowerSyscall.h"
 #endif // HAS_DBUS
-#elif defined(TARGET_WINDOWS)
+#elif defined(TARGET_WINDOWS_DESKTOP)
 #include "powermanagement/windows/Win32PowerSyscall.h"
 extern HWND g_hWnd;
+#elif defined(TARGET_WINDOWS_STORE)
+#include "powermanagement/win10/Win10PowerSyscall.h"
 #endif
 
 using namespace ANNOUNCEMENT;
-
-CPowerManager g_powerManager;
 
 CPowerManager::CPowerManager()
 {
@@ -116,8 +116,10 @@ void CPowerManager::Initialize()
   else
 #endif // HAS_DBUS
     m_instance = new CFallbackPowerSyscall();
-#elif defined(TARGET_WINDOWS)
+#elif defined(TARGET_WINDOWS_DESKTOP)
   m_instance = new CWin32PowerSyscall();
+#elif defined(TARGET_WINDOWS_STORE)
+  m_instance = new CPowerSyscall();
 #endif
 
   if (m_instance == NULL)
@@ -137,30 +139,30 @@ void CPowerManager::SetDefaults()
         defaultShutdown = POWERSTATE_SHUTDOWN;
     break;
     case POWERSTATE_HIBERNATE:
-      if (!g_powerManager.CanHibernate())
+      if (!CServiceBroker::GetPowerManager().CanHibernate())
       {
-        if (g_powerManager.CanSuspend())
+        if (CServiceBroker::GetPowerManager().CanSuspend())
           defaultShutdown = POWERSTATE_SUSPEND;
         else
-          defaultShutdown = g_powerManager.CanPowerdown() ? POWERSTATE_SHUTDOWN : POWERSTATE_QUIT;
+          defaultShutdown = CServiceBroker::GetPowerManager().CanPowerdown() ? POWERSTATE_SHUTDOWN : POWERSTATE_QUIT;
       }
     break;
     case POWERSTATE_SUSPEND:
-      if (!g_powerManager.CanSuspend())
+      if (!CServiceBroker::GetPowerManager().CanSuspend())
       {
-        if (g_powerManager.CanHibernate())
+        if (CServiceBroker::GetPowerManager().CanHibernate())
           defaultShutdown = POWERSTATE_HIBERNATE;
         else
-          defaultShutdown = g_powerManager.CanPowerdown() ? POWERSTATE_SHUTDOWN : POWERSTATE_QUIT;
+          defaultShutdown = CServiceBroker::GetPowerManager().CanPowerdown() ? POWERSTATE_SHUTDOWN : POWERSTATE_QUIT;
       }
     break;
     case POWERSTATE_SHUTDOWN:
-      if (!g_powerManager.CanPowerdown())
+      if (!CServiceBroker::GetPowerManager().CanPowerdown())
       {
-        if (g_powerManager.CanSuspend())
+        if (CServiceBroker::GetPowerManager().CanSuspend())
           defaultShutdown = POWERSTATE_SUSPEND;
         else
-          defaultShutdown = g_powerManager.CanHibernate() ? POWERSTATE_HIBERNATE : POWERSTATE_QUIT;
+          defaultShutdown = CServiceBroker::GetPowerManager().CanHibernate() ? POWERSTATE_HIBERNATE : POWERSTATE_QUIT;
       }
     break;
   }
@@ -210,23 +212,23 @@ bool CPowerManager::Reboot()
 
 bool CPowerManager::CanPowerdown()
 {
-  return m_instance->CanPowerdown();
+  return m_instance ? m_instance->CanPowerdown() : false;
 }
 bool CPowerManager::CanSuspend()
 {
-  return m_instance->CanSuspend();
+  return m_instance ? m_instance->CanSuspend() : false;
 }
 bool CPowerManager::CanHibernate()
 {
-  return m_instance->CanHibernate();
+  return m_instance ? m_instance->CanHibernate() : false;
 }
 bool CPowerManager::CanReboot()
 {
-  return m_instance->CanReboot();
+  return m_instance ? m_instance->CanReboot() : false;
 }
 int CPowerManager::BatteryLevel()
 {
-  return m_instance->BatteryLevel();
+  return m_instance ? m_instance->BatteryLevel() : 0;
 }
 void CPowerManager::ProcessEvents()
 {
@@ -255,7 +257,7 @@ void CPowerManager::OnSleep()
 #endif
 
   CServiceBroker::GetPVRManager().OnSleep();
-  g_application.SaveFileState(true);
+
   g_application.StopPlaying();
   g_application.StopShutdownTimer();
   g_application.StopScreenSaverTimer();
@@ -267,7 +269,7 @@ void CPowerManager::OnWake()
 {
   CLog::Log(LOGNOTICE, "%s: Running resume jobs", __FUNCTION__);
 
-  g_application.getNetwork().WaitForNet();
+  CServiceBroker::GetNetwork().WaitForNet();
 
   // reset out timers
   g_application.ResetShutdownTimers();
@@ -277,9 +279,9 @@ void CPowerManager::OnWake()
     dialog->Close(true); // force close. no closing animation, sound etc at this early stage
 
 #if defined(HAS_SDL) || defined(TARGET_WINDOWS)
-  if (g_Windowing.IsFullScreen())
+  if (CServiceBroker::GetWinSystem().IsFullScreen())
   {
-#if defined(TARGET_WINDOWS)
+#if defined(TARGET_WINDOWS_DESKTOP)
     ShowWindow(g_hWnd,SW_RESTORE);
     SetForegroundWindow(g_hWnd);
 #endif
@@ -295,7 +297,7 @@ void CPowerManager::OnWake()
 
   CServiceBroker::GetActiveAE().Resume();
   g_application.UpdateLibraries();
-  g_weatherManager.Refresh();
+  CServiceBroker::GetWeatherManager().Refresh();
 
   CServiceBroker::GetPVRManager().OnWake();
   CAnnouncementManager::GetInstance().Announce(System, "xbmc", "OnWake");
@@ -312,11 +314,11 @@ void CPowerManager::OnLowBattery()
 
 void CPowerManager::SettingOptionsShutdownStatesFiller(SettingConstPtr setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data)
 {
-  if (g_powerManager.CanPowerdown())
+  if (CServiceBroker::GetPowerManager().CanPowerdown())
     list.push_back(make_pair(g_localizeStrings.Get(13005), POWERSTATE_SHUTDOWN));
-  if (g_powerManager.CanHibernate())
+  if (CServiceBroker::GetPowerManager().CanHibernate())
     list.push_back(make_pair(g_localizeStrings.Get(13010), POWERSTATE_HIBERNATE));
-  if (g_powerManager.CanSuspend())
+  if (CServiceBroker::GetPowerManager().CanSuspend())
     list.push_back(make_pair(g_localizeStrings.Get(13011), POWERSTATE_SUSPEND));
   if (!g_application.IsStandAlone())
   {

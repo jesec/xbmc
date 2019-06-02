@@ -557,7 +557,9 @@ CPVREpgPtr CPVREpgContainer::CreateChannelEpg(const CPVRChannelPtr &channel)
 
   if (!epg)
   {
-    channel->SetEpgID(NextEpgId());
+    if (channel->EpgID() <= 0)
+      channel->SetEpgID(NextEpgId());
+
     epg.reset(new CPVREpg(channel, false));
 
     CSingleLock lock(m_critSection);
@@ -632,7 +634,7 @@ bool CPVREpgContainer::InterruptUpdate(void) const
 
   return bReturn ||
     (m_settings.GetBoolValue(CSettings::SETTING_EPG_PREVENTUPDATESWHILEPLAYINGTV) &&
-     g_application.m_pPlayer && g_application.m_pPlayer->IsPlaying());
+     g_application.GetAppPlayer().IsPlaying());
 }
 
 void CPVREpgContainer::WaitForUpdateFinish(bool bInterrupt /* = true */)

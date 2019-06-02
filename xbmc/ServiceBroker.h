@@ -56,6 +56,11 @@ class IAE;
 class CFavouritesService;
 class CInputManager;
 class CFileExtensionProvider;
+class CNetwork;
+class CWinSystemBase;
+class CRenderSystemBase;
+class CPowerManager;
+class CWeatherManager;
 
 namespace KODI
 {
@@ -101,4 +106,9 @@ public:
   static CInputManager& GetInputManager();
   static CFileExtensionProvider &GetFileExtensionProvider();
   static bool IsBinaryAddonCacheUp();
+  static CNetwork& GetNetwork();
+  static CWinSystemBase& GetWinSystem();
+  static CRenderSystemBase& GetRenderSystem();
+  static CPowerManager& GetPowerManager();
+  static CWeatherManager& GetWeatherManager();
 };

@@ -130,8 +130,8 @@ HRESULT CDSGraph::SetFile(const CFileItem& file, const CPlayerOptions &options)
 
   // if needed set resolution to match fps then set pixelshader & settings for madVR
   
-  g_application.m_pPlayer->SetResolution();
-  g_application.m_pPlayer->SetPixelShader();
+  g_application.GetAppPlayer().SetResolution();
+  g_application.GetAppPlayer().SetPixelShader();
 
   if (m_pVideoWindow)
   {
@@ -387,14 +387,14 @@ HRESULT CDSGraph::HandleGraphEvent()
   LONG_PTR evParam1, evParam2;
   HRESULT hr = S_OK;
 
-  if (g_application.m_pPlayer->ReadyDS() && m_bPerformStop)
+  if (g_application.GetAppPlayer().ReadyDS() && m_bPerformStop)
   {
     m_bPerformStop = false;
     CApplicationMessenger::GetInstance().SendMsg(TMSG_MEDIA_STOP);
     CLog::Log(LOGDEBUG, "%s Playback stopped at start", __FUNCTION__);
   }
 
-  if (g_application.m_pPlayer->ReadyDS() && m_bPerformPause)
+  if (g_application.GetAppPlayer().ReadyDS() && m_bPerformPause)
   {
     m_bPerformPause = false;
     CApplicationMessenger::GetInstance().PostMsg(TMSG_MEDIA_PAUSE);
@@ -856,15 +856,15 @@ std::string CDSGraph::GetAudioInfo()
       CGraphFilters::Get()->UsingMediaPortalTsReader())
   {
     audioInfo = StringUtils::Format("Audio: (%s, %d Hz, %d Channels) | Renderer: %s",
-      c->GetAudioCodecDisplayName(g_application.m_pPlayer->GetAudioStream()).c_str(),
-      c->GetSampleRate(g_application.m_pPlayer->GetAudioStream()),
-      c->GetChannels(g_application.m_pPlayer->GetAudioStream()),
+      c->GetAudioCodecDisplayName(g_application.GetAppPlayer().GetAudioStream()).c_str(),
+      c->GetSampleRate(g_application.GetAppPlayer().GetAudioStream()),
+      c->GetChannels(g_application.GetAppPlayer().GetAudioStream()),
       CGraphFilters::Get()->AudioRenderer.osdname.c_str());
   }
   else
   {
     std::string strStreamName;
-    c->GetAudioStreamName(g_application.m_pPlayer->GetAudioStream(),strStreamName);
+    c->GetAudioStreamName(g_application.GetAppPlayer().GetAudioStream(),strStreamName);
     audioInfo = StringUtils::Format("Audio: (%s) | Renderer: %s",
       strStreamName.c_str(),
       CGraphFilters::Get()->AudioRenderer.osdname.c_str());
@@ -908,7 +908,7 @@ std::string CDSGraph::GetVideoInfo()
     videoInfo += m_pStrCurrentFrameRate.c_str();
 
   std::string strDXVA;
-  if (!g_application.m_pPlayer->UsingDS(DIRECTSHOW_RENDERER_MADVR))
+  if (!g_application.GetAppPlayer().UsingDS(DIRECTSHOW_RENDERER_MADVR))
     strDXVA = GetDXVADecoderDescription();
 
   if (!strDXVA.empty())

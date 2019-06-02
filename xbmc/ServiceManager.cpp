@@ -38,8 +38,12 @@
 #include "interfaces/generic/ScriptInvocationManager.h"
 #include "interfaces/python/XBPython.h"
 #include "pvr/PVRManager.h"
+#include "network/Network.h"
 #include "settings/Settings.h"
 #include "utils/FileExtensionProvider.h"
+#include "windowing/WinSystem.h"
+#include "powermanagement/PowerManager.h"
+#include "weather/WeatherManager.h"
 
 using namespace KODI;
 
@@ -48,6 +52,32 @@ CServiceManager::CServiceManager()
 }
 
 CServiceManager::~CServiceManager() = default;
+
+bool CServiceManager::InitForTesting()
+{
+  m_settings.reset(new CSettings());
+  m_network.reset(SetupNetwork());
+  m_fileExtensionProvider.reset(new CFileExtensionProvider());
+
+  m_addonMgr.reset(new ADDON::CAddonMgr());
+  if (!m_addonMgr->Init())
+  {
+    CLog::Log(LOGFATAL, "CServiceManager::%s: Unable to start CAddonMgr", __FUNCTION__);
+    return false;
+  }
+
+  init_level = 1;
+  return true;
+}
+
+void CServiceManager::DeinitTesting()
+{
+  init_level = 0;
+  m_addonMgr.reset();
+  m_fileExtensionProvider.reset();
+  m_network.reset();
+  m_settings.reset();
+}
 
 bool CServiceManager::InitStageOne()
 {
@@ -62,6 +92,7 @@ bool CServiceManager::InitStageOne()
   m_playlistPlayer.reset(new PLAYLIST::CPlayListPlayer());
 
   m_settings.reset(new CSettings());
+  m_network.reset(SetupNetwork());
 
   init_level = 1;
   return true;
@@ -113,6 +144,12 @@ bool CServiceManager::InitStageTwo(const CAppParamParser &params)
   m_gameRenderManager.reset(new RETRO::CGUIGameRenderManager);
 
   m_fileExtensionProvider.reset(new CFileExtensionProvider());
+
+  m_powerManager.reset(new CPowerManager());
+  m_powerManager->Initialize();
+  m_powerManager->SetDefaults();
+
+  m_weatherManager.reset(new CWeatherManager());
 
   init_level = 2;
   return true;
@@ -178,6 +215,8 @@ void CServiceManager::DeinitStageTwo()
 {
   init_level = 1;
 
+  m_weatherManager.reset();
+  m_powerManager.reset();
   m_fileExtensionProvider.reset();
   m_gameRenderManager.reset();
   m_peripherals.reset();
@@ -200,6 +239,7 @@ void CServiceManager::DeinitStageOne()
 {
   init_level = 0;
 
+  m_network.reset();
   m_settings.reset();
   m_playlistPlayer.reset();
 #ifdef HAS_PYTHON
@@ -322,6 +362,21 @@ CFileExtensionProvider& CServiceManager::GetFileExtensionProvider()
   return *m_fileExtensionProvider;
 }
 
+CWinSystemBase &CServiceManager::GetWinSystem()
+{
+  return *m_winSystem.get();
+}
+
+void CServiceManager::SetWinSystem(std::unique_ptr<CWinSystemBase> winSystem)
+{
+  m_winSystem = std::move(winSystem);
+}
+
+CPowerManager &CServiceManager::GetPowerManager()
+{
+  return *m_powerManager;
+}
+
 // deleters for unique_ptr
 void CServiceManager::delete_dataCacheCore::operator()(CDataCacheCore *p) const
 {
@@ -342,3 +397,29 @@ void CServiceManager::delete_favouritesService::operator()(CFavouritesService *p
 {
   delete p;
 }
+
+CNetwork* CServiceManager::SetupNetwork() const
+{
+#if defined(TARGET_ANDROID)
+  return new CNetworkAndroid();
+#elif defined(HAS_LINUX_NETWORK)
+  return new CNetworkLinux();
+#elif defined(HAS_WIN32_NETWORK)
+  return new CNetworkWin32();
+#elif defined(HAS_WIN10_NETWORK)
+  return new CNetworkWin10();
+#else
+  return new CNetwork();
+#endif
+}
+
+CNetwork& CServiceManager::GetNetwork()
+{
+  return *m_network;
+}
+
+CWeatherManager& CServiceManager::GetWeatherManager()
+{
+  return *m_weatherManager;
+}
+

@@ -26,6 +26,8 @@
 #include "ServiceBroker.h"
 #include "messaging/ApplicationMessenger.h"
 #include "CompileInfo.h"
+#include "cores/AudioEngine/AESinkFactory.h"
+#include "cores/AudioEngine/Sinks/AESinkDARWINOSX.h"
 #include "cores/RetroPlayer/process/osx/RPProcessInfoOSX.h"
 #include "cores/RetroPlayer/rendering/VideoRenderers/RPRendererGuiTexture.h"
 #include "cores/VideoPlayer/DVDCodecs/DVDFactoryCodec.h"
@@ -595,11 +597,10 @@ static void DisplayReconfigured(CGDirectDisplayID display,
     winsys->UpdateResolutions();
 }
 
-//---------------------------------------------------------------------------------
-//---------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 CWinSystemOSX::CWinSystemOSX() : CWinSystemBase(), m_lostDeviceTimer(this)
 {
-  m_eWindowSystem = WINDOW_SYSTEM_OSX;
   m_glContext = 0;
   m_SDLSurface = NULL;
   m_osx_events = NULL;
@@ -611,6 +612,11 @@ CWinSystemOSX::CWinSystemOSX() : CWinSystemBase(), m_lostDeviceTimer(this)
   m_movedToOtherScreen = false;
   m_refreshRate = 0.0;
   m_delayDispReset = false;
+
+  m_winEvents.reset(new CWinEventsOSX());
+
+  AE::CAESinkFactory::ClearSinks();
+  CAESinkDARWINOSX::Register();
 }
 
 CWinSystemOSX::~CWinSystemOSX()
@@ -792,7 +798,6 @@ bool CWinSystemOSX::CreateNewWindow(const std::string& name, bool fullScreen, RE
   VIDEOPLAYER::CProcessInfoOSX::Register();
   RETRO::CRPProcessInfoOSX::Register();
   RETRO::CRPProcessInfoOSX::RegisterRendererFactory(new RETRO::CRendererFactoryGuiTexture);
-
   return true;
 }
 
@@ -1716,20 +1721,7 @@ std::unique_ptr<IOSScreenSaver> CWinSystemOSX::GetOSScreenSaverImpl()
   return std::unique_ptr<IOSScreenSaver> (new COSScreenSaverOSX);
 }
 
-void CWinSystemOSX::EnableTextInput(bool bEnable)
-{
-  if (bEnable)
-    StartTextInput();
-  else
-    StopTextInput();
-}
-
 OSXTextInputResponder *g_textInputResponder = nil;
-
-bool CWinSystemOSX::IsTextInputEnabled()
-{
-  return g_textInputResponder != nil && [[g_textInputResponder superview] isEqual: [[NSApp keyWindow] contentView]];
-}
 
 void CWinSystemOSX::StartTextInput()
 {

@@ -22,7 +22,7 @@
 #include "GUIShaderDX.h"
 #include "GUITextureD3D.h"
 #include "Texture.h"
-#include "windowing/WindowingFactory.h"
+#include "rendering/dx/RenderContext.h"
 #ifdef HAS_DS_PLAYER
 #include "Application.h"
 #endif
@@ -42,7 +42,7 @@ void CGUITextureD3D::Begin(color_t color)
 
 #ifdef HAS_DS_PLAYER
   // Render count to detect when GUI it's active or deactive (useful for madVR latency mode)
-  g_application.m_pPlayer->IncRenderCount();
+  g_application.GetAppPlayer().IncRenderCount();
 #endif
 
   texture->LoadToGPU();
@@ -52,7 +52,7 @@ void CGUITextureD3D::Begin(color_t color)
 
   m_col = color;
 
-  g_Windowing.SetAlphaBlendEnable(true);
+  DX::Windowing().SetAlphaBlendEnable(true);
 }
 
 void CGUITextureD3D::End()
@@ -122,7 +122,7 @@ void CGUITextureD3D::Draw(float *x, float *y, float *z, const CRect &texture, co
   verts[3].color = xcolor;
 
   CDXTexture* tex = (CDXTexture *)m_texture.m_textures[m_currentFrame];
-  CGUIShaderDX* pGUIShader = g_Windowing.GetGUIShader();
+  CGUIShaderDX* pGUIShader = DX::Windowing().GetGUIShader();
 
   pGUIShader->Begin(m_diffuse.size() ? SHADER_METHOD_RENDER_MULTI_TEXTURE_BLEND : SHADER_METHOD_RENDER_TEXTURE_BLEND);
 

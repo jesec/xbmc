@@ -21,7 +21,7 @@
 #include "system.h"
 #include "ServiceBroker.h"
 #include "cores/VideoPlayer/VideoRenderers/RenderFlags.h"
-#include "windowing/WindowingFactory.h"
+#include "windowing/WinSystem.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
 #include "utils/MathUtils.h"
@@ -125,7 +125,6 @@ bool CVideoPlayerVideo::OpenStream(CDVDStreamInfo hint)
     // codecs which require extradata
     if (hint.codec == AV_CODEC_ID_MPEG1VIDEO ||
         hint.codec == AV_CODEC_ID_MPEG2VIDEO ||
-        hint.codec == AV_CODEC_ID_MPEG2VIDEO_XVMC ||
         hint.codec == AV_CODEC_ID_H264 ||
         hint.codec == AV_CODEC_ID_HEVC ||
         hint.codec == AV_CODEC_ID_MPEG4 ||
@@ -652,6 +651,15 @@ bool CVideoPlayerVideo::ProcessDecoderOutput(double &frametime, double &pts)
 
   if (decoderState == CDVDVideoCodec::VC_EOF)
   {
+    if (m_syncState == IDVDStreamPlayer::SYNC_STARTING)
+    {
+      SStartMsg msg;
+      msg.player = VideoPlayer_VIDEO;
+      msg.cachetime = DVD_MSEC_TO_TIME(50);
+      msg.cachetotal = DVD_MSEC_TO_TIME(100);
+      msg.timestamp = DVD_NOPTS_VALUE;
+      m_messageParent.Put(new CDVDMsgType<SStartMsg>(CDVDMsg::PLAYER_STARTED, msg));
+    }
     return false;
   }
 

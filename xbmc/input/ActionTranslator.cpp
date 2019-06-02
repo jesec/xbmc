@@ -71,6 +71,7 @@ static const std::map<ActionName, ActionID> ActionMappings =
     { "playerdebug"              , ACTION_PLAYER_DEBUG },
     { "codecinfo"                , ACTION_PLAYER_PROCESS_INFO },
     { "playerprocessinfo"        , ACTION_PLAYER_PROCESS_INFO },
+    { "playerprogramselect"      , ACTION_PLAYER_PROGRAM_SELECT },
     { "nextpicture"              , ACTION_NEXT_PICTURE },
     { "previouspicture"          , ACTION_PREV_PICTURE },
     { "zoomout"                  , ACTION_ZOOM_OUT },
@@ -90,8 +91,10 @@ static const std::map<ActionName, ActionID> ActionMappings =
     { "nextcalibration"          , ACTION_CALIBRATE_SWAP_ARROWS },
     { "resetcalibration"         , ACTION_CALIBRATE_RESET },
     { "analogmove"               , ACTION_ANALOG_MOVE },
-    { "analogmovex"              , ACTION_ANALOG_MOVE_X },
-    { "analogmovey"              , ACTION_ANALOG_MOVE_Y },
+    { "analogmovexleft"          , ACTION_ANALOG_MOVE_X_LEFT },
+    { "analogmovexright"         , ACTION_ANALOG_MOVE_X_RIGHT },
+    { "analogmoveyup"            , ACTION_ANALOG_MOVE_Y_UP },
+    { "analogmoveydown"          , ACTION_ANALOG_MOVE_Y_DOWN },
     { "rotate"                   , ACTION_ROTATE_PICTURE_CW },
     { "rotateccw"                , ACTION_ROTATE_PICTURE_CCW },
     { "close"                    , ACTION_NAV_BACK },            // backwards compatibility
@@ -202,6 +205,7 @@ static const std::map<ActionName, ActionID> ActionMappings =
     { "createepisodebookmark"    , ACTION_CREATE_EPISODE_BOOKMARK },
     { "settingsreset"            , ACTION_SETTINGS_RESET },
     { "settingslevelchange"      , ACTION_SETTINGS_LEVEL_CHANGE },
+    { "togglefont"               , ACTION_TOGGLE_FONT},
 
     // 3D movie playback/GUI
     { "stereomode"               , ACTION_STEREOMODE_SELECT },   // cycle 3D modes, for now an alias for next
@@ -221,6 +225,7 @@ static const std::map<ActionName, ActionID> ActionMappings =
     { "record"                   , ACTION_RECORD },
     { "togglecommskip"           , ACTION_TOGGLE_COMMSKIP },
     { "showtimerrule"            , ACTION_PVR_SHOW_TIMER_RULE },
+    { "channelnumberseparator"   , ACTION_CHANNEL_NUMBER_SEP },
 
     // Mouse actions
     { "leftclick"                , ACTION_MOUSE_LEFT_CLICK },
@@ -282,8 +287,10 @@ bool CActionTranslator::IsAnalog(unsigned int actionID)
   case ACTION_ANALOG_FORWARD:
   case ACTION_ANALOG_REWIND:
   case ACTION_ANALOG_MOVE:
-  case ACTION_ANALOG_MOVE_X:
-  case ACTION_ANALOG_MOVE_Y:
+  case ACTION_ANALOG_MOVE_X_LEFT:
+  case ACTION_ANALOG_MOVE_X_RIGHT:
+  case ACTION_ANALOG_MOVE_Y_UP:
+  case ACTION_ANALOG_MOVE_Y_DOWN:
   case ACTION_CURSOR_LEFT:
   case ACTION_CURSOR_RIGHT:
   case ACTION_VOLUME_UP:

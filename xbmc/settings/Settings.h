@@ -130,6 +130,7 @@ public:
   static const std::string SETTING_VIDEOPLAYER_LIMITGUIUPDATE;
   static const std::string SETTING_VIDEOPLAYER_SUPPORTMVC;
   static const std::string SETTING_MYVIDEOS_SELECTACTION;
+  static const std::string SETTING_MYVIDEOS_USETAGS;
   static const std::string SETTING_MYVIDEOS_EXTRACTFLAGS;
   static const std::string SETTING_MYVIDEOS_EXTRACTCHAPTERTHUMBS;
   static const std::string SETTING_MYVIDEOS_REPLACELABELS;
@@ -163,9 +164,11 @@ public:
   static const std::string SETTING_SCRAPERS_MOVIESDEFAULT;
   static const std::string SETTING_SCRAPERS_TVSHOWSDEFAULT;
   static const std::string SETTING_SCRAPERS_MUSICVIDEOSDEFAULT;
+  static const std::string SETTING_PVRMANAGER_PRESELECTPLAYINGCHANNEL;
   static const std::string SETTING_PVRMANAGER_SYNCCHANNELGROUPS;
   static const std::string SETTING_PVRMANAGER_BACKENDCHANNELORDER;
   static const std::string SETTING_PVRMANAGER_USEBACKENDCHANNELNUMBERS;
+  static const std::string SETTING_PVRMANAGER_CLIENTPRIORITIES;
   static const std::string SETTING_PVRMANAGER_CHANNELMANAGER;
   static const std::string SETTING_PVRMANAGER_GROUPMANAGER;
   static const std::string SETTING_PVRMANAGER_CHANNELSCAN;
@@ -205,6 +208,7 @@ public:
   static const std::string SETTING_PVRTIMERS_HIDEDISABLEDTIMERS;
   static const std::string SETTING_MUSICLIBRARY_SHOWCOMPILATIONARTISTS;
   static const std::string SETTING_MUSICLIBRARY_DOWNLOADINFO;
+  static const std::string SETTING_MUSICLIBRARY_ARTISTSFOLDER;
   static const std::string SETTING_MUSICLIBRARY_ALBUMSSCRAPER;
   static const std::string SETTING_MUSICLIBRARY_ARTISTSSCRAPER;
   static const std::string SETTING_MUSICLIBRARY_OVERRIDETAGS;
@@ -213,6 +217,13 @@ public:
   static const std::string SETTING_MUSICLIBRARY_BACKGROUNDUPDATE;
   static const std::string SETTING_MUSICLIBRARY_CLEANUP;
   static const std::string SETTING_MUSICLIBRARY_EXPORT;
+  static const std::string SETTING_MUSICLIBRARY_EXPORT_FILETYPE;
+  static const std::string SETTING_MUSICLIBRARY_EXPORT_FOLDER;
+  static const std::string SETTING_MUSICLIBRARY_EXPORT_ITEMS;
+  static const std::string SETTING_MUSICLIBRARY_EXPORT_UNSCRAPED;
+  static const std::string SETTING_MUSICLIBRARY_EXPORT_OVERWRITE;
+  static const std::string SETTING_MUSICLIBRARY_EXPORT_ARTWORK;
+  static const std::string SETTING_MUSICLIBRARY_EXPORT_SKIPNFO;
   static const std::string SETTING_MUSICLIBRARY_IMPORT;
   static const std::string SETTING_MUSICPLAYER_AUTOPLAYNEXTITEM;
   static const std::string SETTING_MUSICPLAYER_QUEUEBYDEFAULT;

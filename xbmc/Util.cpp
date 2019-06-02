@@ -46,7 +46,7 @@
 #include <stdlib.h>
 #include <algorithm>
 
-#include "Application.h"
+#include "addons/VFSEntry.h"
 #include "ServiceBroker.h"
 #include "Util.h"
 #include "filesystem/PVRDirectory.h"
@@ -115,8 +115,12 @@ namespace
 bool IsDirectoryValidRoot(std::wstring path)
 {
   path += L"\\system\\settings\\settings.xml";
+#if defined(TARGET_WINDOWS_STORE)
+  auto h = CreateFile2(path.c_str(), GENERIC_READ, 0, OPEN_EXISTING, NULL);
+#else
   auto h = CreateFileW(path.c_str(), GENERIC_READ, 0, nullptr,
     OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+#endif
   if (h != INVALID_HANDLE_VALUE)
   {
     CloseHandle(h);
@@ -1512,6 +1516,18 @@ bool CUtil::SupportsWriteFileOperations(const std::string& strPath)
   if (URIUtils::IsMultiPath(strPath))
     return CMultiPathDirectory::SupportsWriteFileOperations(strPath);
 
+
+  if (CServiceBroker::IsBinaryAddonCacheUp())
+  {
+    CURL url(strPath);
+    for (const auto& addon : CServiceBroker::GetVFSAddonCache().GetAddonInstances())
+    {
+      const auto& info = addon->GetProtocolInfo();
+      if (info.type == url.GetProtocol() && info.supportWrite)
+        return true;
+    }
+  }
+
   return false;
 }
 
@@ -1992,7 +2008,7 @@ void CUtil::ScanForExternalSubtitles(const std::string& strMovie, std::vector<st
 
   if (!CMediaSettings::GetInstance().GetAdditionalSubtitleDirectoryChecked() && !CServiceBroker::GetSettings().GetString(CSettings::SETTING_SUBTITLES_CUSTOMPATH).empty()) // to avoid checking non-existent directories (network) every time..
   {
-    if (!g_application.getNetwork().IsAvailable() && !URIUtils::IsHD(CServiceBroker::GetSettings().GetString(CSettings::SETTING_SUBTITLES_CUSTOMPATH)))
+    if (!CServiceBroker::GetNetwork().IsAvailable() && !URIUtils::IsHD(CServiceBroker::GetSettings().GetString(CSettings::SETTING_SUBTITLES_CUSTOMPATH)))
     {
       CLog::Log(LOGINFO, "CUtil::CacheSubtitles: disabling alternate subtitle directory for this session, it's inaccessible");
       CMediaSettings::GetInstance().SetAdditionalSubtitleDirectoryChecked(-1); // disabled
@@ -2108,17 +2124,17 @@ ExternalStreamInfo CUtil::GetExternalStreamDetailsFromFilename(const std::string
       StringUtils::ToLower(flag_tmp);
       if (!flag_tmp.compare("none"))
       {
-        info.flag |= CDemuxStream::FLAG_NONE;
+        info.flag |= StreamFlags::FLAG_NONE;
         continue;
       }
       else if (!flag_tmp.compare("default"))
       {
-        info.flag |= CDemuxStream::FLAG_DEFAULT;
+        info.flag |= StreamFlags::FLAG_DEFAULT;
         continue;
       }
       else if (!flag_tmp.compare("forced"))
       {
-        info.flag |= CDemuxStream::FLAG_FORCED;
+        info.flag |= StreamFlags::FLAG_FORCED;
         continue;
       }
 
@@ -2130,7 +2146,7 @@ ExternalStreamInfo CUtil::GetExternalStreamDetailsFromFilename(const std::string
   StringUtils::Trim(name);
   info.name = StringUtils::RemoveDuplicatedSpacesAndTabs(name);
   if (info.flag == 0)
-    info.flag = CDemuxStream::FLAG_NONE;
+    info.flag = StreamFlags::FLAG_NONE;
 
   CLog::Log(LOGDEBUG, "%s - Language = '%s' / Name = '%s' / Flag = '%u' from %s",
              __FUNCTION__, info.language.c_str(), info.name.c_str(), info.flag, CURL::GetRedacted(associatedFile).c_str());

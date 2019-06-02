@@ -26,7 +26,7 @@
 #include "settings/lib/ISettingsHandler.h"
 #include "settings/lib/ISubSettings.h"
 #include "settings/GameSettings.h"
-#include "cores/VideoSettings.h"
+#include "settings/LibExportSettings.h"
 #ifdef HAS_DS_PLAYER
 #include "cores/DSplayer/Filters/LavSettings.h"
 #endif
