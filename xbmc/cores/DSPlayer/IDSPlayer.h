@@ -26,7 +26,7 @@
 #endif
 
 #include "system.h" 
-#include "guilib/Geometry.h"
+#include "utils/Geometry.h"
 #include "settings/lib/SettingsManager.h"
 #include "settings/lib/SettingDefinitions.h"
 

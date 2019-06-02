@@ -44,8 +44,10 @@
 #include "settings/DisplaySettings.h"
 #include "settings/Settings.h"
 #include "ShellSurfaceWlShell.h"
+#include "ShellSurfaceXdgShell.h"
 #include "ShellSurfaceXdgShellUnstableV6.h"
 #include "threads/SingleLock.h"
+#include "Util.h"
 #include "utils/log.h"
 #include "utils/MathUtils.h"
 #include "utils/StringUtils.h"
@@ -302,10 +304,14 @@ bool CWinSystemWayland::CreateNewWindow(const std::string& name,
   // Try with this resolution if compositor does not say otherwise
   UpdateSizeVariables({res.iWidth, res.iHeight}, m_scale, m_shellSurfaceState, false);
 
-  m_shellSurface.reset(CShellSurfaceXdgShellUnstableV6::TryCreate(*this, *m_connection, m_surface, name, KODI::LINUX::DESKTOP_FILE_NAME));
+  m_shellSurface.reset(CShellSurfaceXdgShell::TryCreate(*this, *m_connection, m_surface, name, KODI::LINUX::DESKTOP_FILE_NAME));
   if (!m_shellSurface)
   {
-    CLog::LogF(LOGWARNING, "Compositor does not support xdg_shell unstable v6 protocol - falling back to wl_shell, not all features might work");
+    m_shellSurface.reset(CShellSurfaceXdgShellUnstableV6::TryCreate(*this, *m_connection, m_surface, name, KODI::LINUX::DESKTOP_FILE_NAME));
+  }
+  if (!m_shellSurface)
+  {
+    CLog::LogF(LOGWARNING, "Compositor does not support xdg_shell protocol (stable or unstable v6) - falling back to wl_shell, not all features might work");
     m_shellSurface.reset(new CShellSurfaceWlShell(*this, *m_connection, m_surface, name, KODI::LINUX::DESKTOP_FILE_NAME));
   }
 
@@ -505,7 +511,7 @@ std::shared_ptr<COutput> CWinSystemWayland::FindOutputByWaylandOutput(wayland::o
 {
   CSingleLock lock(m_outputsMutex);
   auto outputIt = std::find_if(m_outputs.begin(), m_outputs.end(),
-                               [this, &output](decltype(m_outputs)::value_type const& entry)
+                               [&output](decltype(m_outputs)::value_type const& entry)
                                {
                                  return (output == entry.second->GetWaylandOutput());
                                });
@@ -1070,7 +1076,7 @@ void CWinSystemWayland::LoadDefaultCursor()
     wayland::cursor_t cursor;
     try
     {
-      cursor = m_cursorTheme.get_cursor("default");
+      cursor = CCursorUtil::LoadFromTheme(m_cursorTheme, "default");
     }
     catch (std::exception const& e)
     {

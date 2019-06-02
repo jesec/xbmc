@@ -40,7 +40,7 @@
 
 #include "guilib/GUIWindowManager.h"
 #include "dialogs/GUIDialogBusy.h"
-#include "windowing/WindowingFactory.h"
+#include "windowing/WinSystem.h"
 #include "dialogs/GUIDialogOK.h"
 #include "PixelShaderList.h"
 #include "guilib/LocalizeStrings.h"
@@ -117,12 +117,14 @@ CDSPlayer::CDSPlayer(IPlayerCallback& callback)
 
   m_processInfo = CProcessInfo::CreateInstance();
 
-  g_Windowing.Register(this);
+  CServiceBroker::GetWinSystem().Register(this);
+  CServiceBroker::GetWinSystem().RegisterRenderLoop(this);
 }
 
 CDSPlayer::~CDSPlayer()
 {
-  g_Windowing.Unregister(this);
+  CServiceBroker::GetWinSystem().UnregisterRenderLoop(this);
+  CServiceBroker::GetWinSystem().Unregister(this);
 
   /* Resume AE processing of XBMC native audio */
   if (!CServiceBroker::GetActiveAE().Resume())
@@ -332,7 +334,7 @@ bool CDSPlayer::CloseFile(bool reopen)
   return true;
 }
 
-void CDSPlayer::GetVideoStreamInfo(int streamId, SPlayerVideoStreamInfo &info)
+void CDSPlayer::GetVideoStreamInfo(int streamId, VideoStreamInfo &info)
 {
   CSingleLock lock(m_StateSection);
   std::string strStreamName;
@@ -341,7 +343,7 @@ void CDSPlayer::GetVideoStreamInfo(int streamId, SPlayerVideoStreamInfo &info)
   info.name = strStreamName;
   info.width = (GetPictureWidth());
   info.height = (GetPictureHeight());
-  info.videoCodecName = (CStreamsManager::Get()) ? CStreamsManager::Get()->GetVideoCodecName() : "";
+  info.codecName = (CStreamsManager::Get()) ? CStreamsManager::Get()->GetVideoCodecName() : "";
   info.videoAspectRatio = (float)info.width / (float)info.height;
   CRect viewRect;
   m_renderManager.GetVideoRect(info.SrcRect, info.DestRect, viewRect);
@@ -350,7 +352,7 @@ void CDSPlayer::GetVideoStreamInfo(int streamId, SPlayerVideoStreamInfo &info)
     info.stereoMode = "";
 }
 
-void CDSPlayer::GetAudioStreamInfo(int index, SPlayerAudioStreamInfo &info)
+void CDSPlayer::GetAudioStreamInfo(int index, AudioStreamInfo &info)
 {
   if (index == CURRENT_STREAM)
     index = GetAudioStream();
@@ -362,7 +364,7 @@ void CDSPlayer::GetAudioStreamInfo(int index, SPlayerAudioStreamInfo &info)
   std::string codecname;
 
   info.bitrate = (CStreamsManager::Get()) ? CStreamsManager::Get()->GetBitsPerSample(index) : 0;
-  info.audioCodecName = (CStreamsManager::Get()) ? CStreamsManager::Get()->GetAudioCodecName(index) : "";
+  info.codecName = (CStreamsManager::Get()) ? CStreamsManager::Get()->GetAudioCodecName(index) : "";
   if (CStreamsManager::Get()) CStreamsManager::Get()->GetAudioStreamName(index, strStreamName);
   info.language = strStreamName;
   info.channels = (CStreamsManager::Get()) ? CStreamsManager::Get()->GetChannels(index) : 0;
@@ -379,7 +381,7 @@ void CDSPlayer::GetAudioStreamInfo(int index, SPlayerAudioStreamInfo &info)
     info.name = strStreamName;
 }
 
-void CDSPlayer::GetSubtitleStreamInfo(int index, SPlayerSubtitleStreamInfo &info)
+void CDSPlayer::GetSubtitleStreamInfo(int index, SubtitleStreamInfo &info)
 {
   std::string strStreamName;
  if (CStreamsManager::Get()) CStreamsManager::Get()->GetSubtitleName(index, strStreamName);

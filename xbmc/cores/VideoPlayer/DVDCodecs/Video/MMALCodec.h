@@ -19,8 +19,6 @@
  *
  */
 
-#if defined(HAS_MMAL)
-
 #include "cores/VideoPlayer/DVDStreamInfo.h"
 #include "DVDVideoCodec.h"
 #include "threads/Event.h"
@@ -30,7 +28,7 @@
 #include <semaphore.h>
 #include <memory>
 #include <string>
-#include "guilib/Geometry.h"
+#include "utils/Geometry.h"
 #include "rendering/RenderSystem.h"
 #include "cores/VideoPlayer/VideoRenderers/BaseRenderer.h"
 #include "cores/VideoPlayer/VideoRenderers/HwDecRender/MMALRenderer.h"
@@ -127,5 +125,3 @@ protected:
 };
 
 };
-// defined(HAS_MMAL)
-#endif

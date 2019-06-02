@@ -46,9 +46,9 @@ public:
 
   void PlayMovie(const CFileItem *item, const std::string &player = "");
 #ifdef HAS_DS_PLAYER
-  static void GetResumeItemOffset(const CFileItem *item, int& startoffset, int& partNumber, std::string& strEdition);
+  static void GetResumeItemOffset(const CFileItem *item, int64_t& startoffset, int& partNumber, std::string& strEdition);
 #else
-  static void GetResumeItemOffset(const CFileItem *item, int& startoffset, int& partNumber);
+  static void GetResumeItemOffset(const CFileItem *item, int64_t& startoffset, int& partNumber);
 #endif
   static bool HasResumeItemOffset(const CFileItem *item);
 

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.4)
 project(kodi LANGUAGES CXX C ASM)
 
 if(POLICY CMP0069)
@@ -104,9 +104,10 @@ find_package(Threads REQUIRED QUIET)
 list(APPEND DEPLIBS ${CMAKE_THREAD_LIBS_INIT})
 
 
-foreach(dep ${PLATFORM_REQUIRED_DEPS})
+foreach(depspec ${PLATFORM_REQUIRED_DEPS})
   # We need to specify ENABLE_${PLATFORM_REQUIRED_DEPS} in order for the
   # optional subdirectory for the specified platform to get built.
+  split_dependency_specification(${depspec} dep version)
   string(TOUPPER ${dep} depup)
   set(ENABLE_${depup} "ON" CACHE BOOL "Force enabling required ${depup} support" FORCE)
 endforeach()
@@ -115,6 +116,7 @@ endforeach()
 set(required_deps Cdio
                   Cpluff
                   CrossGUID
+                  Curl
                   DirectX
                   DSExternals
                   FFMPEG
@@ -165,8 +167,7 @@ set(optional_deps Alsa
                   ${PLATFORM_OPTIONAL_DEPS})
 
 # Required, dyloaded deps. Keep in alphabetical order please
-set(required_dyload ASS
-                    Curl)
+set(required_dyload ASS)
 
 # Optional, dyloaded deps. Keep in alphabetical order please
 set(dyload_optional Bluray
@@ -340,7 +341,8 @@ if(WIN32)
   if(NOT CORE_SYSTEM_NAME STREQUAL windowsstore)
     target_sources(${APP_NAME_LC} PRIVATE ${CMAKE_SOURCE_DIR}/xbmc/platform/win32/app.manifest)
   else()
-    set_target_properties(${APP_NAME_LC} PROPERTIES VS_USER_PROPS ${VCPROJECT_PROPS_FILE})
+    set_target_properties(${APP_NAME_LC} PROPERTIES VS_USER_PROPS ${VCPROJECT_PROPS_FILE}
+                          VS_WINDOWS_TARGET_PLATFORM_MIN_VERSION ${VS_MINIMUM_SDK_VERSION})
   endif()
 elseif(CORE_SYSTEM_NAME STREQUAL android)
   # Nothing
@@ -354,6 +356,7 @@ endif()
 # testing
 copy_files_from_filelist_to_buildtree(${CMAKE_SOURCE_DIR}/cmake/installdata/test-reference-data.txt NO_INSTALL)
 add_executable(${APP_NAME_LC}-test EXCLUDE_FROM_ALL ${CMAKE_SOURCE_DIR}/xbmc/test/xbmc-test.cpp ${test_sources})
+set_target_properties(${APP_NAME_LC}-test PROPERTIES ENABLE_EXPORTS ON)
 whole_archive(_TEST_LIBRARIES ${core_DEPENDS} gtest)
 target_link_libraries(${APP_NAME_LC}-test PRIVATE ${SYSTEM_LDFLAGS} ${_TEST_LIBRARIES} lib${APP_NAME_LC} ${DEPLIBS} ${CMAKE_DL_LIBS})
 unset(_TEST_LIBRARIES)

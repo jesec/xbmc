@@ -16,7 +16,9 @@ set(SOURCES Connection.cpp
             SeatSelection.cpp
             ShellSurface.cpp
             ShellSurfaceWlShell.cpp
+            ShellSurfaceXdgShell.cpp
             ShellSurfaceXdgShellUnstableV6.cpp
+            Util.cpp
             VideoSyncWpPresentation.cpp
             ${WAYLAND_EXTRA_PROTOCOL_GENERATED_DIR}/wayland-extra-protocols.cpp
             WindowDecorator.cpp
@@ -38,6 +40,7 @@ set(HEADERS Connection.h
             SeatSelection.h
             ShellSurface.h
             ShellSurfaceWlShell.h
+            ShellSurfaceXdgShell.h
             ShellSurfaceXdgShellUnstableV6.h
             Signals.h
             VideoSyncWpPresentation.h

@@ -26,7 +26,7 @@
 
 #include "Filters\RendererSettings.h"
 #include "PixelShaderCompiler.h"
-#include "windowing/WindowingFactory.h"
+#include "windowing/WinSystem.h"
 #include "utils/Log.h"
 #include "DSUtil/SmartPtr.h"
 #include "GraphFilters.h"

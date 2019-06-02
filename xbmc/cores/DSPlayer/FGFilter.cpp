@@ -31,7 +31,7 @@
 #include "DSUtil/SmartPtr.h"
 
 #include "Filters/madVRAllocatorPresenter.h"
-#include "windowing/WindowingFactory.h"
+#include "windowing/WinSystem.h"
 #include "utils/log.h"
 #include "utils/charsetconverter.h"
 #include "utils/XMLUtils.h"

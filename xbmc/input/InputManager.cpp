@@ -28,14 +28,13 @@
 #include "JoystickMapper.h"
 #include "KeymapEnvironment.h"
 #include "TouchTranslator.h"
-#include "input/keyboard/IKeyboardHandler.h"
+#include "input/keyboard/interfaces/IKeyboardHandler.h"
 #include "input/mouse/generic/MouseInputHandling.h"
-#include "input/mouse/IMouseDriverHandler.h"
+#include "input/mouse/interfaces/IMouseDriverHandler.h"
 #include "input/mouse/MouseWindowingButtonMap.h"
 #include "input/keyboard/KeyboardEasterEgg.h"
 #include "input/Key.h"
 #include "messaging/ApplicationMessenger.h"
-#include "guilib/Geometry.h"
 #include "guilib/GUIAudioManager.h"
 #include "guilib/GUIControl.h"
 #include "guilib/GUIWindow.h"
@@ -56,6 +55,7 @@
 #include "peripherals/Peripherals.h"
 #include "peripherals/devices/PeripheralImon.h"
 #include "XBMC_vkeys.h"
+#include "utils/Geometry.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
 #include "Util.h"
@@ -589,7 +589,7 @@ bool CInputManager::HandleKey(const CKey& key)
 
         // If the key pressed is shift-A to shift-Z set usekeyboard to true.
         // This causes the keypress to be used for list navigation.
-        if (control->IsContainer() && key.GetModifiers() == CKey::MODIFIER_SHIFT && key.GetVKey() >= XBMCVK_A && key.GetVKey() <= XBMCVK_Z)
+        if (control->IsContainer() && (key.GetModifiers() & CKey::MODIFIER_SHIFT) && key.GetVKey() >= XBMCVK_A && key.GetVKey() <= XBMCVK_Z)
           useKeyboard = true;
       }
     }
@@ -628,13 +628,13 @@ bool CInputManager::HandleKey(const CKey& key)
           // Check for paste keypress
 #ifdef TARGET_WINDOWS
           // In Windows paste is ctrl-V
-          if (key.GetVKey() == XBMCVK_V && key.GetModifiers() == CKey::MODIFIER_CTRL)
+          if (key.GetVKey() == XBMCVK_V && (key.GetModifiers() & CKey::MODIFIER_CTRL))
 #elif defined(TARGET_LINUX)
           // In Linux paste is ctrl-V
-          if (key.GetVKey() == XBMCVK_V && key.GetModifiers() == CKey::MODIFIER_CTRL)
+          if (key.GetVKey() == XBMCVK_V && (key.GetModifiers() & CKey::MODIFIER_CTRL))
 #elif defined(TARGET_DARWIN_OSX)
           // In OSX paste is cmd-V
-          if (key.GetVKey() == XBMCVK_V && key.GetModifiers() == CKey::MODIFIER_META)
+          if (key.GetVKey() == XBMCVK_V && (key.GetModifiers() & CKey::MODIFIER_META))
 #else
           // Placeholder for other operating systems
           if (false)

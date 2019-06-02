@@ -22,10 +22,12 @@
 #ifdef HAS_DS_PLAYER
 
 #include "WinDsRenderer.h"
+#include "ServiceBroker.h"
 #include "Util.h"
 #include "settings/Settings.h"
 #include "guilib/Texture.h"
-#include "windowing/WindowingFactory.h"
+#include "rendering/dx/RenderContext.h"
+#include "rendering/dx/DeviceResources.h"
 #include "settings/AdvancedSettings.h"
 #include "threads/SingleLock.h"
 #include "utils/log.h"
@@ -89,7 +91,7 @@ bool CWinDsRenderer::RenderCapture(CRenderCapture* capture)
 
   bool succeeded = false;
 
-  ID3D11DeviceContext* pContext = g_Windowing.Get3D11Context();
+  ID3D11DeviceContext* pContext = DX::DeviceResources::Get()->GetD3DContext();
 
   CRect saveSize = m_destRect;
   saveRotatedCoords();//backup current m_rotatedDestCoords
@@ -125,9 +127,9 @@ void CWinDsRenderer::RenderUpdate(int index, int index2, bool clear, unsigned in
     g_graphicsContext.Clear(m_clearColour);
 
   if (alpha < 255)
-    g_Windowing.SetAlphaBlendEnable(true);
+    DX::Windowing().SetAlphaBlendEnable(true);
   else
-    g_Windowing.SetAlphaBlendEnable(false);
+    DX::Windowing().SetAlphaBlendEnable(false);
 
   if (!m_bConfigured)
     return;

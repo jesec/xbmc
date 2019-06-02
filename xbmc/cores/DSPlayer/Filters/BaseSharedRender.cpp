@@ -23,7 +23,8 @@
 #include "BaseSharedRender.h"
 #include "Utils/Log.h"
 #include "guilib/GUIWindowManager.h"
-#include "windowing/WindowingFactory.h"
+#include "rendering/dx/DeviceResources.h"
+#include "rendering/dx/RenderContext.h"
 #include "settings/AdvancedSettings.h"
 #include "Application.h"
 
@@ -135,7 +136,7 @@ HRESULT CBaseSharedRender::ForceComplete()
 
 CBaseSharedRender::CBaseSharedRender()
 {
-  color_t clearColour = g_Windowing.UseLimitedColor() ? (16 * 0x010101) : 0;
+  color_t clearColour = DX::Windowing().UseLimitedColor() ? (16 * 0x010101) : 0;
   CD3DHelper::XMStoreColor(m_fColor, clearColour);
   m_bWaitKodiRendering = !g_advancedSettings.m_bNotWaitKodiRendering;
 }

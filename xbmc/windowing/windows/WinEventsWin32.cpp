@@ -245,9 +245,9 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
   if (uMsg == WM_NCCREATE)
   {
     // if available, enable DPI scaling of non-client portion of window (title bar, etc.) 
-    if (g_Windowing.PtrEnableNonClientDpiScaling != NULL)
+    if (CServiceBroker::GetWinSystem().PtrEnableNonClientDpiScaling != NULL)
     {
-      g_Windowing.PtrEnableNonClientDpiScaling(hWnd);
+      CServiceBroker::GetWinSystem().PtrEnableNonClientDpiScaling(hWnd);
     }
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
   }
@@ -319,7 +319,7 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
           }
           else
           {
-            //g_application.SetRenderGUI(g_Windowing.WindowedMode());
+            //g_application.SetRenderGUI(CServiceBroker::GetWinSystem().WindowedMode());
           }
         }
         if (g_application.GetRenderGUI() != active)
@@ -473,7 +473,7 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
 #ifdef HAS_DS_PLAYER
       if (g_application.GetCurrentPlayer() == "DSPlayer")
       {
-        if (g_application.m_pPlayer && g_application.GetAppPlayer().IsInMenu())
+        if (g_application.GetAppPlayer().IsInMenu())
         {
           CDSPlayer::PostMessage(new CDSMsgInt(CDSMsg::PLAYER_DVD_MOUSE_MOVE, lParam), false);
           return(0);
@@ -489,7 +489,7 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
 #ifdef HAS_DS_PLAYER
       if (g_application.GetCurrentPlayer() == "DSPlayer")
       {
-        if (g_application.m_pPlayer && g_application.GetAppPlayer().IsInMenu())
+        if (g_application.GetAppPlayer().IsInMenu())
         {
           CDSPlayer::PostMessage(new CDSMsgInt(CDSMsg::PLAYER_DVD_MOUSE_CLICK, lParam), false);
           return(0);
@@ -558,11 +558,11 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
       {
         if (g_application.GetAppPlayer().GetCurrentPlayer() == "DSPlayer")
         {
-          g_application.GetAppPlayer().DisplayChange(!g_Windowing.IsAlteringWindow());
+          g_application.GetAppPlayer().DisplayChange(!DX::Windowing().IsAlteringWindow());
         }
-        else if (!g_Windowing.IsAlteringWindow())
+        else if (!DX::Windowing().IsAlteringWindow())
         {
-          g_Windowing.UpdateResolutions();
+          CServiceBroker::GetWinSystem().UpdateResolutions();
           if (g_advancedSettings.m_fullScreen)
           {
             newEvent.type = XBMC_VIDEOMOVE;

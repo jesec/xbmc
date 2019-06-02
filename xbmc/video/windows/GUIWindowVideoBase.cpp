@@ -557,9 +557,9 @@ void CGUIWindowVideoBase::AddItemToPlayList(const CFileItemPtr &pItem, CFileItem
 }
 
 #ifdef HAS_DS_PLAYER
-void CGUIWindowVideoBase::GetResumeItemOffset(const CFileItem *item, int& startoffset, int& partNumber, std::string& strEdition)
+void CGUIWindowVideoBase::GetResumeItemOffset(const CFileItem *item, int64_t& startoffset, int& partNumber, std::string& strEdition)
 #else
-void CGUIWindowVideoBase::GetResumeItemOffset(const CFileItem *item, int& startoffset, int& partNumber)
+void CGUIWindowVideoBase::GetResumeItemOffset(const CFileItem *item, int64_t& startoffset, int& partNumber)
 #endif
 {
   // do not resume Live TV and 'deleted' items (e.g. trashed pvr recordings)
@@ -581,7 +581,7 @@ void CGUIWindowVideoBase::GetResumeItemOffset(const CFileItem *item, int& starto
 #endif
     if (item->GetCurrentResumeTimeAndPartNumber(startoffset, partNumber))
     {
-      startoffset *= 75;
+      startoffset = CUtil::ConvertSecsToMilliSecs(startoffset);
     }
     else
     {
@@ -598,7 +598,7 @@ void CGUIWindowVideoBase::GetResumeItemOffset(const CFileItem *item, int& starto
       }
       if (db.GetResumeBookMark(strPath, bookmark))
       {
-        startoffset = (int)(bookmark.timeInSeconds*75);
+        startoffset = CUtil::ConvertSecsToMilliSecs(bookmark.timeInSeconds);
         partNumber = bookmark.partNumber;
       }
       db.Close();
@@ -608,7 +608,8 @@ void CGUIWindowVideoBase::GetResumeItemOffset(const CFileItem *item, int& starto
 
 bool CGUIWindowVideoBase::HasResumeItemOffset(const CFileItem *item)
 {
-  int startoffset = 0, partNumber = 0;
+  int64_t startoffset = 0;
+  int partNumber = 0;
 #ifdef HAS_DS_PLAYER
   std::string editionString;
   GetResumeItemOffset(item, startoffset, partNumber, editionString);
@@ -763,7 +764,8 @@ void CGUIWindowVideoBase::OnRestartItem(int iItem, const std::string &player)
 std::string CGUIWindowVideoBase::GetResumeString(const CFileItem &item)
 {
   std::string resumeString;
-  int startOffset = 0, startPart = 0;
+  int64_t startOffset = 0;
+  int startPart = 0;
 #ifdef HAS_DS_PLAYER
   std::string editionString;
   GetResumeItemOffset(&item, startOffset, startPart, editionString);
@@ -773,7 +775,7 @@ std::string CGUIWindowVideoBase::GetResumeString(const CFileItem &item)
   if (startOffset > 0)
   {
     resumeString = StringUtils::Format(g_localizeStrings.Get(12022).c_str(),
-        StringUtils::SecondsToTimeString(startOffset/75, TIME_FORMAT_HH_MM_SS).c_str());
+        StringUtils::SecondsToTimeString(static_cast<long>(CUtil::ConvertMilliSecsToSecsInt(startOffset)), TIME_FORMAT_HH_MM_SS).c_str());
     if (startPart > 0)
     {
       std::string partString = StringUtils::Format(g_localizeStrings.Get(23051).c_str(), startPart);
@@ -975,7 +977,7 @@ bool CGUIWindowVideoBase::OnPlayStackPart(int iItem)
       {
         std::vector<uint64_t> times;
         if (m_database.GetStackTimes(path,times))
-          stack->m_lStartOffset = static_cast<int>( times[selectedFile - 1] * 75 / 1000);
+          stack->m_lStartOffset = times[selectedFile - 1];
       }
       else
         stack->m_lStartOffset = 0;

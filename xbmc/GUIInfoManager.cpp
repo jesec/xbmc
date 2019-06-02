@@ -4093,17 +4093,32 @@ const infomap skin_labels[] =    {{ "currenttheme",      SKIN_THEME },
 ///     Returns true if the window with id or title _window_ is active (excludes
 ///     fade out time on dialogs) \ref modules__General__Window_IDs "See here for a list of windows"
 ///   }
-///   \table_row3{   <b>`Window.IsTopMost(window)`</b>,
-///                  \anchor Window_IsTopMost
-///                  _boolean_,
-///     Returns true if the window with id or title _window_ is on top of the
-///     window stack (excludes fade out time on dialogs)
-///     \ref modules__General__Window_IDs "See here for a list of windows"
-///   }
 ///   \table_row3{   <b>`Window.IsVisible(window)`</b>,
 ///                  \anchor Window_IsVisible
 ///                  _boolean_,
 ///     Returns true if the window is visible (includes fade out time on dialogs)
+///   }
+///   \table_row3{   <b>`Window.IsTopmost(window)`</b>,
+///                  \anchor Window_IsTopmost
+///                  _boolean_,
+///     Returns true if the window with id or title _window_ is on top of the
+///     window stack (excludes fade out time on dialogs)
+///     \ref modules__General__Window_IDs "See here for a list of windows"
+///     \deprecated use `Window.IsDialogTopmost(dialog)` instead
+///   }
+///   \table_row3{   <b>`Window.IsDialogTopmost(dialog)`</b>,
+///                  \anchor Window_IsDialogTopmost
+///                  _boolean_,
+///     Returns true if the dialog with id or title _dialog_ is on top of the
+///     dialog stack (excludes fade out time on dialogs)
+///     \ref modules__General__Window_IDs "See here for a list of windows"
+///   }
+///   \table_row3{   <b>`Window.IsModalDialogTopmost(dialog)`</b>,
+///                  \anchor Window_IsModalDialogTopmost
+///                  _boolean_,
+///     Returns true if the dialog with id or title _dialog_ is on top of the
+///     modal dialog stack (excludes fade out time on dialogs)
+///     \ref modules__General__Window_IDs "See here for a list of windows"
 ///   }
 ///   \table_row3{   <b>`Window.Previous(window)`</b>,
 ///                  \anchor Window_Previous
@@ -4126,8 +4141,10 @@ const infomap skin_labels[] =    {{ "currenttheme",      SKIN_THEME },
 const infomap window_bools[] =   {{ "ismedia",          WINDOW_IS_MEDIA },
                                   { "is",               WINDOW_IS },
                                   { "isactive",         WINDOW_IS_ACTIVE },
-                                  { "istopmost",        WINDOW_IS_TOPMOST },
                                   { "isvisible",        WINDOW_IS_VISIBLE },
+                                  { "istopmost",        WINDOW_IS_DIALOG_TOPMOST }, // deprecated, remove in v19
+                                  { "isdialogtopmost",  WINDOW_IS_DIALOG_TOPMOST },
+                                  { "ismodaldialogtopmost", WINDOW_IS_MODAL_DIALOG_TOPMOST },
                                   { "previous",         WINDOW_PREVIOUS },
                                   { "next",             WINDOW_NEXT }};
 
@@ -6848,7 +6865,7 @@ bool CGUIInfoManager::GetInt(int &value, int info, int contextWindow, const CGUI
     case PVR_ACTUAL_STREAM_SNR_PROGR:
     case PVR_BACKEND_DISKSPACE_PROGR:
     case PVR_TIMESHIFT_PROGRESS:
-      value = CServiceBroker::GetPVRManager().TranslateIntInfo(info);
+      value = CServiceBroker::GetPVRManager().TranslateIntInfo(*m_currentFile, info);
       return true;
     case SYSTEM_BATTERY_LEVEL:
       value = CServiceBroker::GetPowerManager().BatteryLevel();
@@ -7670,6 +7687,16 @@ bool CGUIInfoManager::GetMultiInfoBool(const GUIInfo &info, int contextWindow, c
         if (info.GetData1())
         {
           CGUIWindow *window = g_windowManager.GetWindow(contextWindow);
+          if (!window)
+          {
+            // try topmost dialog
+            window = g_windowManager.GetWindow(g_windowManager.GetTopmostModalDialog());
+            if (!window)
+            {
+              // try active window
+              window = g_windowManager.GetWindow(g_windowManager.GetActiveWindow());
+            }
+          }
           bReturn = (window && window->GetID() == static_cast<int>(info.GetData1()));
         }
         else
@@ -7681,17 +7708,23 @@ bool CGUIInfoManager::GetMultiInfoBool(const GUIInfo &info, int contextWindow, c
         else
           bReturn = g_windowManager.IsWindowVisible(m_stringParameters[info.GetData2()]);
         break;
-      case WINDOW_IS_TOPMOST:
-        if (info.GetData1())
-          bReturn = g_windowManager.IsWindowTopMost(info.GetData1());
-        else
-          bReturn = g_windowManager.IsWindowTopMost(m_stringParameters[info.GetData2()]);
-        break;
       case WINDOW_IS_ACTIVE:
         if (info.GetData1())
           bReturn = g_windowManager.IsWindowActive(info.GetData1());
         else
           bReturn = g_windowManager.IsWindowActive(m_stringParameters[info.GetData2()]);
+        break;
+      case WINDOW_IS_DIALOG_TOPMOST:
+        if (info.GetData1())
+          bReturn = g_windowManager.IsDialogTopmost(info.GetData1());
+        else
+          bReturn = g_windowManager.IsDialogTopmost(m_stringParameters[info.GetData2()]);
+        break;
+      case WINDOW_IS_MODAL_DIALOG_TOPMOST:
+        if (info.GetData1())
+          bReturn = g_windowManager.IsModalDialogTopmost(info.GetData1());
+        else
+          bReturn = g_windowManager.IsModalDialogTopmost(m_stringParameters[info.GetData2()]);
         break;
       case SYSTEM_HAS_ALARM:
         bReturn = g_alarmClock.HasAlarm(m_stringParameters[info.GetData1()]);
@@ -9872,30 +9905,25 @@ std::string CGUIInfoManager::GetItemLabel(const CFileItem *item, int info, std::
       if (item->HasPVRChannelInfoTag())
       {
         CPVREpgInfoTagPtr tag(item->GetPVRChannelInfoTag()->GetEPGNow());
-        if (tag)
+        if (tag && tag->EpisodeNumber() > 0)
         {
-          if (tag->SeriesNumber() > 0)
-            iSeason = tag->SeriesNumber();
-          if (tag->EpisodeNumber() > 0)
-            iEpisode = tag->EpisodeNumber();
+          iEpisode = tag->EpisodeNumber();
+          iSeason = tag->SeriesNumber();
         }
       }
-      else if (item->HasEPGInfoTag())
+      else if (item->HasEPGInfoTag() &&
+               item->GetEPGInfoTag()->EpisodeNumber() > 0)
       {
-        if (item->GetEPGInfoTag()->SeriesNumber() > 0)
-          iSeason = item->GetEPGInfoTag()->SeriesNumber();
-        if (item->GetEPGInfoTag()->EpisodeNumber() > 0)
-          iEpisode = item->GetEPGInfoTag()->EpisodeNumber();
+        iSeason = item->GetEPGInfoTag()->SeriesNumber();
+        iEpisode = item->GetEPGInfoTag()->EpisodeNumber();
       }
       else if (item->HasPVRTimerInfoTag())
       {
         const CPVREpgInfoTagPtr tag(item->GetPVRTimerInfoTag()->GetEpgInfoTag());
-        if (tag)
+        if (tag && tag->EpisodeNumber() > 0)
         {
-          if (tag->SeriesNumber() > 0)
-            iSeason = tag->SeriesNumber();
-          if (tag->EpisodeNumber() > 0)
-            iEpisode = tag->EpisodeNumber();
+          iSeason = tag->SeriesNumber();
+          iEpisode = tag->EpisodeNumber();
         }
       }
       else if (item->HasVideoInfoTag() &&
@@ -10707,7 +10735,7 @@ CGUIWindow *CGUIInfoManager::GetWindowWithCondition(int contextWindow, int condi
     return window;
 
   // try topmost dialog
-  window = g_windowManager.GetWindow(g_windowManager.GetTopMostModalDialogID());
+  window = g_windowManager.GetWindow(g_windowManager.GetTopmostModalDialog());
   if (CheckWindowCondition(window, condition))
     return window;
 

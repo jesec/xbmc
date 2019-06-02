@@ -162,14 +162,10 @@ void CGUIDialogAudioSubtitleSettings::OnSettingChanged(std::shared_ptr<const CSe
   else if (settingId == SETTING_AUDIO_DELAY)
   {
     float value = static_cast<float>(std::static_pointer_cast<const CSettingNumber>(setting)->GetValue());
-<<<<<<< HEAD
 #ifdef HAS_DS_PLAYER
-    if (m_bIsDSPlayer) value = -value;
+if (m_bIsDSPlayer) value = -value;
 #endif
     g_application.GetAppPlayer().SetAVDelay(value);
-=======
-    g_application.GetAppPlayer().SetAVDelay(value);
->>>>>>> daed233cb9104828aa37cfe47c3cbaa149ce4f82
   }
   else if (settingId == SETTING_AUDIO_STREAM)
   {
@@ -193,14 +189,10 @@ void CGUIDialogAudioSubtitleSettings::OnSettingChanged(std::shared_ptr<const CSe
   else if (settingId == SETTING_SUBTITLE_DELAY)
   {
     float value = static_cast<float>(std::static_pointer_cast<const CSettingNumber>(setting)->GetValue());
-<<<<<<< HEAD
 #ifdef HAS_DS_PLAYER
     if (m_bIsDSPlayer) value = -value;
 #endif
     g_application.GetAppPlayer().SetSubTitleDelay(value);
-=======
-    g_application.GetAppPlayer().SetSubTitleDelay(value);
->>>>>>> daed233cb9104828aa37cfe47c3cbaa149ce4f82
   }
   else if (settingId == SETTING_SUBTITLE_STREAM)
   {
@@ -517,15 +509,12 @@ void CGUIDialogAudioSubtitleSettings::AudioStreamsOptionFiller(SettingConstPtr s
     else
       strItem = StringUtils::Format("%s - %s", strLanguage.c_str(), info.name.c_str());
 
-<<<<<<< HEAD
 #ifdef HAS_DS_PLAYER
     if (g_application.GetCurrentPlayer() == "DSPlayer")
       strItem = info.name;
 #endif
 
-=======
     strItem += FormatFlags(info.flags);
->>>>>>> daed233cb9104828aa37cfe47c3cbaa149ce4f82
     strItem += StringUtils::Format(" (%i/%i)", i + 1, audioStreamCount);
     list.push_back(make_pair(strItem, i));
   }
@@ -558,15 +547,12 @@ void CGUIDialogAudioSubtitleSettings::SubtitleStreamsOptionFiller(SettingConstPt
     else
       strItem = StringUtils::Format("%s - %s", strLanguage.c_str(), info.name.c_str());
 
-<<<<<<< HEAD
 #ifdef HAS_DS_PLAYER
     if (g_application.GetCurrentPlayer() == "DSPlayer")
       strItem = info.name;
 #endif
 
-=======
     strItem += FormatFlags(info.flags);
->>>>>>> daed233cb9104828aa37cfe47c3cbaa149ce4f82
     strItem += StringUtils::Format(" (%i/%i)", i + 1, subtitleStreamCount);
 
     list.push_back(make_pair(strItem, i));
@@ -623,7 +609,26 @@ std::string CGUIDialogAudioSubtitleSettings::SettingFormatterPercentAsDecibel(st
   return StringUtils::Format(formatString.c_str(), CAEUtil::PercentToGain(value.asFloat()));
 }
 
-<<<<<<< HEAD
+std::string CGUIDialogAudioSubtitleSettings::FormatFlags(StreamFlags flags)
+{
+  std::vector<std::string> localizedFlags;
+  if (flags & StreamFlags::FLAG_DEFAULT)
+    localizedFlags.emplace_back(g_localizeStrings.Get(39105));
+  if (flags & StreamFlags::FLAG_FORCED)
+    localizedFlags.emplace_back(g_localizeStrings.Get(39106));
+  if (flags & StreamFlags::FLAG_HEARING_IMPAIRED)
+    localizedFlags.emplace_back(g_localizeStrings.Get(39107));
+  if (flags &  StreamFlags::FLAG_VISUAL_IMPAIRED)
+    localizedFlags.emplace_back(g_localizeStrings.Get(39108));
+
+  std::string formated = StringUtils::Join(localizedFlags, ", ");
+
+  if (!formated.empty())
+    formated = StringUtils::Format(" [%s]", formated);
+
+  return formated;
+}
+
 #ifdef HAS_DS_PLAYER
 void CGUIDialogAudioSubtitleSettings::ShowAudioSelector()
 {
@@ -642,7 +647,7 @@ void CGUIDialogAudioSubtitleSettings::ShowAudioSelector()
   for (int i = 0; i < count; ++i)
   {
     std::string strName;
-    SPlayerAudioStreamInfo audio;
+    AudioStreamInfo audio;
     g_application.GetAppPlayer().GetAudioStreamInfo(i, audio);
     strName = audio.name;
     if (strName.length() == 0)
@@ -686,7 +691,7 @@ void CGUIDialogAudioSubtitleSettings::ShowSubsSelector()
   {
     std::string strName;
 
-    SPlayerSubtitleStreamInfo subs;
+    SubtitleStreamInfo subs;
     g_application.GetAppPlayer().GetSubtitleStreamInfo(i, subs);
     strName = subs.name;
     if (strName.length() == 0)
@@ -717,24 +722,3 @@ void CGUIDialogAudioSubtitleSettings::ShowSubsSelector()
 }
 
 #endif
-=======
-std::string CGUIDialogAudioSubtitleSettings::FormatFlags(StreamFlags flags)
-{
-  std::vector<std::string> localizedFlags;
-  if (flags & StreamFlags::FLAG_DEFAULT)
-    localizedFlags.emplace_back(g_localizeStrings.Get(39105));
-  if (flags & StreamFlags::FLAG_FORCED)
-    localizedFlags.emplace_back(g_localizeStrings.Get(39106));
-  if (flags & StreamFlags::FLAG_HEARING_IMPAIRED)
-    localizedFlags.emplace_back(g_localizeStrings.Get(39107));
-  if (flags &  StreamFlags::FLAG_VISUAL_IMPAIRED)
-    localizedFlags.emplace_back(g_localizeStrings.Get(39108));
-
-  std::string formated = StringUtils::Join(localizedFlags, ", ");
-
-  if (!formated.empty())
-    formated = StringUtils::Format(" [%s]", formated);
-
-  return formated;
-}
->>>>>>> daed233cb9104828aa37cfe47c3cbaa149ce4f82

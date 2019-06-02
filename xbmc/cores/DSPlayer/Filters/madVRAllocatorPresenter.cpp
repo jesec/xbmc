@@ -20,7 +20,7 @@
 
 #include "madVRAllocatorPresenter.h"
 #include "ServiceBroker.h"
-#include "windowing/WindowingFactory.h"
+#include "rendering/dx/RenderContext.h"
 #include <moreuuids.h>
 #include "RendererSettings.h"
 #include "guilib/GUIWindowManager.h"
@@ -140,7 +140,7 @@ void CmadVRAllocatorPresenter::DisplayChange(bool bExternalChange)
 {
   CAutoLock cAutoLock(this);
 
-  if (g_Windowing.Get3D11Device() == nullptr || m_pD3DDev == nullptr)
+  if (DX::DeviceResources::Get()->GetD3DDevice() == nullptr || m_pD3DDev == nullptr)
     return;
 
   CLog::Log(LOGDEBUG, "%s need to re-create the shared textures", __FUNCTION__);
@@ -156,7 +156,7 @@ void CmadVRAllocatorPresenter::DisplayChange(bool bExternalChange)
   }
 
   m_pMadvrShared = DNew CMadvrSharedRender();
-  m_pMadvrShared->CreateTextures(g_Windowing.Get3D11Device(), m_pD3DDev, (int)m_ScreenSize.cx, (int)m_ScreenSize.cy);
+  m_pMadvrShared->CreateTextures(DX::DeviceResources::Get()->GetD3DDevice(), m_pD3DDev, (int)m_ScreenSize.cx, (int)m_ScreenSize.cy);
 }
 
 STDMETHODIMP CmadVRAllocatorPresenter::ClearBackground(LPCSTR name, REFERENCE_TIME frameStart, RECT *fullOutputRect, RECT *activeVideoRect)
@@ -217,7 +217,7 @@ HRESULT CmadVRAllocatorPresenter::SetDevice(IDirect3DDevice9* pD3DDev)
     }
 
     m_pMadvrShared = DNew CMadvrSharedRender();
-    m_pMadvrShared->CreateTextures(g_Windowing.Get3D11Device(), m_pD3DDev, (int)m_ScreenSize.cx, (int)m_ScreenSize.cy);
+    m_pMadvrShared->CreateTextures(DX::DeviceResources::Get()->GetD3DDevice(), m_pD3DDev, (int)m_ScreenSize.cx, (int)m_ScreenSize.cy);
 
     m_firstBoot = false;
     g_advancedSettings.m_guiAlgorithmDirtyRegions = DIRTYREGION_SOLVER_FILL_VIEWPORT_ALWAYS;

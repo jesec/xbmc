@@ -47,7 +47,7 @@ namespace PVR
 
     bool TranslateBoolInfo(DWORD dwInfo) const;
     bool TranslateCharInfo(DWORD dwInfo, std::string &strValue) const;
-    int TranslateIntInfo(DWORD dwInfo) const;
+    int TranslateIntInfo(const CFileItem &item, DWORD dwInfo) const;
 
     /*!
      * @brief Get a GUIInfoManager video label.
@@ -68,7 +68,7 @@ namespace PVR
      * @brief Get the current position in milliseconds since the start of a LiveTV item.
      * @return The position in milliseconds or NULL if no channel is playing.
      */
-    int GetStartTime(void) const;
+    int GetPlayingTime(void) const;
 
     /*!
      * @brief Clear the playing EPG tag.

@@ -35,6 +35,9 @@
 #include "cores/AudioEngine/Interfaces/AE.h"
 #include "cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodec.h"
 #include "guilib/LocalizeStrings.h"
+#if defined(HAS_WEB_SERVER)
+#include "network/WebServer.h"
+#endif
 #include "peripherals/Peripherals.h"
 #include "profiles/ProfilesManager.h"
 #include "pvr/PVRGUIActions.h"
@@ -345,6 +348,11 @@ void CSettingConditions::Initialize()
 #endif
 
   m_simpleConditions.insert("has_ae_quality_levels");
+
+#ifdef HAS_WEB_SERVER
+  if(CWebServer::WebServerSupportsSSL())
+    m_simpleConditions.insert("webserver_has_ssl");
+#endif
 
   // add complex conditions
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("addonhassettings",              AddonHasSettings));

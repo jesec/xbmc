@@ -32,7 +32,7 @@
 #include <mpconfig.h> //IMixerConfig
 
 #include "windowing/windows/WinSystemWin32.h" //g_hwnd
-#include "windowing/WindowingFactory.h"
+#include "windowing/WinSystem.h"
 #include "utils/CharsetConverter.h"
 #include "DSUtil/DSUtil.h"
 #include "DSUtil/DShowCommon.h"

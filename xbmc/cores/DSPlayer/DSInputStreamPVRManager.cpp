@@ -122,40 +122,14 @@ bool CDSInputStreamPVRManager::SelectChannelByNumber(unsigned int iChannelNumber
 
 bool CDSInputStreamPVRManager::SupportsChannelSwitch()const
 {
-  if (!m_pPVRBackend || !g_advancedSettings.m_bDSPlayerFastChannelSwitching)
-    return false;
-
-  PVR_CLIENT pvrClient;
-  if (!CServiceBroker::GetPVRManager().Clients()->GetPlayingClient(pvrClient))
-    return false;
-
-  // Check if active PVR Backend addon has changed or PVR Backend addon does not support channel switching
-  if (pvrClient->GetBackendName() != m_pPVRBackend->GetBackendName() || !m_pPVRBackend->SupportsFastChannelSwitch())
-    return false;
-
-  return pvrClient->GetClientCapabilities().HandlesInputStream();
+  // TODO
+  return false;
 }
 
 CDSPVRBackend* CDSInputStreamPVRManager::GetPVRBackend()
 {
-  PVR_CLIENT pvrClient;
-  if (!CServiceBroker::GetPVRManager().Clients()->GetPlayingClient(pvrClient))
-  {
-    CLog::Log(LOGERROR, "%s - Failed to get PVR Client", __FUNCTION__);
-    return NULL;
-  }
-
-  CDSPVRBackend* pPVRBackend = NULL;
-  if (pvrClient->GetBackendName().find("MediaPortal TV-server") != std::string::npos)
-  {
-    pPVRBackend = new CDSMediaPortal(pvrClient->GetConnectionString(), pvrClient->GetBackendName());
-  }
-  else if (pvrClient->GetBackendName().find("ARGUS TV") != std::string::npos)
-  {
-    pPVRBackend = new CDSArgusTV(pvrClient->GetConnectionString(), pvrClient->GetBackendName());
-  }
-
-  return pPVRBackend;
+  // TODO
+  return NULL;
 }
 
 uint64_t CDSInputStreamPVRManager::GetTotalTime()

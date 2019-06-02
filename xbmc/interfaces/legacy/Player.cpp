@@ -505,7 +505,7 @@ namespace XBMCAddon
         std::vector<String>* ret = new std::vector<String>(streamCount);
         for (int iStream = 0; iStream < streamCount; iStream++)
         {
-          SPlayerAudioStreamInfo info;
+          AudioStreamInfo info;
           g_application.GetAppPlayer().GetAudioStreamInfo(iStream, info);
           (*ret)[iStream] = std::to_string(info.channels);
         }

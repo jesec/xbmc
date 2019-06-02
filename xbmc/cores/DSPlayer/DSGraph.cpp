@@ -29,7 +29,7 @@
 #include "Filters/RendererSettings.h"
 #include "PixelShaderList.h"
 #include "windowing/windows/winsystemwin32.h" //Important needed to get the right hwnd
-#include "windowing/WindowingFactory.h" //important needed to get d3d object and device
+#include "windowing/WinSystem.h" //important needed to get d3d object and device
 #include "Util.h"
 #include "Application.h"
 #include "messaging/ApplicationMessenger.h"

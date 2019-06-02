@@ -35,7 +35,7 @@
 #include "DSPlayer.h"
 #include "FGFilter.h"
 #include "DSUtil/SmartPtr.h"
-#include "windowing/WindowingFactory.h"
+#include "windowing/WinSystem.h"
 #include "LangInfo.h"
 #include "settings/MediaSettings.h"
 #include "Filters/RendererSettings.h"

@@ -87,7 +87,7 @@ protected:
   void Process();
 };
 
-class CDSPlayer : public IPlayer, public CThread, public IDispResource, public IRenderDSMsg
+class CDSPlayer : public IPlayer, public CThread, public IDispResource, public IRenderLoop, public IRenderDSMsg
 {
 public:
   // IPlayer
@@ -112,7 +112,7 @@ public:
   virtual float GetSubTitleDelay() override;
   virtual int  GetSubtitleCount() override;
   virtual int  GetSubtitle() override;
-  virtual void GetSubtitleStreamInfo(int index, SPlayerSubtitleStreamInfo &info) override;
+  virtual void GetSubtitleStreamInfo(int index, SubtitleStreamInfo&info) override;
   virtual void SetSubtitle(int iStream) override;
   virtual bool GetSubtitleVisible() override;
   virtual void SetSubtitleVisible(bool bVisible) override;
@@ -124,7 +124,7 @@ public:
 
   //virtual int GetVideoStream() {} const override;
   virtual int GetVideoStreamCount() const override { return 1; }
-  virtual void GetVideoStreamInfo(int streamId, SPlayerVideoStreamInfo &info) override;
+  virtual void GetVideoStreamInfo(int streamId, VideoStreamInfo &info) override;
   //virtual void SetVideoStream(int iStream);
 
   virtual int  GetChapterCount() override { CSingleLock lock(m_StateSection); return CChaptersManager::Get()->GetChapterCount(); }
@@ -141,7 +141,7 @@ public:
   virtual bool OnAction(const CAction &action) override;
   virtual bool HasMenu() const override { return g_dsGraph->IsDvd(); };
   bool IsInMenu() const override { return g_dsGraph->IsInMenu(); };
-  virtual void GetAudioStreamInfo(int index, SPlayerAudioStreamInfo &info) override;
+  virtual void GetAudioStreamInfo(int index, AudioStreamInfo &info) override;
 
   // RenderManager
   void FrameMove() override;
@@ -303,7 +303,6 @@ protected:
   CRect m_viewRect;
 
   void SetVisibleScreenArea(CRect activeVideoRect);
-  int VideoDimsToResolution(int iWidth, int iHeight);
   CRect m_lastActiveVideoRect;
 
   IDSRendererAllocatorCallback* m_pAllocatorCallback;

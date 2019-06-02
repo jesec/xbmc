@@ -70,7 +70,6 @@ public:
   bool Flush();
   bool IsConfigured() const;
   void ToggleDebug();
-  void Reset();
 
   // Functions called from GUI
   bool Supports(ERENDERFEATURE feature);

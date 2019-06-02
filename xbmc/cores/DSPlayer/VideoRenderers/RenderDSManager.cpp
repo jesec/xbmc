@@ -43,7 +43,7 @@
 
 #include "utils/CPUInfo.h"
 
-#include "windowing/WindowingFactory.h"
+#include "windowing/WinSystem.h"
 
 #include "DVDCodecs/DVDCodecUtils.h"
 
@@ -178,12 +178,6 @@ bool CRenderDSManager::Configure()
   m_stateEvent.Set();
   m_playerPort->VideoParamsChange();
   return result;
-}
-
-void CRenderDSManager::Reset()
-{
-  if (m_pRenderer)
-    m_pRenderer->Reset();
 }
 
 bool CRenderDSManager::IsConfigured() const
@@ -444,7 +438,7 @@ void CRenderDSManager::UpdateResolution()
     if (m_Resolution != RES_INVALID)
     {      
       CLog::Log(LOGDEBUG, "%s gui resolution updated by external display change event", __FUNCTION__);
-      g_graphicsContext.SetVideoResolution(m_Resolution);
+      g_graphicsContext.SetVideoResolution(m_Resolution, false);
       UpdateDisplayLatency();
     }
     m_bTriggerDisplayChange = false;
@@ -459,7 +453,7 @@ void CRenderDSManager::UpdateResolution()
         if (m_Resolution == RES_INVALID)
           m_Resolution = CResolutionUtils::ChooseBestResolution(m_fps, m_width, CONF_FLAGS_STEREO_MODE_MASK(m_flags) != 0);
 
-        g_graphicsContext.SetVideoResolution(m_Resolution);
+        g_graphicsContext.SetVideoResolution(m_Resolution, false);
         UpdateDisplayLatency();
       }
       m_bTriggerUpdateResolution = false;
@@ -492,7 +486,7 @@ void CRenderDSManager::DisplayChange(bool bExternalChange)
     refreshRate = static_cast<float>(iRefreshRate);
 
   // Convert Current Resolution to Kodi Res
-  std::string sRes = StringUtils::Format("%1i%05i%05i%09.5f%s", g_Windowing.GetCurrentScreen(), width, height, refreshRate, bInterlaced ? "istd" : "pstd");
+  std::string sRes = StringUtils::Format("%1i%05i%05i%09.5f%s", CServiceBroker::GetWinSystem().GetCurrentScreen(), width, height, refreshRate, bInterlaced ? "istd" : "pstd");
   RESOLUTION res = CDisplaySettings::GetResolutionFromString(sRes);
   RESOLUTION_INFO res_info = CDisplaySettings::GetInstance().GetResolutionInfo(res);
 

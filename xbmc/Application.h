@@ -74,6 +74,7 @@ namespace PLAYLIST
 #include "utils/Stopwatch.h"
 #include "windowing/OSScreenSaver.h"
 #include "windowing/XBMC_events.h"
+#include "threads/SystemClock.h"
 #include "threads/Thread.h"
 
 #include "ApplicationPlayer.h"
@@ -185,7 +186,7 @@ public:
 
   bool PlayMedia(const CFileItem& item, const std::string &player, int iPlaylist);
   bool ProcessAndStartPlaylist(const std::string& strPlayList, PLAYLIST::CPlayList& playlist, int iPlaylist, int track=0);
-  PlayBackRet PlayFile(CFileItem item, const std::string& player, bool bRestart = false);
+  bool PlayFile(CFileItem item, const std::string& player, bool bRestart = false);
   void StopPlaying();
   void Restart(bool bSamePosition = true);
   void DelayedPlayerRestart();
@@ -435,6 +436,7 @@ protected:
   CStopWatch m_navigationTimer;
   CStopWatch m_slowTimer;
   CStopWatch m_shutdownTimer;
+  XbmcThreads::EndTime m_guiRefreshTimer;
 
   bool m_bInhibitIdleShutdown;
 
@@ -471,7 +473,7 @@ protected:
 
   void VolumeChanged();
 
-  PlayBackRet PlayStack(const CFileItem& item, bool bRestart);
+  bool PlayStack(CFileItem& item, bool bRestart);
 
   float NavigationIdleTime();
   bool InitDirectoriesLinux();

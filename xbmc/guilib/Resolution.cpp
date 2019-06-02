@@ -97,15 +97,6 @@ bool CResolutionUtils::FindResolutionFromOverride(float fps, int width, bool is3
   {
     RefreshOverride& override = g_advancedSettings.m_videoAdjustRefreshOverrides[i];
 
-#ifdef HAS_DS_PLAYER
-    // ignore override for files with a specific file extensions
-    CRegExp regExp;
-    std::string ext = g_application.CurrentFileItem().GetURL().GetFileType();
-    if ((!override.ignore.empty() && regExp.RegComp(override.ignore.c_str()))
-      && regExp.RegFind(ext, 0) == 0)
-      continue;
-#endif
-
     if (override.fallback != fallback)
       continue;
 
