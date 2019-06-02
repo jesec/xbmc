@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -33,7 +33,6 @@
 #include "dialogs/GUIDialogOK.h"
 #include "dialogs/GUIDialogYesNo.h"
 #include "utils/log.h"
-#include "system.h"
 #include "settings/lib/Setting.h"
 #include "settings/Settings.h"
 #include "utils/SystemInfo.h"
@@ -80,7 +79,7 @@ XBMCHelper::XBMCHelper()
   // Compute the helper filename.
   m_helperFile = m_homepath + "/tools/darwin/runtime/";
   m_helperFile += XBMC_HELPER_PROGRAM;
-  
+
   // Compute the local (pristine) launch agent filename.
   m_launchAgentLocalFile = m_homepath + "/tools/darwin/runtime/";
   m_launchAgentLocalFile += XBMC_LAUNCH_PLIST;
@@ -293,7 +292,7 @@ void XBMCHelper::Install()
   // Load template.
   std::string plistData = ReadFile(m_launchAgentLocalFile.c_str());
 
-  if (plistData != "") 
+  if (plistData != "")
   {
       std::string launchd_args;
 
@@ -301,7 +300,7 @@ void XBMCHelper::Install()
       int start = plistData.find("${PATH}");
       plistData.replace(start, 7, m_helperFile.c_str(), m_helperFile.length());
 
-      // Replace ARG1 with a single argument, additional args 
+      // Replace ARG1 with a single argument, additional args
       // will need ARG2, ARG3 added to plist.
       launchd_args = "-x";
       start = plistData.find("${ARG1}");
@@ -328,7 +327,7 @@ void XBMCHelper::Uninstall()
   std::string cmd = "/bin/launchctl unload ";
   cmd += m_launchAgentInstallFile;
   system(cmd.c_str());
-  
+
   //this also stops the helper, so restart it here again, if not disabled
   if(m_mode != APPLE_REMOTE_DISABLED)
     Start();
@@ -365,7 +364,7 @@ std::string XBMCHelper::ReadFile(const char* fileName)
 {
   std::string ret = "";
   std::ifstream is;
-  
+
   is.open(fileName);
   if( is.good() )
   {
@@ -497,7 +496,7 @@ static int GetBSDProcessList(kinfo_proc **procList, size_t *procCount)
 
       if (err == -1)
         err = errno;
-        
+
       if (err == 0)
       {
         done = true;

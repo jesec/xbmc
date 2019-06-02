@@ -2,7 +2,7 @@
  *      Copyright (c) 2002 d7o3g4q and RUNTiME
  *      Portions Copyright (c) by the authors of ffmpeg and xvid
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -100,7 +100,7 @@ COMXAudio::COMXAudio(CProcessInfo &processInfo) :
   m_format.m_streamInfo.m_channels = 2;
   m_format.m_sampleRate = 16000;
   m_format.m_frameSize = 1;
-  m_pAudioStream = CServiceBroker::GetActiveAE().MakeStream(m_format);
+  m_pAudioStream = CServiceBroker::GetActiveAE()->MakeStream(m_format);
 }
 
 COMXAudio::~COMXAudio()
@@ -108,7 +108,7 @@ COMXAudio::~COMXAudio()
   Deinitialize();
 
   if (m_pAudioStream)
-    CServiceBroker::GetActiveAE().FreeStream(m_pAudioStream);
+    CServiceBroker::GetActiveAE()->FreeStream(m_pAudioStream, true);
 }
 
 bool COMXAudio::PortSettingsChanged()

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -305,7 +305,7 @@ double CDVDClock::SystemToPlaying(int64_t system)
     m_vSyncAdjust = 0;
     m_bReset = false;
   }
-  
+
   if (m_pauseClock)
     current = m_pauseClock;
   else

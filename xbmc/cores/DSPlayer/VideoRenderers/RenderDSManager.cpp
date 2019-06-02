@@ -34,7 +34,7 @@
 #include "settings/DisplaySettings.h"
 #include "settings/MediaSettings.h"
 #include "settings/Settings.h"
-#include "guilib/GraphicContext.h"
+#include "windowing/GraphicContext.h"
 #include "cores/DataCacheCore.h"
 #include "GraphFilters.h"
 
@@ -162,7 +162,7 @@ bool CRenderDSManager::Configure()
   picture.iDisplayWidth = m_dwidth;
   picture.iDisplayHeight = m_dheight;
 
-  bool result = m_pRenderer->Configure(picture, m_fps, m_flags, 0);
+  bool result = m_pRenderer->Configure(picture, m_fps, 0);
   if (result)
   {
     CRenderInfo info = m_pRenderer->GetRenderInfo();
@@ -224,7 +224,7 @@ void CRenderDSManager::FrameMove()
         CApplicationMessenger::GetInstance().PostMsg(TMSG_SWITCHTOFULLSCREEN);
       }
     }
-    if (m_renderState == STATE_CONFIGURED && m_bWaitingForRenderOnDS && g_graphicsContext.IsFullScreenVideo())
+    if (m_renderState == STATE_CONFIGURED && m_bWaitingForRenderOnDS && CServiceBroker::GetWinSystem()->GetGfxContext().IsFullScreenVideo())
     {
       m_bWaitingForRenderOnDS = false;
       m_bPreInit = false;
@@ -236,7 +236,7 @@ void CRenderDSManager::FrameMove()
 void CRenderDSManager::EndRender()
 {
   if (m_renderState == STATE_CONFIGURED && !g_application.GetAppPlayer().ReadyDS())
-    g_graphicsContext.Clear(0);
+    CServiceBroker::GetWinSystem()->GetGfxContext().Clear(0);
 }
 
 void CRenderDSManager::UnInit()
@@ -266,7 +266,7 @@ bool CRenderDSManager::Flush()
     CLog::Log(LOGDEBUG, "%s - flushing renderer", __FUNCTION__);
 
 
-    CSingleExit exitlock(g_graphicsContext);
+    CSingleExit exitlock(CServiceBroker::GetWinSystem()->GetGfxContext());
 
     CSingleLock lock(m_statelock);
     CSingleLock lock3(m_datalock);
@@ -325,7 +325,7 @@ void CRenderDSManager::SetViewMode(int iViewMode)
 
 RESOLUTION CRenderDSManager::GetResolution()
 {
-  RESOLUTION res = g_graphicsContext.GetVideoResolution();
+  RESOLUTION res = CServiceBroker::GetWinSystem()->GetGfxContext().GetVideoResolution();
 
   CSingleLock lock(m_statelock);
   if (m_renderState == STATE_UNCONFIGURED)
@@ -339,7 +339,7 @@ RESOLUTION CRenderDSManager::GetResolution()
 
 void CRenderDSManager::Render(bool clear, DWORD flags, DWORD alpha, bool gui)
 {
-  CSingleExit exitLock(g_graphicsContext);
+  CSingleExit exitLock(CServiceBroker::GetWinSystem()->GetGfxContext());
 
   {
     CSingleLock lock(m_statelock);
@@ -418,8 +418,8 @@ void CRenderDSManager::PresentSingle(bool clear, DWORD flags, DWORD alpha)
 
 void CRenderDSManager::UpdateDisplayLatency()
 {
-  float refresh = g_graphicsContext.GetFPS();
-  if (g_graphicsContext.GetVideoResolution() == RES_WINDOW)
+  float refresh = CServiceBroker::GetWinSystem()->GetGfxContext().GetFPS();
+  if (CServiceBroker::GetWinSystem()->GetGfxContext().GetVideoResolution() == RES_WINDOW)
     refresh = 0; // No idea about refresh rate when windowed, just get the default latency
   m_displayLatency = g_advancedSettings.GetLatencyTweak(refresh);
 
@@ -438,7 +438,7 @@ void CRenderDSManager::UpdateResolution()
     if (m_Resolution != RES_INVALID)
     {      
       CLog::Log(LOGDEBUG, "%s gui resolution updated by external display change event", __FUNCTION__);
-      g_graphicsContext.SetVideoResolution(m_Resolution, false);
+      CServiceBroker::GetWinSystem()->GetGfxContext().SetVideoResolution(m_Resolution, false);
       UpdateDisplayLatency();
     }
     m_bTriggerDisplayChange = false;
@@ -446,14 +446,14 @@ void CRenderDSManager::UpdateResolution()
   }
   if (m_bTriggerUpdateResolution)
   {
-    if (g_graphicsContext.IsFullScreenVideo() && g_graphicsContext.IsFullScreenRoot())
+    if (CServiceBroker::GetWinSystem()->GetGfxContext().IsFullScreenVideo() && CServiceBroker::GetWinSystem()->GetGfxContext().IsFullScreenRoot())
     {
       if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) != ADJUST_REFRESHRATE_OFF && m_fps > 0.0f)
       {
         if (m_Resolution == RES_INVALID)
           m_Resolution = CResolutionUtils::ChooseBestResolution(m_fps, m_width, CONF_FLAGS_STEREO_MODE_MASK(m_flags) != 0);
 
-        g_graphicsContext.SetVideoResolution(m_Resolution, false);
+        CServiceBroker::GetWinSystem()->GetGfxContext().SetVideoResolution(m_Resolution, false);
         UpdateDisplayLatency();
       }
       m_bTriggerUpdateResolution = false;
@@ -486,7 +486,7 @@ void CRenderDSManager::DisplayChange(bool bExternalChange)
     refreshRate = static_cast<float>(iRefreshRate);
 
   // Convert Current Resolution to Kodi Res
-  std::string sRes = StringUtils::Format("%1i%05i%05i%09.5f%s", CServiceBroker::GetWinSystem().GetCurrentScreen(), width, height, refreshRate, bInterlaced ? "istd" : "pstd");
+  std::string sRes = StringUtils::Format("%1i%05i%05i%09.5f%s", CServiceBroker::GetWinSystem()->GetCurrentScreen(), width, height, refreshRate, bInterlaced ? "istd" : "pstd");
   RESOLUTION res = CDisplaySettings::GetResolutionFromString(sRes);
   RESOLUTION_INFO res_info = CDisplaySettings::GetInstance().GetResolutionInfo(res);
 

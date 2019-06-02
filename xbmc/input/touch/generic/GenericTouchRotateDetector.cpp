@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -111,7 +111,7 @@ bool CGenericTouchRotateDetector::OnTouchMove(unsigned int index, const Pointer 
       OnRotate(centerX, centerY, m_angle);
     }
   }
-  
+
   return true;
 }
 
@@ -119,10 +119,10 @@ bool CGenericTouchRotateDetector::OnTouchUpdate(unsigned int index, const Pointe
 {
   if (index >= MAX_POINTERS)
     return false;
-  
+
   if (m_done)
     return true;
-  
+
   // update the internal pointers
   m_pointers[index] = pointer;
   return true;

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2017 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -53,12 +53,12 @@ extern "C"
     } codec;
 
     STREAMCODEC_PROFILE codecProfile;
-    
+
     //UnknownVideoFormat is terminator
     VIDEOCODEC_FORMAT *videoFormats;
 
     uint32_t width, height;
-    
+
     const uint8_t *extraData;
     unsigned int extraDataSize;
 

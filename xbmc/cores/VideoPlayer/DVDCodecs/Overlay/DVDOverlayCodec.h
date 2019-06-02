@@ -1,8 +1,6 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include "PlatformDefs.h"
 #include "cores/VideoPlayer/DVDDemuxers/DVDDemux.h"
@@ -81,7 +81,7 @@ public:
    * return codecs name
    */
   virtual const char* GetName() { return m_codecName.c_str(); }
-  
+
 protected:
   /*
    * Adapts startTime, stopTIme from the subtitle stream (which is relative to stream pts)

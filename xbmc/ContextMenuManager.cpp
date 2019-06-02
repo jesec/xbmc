@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2013-2015 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -53,11 +53,6 @@ void CContextMenuManager::Deinit()
 {
   m_addonMgr.Events().Unsubscribe(this);
   m_items.clear();
-}
-
-CContextMenuManager& CContextMenuManager::GetInstance()
-{
-  return CServiceBroker::GetContextMenuManager();
 }
 
 void CContextMenuManager::Init()
@@ -208,14 +203,17 @@ bool CONTEXTMENU::ShowFor(const CFileItemPtr& fileItem, const CContextMenuItem& 
   if (!fileItem)
     return false;
 
-  auto menuItems = CContextMenuManager::GetInstance().GetItems(*fileItem, root);
-  for (auto&& item : CContextMenuManager::GetInstance().GetAddonItems(*fileItem, root))
+  const CContextMenuManager &contextMenuManager = CServiceBroker::GetContextMenuManager();
+
+  auto menuItems = contextMenuManager.GetItems(*fileItem, root);
+  for (auto&& item : contextMenuManager.GetAddonItems(*fileItem, root))
     menuItems.emplace_back(std::move(item));
 
   if (menuItems.empty())
     return true;
 
   CContextButtons buttons;
+  buttons.reserve(menuItems.size());
   for (size_t i = 0; i < menuItems.size(); ++i)
     buttons.Add(i, menuItems[i]->GetLabel(*fileItem));
 

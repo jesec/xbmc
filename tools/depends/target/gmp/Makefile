@@ -19,13 +19,16 @@ ifeq ($(OS),linux)
 endif
 
 ifeq ($(OS),ios)
-CONFIGURE_FLAGS=CC_FOR_BUILD=llvm-gcc CPP_FOR_BUILD="llvm-gcc -E" --disable-assembly
+CONFIGURE_FLAGS=--disable-assembly
 endif
 ifeq ($(OS),osx)
 CONFIGURE_FLAGS=--with-pic
 endif
 ifeq ($(OS), android)
 CONFIGURE_FLAGS=--with-pic
+endif
+ifeq ($(NATIVE_OS), osx)
+CONFIGURE_FLAGS+= CC_FOR_BUILD="$(CC_FOR_BUILD)" CPP_FOR_BUILD="$(CC_FOR_BUILD) -E"
 endif
 
 # configuration settings
@@ -34,8 +37,6 @@ CONFIGURE=cp -f $(CONFIG_SUB) $(CONFIG_GUESS) .; \
 
 
 LIBDYLIB=$(PLATFORM)/.libs/lib$(LIBNAME).a
-
-CLEAN_FILES=$(ARCHIVE) $(PLATFORM)
 
 all: .installed-$(PLATFORM)
 

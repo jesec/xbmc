@@ -4,13 +4,17 @@ cmake_minimum_required(VERSION 2.8)
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR})
 
-set(ffmpeg_conf "")
+if(ENABLE_CCACHE AND CCACHE_PROGRAM)
+  set(ffmpeg_conf "--cc=${CCACHE_PROGRAM} ${CMAKE_C_COMPILER}" "--cxx=${CCACHE_PROGRAM} ${CMAKE_CXX_COMPILER}")
+else()
+  set(ffmpeg_conf --cc=${CMAKE_C_COMPILER} --cxx=${CMAKE_CXX_COMPILER})
+endif()
 
 if(CROSSCOMPILING)
   set(pkgconf "PKG_CONFIG_LIBDIR=${DEPENDS_PATH}/lib/pkgconfig")
   list(APPEND ffmpeg_conf --pkg-config=${PKG_CONFIG_EXECUTABLE} --pkg-config-flags=--static)
   list(APPEND ffmpeg_conf --enable-cross-compile --cpu=${CPU} --arch=${CPU} --target-os=${OS})
-  list(APPEND ffmpeg_conf --cc=${CMAKE_C_COMPILER} --cxx=${CMAKE_CXX_COMPILER} --ar=${CMAKE_AR})
+  list(APPEND ffmpeg_conf --ar=${CMAKE_AR} --strip=${CMAKE_STRIP})
   message(STATUS "CROSS: ${ffmpeg_conf}")
 endif()
 
@@ -38,7 +42,17 @@ if(CORE_SYSTEM_NAME STREQUAL linux OR CORE_SYSTEM_NAME STREQUAL freebsd)
   if(CORE_PLATFORM_NAME STREQUAL rbpi)
     list(APPEND ffmpeg_conf --cpu=${CPU} --disable-vaapi --disable-vdpau)
   else()
-    list(APPEND ffmpeg_conf --enable-vdpau --enable-vaapi --enable-pic)
+    list(APPEND ffmpeg_conf --enable-pic)
+    if(ENABLE_VAAPI)
+      list(APPEND ffmpeg_conf --enable-vaapi)
+    else()
+      list(APPEND ffmpeg_conf --disable-vaapi)
+    endif()
+    if(ENABLE_VDPAU)
+      list(APPEND ffmpeg_conf --enable-vdpau)
+    else()
+      list(APPEND ffmpeg_conf --disable-vdpau)
+    endif()
   endif()
 elseif(CORE_SYSTEM_NAME STREQUAL android)
   if(CPU MATCHES arm64)
@@ -55,10 +69,10 @@ elseif(CORE_SYSTEM_NAME STREQUAL ios)
   else()
     list(APPEND ffmpeg_conf "--as=${NATIVEPREFIX}/bin/gas-preprocessor.pl -arch aarch64 -- ${CMAKE_C_COMPILER}")
   endif()
-  list(APPEND ffmpeg_conf --disable-decoder=mpeg_xvmc --disable-vda --disable-crystalhd --enable-videotoolbox
+  list(APPEND ffmpeg_conf --disable-decoder=mpeg_xvmc --disable-crystalhd --enable-videotoolbox
                           --target-os=darwin)
 elseif(CORE_SYSTEM_NAME STREQUAL osx)
-  list(APPEND ffmpeg_conf --disable-decoder=mpeg_xvmc --disable-vda --disable-crystalhd --enable-videotoolbox
+  list(APPEND ffmpeg_conf --disable-decoder=mpeg_xvmc --disable-crystalhd --enable-videotoolbox
                           --target-os=darwin
                           --disable-securetransport)
 endif()
@@ -87,7 +101,6 @@ externalproject_add(ffmpeg
                       --disable-ffplay
                       --disable-ffmpeg
                       --disable-ffprobe
-                      --disable-ffserver
                       --enable-gpl
                       --enable-runtime-cpudetect
                       --enable-postproc

@@ -1,8 +1,6 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <memory>
 #include <set>
@@ -87,7 +87,7 @@ public:
                     SortAttribute sortAttributes = SortAttributeNone,
                     const std::string &strExtensions="");
   void AddFromPath(const std::string &strPath, bool bRecursive,
-                   SortBy method = SortByLabel, 
+                   SortBy method = SortByLabel,
                    SortOrder order = SortOrderAscending,
                    SortAttribute sortAttributes = SortAttributeNone,
                    const std::string &strExtensions="");

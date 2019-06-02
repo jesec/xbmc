@@ -22,9 +22,6 @@
 
 %{
 #if defined(TARGET_WINDOWS)
-#  if !defined(WIN32_LEAN_AND_MEAN)
-#    define WIN32_LEAN_AND_MEAN
-#  endif
 #  include <windows.h>
 #endif
 
@@ -36,7 +33,7 @@
 using namespace XBMCAddon;
 using namespace xbmcvfs;
 
-#if defined(__GNUG__) && (__GNUC__>4) || (__GNUC__==4 && __GNUC_MINOR__>=2)
+#if defined(__GNUG__)
 #pragma GCC diagnostic ignored "-Wstrict-aliasing"
 #endif
 

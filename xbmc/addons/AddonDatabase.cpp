@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -33,7 +33,6 @@
 #include "utils/log.h"
 #include "utils/StringUtils.h"
 #include "utils/Variant.h"
-#include "DllLibCPluff.h"
 #include "XBDateTime.h"
 
 using namespace ADDON;
@@ -61,13 +60,13 @@ static std::string SerializeMetadata(const IAddon& addon)
   variant["extensions"].push_back(ADDON::CAddonInfo::TranslateType(addon.Type(), false));
 
   variant["dependencies"] = CVariant(CVariant::VariantTypeArray);
-  for (const auto& kv : addon.GetDeps())
+  for (const auto& dep : addon.GetDependencies())
   {
-    CVariant dep(CVariant::VariantTypeObject);
-    dep["addonId"] = kv.first;
-    dep["version"] = kv.second.first.asString();
-    dep["optional"] = kv.second.second;
-    variant["dependencies"].push_back(std::move(dep));
+    CVariant info(CVariant::VariantTypeObject);
+    info["addonId"] = dep.id;
+    info["version"] = dep.requiredVersion.asString();
+    info["optional"] = dep.optional;
+    variant["dependencies"].push_back(std::move(info));
   }
 
   variant["extrainfo"] = CVariant(CVariant::VariantTypeArray);
@@ -110,13 +109,17 @@ static void DeserializeMetadata(const std::string& document, CAddonBuilder& buil
 
   builder.SetType(CAddonInfo::TranslateType(variant["extensions"][0].asString()));
 
-  ADDONDEPS deps;
-  for (auto it = variant["dependencies"].begin_array(); it != variant["dependencies"].end_array(); ++it)
   {
-    AddonVersion version((*it)["version"].asString());
-    deps.emplace((*it)["addonId"].asString(), std::make_pair(std::move(version), (*it)["optional"].asBoolean()));
+    std::vector<DependencyInfo> deps;
+    for (auto it = variant["dependencies"].begin_array(); it != variant["dependencies"].end_array(); ++it)
+    {
+      deps.emplace_back(
+          (*it)["addonId"].asString(),
+          AddonVersion((*it)["version"].asString()),
+          (*it)["optional"].asBoolean());
+    }
+    builder.SetDependencies(std::move(deps));
   }
-  builder.SetDependencies(std::move(deps));
 
   InfoMap extraInfo;
   for (auto it = variant["extrainfo"].begin_array(); it != variant["extrainfo"].end_array(); ++it)
@@ -222,46 +225,44 @@ void CAddonDatabase::UpdateTables(int version)
 
     //Ugly hack incoming! As the addon manager isnt created yet, we need to start up our own copy
     //cpluff to find the currently enabled addons.
-    auto cpluff = std::unique_ptr<DllLibCPluff>(new DllLibCPluff());
-    cpluff->Load();
     cp_status_t status;
-    status = cpluff->init();
+    status = cp_init();
     if (status != CP_OK)
     {
       CLog::Log(LOGERROR, "AddonDatabase: Upgrade failed. cp_init() returned status: %i", status);
       return;
     }
 
-    cp_context_t* cp_context = cpluff->create_context(&status);
+    cp_context_t* cp_context = cp_create_context(&status);
 
-    status = cpluff->register_pcollection(cp_context, CSpecialProtocol::TranslatePath("special://home/addons").c_str());
+    status = cp_register_pcollection(cp_context, CSpecialProtocol::TranslatePath("special://home/addons").c_str());
     if (status != CP_OK)
     {
       CLog::Log(LOGERROR, "AddonDatabase: Upgrade failed. cp_register_pcollection() returned status: %i", status);
       return;
     }
 
-    status = cpluff->register_pcollection(cp_context, CSpecialProtocol::TranslatePath("special://xbmc/addons").c_str());
+    status = cp_register_pcollection(cp_context, CSpecialProtocol::TranslatePath("special://xbmc/addons").c_str());
     if (status != CP_OK)
     {
       CLog::Log(LOGERROR, "AddonDatabase: Upgrade failed. cp_register_pcollection() returned status: %i", status);
       return;
     }
 
-    status = cpluff->register_pcollection(cp_context, CSpecialProtocol::TranslatePath("special://xbmcbin/addons").c_str());
+    status = cp_register_pcollection(cp_context, CSpecialProtocol::TranslatePath("special://xbmcbin/addons").c_str());
     if (status != CP_OK)
     {
       CLog::Log(LOGERROR, "AddonDatabase: Upgrade failed. cp_register_pcollection() returned status: %i", status);
       return;
     }
 
-    cpluff->scan_plugins(cp_context, CP_SP_UPGRADE);
+    cp_scan_plugins(cp_context, CP_SP_UPGRADE);
 
     std::string systemPath = CSpecialProtocol::TranslatePath("special://xbmc/addons");
     std::string now = CDateTime::GetCurrentDateTime().GetAsDBDateTime();
     BeginTransaction();
     int n;
-    cp_plugin_info_t** cp_addons = cpluff->get_plugins_info(cp_context, &status, &n);
+    cp_plugin_info_t** cp_addons = cp_get_plugins_info(cp_context, &status, &n);
     for (int i = 0; i < n; ++i)
     {
       const char* id = cp_addons[i]->identifier;
@@ -272,7 +273,7 @@ void CAddonDatabase::UpdateTables(int version)
           "('%s', NOT %d AND NOT EXISTS (SELECT * FROM disabled WHERE addonID='%s'), '%s')",
           id, inSystem, id, now.c_str()));
     }
-    cpluff->release_info(cp_context, cp_addons);
+    cp_release_info(cp_context, cp_addons);
     CommitTransaction();
 
     m_pDS->exec("DROP TABLE disabled");

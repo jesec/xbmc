@@ -1,16 +1,6 @@
-/*!
-\file GUIRESIZEControl.h
-\brief
-*/
-
-#ifndef GUILIB_GUIRESIZECONTROL_H
-#define GUILIB_GUIRESIZECONTROL_H
-
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,6 +17,13 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
+
+/*!
+\file GUIRESIZEControl.h
+\brief
+*/
 
 #include "GUITexture.h"
 #include "GUIControl.h"
@@ -83,4 +80,4 @@ protected:
   float m_fAcceleration;
   float m_x1, m_x2, m_y1, m_y2;
 };
-#endif
+

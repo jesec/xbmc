@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2016 Team Kodi
  *      http://kodi.tv
@@ -18,6 +17,9 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
+
 #include "IAddon.h"
 #include "Service.h"
 
@@ -48,7 +50,7 @@ public:
   void SetLibName(std::string libname) { m_addonInfo.m_libname = std::move(libname); }
   void SetVersion(AddonVersion version) { m_addonInfo.m_version = std::move(version); }
   void SetMinVersion(AddonVersion minversion) { m_addonInfo.m_minversion = std::move(minversion); }
-  void SetDependencies(ADDONDEPS dependencies) { m_addonInfo.m_dependencies = std::move(dependencies); }
+  void SetDependencies(std::vector<DependencyInfo> dependencies) { m_addonInfo.m_dependencies = std::move(dependencies); }
   void SetExtrainfo(InfoMap extrainfo) { m_addonInfo.m_extrainfo = std::move(extrainfo); }
   void SetType(TYPE type) { m_addonInfo.m_mainType = type; }
   void SetExtPoint(cp_extension_t* ext) { m_extPoint = ext; }

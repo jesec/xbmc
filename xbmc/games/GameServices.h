@@ -17,6 +17,7 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
 #include "controllers/ControllerTypes.h"
@@ -24,6 +25,7 @@
 #include <memory>
 #include <string>
 
+class CProfilesManager;
 class CSettings;
 
 namespace PERIPHERALS
@@ -42,7 +44,6 @@ namespace GAME
 {
   class CControllerManager;
   class CGameSettings;
-  class CPortManager;
 
   class CGameServices
   {
@@ -50,15 +51,19 @@ namespace GAME
     CGameServices(CControllerManager &controllerManager,
                   RETRO::CGUIGameRenderManager &renderManager,
                   CSettings &settings,
-                  PERIPHERALS::CPeripherals &peripheralManager);
+                  PERIPHERALS::CPeripherals &peripheralManager,
+                  const CProfilesManager &profileManager);
     ~CGameServices();
 
     ControllerPtr GetController(const std::string& controllerId);
     ControllerPtr GetDefaultController();
+    ControllerPtr GetDefaultKeyboard();
+    ControllerPtr GetDefaultMouse();
     ControllerVector GetControllers();
 
+    std::string GetSavestatesFolder() const;
+
     CGameSettings& GameSettings() { return *m_gameSettings; }
-    CPortManager& PortManager();
 
     RETRO::CGUIGameRenderManager &GameRenderManager() { return m_gameRenderManager; }
 
@@ -66,10 +71,10 @@ namespace GAME
     // Construction parameters
     CControllerManager &m_controllerManager;
     RETRO::CGUIGameRenderManager &m_gameRenderManager;
+    const CProfilesManager &m_profileManager;
 
     // Game services
     std::unique_ptr<CGameSettings> m_gameSettings;
-    std::unique_ptr<CPortManager> m_portManager;
   };
 }
 }

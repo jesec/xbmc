@@ -1,9 +1,6 @@
-#ifndef CGUIBorderedImage_H
-#define CGUIBorderedImage_H
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include "GUIControl.h"
 #include "TextureManager.h"
@@ -38,7 +37,7 @@ public:
   void AllocResources() override;
   void FreeResources(bool immediately = false) override;
   void DynamicResourceAlloc(bool bOnOff) override;
-  
+
   CRect CalcRenderRegion() const override;
 
 protected:
@@ -46,4 +45,3 @@ protected:
   CRect m_borderSize;
 };
 
-#endif

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -65,7 +65,7 @@ bool CSettingConditionCombination::Check() const
     const auto combination = std::static_pointer_cast<const CSettingConditionCombination>(operation);
     if (combination == nullptr)
       continue;
-    
+
     if (combination->Check())
       ok = true;
     else if (m_operation == BooleanLogicOperationAnd)

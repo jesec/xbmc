@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include "peripherals/bus/PeripheralBus.h"
 
 // undefine macro isset, it collides with function in cectypes.h
@@ -35,7 +36,6 @@ namespace CEC
 namespace PERIPHERALS
 {
   class CPeripherals;
-  class DllLibCEC;
 
   class CPeripheralBusCEC : public CPeripheralBus
   {
@@ -49,7 +49,6 @@ namespace PERIPHERALS
     bool PerformDeviceScan(PeripheralScanResults &results) override;
 
   private:
-    DllLibCEC*                m_dll;
     CEC::ICECAdapter*         m_cecAdapter;
     CEC::libcec_configuration m_configuration;
   };

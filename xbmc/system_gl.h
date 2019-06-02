@@ -1,8 +1,6 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,7 +18,7 @@
  *
  */
 
-#include "system.h"
+#pragma once
 
 #ifdef HAS_GL
   // always define GL_GLEXT_PROTOTYPES before include gl headers
@@ -33,6 +31,7 @@
     #include <GL/glext.h>
   #elif defined(TARGET_FREEBSD)
     #include <GL/gl.h>
+    #include <GL/glu.h>
   #elif defined(TARGET_DARWIN)
     #include <OpenGL/gl3.h>
     #include <OpenGL/glu.h>
@@ -50,3 +49,9 @@
     #include <GLES3/gl3.h>
   #endif
 #endif
+
+// Useful pixel colour manipulation macros
+#define GET_A(color)            ((color >> 24) & 0xFF)
+#define GET_R(color)            ((color >> 16) & 0xFF)
+#define GET_G(color)            ((color >>  8) & 0xFF)
+#define GET_B(color)            ((color >>  0) & 0xFF)

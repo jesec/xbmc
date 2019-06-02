@@ -1,8 +1,6 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2015 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,6 +18,8 @@
  *
  */
 
+#pragma once
+
 class IPowerEventsCallback
 {
 public:
@@ -31,9 +31,19 @@ public:
   virtual void OnLowBattery() = 0;
 };
 
+class IPowerSyscall;
+using CreatePowerSyscallFunc = IPowerSyscall* (*)();
+
 class IPowerSyscall
 {
 public:
+  /**\brief Called by power manager to create platform power system adapter
+  *
+  * This method used to create platfrom specified power system adapter
+  */
+  static IPowerSyscall* CreateInstance();
+  static void RegisterPowerSyscall(CreatePowerSyscallFunc createFunc);
+
   virtual ~IPowerSyscall() = default;
   virtual bool Powerdown()    = 0;
   virtual bool Suspend()      = 0;
@@ -47,7 +57,7 @@ public:
   virtual bool CanReboot()    = 0;
 
   virtual int  CountPowerFeatures() = 0;
-  
+
 // Battery related functions
   virtual int  BatteryLevel() = 0;
 
@@ -58,12 +68,15 @@ public:
    power related events back to xbmc through the callback.
 
    return true if an event occured and false if not.
-   
+
    \param callback the callback to signal to
    */
   virtual bool PumpPowerEvents(IPowerEventsCallback *callback) = 0;
 
   static const int MAX_COUNT_POWER_FEATURES = 4;
+
+private:
+  static CreatePowerSyscallFunc m_createFunc;
 };
 
 class CAbstractPowerSyscall : public IPowerSyscall

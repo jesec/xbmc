@@ -1,12 +1,6 @@
-/*!
- \file FileItem.h
- \brief
- */
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -24,6 +18,13 @@
  *
  */
 
+#pragma once
+
+/*!
+ \file FileItem.h
+ \brief
+ */
+
 #include <map>
 #include <memory>
 #include <string>
@@ -32,7 +33,7 @@
 
 #include "addons/IAddon.h"
 #include "guilib/GUIListItem.h"
-#include "GUIPassword.h"
+#include "LockType.h"
 #include "pvr/PVRTypes.h"
 #include "threads/CriticalSection.h"
 #include "utils/IArchivable.h"

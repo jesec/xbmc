@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@
 #include <Python.h>
 #include <osdefs.h>
 
-#include "system.h"
 #include "AddonPythonInvoker.h"
 
 #include <utility>
@@ -77,6 +76,7 @@
 #endif
 
 namespace PythonBindings {
+  void initModule_xbmcdrm(void);
   void initModule_xbmcgui(void);
   void initModule_xbmc(void);
   void initModule_xbmcplugin(void);
@@ -94,6 +94,7 @@ typedef struct
 
 static PythonModule PythonModules[] =
   {
+    { "xbmcdrm",    initModule_xbmcdrm    },
     { "xbmcgui",    initModule_xbmcgui    },
     { "xbmc",       initModule_xbmc       },
     { "xbmcplugin", initModule_xbmcplugin },

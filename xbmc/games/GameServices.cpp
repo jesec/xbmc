@@ -21,8 +21,8 @@
 #include "GameServices.h"
 #include "controllers/Controller.h"
 #include "controllers/ControllerManager.h"
-#include "games/ports/PortManager.h"
 #include "games/GameSettings.h"
+#include "profiles/ProfilesManager.h"
 
 using namespace KODI;
 using namespace GAME;
@@ -30,11 +30,12 @@ using namespace GAME;
 CGameServices::CGameServices(CControllerManager &controllerManager,
                              RETRO:: CGUIGameRenderManager &renderManager,
                              CSettings &settings,
-                             PERIPHERALS::CPeripherals &peripheralManager) :
+                             PERIPHERALS::CPeripherals &peripheralManager,
+                             const CProfilesManager &profileManager) :
   m_controllerManager(controllerManager),
   m_gameRenderManager(renderManager),
-  m_gameSettings(new CGameSettings(settings)),
-  m_portManager(new CPortManager(peripheralManager))
+  m_profileManager(profileManager),
+  m_gameSettings(new CGameSettings(settings))
 {
 }
 
@@ -50,12 +51,22 @@ ControllerPtr CGameServices::GetDefaultController()
   return m_controllerManager.GetDefaultController();
 }
 
+ControllerPtr CGameServices::GetDefaultKeyboard()
+{
+  return m_controllerManager.GetDefaultKeyboard();
+}
+
+ControllerPtr CGameServices::GetDefaultMouse()
+{
+  return m_controllerManager.GetDefaultMouse();
+}
+
 ControllerVector CGameServices::GetControllers()
 {
   return m_controllerManager.GetControllers();
 }
 
-CPortManager& CGameServices::PortManager()
+std::string CGameServices::GetSavestatesFolder() const
 {
-  return *m_portManager;
+  return m_profileManager.GetSavestatesFolder();
 }

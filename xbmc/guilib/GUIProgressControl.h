@@ -1,16 +1,6 @@
-/*!
-\file GUIProgressControl.h
-\brief
-*/
-
-#ifndef GUILIB_GUIPROGRESSCONTROL_H
-#define GUILIB_GUIPROGRESSCONTROL_H
-
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,6 +17,13 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
+
+/*!
+\file GUIProgressControl.h
+\brief
+*/
 
 #include "GUITexture.h"
 #include "GUIControl.h"
@@ -78,4 +75,4 @@ protected:
   bool m_bReveal;
   bool m_bChanged;
 };
-#endif
+

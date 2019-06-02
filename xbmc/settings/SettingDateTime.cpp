@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2017 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@ CSettingDate::CSettingDate(const std::string &id, CSettingsManager *settingsMana
 CSettingDate::CSettingDate(const std::string &id, int label, const std::string &value, CSettingsManager *settingsManager /* = NULL */)
   : CSettingString(id, label, value, settingsManager)
 { }
-  
+
 CSettingDate::CSettingDate(const std::string &id, const CSettingDate &setting)
   : CSettingString(id, setting)
 { }

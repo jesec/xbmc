@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -17,9 +17,6 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
-
-#ifndef WINDOW_EVENTS_WIN32_H
-#define WINDOW_EVENTS_WIN32_H
 
 #pragma once
 
@@ -45,4 +42,3 @@ private:
   static CGenericTouchSwipeDetector *m_touchSwipeDetector;
 };
 
-#endif // WINDOW_EVENTS_WIN32_H

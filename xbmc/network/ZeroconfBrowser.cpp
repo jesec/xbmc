@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -17,19 +17,18 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
-#include "system.h" //HAS_ZEROCONF define
 #include "ZeroconfBrowser.h"
 #include <stdexcept>
 #include "utils/log.h"
 #include <cassert>
 
 #if defined (HAS_AVAHI)
-#include "linux/ZeroconfBrowserAvahi.h"
+#include "platform/linux/network/ZeroconfBrowserAvahi.h"
 #elif defined(TARGET_DARWIN)
 //on osx use the native implementation
-#include "osx/ZeroconfBrowserOSX.h"
+#include "platform/darwin/osx/network/ZeroconfBrowserOSX.h"
 #elif defined(TARGET_ANDROID)
-#include "android/ZeroconfBrowserAndroid.h"
+#include "platform/android/network/ZeroconfBrowserAndroid.h"
 #elif defined(HAS_MDNS)
 #include "mdns/ZeroconfBrowserMDNS.h"
 #endif
@@ -61,9 +60,8 @@ CZeroconfBrowser::CZeroconfBrowser():mp_crit_sec(new CCriticalSection),m_started
   AddServiceType("_ftp._tcp.");
   AddServiceType("_webdav._tcp.");
 #ifdef HAS_FILESYSTEM_NFS
-  AddServiceType("_nfs._tcp.");  
+  AddServiceType("_nfs._tcp.");
 #endif// HAS_FILESYSTEM_NFS
-  AddServiceType("_sftp-ssh._tcp.");
 }
 
 CZeroconfBrowser::~CZeroconfBrowser()
@@ -225,7 +223,7 @@ void CZeroconfBrowser::ZeroconfService::SetPort(int f_port)
 void CZeroconfBrowser::ZeroconfService::SetTxtRecords(const tTxtRecordMap& txt_records)
 {
   m_txtrecords_map = txt_records;
-  
+
   CLog::Log(LOGDEBUG,"CZeroconfBrowser: dump txt-records");
   for(tTxtRecordMap::const_iterator it = m_txtrecords_map.begin(); it != m_txtrecords_map.end(); ++it)
   {

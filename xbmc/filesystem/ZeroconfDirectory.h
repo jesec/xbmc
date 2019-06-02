@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@
  */
 
 #pragma once
+
 #include "IDirectory.h"
 //txt-records as of http://www.dns-sd.org/ServiceTypes.html
 #define TXT_RECORD_PATH_KEY     "path"

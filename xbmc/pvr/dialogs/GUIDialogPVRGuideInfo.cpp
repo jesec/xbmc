@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
 
 #include "Application.h"
 #include "ServiceBroker.h"
+#include "addons/PVRClient.h"
 #include "dialogs/GUIDialogYesNo.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
@@ -34,7 +35,6 @@
 
 #include "pvr/PVRGUIActions.h"
 #include "pvr/PVRManager.h"
-#include "pvr/addons/PVRClients.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
 #include "pvr/epg/EpgInfoTag.h"
 #include "pvr/timers/PVRTimerInfoTag.h"
@@ -225,12 +225,15 @@ void CGUIDialogPVRGuideInfo::OnInitWindow()
       bHideRecord = false;
     }
   }
-  else if (m_progItem->Channel() && CServiceBroker::GetPVRManager().Clients()->GetClientCapabilities(m_progItem->Channel()->ClientID()).SupportsTimers() &&
-           m_progItem->IsRecordable())
+  else if (m_progItem->Channel() && m_progItem->IsRecordable())
   {
-    SET_CONTROL_LABEL(CONTROL_BTN_RECORD, 264);     /* Record */
-    bHideRecord = false;
-    bHideAddTimer = false;
+    const CPVRClientPtr client = CServiceBroker::GetPVRManager().GetClient(m_progItem->ClientID());
+    if (client && client->GetClientCapabilities().SupportsTimers())
+    {
+      SET_CONTROL_LABEL(CONTROL_BTN_RECORD, 264);     /* Record */
+      bHideRecord = false;
+      bHideAddTimer = false;
+    }
   }
 
   if (!m_progItem->IsPlayable())

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -63,9 +63,9 @@ void TestBasicEnvironment::SetUp()
 //in guisettings init below
 #ifdef TARGET_DARWIN
   std::string frameworksPath = CUtil::GetFrameworksPath();
-  CSpecialProtocol::SetXBMCFrameworksPath(frameworksPath);    
+  CSpecialProtocol::SetXBMCFrameworksPath(frameworksPath);
 #endif
-  /** 
+  /**
    * @todo Something should be done about all the asserts in GUISettings so
    * that the initialization of these components won't be needed.
    */

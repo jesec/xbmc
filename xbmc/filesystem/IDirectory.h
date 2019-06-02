@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,10 +18,13 @@
  *
  */
 
+#pragma once
+
 #include <string>
 #include "utils/Variant.h"
 
 class CFileItemList;
+class CProfilesManager;
 class CURL;
 
 namespace XFILE
@@ -59,7 +61,7 @@ namespace XFILE
 class IDirectory
 {
 public:
-  IDirectory(void);
+  IDirectory();
   virtual ~IDirectory(void);
   /*!
    \brief Get the \e items of the directory \e strPath.
@@ -132,7 +134,7 @@ public:
 
   /*! \brief Process additional requirements before the directory fetch is performed.
    Some directory fetches may require authentication, keyboard input etc.  The IDirectory subclass
-   should call GetKeyboardInput, SetErrorDialog or RequireAuthentication and then return false 
+   should call GetKeyboardInput, SetErrorDialog or RequireAuthentication and then return false
    from the GetDirectory method. CDirectory will then prompt for input from the user, before
    re-calling the GetDirectory method.
    \sa GetKeyboardInput, SetErrorDialog, RequireAuthentication
@@ -169,6 +171,9 @@ protected:
    \sa ProcessRequirements
    */
   void RequireAuthentication(const CURL& url);
+
+  // Construction parameters
+  const CProfilesManager &m_profileManager;
 
   std::string m_strFileMask;  ///< Holds the file mask specified by SetMask()
 

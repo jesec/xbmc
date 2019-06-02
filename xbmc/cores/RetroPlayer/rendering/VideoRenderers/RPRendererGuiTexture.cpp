@@ -19,12 +19,14 @@
  */
 
 #include "RPRendererGuiTexture.h"
-#include "cores/RetroPlayer/process/RenderBufferGuiTexture.h"
+#include "cores/RetroPlayer/buffers/video/RenderBufferGuiTexture.h"
 #include "cores/RetroPlayer/rendering/RenderContext.h"
 #include "cores/RetroPlayer/rendering/RenderVideoSettings.h"
 
 #if defined(HAS_DX)
 #include "guilib/GUIShaderDX.h"
+#include <DirectXMath.h>
+using namespace DirectX;
 #endif
 
 using namespace KODI;
@@ -32,26 +34,31 @@ using namespace RETRO;
 
 #define BUFFER_OFFSET(i) (static_cast<char*>(NULL) + (i))
 
-// --- CRendererFactoryGuiTexture ------------------------------------------------
+// --- CRendererFactoryGuiTexture ----------------------------------------------
+
+std::string CRendererFactoryGuiTexture::RenderSystemName() const
+{
+  return "GUITexture";
+}
 
 CRPBaseRenderer *CRendererFactoryGuiTexture::CreateRenderer(const CRenderSettings &settings, CRenderContext &context, std::shared_ptr<IRenderBufferPool> bufferPool)
 {
   return new CRPRendererGuiTexture(settings, context, std::move(bufferPool));
 }
 
-RenderBufferPoolVector CRendererFactoryGuiTexture::CreateBufferPools()
+RenderBufferPoolVector CRendererFactoryGuiTexture::CreateBufferPools(CRenderContext &context)
 {
   return {
 #if !defined(HAS_DX)
-    std::make_shared<CRenderBufferPoolGuiTexture>(VS_SCALINGMETHOD_NEAREST),
+    std::make_shared<CRenderBufferPoolGuiTexture>(SCALINGMETHOD::NEAREST),
 #endif
-    std::make_shared<CRenderBufferPoolGuiTexture>(VS_SCALINGMETHOD_LINEAR),
+    std::make_shared<CRenderBufferPoolGuiTexture>(SCALINGMETHOD::LINEAR),
   };
 }
 
 // --- CRenderBufferPoolGuiTexture -----------------------------------------------
 
-CRenderBufferPoolGuiTexture::CRenderBufferPoolGuiTexture(ESCALINGMETHOD scalingMethod) :
+CRenderBufferPoolGuiTexture::CRenderBufferPoolGuiTexture(SCALINGMETHOD scalingMethod) :
   m_scalingMethod(scalingMethod)
 {
 }
@@ -76,12 +83,12 @@ CRPRendererGuiTexture::CRPRendererGuiTexture(const CRenderSettings &renderSettin
 {
 }
 
-bool CRPRendererGuiTexture::Supports(ERENDERFEATURE feature) const
+bool CRPRendererGuiTexture::Supports(RENDERFEATURE feature) const
 {
-  if (feature == RENDERFEATURE_STRETCH         ||
-      feature == RENDERFEATURE_ZOOM            ||
-      feature == RENDERFEATURE_PIXEL_RATIO     ||
-      feature == RENDERFEATURE_ROTATION)
+  if (feature == RENDERFEATURE::STRETCH         ||
+      feature == RENDERFEATURE::ZOOM            ||
+      feature == RENDERFEATURE::PIXEL_RATIO     ||
+      feature == RENDERFEATURE::ROTATION)
   {
     return true;
   }
@@ -143,7 +150,7 @@ void CRPRendererGuiTexture::RenderInternal(bool clear, uint8_t alpha)
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glEnable(GL_BLEND);
 
-  m_context.EnableGUIShader();
+  m_context.EnableGUIShader(GL_SHADER_METHOD::TEXTURE);
 
   GLubyte colour[4];
   GLubyte idx[4] = {0, 1, 3, 2}; // Determines order of the vertices
@@ -203,9 +210,9 @@ void CRPRendererGuiTexture::RenderInternal(bool clear, uint8_t alpha)
 
   if (m_context.UseLimitedColor())
   {
-    colour[0] = (235 - 16) * colour[0] / 255;
-    colour[1] = (235 - 16) * colour[1] / 255;
-    colour[2] = (235 - 16) * colour[2] / 255;
+    colour[0] = (235 - 16) * colour[0] / 255 + 16;
+    colour[1] = (235 - 16) * colour[1] / 255 + 16;
+    colour[2] = (235 - 16) * colour[2] / 255 + 16;
   }
 
   glUniform4f(uniColLoc, (colour[0] / 255.0f), (colour[1] / 255.0f),
@@ -234,7 +241,7 @@ void CRPRendererGuiTexture::RenderInternal(bool clear, uint8_t alpha)
   glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
   glEnable(GL_BLEND); // Turn blending On
 
-  m_context.EnableGUIShader();
+  m_context.EnableGUIShader(GL_SHADER_METHOD::TEXTURE);
 
   GLubyte col[4];
   GLfloat ver[4][3];

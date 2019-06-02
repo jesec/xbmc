@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -34,10 +34,11 @@ class CTextureDetails;
 class CDVDFileInfo
 {
 public:
-  // Extract a thumbnail image from the media at strPath, optionally populating a streamdetails class with the data
-  static bool ExtractThumb(const std::string &strPath,
+  // Extract a thumbnail image from the media referenced by fileItem, optionally populating a streamdetails class with the data
+  static bool ExtractThumb(const CFileItem& fileItem,
                            CTextureDetails &details,
-                           CStreamDetails *pStreamDetails, int pos=-1);
+                           CStreamDetails *pStreamDetails,
+                           int64_t pos);
 
   // Probe the files streams and store the info in the VideoInfoTag
   static bool GetFileStreamDetails(CFileItem *pItem);

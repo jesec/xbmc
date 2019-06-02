@@ -2,7 +2,7 @@
  *      Copyright (c) 2002 Frodo
  *      Portions Copyright (c) by the authors of ffmpeg and xvid
  *      Copyright (C) 2002-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,14 +20,14 @@
  *
  */
 
+#pragma once
+
 // IFile.h: interface for the IFile class.
 //
 //////////////////////////////////////////////////////////////////////
 
 #if !defined(AFX_IFILE_H__7EE73AC7_36BC_4822_93FF_44F3B0C766F6__INCLUDED_)
 #define AFX_IFILE_H__7EE73AC7_36BC_4822_93FF_44F3B0C766F6__INCLUDED_
-
-#pragma once
 
 #include "PlatformDefs.h" // for __stat64, ssize_t
 
@@ -154,7 +154,7 @@ public:
   CURL  *m_pNewUrl;
 
   CRedirectException();
-  
+
   CRedirectException(IFile *pNewFileImp, CURL *pNewUrl=NULL);
 };
 

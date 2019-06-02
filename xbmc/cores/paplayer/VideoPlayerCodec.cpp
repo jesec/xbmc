@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -204,7 +204,7 @@ bool VideoPlayerCodec::Init(const CFileItem &file, unsigned int filecache)
   int nErrors = 0;
   for (int nPacket=0; nPacket < 10 && (m_channels == 0 || m_format.m_sampleRate == 0); nPacket++)
   {
-    BYTE dummy[256];
+    unsigned char dummy[256];
     int nSize = 256;
     if (ReadPCM(dummy, nSize, &nSize) == READ_ERROR)
       ++nErrors;
@@ -339,7 +339,7 @@ bool VideoPlayerCodec::Seek(int64_t iSeekTime)
   return ret;
 }
 
-int VideoPlayerCodec::ReadPCM(BYTE *pBuffer, int size, int *actualsize)
+int VideoPlayerCodec::ReadPCM(unsigned char *pBuffer, int size, int *actualsize)
 {
   if (m_nDecodedLen > 0)
   {
@@ -349,23 +349,24 @@ int VideoPlayerCodec::ReadPCM(BYTE *pBuffer, int size, int *actualsize)
     {
       int samples = *actualsize / (m_bitsPerSample>>3);
       int frames = samples / m_channels;
-      m_pResampler->Resample(&pBuffer, frames, m_audioPlanes, frames, 1.0);
+      m_pResampler->Resample(&pBuffer, frames, m_audioFrame.data, frames, 1.0);
       for (int i=0; i<m_planes; i++)
       {
-        m_audioPlanes[i] += frames*m_srcFormat.m_frameSize/m_planes;
+        m_audioFrame.data[i] += frames*m_srcFormat.m_frameSize/m_planes;
       }
     }
     else
     {
-      memcpy(pBuffer, m_audioPlanes[0], *actualsize);
-      m_audioPlanes[0] += (*actualsize);
+      memcpy(pBuffer, m_audioFrame.data[0], *actualsize);
+      m_audioFrame.data[0] += (*actualsize);
     }
     m_nDecodedLen -= nLen;
     return READ_SUCCESS;
   }
 
   m_nDecodedLen = 0;
-  int bytes = m_pAudioCodec->GetData(m_audioPlanes);
+  m_pAudioCodec->GetData(m_audioFrame);
+  int bytes = m_audioFrame.nb_frames * m_audioFrame.framesize;
 
   if (!bytes)
   {
@@ -390,7 +391,8 @@ int VideoPlayerCodec::ReadPCM(BYTE *pBuffer, int size, int *actualsize)
       return READ_ERROR;
     }
 
-    bytes = m_pAudioCodec->GetData(m_audioPlanes);
+    m_pAudioCodec->GetData(m_audioFrame);
+    bytes = m_audioFrame.nb_frames * m_audioFrame.framesize;
   }
 
   m_nDecodedLen = bytes;
@@ -405,16 +407,16 @@ int VideoPlayerCodec::ReadPCM(BYTE *pBuffer, int size, int *actualsize)
     {
       int samples = *actualsize / (m_bitsPerSample>>3);
       int frames = samples / m_channels;
-      m_pResampler->Resample(&pBuffer, frames, m_audioPlanes, frames, 1.0);
+      m_pResampler->Resample(&pBuffer, frames, m_audioFrame.data, frames, 1.0);
       for (int i=0; i<m_planes; i++)
       {
-        m_audioPlanes[i] += frames*m_srcFormat.m_frameSize/m_planes;
+        m_audioFrame.data[i] += frames*m_srcFormat.m_frameSize/m_planes;
       }
     }
     else
     {
-      memcpy(pBuffer, m_audioPlanes[0], *actualsize);
-      m_audioPlanes[0] += *actualsize;
+      memcpy(pBuffer, m_audioFrame.data[0], *actualsize);
+      m_audioFrame.data[0] += *actualsize;
     }
     m_nDecodedLen -= *actualsize;
   }
@@ -522,7 +524,7 @@ CAEStreamInfo::DataType VideoPlayerCodec::GetPassthroughStreamType(AVCodecID cod
       format.m_streamInfo.m_type = CAEStreamInfo::STREAM_TYPE_NULL;
   }
 
-  bool supports = CServiceBroker::GetActiveAE().SupportsRaw(format);
+  bool supports = CServiceBroker::GetActiveAE()->SupportsRaw(format);
 
   if (supports)
     return format.m_streamInfo.m_type;

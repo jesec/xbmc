@@ -52,8 +52,7 @@ CDSInputStreamPVRManager::~CDSInputStreamPVRManager(void)
 
 void CDSInputStreamPVRManager::Close()
 {
-  CServiceBroker::GetPVRManager().CloseStream();
-  SAFE_DELETE(m_pPVRBackend);
+  // TODO
 }
 
 bool CDSInputStreamPVRManager::CloseAndOpenFile(const CURL& url)
@@ -134,15 +133,13 @@ CDSPVRBackend* CDSInputStreamPVRManager::GetPVRBackend()
 
 uint64_t CDSInputStreamPVRManager::GetTotalTime()
 {
-  if (!m_isRecording)
-    return CServiceBroker::GetPVRManager().GetTotalTime();
+  // TODO
   return 0;
 }
 
 uint64_t CDSInputStreamPVRManager::GetTime()
 {
-  if (!m_isRecording)
-    return CServiceBroker::GetPVRManager().GetStartTime();
+  // TODO
   return 0;
 }
 

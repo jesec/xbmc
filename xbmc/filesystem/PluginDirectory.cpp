@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,7 +20,6 @@
 
 #include "Application.h"
 #include "threads/SystemClock.h"
-#include "system.h"
 #include "PluginDirectory.h"
 #include "ServiceBroker.h"
 #include "addons/AddonManager.h"
@@ -95,6 +94,12 @@ int CPluginDirectory::getNewHandle(CPluginDirectory *cp)
   return handle;
 }
 
+void CPluginDirectory::reuseHandle(int handle, CPluginDirectory *cp)
+{
+  CSingleLock lock(m_handleLock);
+  globalHandles[handle] = cp;
+}
+
 void CPluginDirectory::removeHandle(int handle)
 {
   CSingleLock lock(m_handleLock);
@@ -133,7 +138,12 @@ bool CPluginDirectory::StartScript(const std::string& strPath, bool retrievingDi
   std::string basePath(url.Get());
   // reset our wait event, and grab a new handle
   m_fetchComplete.Reset();
-  int handle = getNewHandle(this);
+  int handle = CScriptInvocationManager::GetInstance().GetReusablePluginHandle(m_addon->LibPath());
+
+  if (handle < 0)
+    handle = getNewHandle(this);
+  else
+    reuseHandle(handle, this);
 
   // clear out our status variables
   m_fileResult->Reset();
@@ -160,7 +170,11 @@ bool CPluginDirectory::StartScript(const std::string& strPath, bool retrievingDi
   CLog::Log(LOGDEBUG, "%s - calling plugin %s('%s','%s','%s','%s')", __FUNCTION__, m_addon->Name().c_str(), argv[0].c_str(), argv[1].c_str(), argv[2].c_str(), argv[3].c_str());
   bool success = false;
   std::string file = m_addon->LibPath();
-  int id = CScriptInvocationManager::GetInstance().ExecuteAsync(file, m_addon, argv);
+  bool reuseLanguageInvoker = true;
+  if (m_addon->ExtraInfo().find("reuselanguageinvoker") != m_addon->ExtraInfo().end())
+    reuseLanguageInvoker = m_addon->ExtraInfo().at("reuselanguageinvoker") != "false";
+
+  int id = CScriptInvocationManager::GetInstance().ExecuteAsync(file, m_addon, argv, reuseLanguageInvoker, handle);
   if (id >= 0)
   { // wait for our script to finish
     std::string scriptName = m_addon->Name();
@@ -186,7 +200,7 @@ bool CPluginDirectory::GetPluginResult(const std::string& strPath, CFileItem &re
   { // update the play path and metadata, saving the old one as needed
     if (!resultItem.HasProperty("original_listitem_url"))
       resultItem.SetProperty("original_listitem_url", resultItem.GetPath());
-    resultItem.SetPath(newDir.m_fileResult->GetPath());
+    resultItem.SetDynPath(newDir.m_fileResult->GetPath());
     resultItem.SetMimeType(newDir.m_fileResult->GetMimeType());
     resultItem.SetContentLookup(newDir.m_fileResult->ContentLookup());
     resultItem.UpdateInfo(*newDir.m_fileResult);
@@ -289,7 +303,7 @@ void CPluginDirectory::AddSortMethod(int handle, SORT_METHOD sortMethod, const s
       {
         dir->m_listItems->AddSortMethod(SortByBitrate, 623, LABEL_MASKS("%T", "%X"));
         break;
-      }             
+      }
     case SORT_METHOD_SIZE:
       {
         dir->m_listItems->AddSortMethod(SortBySize, 553, LABEL_MASKS("%T", "%I"));
@@ -426,7 +440,7 @@ void CPluginDirectory::AddSortMethod(int handle, SORT_METHOD sortMethod, const s
         dir->m_listItems->AddSortMethod(SortByChannel, 19029, LABEL_MASKS("%T", label2Mask));
         break;
       }
-   
+
     default:
       break;
   }
@@ -583,6 +597,7 @@ void CPluginDirectory::SetProperty(int handle, const std::string &strProperty, c
 void CPluginDirectory::CancelDirectory()
 {
   m_cancelled = true;
+  m_fetchComplete.Set();
 }
 
 float CPluginDirectory::GetProgress() const

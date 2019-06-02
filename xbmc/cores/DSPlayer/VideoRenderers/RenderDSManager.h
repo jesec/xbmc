@@ -26,7 +26,7 @@
 
 #include <list>
 
-#include "guilib/Resolution.h"
+#include "windowing/Resolution.h"
 #include "threads/CriticalSection.h"
 #include "cores/VideoSettings.h"
 #include "Videorenderers/WinDsRenderer.h"

@@ -50,7 +50,7 @@ public:
   void                 CreateThumbnail(CBaseTexture *texture, unsigned int width, unsigned int height){};
 
   // Player functions
-  virtual bool         Configure(const VideoPicture &picture, float fps, unsigned flags, unsigned int orientation);
+  virtual bool         Configure(const VideoPicture &picture, float fps, unsigned int orientation);
   virtual void         AddVideoPicture(const VideoPicture &picture, int index, double currentClock) {};
   virtual void         FlipPage(int source) {};
   virtual void         UnInit();
@@ -71,7 +71,6 @@ protected:
 
   bool                 m_bConfigured;
   DWORD                m_clearColour;
-  unsigned int         m_flags;
   CRect                m_oldVideoRect;
 };
 

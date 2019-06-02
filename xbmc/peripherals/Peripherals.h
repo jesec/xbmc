@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,15 +18,17 @@
  *
  */
 
+#pragma once
+
+#include <memory>
 #include <vector>
 
-#include "EventScanner.h"
+#include "IEventScannerCallback.h"
 #include "bus/PeripheralBus.h"
 #include "devices/Peripheral.h"
 #include "interfaces/IAnnouncer.h"
 #include "messaging/IMessageTarget.h"
 #include "settings/lib/ISettingCallback.h"
-#include "system.h"
 #include "threads/CriticalSection.h"
 #include "threads/Thread.h"
 #include "utils/Observer.h"
@@ -60,6 +61,8 @@ namespace ANNOUNCEMENT
 
 namespace PERIPHERALS
 {
+  class CEventScanner;
+
   class CPeripherals :  public ISettingCallback,
                         public Observable,
                         public KODI::MESSAGING::IMessageTarget,
@@ -236,10 +239,16 @@ namespace PERIPHERALS
      * @brief Register with the event scanner to control scan timing
      * @return A handle that unregisters itself when expired
      */
-    EventPollHandlePtr RegisterEventPoller() { return m_eventScanner.RegisterPollHandle(); }
+    EventPollHandlePtr RegisterEventPoller();
 
     /*!
-     * 
+     * @brief Register with the event scanner to disable event processing
+     * @return A handle that unregisters itself when expired
+     */
+    EventLockHandlePtr RegisterEventLock();
+
+    /*!
+     *
      */
     void OnUserNotification();
 
@@ -344,12 +353,12 @@ namespace PERIPHERALS
     KODI::GAME::CControllerManager &m_controllerProfiles;
 
 #if !defined(HAVE_LIBCEC)
-    bool                                 m_bMissingLibCecWarningDisplayed = false;
+    bool m_bMissingLibCecWarningDisplayed = false;
 #endif
-    std::vector<PeripheralBusPtr>        m_busses;
+    std::vector<PeripheralBusPtr> m_busses;
     std::vector<PeripheralDeviceMapping> m_mappings;
-    CEventScanner                        m_eventScanner;
-    CCriticalSection                     m_critSectionBusses;
-    CCriticalSection                     m_critSectionMappings;
+    std::unique_ptr<CEventScanner> m_eventScanner;
+    CCriticalSection m_critSectionBusses;
+    CCriticalSection m_critSectionMappings;
   };
 }

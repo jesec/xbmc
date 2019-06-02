@@ -3,7 +3,7 @@ AC_INIT([xbmc-depends], [2.00], [http://trac.xbmc.org])
 :${CFLAGS=""}
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_FILES([target/config.site native/config.site.native Makefile.include target/Toolchain.cmake
-                 target/config-binaddons.site target/Toolchain_binaddons.cmake])
+                 target/config-binaddons.site target/Toolchain_binaddons.cmake target/cross-file.meson])
 AC_CANONICAL_HOST
 
 m4_include([m4/xbmc_arch.m4])
@@ -73,25 +73,20 @@ AC_ARG_WITH([sdk-path],
 
 AC_ARG_WITH([sdk],
   [AS_HELP_STRING([--with-sdk],
-  [specify sdk platform version (optional for android). default is android-24])],
+  [specify sdk platform version.])],
   [use_sdk=$withval])
 
 AC_ARG_WITH([ndk-api],
   [AS_HELP_STRING([--with-ndk-api],
-  [specify ndk level (optional for android). default is 21])],
-  [use_ndk_api=$withval])
+  [specify ndk level (optional for android), default is 21.])],
+  [use_ndk_api=$withval],
+  [use_ndk_api=21])
 
 AC_ARG_ENABLE([gplv3],
   [AS_HELP_STRING([--enable-gplv3],
   [enable gplv3 components. default is yes])],
   [use_gplv3=$enableval],
   [use_gplv3=yes])
-
-AC_ARG_ENABLE([wayland],
-  [AS_HELP_STRING([--enable-wayland],
-  [build libraries needed for Wayland. default is no])],
-  [enable_wayland=$enableval],
-  [enable_wayland=no])
 
 AC_ARG_WITH([rendersystem],
   [AS_HELP_STRING([--with-rendersystem],
@@ -189,6 +184,7 @@ case $build in
   ;;
   *darwin*)
     build_os="osx"
+    native_platform_min_version=-mmacosx-version-min=`sw_vers | grep ProductVersion | sed -E "s/.*:.*(10\..*)\.?.*/\1/"`
   ;;
   *)
     AC_MSG_ERROR(unsupported native build platform: $build)
@@ -196,102 +192,59 @@ esac
 
 
 case $host in
-  arm*-*linux-android*)
-    if test "x$use_cpu" = "xauto"; then
-      use_cpu="armeabi-v7a"
-    fi
+  *-*linux-android*)
     platform_cc=clang
     platform_cxx=clang++
-    use_sdk="${use_sdk:-android-24}"
-    use_ndk_api="${use_ndk_api:-21}"
     deps_dir="$use_host-$use_ndk_api-$build_type"
     platform_cflags="-DANDROID -D__ANDROID_API__=$use_ndk_api -fexceptions -funwind-tables -fstack-protector-strong -no-canonical-prefixes -fPIC -DPIC -D_GLIBCXX_USE_C99_MATH_TR1"
     optimize_flags="-Os"
-    if test "x$use_cpu" = "xarmeabi-v7a"; then
-      platform_cflags+=" -march=armv7-a -mtune=cortex-a9 -mfloat-abi=softfp -mfpu=neon"
-    fi
-    platform_ldflags="-Wl,--exclude-libs,libgcc.a -Wl,--exclude-libs,libatomic.a -Wl,--exclude-libs,libunwind.a -L$prefix/$deps_dir/lib/android-$use_ndk_api"
-    platform_cxxflags="$platform_cflags -frtti"
-    platform_includes="-I$prefix/$deps_dir/include/android-$use_ndk_api"
-    platform_os="android"
-    #android builds are always cross
-    cross_compiling="yes"
-  ;;
-  aarch64*-*linux-android*)
-    if test "x$use_cpu" = "xauto"; then
-      use_cpu="arm64-v8a"
-    fi
-    platform_cc=clang
-    platform_cxx=clang++
-    use_sdk="${use_sdk:-android-24}"
-    use_ndk_api="${use_ndk_api:-21}"
-    deps_dir="$use_host-$use_ndk_api-$build_type"
-    platform_cflags="-DANDROID -D__ANDROID_API__=$use_ndk_api -fexceptions -funwind-tables -fstack-protector-strong -no-canonical-prefixes  -fPIC -DPIC -D_GLIBCXX_USE_C99_MATH_TR1"
-    optimize_flags="-Os"
-    if test "x$use_cpu" = "xarm64-v8a"; then
-      platform_cflags+=" -march=armv8-a -mtune=cortex-a53"
-    fi
     platform_ldflags="-Wl,--exclude-libs,libgcc.a -Wl,--exclude-libs,libatomic.a -L$prefix/$deps_dir/lib/android-$use_ndk_api"
+
+    case $host in
+      arm*-*linux-android*)
+        if test "x$use_cpu" = "xauto"; then
+          use_cpu="armeabi-v7a"
+        fi
+        if test "x$use_cpu" = "xarmeabi-v7a"; then
+          platform_cflags+=" -march=armv7-a -mtune=cortex-a9 -mfloat-abi=softfp -mfpu=neon"
+        fi
+        platform_ldflags+=" -Wl,--exclude-libs,libunwind.a"
+      ;;
+      aarch64*-*linux-android*)
+        if test "x$use_cpu" = "xauto"; then
+          use_cpu="arm64-v8a"
+        fi
+        if test "x$use_cpu" = "xarm64-v8a"; then
+          platform_cflags+=" -march=armv8-a -mtune=cortex-a53"
+        fi
+      ;;
+      i*86*-linux-android*)
+        if test "x$use_cpu" = "xauto"; then
+          use_cpu=$host_cpu
+        fi
+      ;;
+      *)
+        AC_MSG_ERROR(unsupported host ($use_host))
+      esac
+
     platform_cxxflags="$platform_cflags -frtti"
     platform_includes="-I$prefix/$deps_dir/include/android-$use_ndk_api"
     platform_os="android"
     #android builds are always cross
     cross_compiling="yes"
   ;;
-  i*86*-linux-android*)
+  arm*-*-linux-gnu*|arm*-*-linux-uclibc*|aarch64*-*-linux-gnu*|aarch*-*-linux-be*)
     if test "x$use_cpu" = "xauto"; then
       use_cpu=$host_cpu
     fi
-    platform_cc=clang
-    platform_cxx=clang++
-    use_sdk="${use_sdk:-android-24}"
-    use_ndk_api="${use_ndk_api:-21}"
-    deps_dir="$use_host-$use_ndk_api-$build_type"
-    platform_cflags="-DANDROID -D__ANDROID_API__=$use_ndk_api -fexceptions -funwind-tables -fstack-protector-strong -no-canonical-prefixes  -fPIC -DPIC -D_GLIBCXX_USE_C99_MATH_TR1"
-    optimize_flags="-Os"
-    platform_ldflags="-Wl,--exclude-libs,libgcc.a -Wl,--exclude-libs,libatomic.a -L$prefix/$deps_dir/lib/android-$use_ndk_api"
-    platform_cxxflags="$platform_cflags -frtti"
-    platform_includes="-I$prefix/$deps_dir/include/android-$use_ndk_api"
-    platform_os="android"
-    #android builds are always cross
-    cross_compiling="yes"
-  ;;
-  arm*-*-linux-gnu*|arm*-*-linux-uclibc*)
-    if test "$use_platform" = "auto"; then
-      if test "x$use_cpu" = "xauto"; then
-        use_cpu=$host_cpu
-      fi
-      use_toolchain="${use_toolchain:-/usr}"
-      platform_cflags="-fPIC -DPIC"
-      optimize_flags="-Os"
-      platform_ldflags="-Wl,-rpath-link=$prefix/$deps_dir/lib"
-      platform_cxxflags="$platform_cflags"
-      platform_os="linux"
-    fi
-  ;;
-  aarch64*-*-linux-gnu*|aarch*-*-linux-be*)
-    if test "$use_platform" = "auto"; then
-      if test "x$use_cpu" = "xauto"; then
-        use_cpu=$host_cpu
-      fi
-      use_toolchain="${use_toolchain:-/usr}"
-      platform_cflags="-fPIC -DPIC"
-      optimize_flags="-Os"
-      platform_ldflags="-Wl,-rpath-link=$prefix/$deps_dir/lib"
-      platform_cxxflags="$platform_cflags"
-      platform_os="linux"
-    fi
-  ;;
-  *i686*-linux-gnu*|i*86*-*-linux-uclibc*)
-    use_cpu=$host_cpu
     use_toolchain="${use_toolchain:-/usr}"
     platform_cflags="-fPIC -DPIC"
-    optimize_flags="-O2"
+    optimize_flags="-Os"
+    platform_ldflags="-Wl,-rpath-link=$prefix/$deps_dir/lib"
     platform_cxxflags="$platform_cflags"
     platform_os="linux"
-    ffmpeg_options_default="--enable-vaapi --enable-vdpau --cpu=$use_cpu"
   ;;
-  x86_64*-linux-gnu*|x86_64-*-linux-uclibc*)
+  *i686*-linux-gnu*|i*86*-*-linux-uclibc*|x86_64*-linux-gnu*|x86_64-*-linux-uclibc*)
     use_cpu=$host_cpu
     use_toolchain="${use_toolchain:-/usr}"
     platform_cflags="-fPIC -DPIC"
@@ -305,37 +258,21 @@ case $host in
       prefix=/Users/Shared/xbmc-depends
     fi
 
-    native_platform_min_version=-mmacosx-version-min=`sw_vers | grep ProductVersion | sed -E "s/.*:.*(10\..*)\.?.*/\1/"`
     use_xcodepath=`xcode-select -print-path`
     use_xcodebuild=$use_xcodepath/usr/bin/xcodebuild
-    use_xcode=[`$use_xcodebuild -version | grep Xcode | awk '{ print $2}'`]
     AC_MSG_RESULT(found xcodebuild at $use_xcodebuild)
     use_build_toolchain=$use_xcodepath
+    use_toolchain="${use_xcodepath}/Toolchains/XcodeDefault.xctoolchain"
 
     # darwin builds are always cross
     cross_compiling="yes"
 
-    platform_cflags="-std=gnu99 -no_compact_linkedit -no-cpp-precomp"
-    platform_ldflags="-Wl,-search_paths_first -no_compact_linkedit"
-    platform_cxxflags="-no_compact_linkedit -no-cpp-precomp"
+    platform_cc=clang
+    platform_cxx=clang++
+    platform_cflags="-fheinous-gnu-extensions -no-cpp-precomp"
+    platform_ldflags="-Wl,-search_paths_first"
+    platform_cxxflags="-no-cpp-precomp"
 
-    case $use_xcode in
-      3.*.*)
-        platform_cc=gcc-4.2
-        platform_cxx=g++-4.2
-        ;;
-      4.* | 4.*.*)
-        platform_cc=llvm-gcc-4.2
-        platform_cxx=llvm-g++-4.2
-        ;;
-      *)
-        platform_cc=clang
-        platform_cxx=clang++
-        platform_cflags="-fheinous-gnu-extensions -no-cpp-precomp"
-        platform_ldflags="-Wl,-search_paths_first"
-        platform_cxxflags="-no-cpp-precomp"
-        ;;
-    esac
     case $host in
       *86*-apple-darwin)
         MC_CHECK_NOT_CPU([$use_cpu], "arm")
@@ -363,10 +300,6 @@ case $host in
 
         # now that we know which sdk, error check sdk_name
         case $use_sdk in
-          10.5);;
-          10.6);;
-          10.7);;
-          10.8);;
           10.9);;
           10.10);;
           10.11);;
@@ -376,20 +309,10 @@ case $host in
             AC_MSG_ERROR(error in configure of --with-sdk=$use_sdk)
         esac
         sdk_name=macosx$use_sdk
-        platform_min_version="macosx-version-min=10.8"
+        platform_min_version="macosx-version-min=10.9"
 
         use_sdk_path=[`$use_xcodebuild -version -sdk $sdk_name Path`]
         platform_os="osx"
-
-        # find the matching toolchain
-        case $use_xcode in
-          5.* | 5.*.* )
-            use_toolchain="${use_xcodepath}/Toolchains/XcodeDefault.xctoolchain"
-            ;;
-          *)
-            use_toolchain="${use_toolchain:-$use_xcodepath}"
-            ;;
-        esac
       ;;
 
       arm-apple-darwin*)
@@ -406,8 +329,8 @@ case $host in
 
           found_sdk_version=[`$use_xcodebuild -showsdks | grep $target_platform | sort | tail -n 1 | awk '{ print $2}'`]
           use_sdk="${use_sdk:-$found_sdk_version}"
-	  platform_cflags+=" -fembed-bitcode"
-	  platform_cxxflags+=" -fembed-bitcode"
+          platform_cflags+=" -fembed-bitcode"
+          platform_cxxflags+=" -fembed-bitcode"
           sdk_name=$target_platform$use_sdk
           platform_min_version="$target_platform-version-min=9.0"
         else
@@ -421,29 +344,14 @@ case $host in
           found_sdk_version=[`$use_xcodebuild -showsdks | grep $target_platform | sort | tail -n 1 | awk '{ print $2}'`]
           use_sdk="${use_sdk:-$found_sdk_version}"
           sdk_name=$target_platform$use_sdk
-          platform_min_version="$target_platform-version-min=6.0"
+          platform_min_version="$target_platform-version-min=9.0"
         fi
-	case $use_sdk in
-          4.*);;
-          5.*);;
-          6.*);;
-          7.*);;
-          8.*);;
+        case $use_sdk in
           9.*);;
           10.*);;
           11.*);;
             *)
               AC_MSG_ERROR(error in configure of --with-sdk=$use_sdk)
-            ;;
-        esac
-
-        # find the matching toolchain
-        case $use_xcode in
-          3.*.* | 4.* | 4.*.*)
-            use_toolchain="${use_toolchain:-`$use_xcodebuild -version -sdk $sdk_name PlatformPath`/Developer}"
-            ;;
-          *)
-            use_toolchain="${use_xcodepath}/Toolchains/XcodeDefault.xctoolchain"
             ;;
         esac
 
@@ -457,9 +365,9 @@ case $host in
         platform_cflags+=" -Wreturn-type -Wunused-variable -fmessage-length=0 -gdwarf-2"
         platform_cflags+=" -Wno-error=implicit-function-declaration"
         optimize_flags="-O3"
+        use_sdk_path=[`$use_xcodebuild -version -sdk $sdk_name | grep ^Path | awk '{ print $2}'`]
         platform_ldflags+=" -L$use_sdk_path/usr/lib/system"
         platform_cxxflags+=" $cpu_flags"
-        use_sdk_path=[`$use_xcodebuild -version -sdk $sdk_name | grep ^Path | awk '{ print $2}'`]
       ;;
     esac
     platform_cflags+=" -arch $use_cpu -m$platform_min_version"
@@ -474,26 +382,45 @@ case $host in
 esac
 
 case $use_platform in
+  aml|gbm|mir|wayland)
+    if test "$platform_os" != "linux"; then
+      AC_MSG_ERROR([$use_platform is only supported on the Linux platform])
+    fi
+    if test "$use_platform" = "aml"; then
+      if test "$host_cpu" != "arm" && test "$host_cpu" != "aarch64"; then
+        AC_MSG_ERROR([$use_platform is only supported for arm and aarch64 architecture])
+      fi
+    fi
+    target_platform=$use_platform
+    ;;
   raspberry-pi)
      target_platform=raspberry-pi
-     use_neon=no
      use_cpu=arm1176jzf-s
      ffmpeg_options_default="--cpu=arm1176jzf-s"
      platform_cflags="-mcpu=arm1176jzf-s -mtune=arm1176jzf-s -mfloat-abi=hard -mfpu=vfp"
      platform_cxxflags="-mcpu=arm1176jzf-s -mtune=arm1176jzf-s -mfloat-abi=hard -mfpu=vfp"
-     optimize_flags="-Os"
      platform_ldflags=""
      ;;
   raspberry-pi2)
      target_platform=raspberry-pi
-     use_neon=yes
      use_cpu=cortex-a7
      ffmpeg_options_default="--cpu=cortex-a7"
-     platform_cflags="-fPIC -mcpu=cortex-a7 -mfloat-abi=hard -mfpu=neon-vfpv4"
-     platform_cxxflags="-fPIC -mcpu=cortex-a7 -mfloat-abi=hard -mfpu=neon-vfpv4"
-     optimize_flags="-Os"
+     platform_cflags="-fPIC -mcpu=cortex-a7 -mfloat-abi=hard -mfpu=neon-vfpv4 -mvectorize-with-neon-quad"
+     platform_cxxflags="-fPIC -mcpu=cortex-a7 -mfloat-abi=hard -mfpu=neon-vfpv4 -mvectorize-with-neon-quad"
      platform_ldflags="-lpthread"
      ;;
+  raspberry-pi3)
+     target_platform=raspberry-pi
+     use_cpu=cortex-a53
+     ffmpeg_options_default="--cpu=cortex-a53"
+     platform_cflags="-fPIC -mcpu=cortex-a53 -mfloat-abi=hard -mfpu=neon-fp-armv8 -mvectorize-with-neon-quad"
+     platform_cxxflags="-fPIC -mcpu=cortex-a53 -mfloat-abi=hard -mfpu=neon-fp-armv8 -mvectorize-with-neon-quad"
+     platform_ldflags="-lpthread"
+     ;;
+  auto)
+    ;;
+  *)
+    AC_MSG_ERROR(unsupported platform ($use_platform))
 esac
 
 if test "$target_platform" = "raspberry-pi" ; then
@@ -505,7 +432,6 @@ if test "$target_platform" = "raspberry-pi" ; then
   use_arch="arm"
   use_hardcoded_tables="yes"
   ARCH="arm"
-  platform_os="linux"
   cross_compiling="yes"
   use_host="arm-linux-gnueabihf"
   deps_dir="$use_platform-$build_type"
@@ -562,7 +488,6 @@ AC_PATH_PROG([CXX_FOR_BUILD],[g++ llvm-g++ $platform_cxx], g++, $PATH_FOR_BUILD)
 
 AC_SEARCH_LIBS([iconv_open],iconv, link_iconv=$ac_cv_search_iconv_open, link_iconv=-liconv; AC_MSG_WARN("No iconv support in toolchain. Will build libiconv."); need_libiconv=1)
 AC_TRY_LINK([#include <locale.h>],[struct lconv* test=localeconv();], has_localeconv=yes, AC_MSG_WARN("No localeconv support in toolchain. Using replacement."); has_localeconv=no)
-AC_CHECK_LIB([crystax],   [main], has_libcrystax=1, has_libcrystax=0)
 
 if test "$link_iconv" = "none required"; then
   link_iconv=
@@ -578,12 +503,6 @@ fi
 
 if test -z $use_tarballs; then
   use_tarballs=$prefix/xbmc-tarballs
-fi
-
-if test "$platform_os" != "linux"; then
-  if test "x$enable_wayland" != "xno"; then
-    AC_MSG_ERROR([Wayland is only supported on the Linux platform])
-  fi
 fi
 
 if test -n "$app_rendersystem"; then
@@ -681,18 +600,6 @@ if [ ! `mkdir -p $use_tarballs` ]; then
   AC_MSG_ERROR(unable to create tarballs dir. verify that the path and permissions are correct.)
 fi
 
-if test "$platform_os" == "android"; then
-  echo
-
-  if [ ! `mkdir -p $prefix/$deps_dir/include/$use_sdk` ]; then
-    AC_MSG_ERROR(unable to create $prefix/$deps_dir/include/$use_sdk. verify that the path and permissions are correct.)
-  fi
-
-  if [ ! `mkdir -p $prefix/$deps_dir/lib/$use_sdk` ]; then
-    AC_MSG_ERROR(unable to create $prefix/$deps_dir/lib/$use_sdk. verify that the path and permissions are correct.)
-  fi
-fi
-
 # remove unwanted optimization flags
 tmp_cflags=$(echo $c11_flags $platform_cflags | sed 's/-O@<:@123@:>@//g;s/-g //g;s/ \{2,\}//g')
 tmp_cxxflags=$(echo $cxx11_flags $platform_cxxflags | sed 's/-O@<:@123@:>@//g;s/-g //g;s/ \{2,\}//g')
@@ -733,7 +640,6 @@ if test "$platform_os" == "android"; then
 echo -e
   AC_SUBST(use_sdk_path)
   AC_SUBST(use_ndk_path)
-  AC_SUBST(use_sdk)
   AC_SUBST(use_ndk_api)
   AC_SUBST(build_tools_path)
 fi
@@ -763,23 +669,12 @@ AC_SUBST(has_zlib)
 AC_SUBST(link_iconv)
 AC_SUBST(need_libiconv)
 AC_SUBST(use_gplv3)
-AC_SUBST(enable_wayland)
-AC_SUBST(has_libcrystax)
-AC_SUBST(use_xcode)
 AC_SUBST(use_ccache)
 AC_SUBST(native_platform_min_version)
 AC_SUBST(app_rendersystem)
 AC_SUBST(ffmpeg_options)
 
 AC_OUTPUT
-echo -e "ccache:\t $use_ccache"
-echo -e "toolchain:\t $use_toolchain"
-echo -e "cpu:\t\t $use_cpu"
-echo -e "host:\t\t $use_host"
-if test "$platform_os" == "android"; then
-  echo -e "sdk-platform:\t $use_sdk"
-  echo -e "build-tools:\t $build_tools_path"
-fi
 
 if test "$platform_os" == "ios"; then
   if test "$use_platform" = "tvos"; then
@@ -799,10 +694,12 @@ cp -vf target/config.site $prefix/$deps_dir/share
 cp -vf target/config-binaddons.site $prefix/$tool_dir/share
 cp -vf target/Toolchain.cmake $prefix/$deps_dir/share
 cp -vf target/Toolchain_binaddons.cmake $prefix/$deps_dir/share
+cp -vf target/cross-file.meson $prefix/$deps_dir/share
 cp -vf native/config.site.native $prefix/$tool_dir/share/config.site
 
 
 echo -e "\n\n#------- configuration -------#"
+echo -e "ccache:\t\t $use_ccache"
 echo -e "build type:\t $build_type"
 echo -e "toolchain:\t $use_toolchain"
 echo -e "cpu:\t\t $use_cpu"
@@ -811,10 +708,10 @@ echo -e "cflags:\t\t $platform_cflags"
 echo -e "cxxflags:\t $platform_cxxflags"
 echo -e "ldflags:\t $platform_ldflags"
 echo -e "ffmpeg options:\t $ffmpeg_options"
-echo -e "prefix:\t\t  $prefix"
+echo -e "prefix:\t\t $prefix"
 echo -e "depends:\t $prefix/$deps_dir"
 if test "$platform_os" == "android"; then
-  echo -e "sdk-platform:\t $use_sdk"
+  echo -e "ndk-api-level:\t $use_ndk_api"
   echo -e "build-tools:\t $build_tools_path"
 fi
 

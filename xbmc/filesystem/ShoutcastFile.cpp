@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -23,7 +23,6 @@
 //
 //////////////////////////////////////////////////////////////////////
 
-#include "system.h"
 #include "ShoutcastFile.h"
 #include "guilib/GUIWindowManager.h"
 #include "URL.h"
@@ -153,7 +152,7 @@ bool CShoutcastFile::ExtractTagInfo(const char* buf)
   }
   else
     g_charsetConverter.unknownToUTF8(strBuffer);
-  
+
   bool result=false;
 
   std::wstring wBuffer, wConverted;

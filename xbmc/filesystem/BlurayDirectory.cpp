@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -152,7 +152,7 @@ void CBlurayDirectory::GetTitles(bool main, CFileItemList &items)
   std::vector<BLURAY_TITLE_INFO*> titleList;
   uint64_t minDuration = 0;
 
-  // Searching for a user provided list of playlists. 
+  // Searching for a user provided list of playlists.
   if (main)
     titleList = GetUserPlaylists();
 
@@ -275,7 +275,7 @@ bool CBlurayDirectory::InitializeBluray(const std::string &root)
   std::string langCode;
   g_LangCodeExpander.ConvertToISO6392T(g_langInfo.GetDVDMenuLanguage(), langCode);
   m_dll->bd_set_player_setting_str(m_bd, BLURAY_PLAYER_SETTING_MENU_LANG, langCode.c_str());
-  
+
   if (!m_dll->bd_open_files(m_bd, const_cast<std::string*>(&root), DllLibbluray::dir_open, DllLibbluray::file_open))
   {
     CLog::Log(LOGERROR, "CBlurayDirectory::InitializeBluray - failed to open %s", CURL::GetRedacted(root).c_str());

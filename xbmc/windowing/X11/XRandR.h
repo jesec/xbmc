@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2015 Team Kodi
  *      http://kodi.tv
@@ -20,7 +18,7 @@
  *
  */
 
-#include "system.h"
+#pragma once
 
 #include <string>
 #include <vector>

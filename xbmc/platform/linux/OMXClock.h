@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,8 +18,7 @@
  *
  */
 
-#ifndef _AVCLOCK_H_
-#define _AVCLOCK_H_
+#pragma once
 
 #include "OMXCore.h"
 #include "DVDClock.h"
@@ -94,4 +93,3 @@ public:
   static double NormalizeFrameduration(double frameduration);
 };
 
-#endif

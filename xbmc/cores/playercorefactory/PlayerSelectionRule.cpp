@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -149,7 +149,7 @@ void CPlayerSelectionRule::GetPlayers(const CFileItem& item, std::vector<std::st
 
     if (CompileRegExp(m_audioCodec, regExp) && !MatchesRegExp(streamDetails.GetAudioCodec(), regExp))
       return;
-    
+
     std::stringstream itoa;
     itoa << streamDetails.GetAudioChannels();
     std::string audioChannelsstr = itoa.str();

@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <map>
 #include <set>
@@ -52,7 +53,7 @@ public:
   static std::string GetPluralLocalization(const MediaType &mediaType);
   static std::string GetCapitalLocalization(const MediaType &mediaType);
   static std::string GetCapitalPluralLocalization(const MediaType &mediaType);
-  
+
   typedef struct MediaTypeInfo {
     MediaTypeInfo(const MediaType &mediaType, const std::string &plural, bool container,
                   int localizationSingular, int localizationPlural,

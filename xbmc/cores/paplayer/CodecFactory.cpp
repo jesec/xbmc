@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,6 @@
  *
  */
 
-#include "system.h"
 #include "CodecFactory.h"
 #include "URL.h"
 #include "VideoPlayerCodec.h"
@@ -89,8 +88,8 @@ ICodec* CodecFactory::CreateCodecDemux(const CFileItem& file, unsigned int filec
       content == "application/ogg"  ||
       content == "audio/ogg"        ||
       content == "audio/x-xbmc-pcm" ||
-      content == "audio/flac"       || 
-      content == "audio/x-flac"     || 
+      content == "audio/flac"       ||
+      content == "audio/x-flac"     ||
       content == "application/x-flac"
       )
   {

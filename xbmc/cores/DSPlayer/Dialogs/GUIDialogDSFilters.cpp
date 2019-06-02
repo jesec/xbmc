@@ -26,6 +26,7 @@
 #include "URL.h"
 #include "dialogs/GUIDialogYesNo.h"
 #include "filesystem/File.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/LocalizeStrings.h"
 #include "profiles/ProfilesManager.h"
 #include "settings/Settings.h"
@@ -312,7 +313,7 @@ void CGUIDialogDSFilters::ShowDSFiltersList()
   int selected;
   int count = 0;
 
-  CGUIDialogSelect *pDlg = (CGUIDialogSelect *)g_windowManager.GetWindow(WINDOW_DIALOG_SELECT);
+  CGUIDialogSelect *pDlg = (CGUIDialogSelect *)CServiceBroker::GetGUI()->GetWindowManager().GetWindow(WINDOW_DIALOG_SELECT);
   if (!pDlg)
     return;
 
@@ -347,7 +348,7 @@ void CGUIDialogDSFilters::ShowDSFiltersList()
   CGUIDialogDSManager::Get()->SetConfig(selected == count, selected);
 
   if (selected > -1) 
-    g_windowManager.ActivateWindow(WINDOW_DIALOG_DSFILTERS);
+    CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(WINDOW_DIALOG_DSFILTERS);
 }
 
 void CGUIDialogDSFilters::TypeOptionFiller(std::shared_ptr<const CSetting> setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)

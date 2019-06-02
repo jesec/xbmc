@@ -27,6 +27,7 @@
 #include "URL.h"
 #include "dialogs/GUIDialogYesNo.h"
 #include "filesystem/File.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/LocalizeStrings.h"
 #include "profiles/ProfilesManager.h"
 #include "settings/Settings.h"
@@ -533,7 +534,7 @@ void CGUIDialogDSRules::ShowDSRulesList()
   int count = 0;
   int id = 0;
 
-  CGUIDialogSelect *pDlg = (CGUIDialogSelect *)g_windowManager.GetWindow(WINDOW_DIALOG_SELECT);
+  CGUIDialogSelect *pDlg = (CGUIDialogSelect *)CServiceBroker::GetGUI()->GetWindowManager().GetWindow(WINDOW_DIALOG_SELECT);
   if (!pDlg)
     return;
 
@@ -604,7 +605,7 @@ void CGUIDialogDSRules::ShowDSRulesList()
   CGUIDialogDSManager::Get()->SetConfig(selected == count, selectedId);
 
   if (selected > -1)
-    g_windowManager.ActivateWindow(WINDOW_DIALOG_DSRULES);
+    CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(WINDOW_DIALOG_DSRULES);
 }
 
 

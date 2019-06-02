@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2010-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@
 // The view content is basically an EAGL surface you render your OpenGL scene into.
 // Note that setting the view non-opaque will only work if the EAGL surface has an alpha channel.
 @interface IOSEAGLView : UIView
-{    
+{
 @private
   EAGLContext *context;
   // The pixel dimensions of the CAEAGLLayer.
@@ -38,7 +38,7 @@
 	GLuint program;
 	//
 	GLfloat rotz;
-	
+
 	BOOL animating;
   BOOL xbmcAlive;
   BOOL readyToRun;

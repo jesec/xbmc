@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,6 @@
  *
  */
 
-#include "system.h"
 
 #include "AMLCodec.h"
 #include "DynamicDll.h"
@@ -28,7 +27,7 @@
 #include "cores/VideoPlayer/VideoRenderers/RenderFlags.h"
 #include "cores/VideoPlayer/VideoRenderers/RenderManager.h"
 #include "settings/AdvancedSettings.h"
-#include "guilib/GraphicContext.h"
+#include "windowing/GraphicContext.h"
 #include "settings/DisplaySettings.h"
 #include "settings/MediaSettings.h"
 #include "settings/Settings.h"
@@ -345,11 +344,6 @@ typedef struct vframe_states
   int buf_avail_num;
 } vframe_states_t;
 
-#ifndef AMSTREAM_IOC_VF_STATUS
-#define AMSTREAM_IOC_MAGIC  'S'
-#define AMSTREAM_IOC_VF_STATUS  _IOR(AMSTREAM_IOC_MAGIC, 0x60, unsigned long)
-#endif
-
 /*************************************************************************/
 /*************************************************************************/
 void dumpfile_open(am_private_t *para)
@@ -387,7 +381,6 @@ static vformat_t codecid_to_vformat(enum AVCodecID id)
   {
     case AV_CODEC_ID_MPEG1VIDEO:
     case AV_CODEC_ID_MPEG2VIDEO:
-    case AV_CODEC_ID_MPEG2VIDEO_XVMC:
       format = VFORMAT_MPEG12;
       break;
     case AV_CODEC_ID_H263:
@@ -1251,8 +1244,7 @@ int pre_header_feeding(am_private_t *para, am_packet_t *pkt)
             }
         }
         if (( AV_CODEC_ID_MPEG1VIDEO == para->video_codec_id)
-          || (AV_CODEC_ID_MPEG2VIDEO == para->video_codec_id)
-          || (AV_CODEC_ID_MPEG2VIDEO_XVMC == para->video_codec_id)) {
+          || (AV_CODEC_ID_MPEG2VIDEO == para->video_codec_id)) {
             ret = mpeg_add_header(para, pkt);
             if (ret != PLAYER_SUCCESS) {
                 return ret;
@@ -1478,8 +1470,8 @@ CAMLCodec::CAMLCodec(CProcessInfo &processInfo)
   , m_ptsIs64us(false)
   , m_speed(DVD_PLAYSPEED_NORMAL)
   , m_cur_pts(INT64_0)
-  , m_ptsOverflow(0)
   , m_last_pts(0)
+  , m_ptsOverflow(0)
   , m_bufferIndex(-1)
   , m_state(0)
   , m_frameSizeSum(0)
@@ -2120,7 +2112,7 @@ CDVDVideoCodec::VCReturn CAMLCodec::GetPicture(VideoPicture *pVideoPicture)
     return CDVDVideoCodec::VC_ERROR;
 
   float timesize(GetTimeSize());
-  if(!m_drain && timesize < 1.0)
+  if(!m_drain && timesize < 0.2)
     return CDVDVideoCodec::VC_BUFFER;
 
   if (DequeueBuffer() == 0)
@@ -2151,7 +2143,11 @@ CDVDVideoCodec::VCReturn CAMLCodec::GetPicture(VideoPicture *pVideoPicture)
   else if (m_drain)
     return CDVDVideoCodec::VC_EOF;
   else
+  {
+    if (timesize < 1.0)
+      return CDVDVideoCodec::VC_BUFFER;
     usleep(5000);
+  }
 
   return CDVDVideoCodec::VC_NONE;
 }
@@ -2230,38 +2226,6 @@ void CAMLCodec::SetVideoSaturation(const int saturation)
   SysfsUtils::SetInt("/sys/class/video/saturation", saturation);
 }
 
-bool CAMLCodec::SetVideo3dMode(const int mode3d)
-{
-  bool result = true;
-  if (SysfsUtils::Has("/sys/class/ppmgr/ppmgr_3d_mode"))
-  {
-    CLog::Log(LOGDEBUG, "CAMLCodec::SetVideo3dMode:mode3d(0x%x)", mode3d);
-    SysfsUtils::SetInt("/sys/class/ppmgr/ppmgr_3d_mode", mode3d);
-  }
-  else
-  {
-    CLog::Log(LOGINFO, "CAMLCodec::SetVideo3dMode: ppmgr_3d support not found in kernel.");
-    result = false;
-  }
-  return result;
-}
-
-std::string CAMLCodec::GetStereoMode()
-{
-  std::string  stereo_mode;
-
-  switch(m_processInfo.GetVideoSettings().m_StereoMode)
-  {
-    case RENDER_STEREO_MODE_SPLIT_VERTICAL:   stereo_mode = "left_right"; break;
-    case RENDER_STEREO_MODE_SPLIT_HORIZONTAL: stereo_mode = "top_bottom"; break;
-    default:                                  stereo_mode = m_hints.stereo_mode; break;
-  }
-
-  if(m_processInfo.GetVideoSettings().m_StereoInvert)
-    stereo_mode = RenderManager::GetStereoModeInvert(stereo_mode);
-  return stereo_mode;
-}
-
 void CAMLCodec::SetVideoRect(const CRect &SrcRect, const CRect &DestRect)
 {
   // this routine gets called every video frame
@@ -2298,20 +2262,20 @@ void CAMLCodec::SetVideoRect(const CRect &SrcRect, const CRect &DestRect)
     update = true;
   }
 
-  // video stereo mode/view.
-  RENDER_STEREO_MODE stereo_mode = g_graphicsContext.GetStereoMode();
-  if (m_stereo_mode != stereo_mode)
+  // GUI stereo mode/view.
+  RENDER_STEREO_MODE guiStereoMode = CServiceBroker::GetWinSystem()->GetGfxContext().GetStereoMode();
+  if (m_guiStereoMode != guiStereoMode)
   {
-    m_stereo_mode = stereo_mode;
+    m_guiStereoMode = guiStereoMode;
     update = true;
   }
-  RENDER_STEREO_VIEW stereo_view = g_graphicsContext.GetStereoView();
-  if (m_stereo_view != stereo_view)
+  RENDER_STEREO_VIEW guiStereoView = CServiceBroker::GetWinSystem()->GetGfxContext().GetStereoView();
+  if (m_guiStereoView != guiStereoView)
   {
     // left/right/top/bottom eye,
     // this might change every other frame.
     // we do not care but just track it.
-    m_stereo_view = stereo_view;
+    m_guiStereoView = guiStereoView;
   }
 
   // dest_rect
@@ -2339,7 +2303,7 @@ void CAMLCodec::SetVideoRect(const CRect &SrcRect, const CRect &DestRect)
     update = true;
   }
 
-  RESOLUTION video_res = g_graphicsContext.GetVideoResolution();
+  RESOLUTION video_res = CServiceBroker::GetWinSystem()->GetGfxContext().GetVideoResolution();
   if (m_video_res != video_res)
   {
     m_video_res = video_res;
@@ -2363,9 +2327,9 @@ void CAMLCodec::SetVideoRect(const CRect &SrcRect, const CRect &DestRect)
   {
     float xscale = display.Width() / gui.Width();
     float yscale = display.Height() / gui.Height();
-    if (m_stereo_mode == RENDER_STEREO_MODE_SPLIT_VERTICAL)
+    if (m_guiStereoMode == RENDER_STEREO_MODE_SPLIT_VERTICAL)
       xscale /= 2.0;
-    else if (m_stereo_mode == RENDER_STEREO_MODE_SPLIT_HORIZONTAL)
+    else if (m_guiStereoMode == RENDER_STEREO_MODE_SPLIT_HORIZONTAL)
       yscale /= 2.0;
     dst_rect.x1 *= xscale;
     dst_rect.x2 *= xscale;
@@ -2373,75 +2337,21 @@ void CAMLCodec::SetVideoRect(const CRect &SrcRect, const CRect &DestRect)
     dst_rect.y2 *= yscale;
   }
 
-  if (m_stereo_mode == RENDER_STEREO_MODE_MONO)
+  if (m_guiStereoMode == RENDER_STEREO_MODE_MONO)
   {
-    std::string mode = GetStereoMode();
-    if (mode == "left_right")
-    {
-      if (!SetVideo3dMode(MODE_3D_TO_2D_L))
-      {
-        // fall back to software scaling if no hw support
-        // was found
-        dst_rect.x2 *= 2.0;
-      }
-    }
-    else if (mode == "right_left")
-    {
-      if (!SetVideo3dMode(MODE_3D_TO_2D_R))
-      {
-        // fall back to software scaling if no hw support
-        // was found
-        dst_rect.x2 *= 2.0;
-      }
-    }
-    else if (mode == "top_bottom")
-    {
-      if (!SetVideo3dMode(MODE_3D_TO_2D_T))
-      {
-        // fall back to software scaling if no hw support
-        // was found
-        dst_rect.y2 *= 2.0;
-      }
-    }
-    else if (mode == "bottom_top")
-    {
-      if (!SetVideo3dMode(MODE_3D_TO_2D_B))
-      {
-        // fall back to software scaling if no hw support
-        // was found
-        dst_rect.y2 *= 2.0;
-      }
-    }
-    else
-      SetVideo3dMode(MODE_3D_DISABLE);
+    std::string videoStereoMode = m_processInfo.GetVideoStereoMode();
+    if (videoStereoMode == "left_right" || videoStereoMode == "righ_left")
+      dst_rect.x2 *= 2.0;
+    else if (videoStereoMode == "top_bottom" || videoStereoMode == "bottom_top")
+      dst_rect.y2 *= 2.0;
   }
-  else if (m_stereo_mode == RENDER_STEREO_MODE_SPLIT_VERTICAL)
+  else if (m_guiStereoMode == RENDER_STEREO_MODE_SPLIT_VERTICAL)
   {
     dst_rect.x2 *= 2.0;
-    SetVideo3dMode(MODE_3D_DISABLE);
   }
-  else if (m_stereo_mode == RENDER_STEREO_MODE_SPLIT_HORIZONTAL)
+  else if (m_guiStereoMode == RENDER_STEREO_MODE_SPLIT_HORIZONTAL)
   {
     dst_rect.y2 *= 2.0;
-    SetVideo3dMode(MODE_3D_DISABLE);
-  }
-  else if (m_stereo_mode == RENDER_STEREO_MODE_INTERLACED)
-  {
-    std::string mode = GetStereoMode();
-    if (mode == "left_right")
-      SetVideo3dMode(MODE_3D_LR);
-    else if (mode == "right_left")
-      SetVideo3dMode(MODE_3D_LR_SWITCH);
-    else if (mode == "row_interleaved_lr")
-      SetVideo3dMode(MODE_3D_LR);
-    else if (mode == "row_interleaved_rl")
-      SetVideo3dMode(MODE_3D_LR_SWITCH);
-    else
-      SetVideo3dMode(MODE_3D_DISABLE);
-  }
-  else
-  {
-    SetVideo3dMode(MODE_3D_DISABLE);
   }
 
 #if 1
@@ -2461,8 +2371,8 @@ void CAMLCodec::SetVideoRect(const CRect &SrcRect, const CRect &DestRect)
   CLog::Log(LOGDEBUG, "CAMLCodec::SetVideoRect:gui(%s)", s_gui.c_str());
   CLog::Log(LOGDEBUG, "CAMLCodec::SetVideoRect:m_dst_rect(%s)", s_m_dst_rect.c_str());
   CLog::Log(LOGDEBUG, "CAMLCodec::SetVideoRect:dst_rect(%s)", s_dst_rect.c_str());
-  CLog::Log(LOGDEBUG, "CAMLCodec::SetVideoRect:m_stereo_mode(%d)", m_stereo_mode);
-  CLog::Log(LOGDEBUG, "CAMLCodec::SetVideoRect:m_stereo_view(%d)", m_stereo_view);
+  CLog::Log(LOGDEBUG, "CAMLCodec::SetVideoRect:m_guiStereoMode(%d)", m_guiStereoMode);
+  CLog::Log(LOGDEBUG, "CAMLCodec::SetVideoRect:m_guiStereoView(%d)", m_guiStereoView);
 #endif
 
   // goofy 0/1 based difference in aml axis coordinates.

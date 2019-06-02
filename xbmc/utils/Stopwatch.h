@@ -1,8 +1,6 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <stdint.h>
 
@@ -90,7 +90,7 @@ public:
     int64_t totalTicks = (m_isRunning ? GetTicks() : m_stopTick) - m_startTick;
     return (float)totalTicks * m_timerPeriod;
   }
-  
+
   /*!
     \brief  Retrieve time elapsed between the last call to Start(), StartZero()
             or Reset() and; if running, now; if stopped, the last call to Stop().

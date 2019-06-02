@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include "settings/lib/ISettingControl.h"
 #include "settings/lib/ISettingControlCreator.h"
@@ -192,7 +193,7 @@ public:
   // specialization of CSettingControlFormattedRange
   bool Deserialize(const TiXmlNode *node, bool update = false) override;
   bool SetFormat(const std::string &format) override;
-  
+
   int GetHeading() const { return m_heading; }
   void SetHeading(int heading) { m_heading = heading; }
   bool CanMultiSelect() const { return m_multiselect; }

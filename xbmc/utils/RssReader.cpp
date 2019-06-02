@@ -246,7 +246,7 @@ void CRssReader::AddString(std::wstring aString, int aColour, int iFeed)
   size_t nStringLength = aString.size();
 
   for (size_t i = 0;i < nStringLength;i++)
-    aString[i] = (CHAR) (48 + aColour);
+    aString[i] = static_cast<char>(48 + aColour);
 
   if (m_rtlText)
     m_strColors[iFeed] = aString + m_strColors[iFeed];
@@ -400,7 +400,7 @@ void CRssReader::UpdateObserver()
   getFeed(feed);
   if (!feed.empty())
   {
-    CSingleLock lock(g_graphicsContext);
+    CSingleLock lock(CServiceBroker::GetWinSystem()->GetGfxContext());
     if (m_pObserver) // need to check again when locked to make sure observer wasnt removed
       m_pObserver->OnFeedUpdate(feed);
   }

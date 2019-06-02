@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -17,8 +17,6 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
-
-#include "system.h"
 
 #include "DAVFile.h"
 
@@ -89,7 +87,7 @@ bool CDAVFile::Execute(const CURL& url)
       {
         std::string sRetCode = CDAVCommon::GetStatusTag(pChild->ToElement());
         CRegExp rxCode;
-        rxCode.RegComp("HTTP/1\\.1\\s(\\d+)\\s.*"); 
+        rxCode.RegComp("HTTP/1\\.1\\s(\\d+)\\s.*");
         if (rxCode.RegFind(sRetCode) >= 0)
         {
           if (rxCode.GetSubCount())
@@ -116,7 +114,7 @@ bool CDAVFile::Delete(const CURL& url)
   std::string strRequest = "DELETE";
 
   dav.SetCustomRequest(strRequest);
- 
+
   CLog::Log(LOGDEBUG, "CDAVFile::Delete - Execute DELETE (%s)", url.GetRedacted().c_str());
   if (!dav.Execute(url))
   {

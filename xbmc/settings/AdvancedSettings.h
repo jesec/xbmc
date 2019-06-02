@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include <set>
 #include <string>
 #include <utility>
@@ -35,6 +36,7 @@
 #define CACHE_BUFFER_MODE_NONE          3
 #define CACHE_BUFFER_MODE_REMOTE        4
 
+class CProfilesManager;
 class CVariant;
 
 class TiXmlElement;
@@ -123,8 +125,6 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
   public:
     CAdvancedSettings();
 
-    static CAdvancedSettings* getInstance();
-
     void OnSettingsLoaded() override;
     void OnSettingsUnloaded() override;
 
@@ -133,7 +133,7 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
     void Initialize();
     bool Initialized() { return m_initialized; };
     void AddSettingsFile(const std::string &filename);
-    bool Load();
+    bool Load(const CProfilesManager &profileManager);
     void Clear();
 
     static void GetCustomTVRegexps(TiXmlElement *pRootElement, SETTINGS_TVSHOWLIST& settings);
@@ -218,6 +218,7 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
     bool m_extraLogEnabled;
     int m_extraLogLevels;
     std::string m_cddbAddress;
+    bool m_addSourceOnTop; //!< True to put 'add source' buttons on top
 
     //airtunes + airplay
     int m_airTunesPort;
@@ -245,6 +246,7 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
     StringMapping m_pathSubstitutions;
     int m_remoteDelay; ///< \brief number of remote messages to ignore before repeating
     float m_controllerDeadzone;
+    bool m_bScanIRServer;
 
     bool m_playlistAsFolders;
     bool m_detectAsUdf;
@@ -263,6 +265,8 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
 
     std::string m_musicThumbs;
     std::string m_fanartImages;
+    std::vector<std::string> m_musicArtistExtraArt;
+    std::vector<std::string> m_musicAlbumExtraArt;
 
     int m_iMusicLibraryRecentlyAddedItems;
     int m_iMusicLibraryDateAdded;
@@ -327,6 +331,7 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
     float m_sleepBeforeFlip; ///< if greater than zero, XBMC waits for raster to be this amount through the frame prior to calling the flip
     bool m_bVirtualShares;
     bool m_bAllowDeferredRendering;
+    bool m_bTry10bitOutput;
 
     std::string m_cpuTempCmd;
     std::string m_gpuTempCmd;
@@ -348,7 +353,6 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
     DatabaseSettings m_databaseVideo; // advanced video database setup
     DatabaseSettings m_databaseTV;    // advanced tv database setup
     DatabaseSettings m_databaseEpg;   /*!< advanced EPG database setup */
-    DatabaseSettings m_databaseADSP;  /*!< advanced audio dsp database setup */
     DatabaseSettings m_databaseSavestates; /*!< advanced savestate database setup */
 
 #ifdef HAS_DS_PLAYER
@@ -401,6 +405,7 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
     std::string m_stereoscopicregex_tab;
 
     bool m_useDisplayControlHWStereo;
+    bool m_allowUseSeparateDeviceForDecoding;
 
     /*!< @brief position behavior of ass subtitles when setting "subtitle position on screen" set to "fixed"
     True to show at the fixed position set in video calibration

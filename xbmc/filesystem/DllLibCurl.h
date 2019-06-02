@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include "threads/CriticalSection.h"
 
@@ -71,10 +72,6 @@ public:
   struct curl_slist* slist_append(struct curl_slist* list, const char* to_append);
   void slist_free_all(struct curl_slist* list);
   const char* easy_strerror(CURLcode code);
-#if defined(HAS_CURL_STATIC)
-  void crypto_set_id_callback(unsigned long (*cb)(void));
-  void crypto_set_locking_callback(void (*cb)(int, int, const char*, int));
-#endif
 };
 
 class DllLibCurlGlobal : public DllLibCurl

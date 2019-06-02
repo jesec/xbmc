@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -37,7 +37,6 @@
 #if !defined(TARGET_FREEBSD) && (!defined(TARGET_ANDROID) && defined(__LP64__))
 #include <sys/timeb.h>
 #endif
-#include "system.h" // for HAS_DVD_DRIVE
 #ifdef HAS_DVD_DRIVE
   #ifdef TARGET_POSIX
     #include <sys/ioctl.h>
@@ -77,7 +76,7 @@
 #if !defined(TARGET_WINDOWS)
 #include <dlfcn.h>
 #endif
-#include "utils/Environment.h"
+#include "platform/Environment.h"
 #include "utils/StringUtils.h"
 
 #if defined(TARGET_WINDOWS)
@@ -167,7 +166,7 @@ extern "C" void __stdcall init_emu_environ()
   }
 
 #if defined(TARGET_ANDROID)
-  std::string apkPath = getenv("XBMC_ANDROID_APK");
+  std::string apkPath = getenv("KODI_ANDROID_APK");
   apkPath += "/assets/python2.7";
   dll_putenv(std::string("PYTHONHOME=" + apkPath).c_str());
   dll_putenv("PYTHONOPTIMIZE=");
@@ -675,10 +674,10 @@ extern "C"
       // let the operating system handle it
       // not supported: return lseeki64(fd, lPos, iWhence);
       CLog::Log(LOGWARNING, "msvcrt.dll: dll_lseeki64 called, TODO: add 'int64 -> long' type checking");      //warning
-      return (__int64)lseek(fd, (long)lPos, iWhence);
+      return static_cast<long long>(lseek(fd, (long)lPos, iWhence));
     }
     CLog::Log(LOGERROR, "%s emulated function failed",  __FUNCTION__);
-    return (__int64)-1;
+    return -1ll;
   }
 
   __off_t dll_lseek(int fd, __off_t lPos, int iWhence)
@@ -837,7 +836,7 @@ extern "C"
     strURL = url.Get();
     bVecDirsInited = true;
     vecDirsOpen[iDirSlot].items.Clear();
-    XFILE::CDirectory::GetDirectory(strURL, vecDirsOpen[iDirSlot].items, strMask);
+    XFILE::CDirectory::GetDirectory(strURL, vecDirsOpen[iDirSlot].items, strMask, DIR_FLAG_DEFAULTS);
     if (vecDirsOpen[iDirSlot].items.Size())
     {
       int size = sizeof(data->name);
@@ -957,7 +956,7 @@ extern "C"
     bVecDirsInited = true;
     vecDirsOpen[iDirSlot].items.Clear();
 
-    if (XFILE::CDirectory::GetDirectory(url.Get(), vecDirsOpen[iDirSlot].items))
+    if (XFILE::CDirectory::GetDirectory(url.Get(), vecDirsOpen[iDirSlot].items, "", DIR_FLAG_DEFAULTS))
     {
       vecDirsOpen[iDirSlot].curr_index = 0;
       return (DIR *)&vecDirsOpen[iDirSlot];
@@ -1327,12 +1326,12 @@ extern "C"
     return -1;
   }
 
-  __int64 dll_telli64(int fd)
+  long long dll_telli64(int fd)
   {
     CFile* pFile = g_emuFileWrapper.GetFileXbmcByDescriptor(fd);
     if (pFile != NULL)
     {
-       return (__int64)pFile->GetPosition();
+       return static_cast<long long>(pFile->GetPosition());
     }
     else if (!IS_STD_DESCRIPTOR(fd))
     {
@@ -1341,7 +1340,7 @@ extern "C"
       // not supported return telli64(fd);
       CLog::Log(LOGWARNING, "msvcrt.dll: dll_telli64 called, TODO: add 'int64 -> long' type checking");      //warning
 #ifndef TARGET_POSIX
-      return (__int64)tell(fd);
+      return static_cast<long long>(tell(fd));
 #elif defined(TARGET_DARWIN) || defined(TARGET_FREEBSD) || defined(TARGET_ANDROID)
       return lseek(fd, 0, SEEK_CUR);
 #else

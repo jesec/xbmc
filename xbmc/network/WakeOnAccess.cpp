@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -23,7 +23,6 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
-#include "system.h"
 #include "network/Network.h"
 #include "Application.h"
 #include "ServiceBroker.h"
@@ -31,11 +30,13 @@
 #include "dialogs/GUIDialogProgress.h"
 #include "dialogs/GUIDialogKaiToast.h"
 #include "filesystem/SpecialProtocol.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
 #include "settings/MediaSourceSettings.h"
+#include "settings/lib/Setting.h"
 #include "utils/JobManager.h"
 #include "utils/log.h"
 #include "utils/XMLUtils.h"
@@ -281,11 +282,11 @@ public:
   explicit ProgressDialogHelper (const std::string& heading) : m_dialog(0)
   {
     if (g_application.IsCurrentThread())
-      m_dialog = g_windowManager.GetWindow<CGUIDialogProgress>(WINDOW_DIALOG_PROGRESS);
+      m_dialog = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogProgress>(WINDOW_DIALOG_PROGRESS);
 
     if (m_dialog)
     {
-      m_dialog->SetHeading(CVariant{heading}); 
+      m_dialog->SetHeading(CVariant{heading});
       m_dialog->SetLine(0, CVariant{""});
       m_dialog->SetLine(1, CVariant{""});
       m_dialog->SetLine(2, CVariant{""});
@@ -318,7 +319,7 @@ public:
     {
       if (waitObj.SuccessWaiting())
         return Success;
-            
+
       if (m_dialog)
       {
         if (!m_dialog->IsActive())
@@ -370,7 +371,7 @@ private:
 class PingResponseWaiter : public WaitCondition, private IJobCallback
 {
 public:
-  PingResponseWaiter (bool async, const CWakeOnAccess::WakeUpEntry& server) 
+  PingResponseWaiter (bool async, const CWakeOnAccess::WakeUpEntry& server)
     : m_server(server), m_jobId(0), m_hostOnline(false)
   {
     if (async)
@@ -397,7 +398,7 @@ public:
   {
     if (server.upnpUuid.empty())
     {
-      ULONG dst_ip = HostToIP(server.host);
+      unsigned long dst_ip = HostToIP(server.host);
 
       return CServiceBroker::GetNetwork().PingHost(dst_ip, server.ping_port, timeOutMs, server.ping_mode & 1);
     }
@@ -518,7 +519,7 @@ bool CWakeOnAccess::WakeUpHost(const WakeUpEntry& server)
       else
       {
         CLog::Log(LOGNOTICE, "WakeOnAccess timeout/cancel while waiting for network");
-        return false; // timedout or canceled ; give up 
+        return false; // timedout or canceled ; give up
       }
     }
   }
@@ -541,7 +542,7 @@ bool CWakeOnAccess::WakeUpHost(const WakeUpEntry& server)
   {
     PingResponseWaiter waitObj (dlg.HasDialog(), server); // wait for ping response ..
 
-    ProgressDialogHelper::wait_result 
+    ProgressDialogHelper::wait_result
       result = dlg.ShowAndWait (waitObj, server.wait_online1_sec, LOCALIZED(13030));
 
     if (result == ProgressDialogHelper::TimedOut)
@@ -798,7 +799,7 @@ void CWakeOnAccess::OnSettingsLoaded()
   LoadFromXML();
 }
 
-void CWakeOnAccess::SetEnabled(bool enabled) 
+void CWakeOnAccess::SetEnabled(bool enabled)
 {
   m_enabled = enabled;
 
@@ -834,7 +835,7 @@ void CWakeOnAccess::LoadFromXML()
   if (XMLUtils::GetInt(pRootElement, "netinittimeout", tmp, 0, 5 * 60))
     m_netinit_sec = tmp;
   CLog::Log(LOGNOTICE,"  -Network init timeout : [%d] sec", m_netinit_sec);
-  
+
   if (XMLUtils::GetInt(pRootElement, "netsettletime", tmp, 0, 5 * 1000))
     m_netsettle_ms = tmp;
   CLog::Log(LOGNOTICE,"  -Network settle time  : [%d] ms", m_netsettle_ms);

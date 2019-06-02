@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2017 Team Kodi
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,9 +21,6 @@
 #include "platform/Filesystem.h"
 #include "platform/win32/CharsetConverter.h"
 
-#if !defined(WIN32_LEAN_AND_MEAN)
-#define WIN32_LEAN_AND_MEAN
-#endif
 #include <Windows.h>
 
 namespace win = KODI::PLATFORM::WINDOWS;

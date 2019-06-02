@@ -55,7 +55,7 @@ macro(check_builtin func var)
 endmacro()
 
 
-# -------- Main script --------- 
+# -------- Main script ---------
 message(STATUS "System type: ${CMAKE_SYSTEM_NAME}")
 
 if(WITH_CPU)
@@ -151,6 +151,10 @@ if(NOT DEFINED NEON OR NEON)
       add_options(ALL_LANGUAGES ALL_BUILDS ${NEON_FLAGS})
     endif()
   endif()
+endif()
+
+if(PLATFORM_DEFINES)
+  add_options(ALL_LANGUAGES ALL_BUILDS ${PLATFORM_DEFINES})
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")

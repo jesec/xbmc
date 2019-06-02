@@ -1,8 +1,6 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,17 +18,20 @@
  *
  */
 
+#pragma once
+
 #include <memory>
 #include <string>
 #include <vector>
 
 #include "threads/CriticalSection.h"
 #include "threads/SystemClock.h"
-#include "guilib/Resolution.h"
+#include "windowing/Resolution.h"
 #include "cores/IPlayer.h"
 #include "SeekHandler.h"
 
 class CAction;
+class CPlayerCoreFactory;
 class CPlayerOptions;
 class CStreamDetails;
 
@@ -51,8 +52,9 @@ public:
   float GetPlayTempo();
   bool HasPlayer() const;
   bool OpenFile(const CFileItem& item, const CPlayerOptions& options,
+                const CPlayerCoreFactory &factory,
                 const std::string &playerName, IPlayerCallback& callback);
-  void OpenNext();
+  void OpenNext(const CPlayerCoreFactory &factory);
   void SetPlaySpeed(float speed);
   void SetTempo(float tempo);
   void FrameAdvance(int frames);
@@ -158,6 +160,8 @@ public:
 
   CSeekHandler& GetSeekHandler();
 
+  void SetUpdateStreamDetails();
+
 #ifdef HAS_DS_PLAYER
   // IDSRendererAllocatorCallback
   CRect GetActiveVideoRect();
@@ -184,18 +188,11 @@ public:
   void Register(IDSRendererPaintCallback* pPaintCallback);
   void Unregister(IDSRendererAllocatorCallback* pAllocatorCallback);
   void Unregister(IDSRendererPaintCallback* pPaintCallback);
-
-  int  GetEditionsCount();
-  int  GetEdition();
-  void GetEditionInfo(int iEdition, std::string &strEditionName, REFERENCE_TIME *prt);
-  void SetEdition(int iEdition);
-  bool IsMatroskaEditions();
-  void ShowEditionDlg(bool playStart);
 #endif
 
-protected:
+private:
   std::shared_ptr<IPlayer> GetInternal() const;
-  void CreatePlayer(const std::string &player, IPlayerCallback& callback);
+  void CreatePlayer(const CPlayerCoreFactory &factory, const std::string &player, IPlayerCallback& callback);
   void CloseFile(bool reopen = false);
 
   std::shared_ptr<IPlayer> m_pPlayer;

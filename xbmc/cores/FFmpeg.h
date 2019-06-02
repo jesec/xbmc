@@ -1,8 +1,6 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,6 +18,7 @@
  *
  */
 
+#pragma once
 
 #include "utils/CPUInfo.h"
 
@@ -48,9 +47,6 @@ inline int PPCPUFlags()
 
   return flags;
 }
-
-// callback used for locking
-int ffmpeg_lockmgr_cb(void **mutex, enum AVLockOp operation);
 
 // callback used for logging
 void ff_avutil_log(void* ptr, int level, const char* format, va_list va);

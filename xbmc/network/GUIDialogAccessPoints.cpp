@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,11 +19,12 @@
  */
 
 #include "GUIDialogAccessPoints.h"
+#include "guilib/GUIMessage.h"
 #include "guilib/GUIKeyboardFactory.h"
 #if defined(TARGET_ANDROID)
-#include "android/NetworkAndroid.h"
+#include "platform/android/network/NetworkAndroid.h"
 #elif defined(TARGET_POSIX)
-#include "linux/NetworkLinux.h"
+#include "platform/linux/network/NetworkLinux.h"
 #endif
 #include "ServiceBroker.h"
 #include "FileItem.h"

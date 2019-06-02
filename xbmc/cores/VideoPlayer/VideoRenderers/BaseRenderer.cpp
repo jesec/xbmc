@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,15 +18,14 @@
  *
  */
 
-#include "system.h"
-
 #include <cstdlib> // std::abs(int) prototype
 #include <algorithm>
 #include "BaseRenderer.h"
 #include "ServiceBroker.h"
 #include "settings/DisplaySettings.h"
 #include "settings/Settings.h"
-#include "guilib/GraphicContext.h"
+#include "guilib/GUIComponent.h"
+#include "windowing/GraphicContext.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
 #include "utils/log.h"
@@ -52,7 +51,7 @@ CBaseRenderer::CBaseRenderer()
     m_rotatedDestCoords[i].x = 0;
     m_rotatedDestCoords[i].y = 0;
     m_savedRotatedDestCoords[i].x = 0;
-    m_savedRotatedDestCoords[i].y = 0;    
+    m_savedRotatedDestCoords[i].y = 0;
   }
 }
 
@@ -111,7 +110,7 @@ inline void CBaseRenderer::ReorderDrawPoints()
   float diffY = 0.0f;
   float centerX = 0.0f;
   float centerY = 0.0f;
-  
+
   if (changeAspect)// we are either rotating by 90 or 270 degrees which inverts aspect ratio
   {
     float newWidth = m_destRect.Height(); // new width is old height
@@ -138,7 +137,7 @@ inline void CBaseRenderer::ReorderDrawPoints()
         newWidth /= aspectRatio;
       }
     }
-    
+
     // calculate the center point of the view
     centerX = m_viewRect.x1 + m_viewRect.Width() / 2.0f;
     centerY = m_viewRect.y1 + m_viewRect.Height() / 2.0f;
@@ -149,7 +148,7 @@ inline void CBaseRenderer::ReorderDrawPoints()
     // calculate the number of pixels we need to go in each
     // y direction from the center point
     diffY = newHeight / 2;
-    
+
   }
 
   for (int destIdx=0, srcIdx=pointOffset; destIdx < 4; destIdx++)
@@ -193,13 +192,13 @@ void CBaseRenderer::saveRotatedCoords()
 void CBaseRenderer::syncDestRectToRotatedPoints()
 {
   m_rotatedDestCoords[0].x = m_destRect.x1;
-  m_rotatedDestCoords[0].y = m_destRect.y1;  
+  m_rotatedDestCoords[0].y = m_destRect.y1;
   m_rotatedDestCoords[1].x = m_destRect.x2;
   m_rotatedDestCoords[1].y = m_destRect.y1;
   m_rotatedDestCoords[2].x = m_destRect.x2;
-  m_rotatedDestCoords[2].y = m_destRect.y2;  
+  m_rotatedDestCoords[2].y = m_destRect.y2;
   m_rotatedDestCoords[3].x = m_destRect.x1;
-  m_rotatedDestCoords[3].y = m_destRect.y2; 
+  m_rotatedDestCoords[3].y = m_destRect.y2;
 }
 
 void CBaseRenderer::restoreRotatedCoords()
@@ -223,7 +222,7 @@ void CBaseRenderer::CalcNormalRenderRect(float offsetX, float offsetY, float wid
   // calculate the correct output frame ratio (using the users pixel ratio setting
   // and the output pixel ratio setting)
 
-  float outputFrameRatio = inputFrameRatio / g_graphicsContext.GetResInfo().fPixelRatio;
+  float outputFrameRatio = inputFrameRatio / CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo().fPixelRatio;
 
   // allow a certain error to maximize size of render area
   float fCorrection = width / height / outputFrameRatio - 1.0f;
@@ -277,7 +276,7 @@ void CBaseRenderer::CalcNormalRenderRect(float offsetX, float offsetY, float wid
   m_destRect.y2 = m_destRect.y1 + MathUtils::round_int(newHeight);
 
   // clip as needed
-  if (!(g_graphicsContext.IsFullScreenVideo() || g_graphicsContext.IsCalibrating()))
+  if (!(CServiceBroker::GetWinSystem()->GetGfxContext().IsFullScreenVideo() || CServiceBroker::GetWinSystem()->GetGfxContext().IsCalibrating()))
   {
     CRect original(m_destRect);
     m_destRect.Intersect(CRect(offsetX, offsetY, offsetX + width, offsetY + height));
@@ -371,7 +370,7 @@ void CBaseRenderer::CalculateFrameAspectRatio(unsigned int desired_width, unsign
 
 void CBaseRenderer::ManageRenderArea()
 {
-  m_viewRect = g_graphicsContext.GetViewWindow();
+  m_viewRect = CServiceBroker::GetWinSystem()->GetGfxContext().GetViewWindow();
 
   m_sourceRect.x1 = 0.0f;
   m_sourceRect.y1 = 0.0f;
@@ -379,7 +378,7 @@ void CBaseRenderer::ManageRenderArea()
   m_sourceRect.y2 = (float)m_sourceHeight;
 
   unsigned int stereo_mode  = CONF_FLAGS_STEREO_MODE_MASK(m_iFlags);
-  int          stereo_view  = g_graphicsContext.GetStereoView();
+  int          stereo_view  = CServiceBroker::GetWinSystem()->GetGfxContext().GetStereoView();
 
   if(CONF_FLAGS_STEREO_CADENCE(m_iFlags) == CONF_FLAGS_STEREO_CADANCE_RIGHT_LEFT)
   {
@@ -446,8 +445,8 @@ void CBaseRenderer::SetViewMode(int viewMode)
   m_videoSettings.m_ViewMode = viewMode;
 
   // get our calibrated full screen resolution
-  RESOLUTION res = g_graphicsContext.GetVideoResolution();
-  RESOLUTION_INFO info = g_graphicsContext.GetResInfo();
+  RESOLUTION res = CServiceBroker::GetWinSystem()->GetGfxContext().GetVideoResolution();
+  RESOLUTION_INFO info = CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo();
   float screenWidth  = (float)(info.Overscan.right  - info.Overscan.left);
   float screenHeight = (float)(info.Overscan.bottom - info.Overscan.top);
 
@@ -576,7 +575,7 @@ void CBaseRenderer::SetViewMode(int viewMode)
 
 void CBaseRenderer::MarkDirty()
 {
-  g_windowManager.MarkDirty(m_destRect);
+  CServiceBroker::GetGUI()->GetWindowManager().MarkDirty(m_destRect);
 }
 
 void CBaseRenderer::SetVideoSettings(const CVideoSettings &settings)

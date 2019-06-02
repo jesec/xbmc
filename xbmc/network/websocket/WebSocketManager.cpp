@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2011-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -66,7 +66,7 @@ CWebSocket* CWebSocketManager::Handle(const char* data, unsigned int length, std
 
     return NULL;
   }
-  
+
   CWebSocket *websocket = NULL;
   if (strncmp(value, "8", 1) == 0)
     websocket = new CWebSocketV8();

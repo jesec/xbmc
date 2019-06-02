@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -24,15 +24,17 @@
 #include "threads/platform/win/Win32Exception.h"
 #include "platform/win32/CharsetConverter.h"
 #include "platform/xbmc.h"
-#include "platform/XbmcContext.h"
 #include "settings/AdvancedSettings.h"
 #include "utils/CPUInfo.h"
-#include "utils/Environment.h"
+#include "platform/Environment.h"
 #include "utils/CharsetConverter.h" // Required to initialize converters before usage
 
 
 #include <dbghelp.h>
+#include <mmsystem.h>
+#include <Objbase.h>
 #include <shellapi.h>
+#include <WinSock2.h>
 
 
 // Minidump creation function
@@ -50,8 +52,8 @@ LONG WINAPI CreateMiniDump(EXCEPTION_POINTERS* pEp)
 INT WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR commandLine, INT)
 {
   using KODI::PLATFORM::WINDOWS::ToW;
-  // this fixes crash if OPENSSL_CONF is set to existed openssl.cfg  
-  // need to set it as soon as possible  
+  // this fixes crash if OPENSSL_CONF is set to existed openssl.cfg
+  // need to set it as soon as possible
   CEnvironment::unsetenv("OPENSSL_CONF");
 
   // Initializes CreateMiniDump to handle exceptions.
@@ -126,11 +128,9 @@ INT WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR commandLine, INT)
 
   int status;
   {
-    // set up some xbmc specific relationships
-    XBMC::Context context;
     // Initialize before CAppParamParser so it can set the log level
     g_advancedSettings.Initialize();
-    
+
     CAppParamParser appParamParser;
     appParamParser.Parse(argv, argc);
     // Create and run the app

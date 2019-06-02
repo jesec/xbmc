@@ -25,6 +25,7 @@
 
 #include "settings/dialogs/GUIDialogSettingsManualBase.h"
 #include "GUIDialogDSManager.h"
+#include "utils/StringUtils.h"
 
 class CRules
 {

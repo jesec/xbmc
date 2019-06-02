@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -68,7 +68,7 @@ void tracker_dll_free(DllLoader* pDll)
 	    DummyListIter dit = (*it)->dummyList.begin();
 	    while (dit != (*it)->dummyList.end()) { free((void*)*dit); ++dit;	}
 	    (*it)->dummyList.clear();
-	
+
       delete (*it);
       it = g_trackedDlls.erase(it);
     }

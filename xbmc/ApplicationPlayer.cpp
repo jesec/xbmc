@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -22,6 +22,8 @@
 #include "cores/DataCacheCore.h"
 #include "cores/IPlayer.h"
 #include "cores/playercorefactory/PlayerCoreFactory.h"
+#include "cores/VideoPlayer/VideoPlayer.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "cores/DataCacheCore.h"
 #include "Application.h"
@@ -62,13 +64,13 @@ void CApplicationPlayer::CloseFile(bool reopen)
   }
 }
 
-void CApplicationPlayer::CreatePlayer(const std::string &player, IPlayerCallback& callback)
+void CApplicationPlayer::CreatePlayer(const CPlayerCoreFactory &factory, const std::string &player, IPlayerCallback& callback)
 {
   CSingleLock lock(m_playerLock);
   if (!m_pPlayer)
   {
     CDataCacheCore::GetInstance().Reset();
-    m_pPlayer.reset(CPlayerCoreFactory::GetInstance().CreatePlayer(player, callback));
+    m_pPlayer.reset(factory.CreatePlayer(player, callback));
   }
 }
 
@@ -83,14 +85,15 @@ std::string CApplicationPlayer::GetCurrentPlayer()
 }
 
 bool CApplicationPlayer::OpenFile(const CFileItem& item, const CPlayerOptions& options,
-                                         const std::string &playerName, IPlayerCallback& callback)
+                                  const CPlayerCoreFactory &factory,
+                                  const std::string &playerName, IPlayerCallback& callback)
 {
   // get player type
   std::string newPlayer;
   if (!playerName.empty())
     newPlayer = playerName;
   else
-    newPlayer = CPlayerCoreFactory::GetInstance().GetDefaultPlayer(item);
+    newPlayer = factory.GetDefaultPlayer(item);
 
   // check if we need to close current player
   // VideoPlayer can open a new file while playing
@@ -127,7 +130,7 @@ bool CApplicationPlayer::OpenFile(const CFileItem& item, const CPlayerOptions& o
 
   if (!player)
   {
-    CreatePlayer(newPlayer, callback);
+    CreatePlayer(factory, newPlayer, callback);
     player = GetInternal();
     if (!player)
       return false;
@@ -145,11 +148,12 @@ bool CApplicationPlayer::OpenFile(const CFileItem& item, const CPlayerOptions& o
   return ret;
 }
 
-void CApplicationPlayer::OpenNext()
+void CApplicationPlayer::OpenNext(const CPlayerCoreFactory &factory)
 {
   if (m_nextItem.pItem)
   {
     OpenFile(*m_nextItem.pItem, m_nextItem.options,
+             factory,
              m_nextItem.playerName, *m_nextItem.callback);
     m_nextItem.pItem.reset();
   }
@@ -955,66 +959,6 @@ void CApplicationPlayer::Unregister(IDSRendererPaintCallback* pPaintCallback)
     player->Unregister(pPaintCallback);
   }
 }
-
-int CApplicationPlayer::GetEditionsCount()
-{
-  std::shared_ptr<IPlayer> player = GetInternal();
-  if (player)
-  {
-    return player->GetEditionsCount();
-  }
-  else
-    return 0;
-}
-
-int CApplicationPlayer::GetEdition()
-{
-  std::shared_ptr<IPlayer> player = GetInternal();
-  if (player)
-  {
-    return player->GetEdition();
-  }
-  else
-    return -1;
-}
-
-void CApplicationPlayer::GetEditionInfo(int iEdition, std::string &strEditionName, REFERENCE_TIME *prt)
-{
-  std::shared_ptr<IPlayer> player = GetInternal();
-  if (player)
-  {
-    player->GetEditionInfo(iEdition, strEditionName, prt);
-  }
-}
-
-void CApplicationPlayer::SetEdition(int iEdition)
-{
-  std::shared_ptr<IPlayer> player = GetInternal();
-  if (player)
-  {
-    player->SetEdition(iEdition);
-  }
-}
-
-bool CApplicationPlayer::IsMatroskaEditions()
-{
-  std::shared_ptr<IPlayer> player = GetInternal();
-  if (player)
-  {
-    return player->IsMatroskaEditions();
-  }
-  else
-    return false;
-}
-
-void CApplicationPlayer::ShowEditionDlg(bool playStart)
-{
-  std::shared_ptr<IPlayer> player = GetInternal();
-  if (player)
-  {
-    return player->ShowEditionDlg(playStart);
-  }
-}
 #endif
 int  CApplicationPlayer::SeekChapter(int iChapter)
 {
@@ -1075,7 +1019,7 @@ void CApplicationPlayer::FrameMove()
   {
     if (CDataCacheCore::GetInstance().IsPlayerStateChanged())
       // CApplicationMessenger would be overhead because we are already in gui thread
-      g_windowManager.SendMessage(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_STATE_CHANGED);
+      CServiceBroker::GetGUI()->GetWindowManager().SendMessage(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_STATE_CHANGED);
   }
 }
 
@@ -1244,4 +1188,12 @@ void CApplicationPlayer::SetVideoSettings(CVideoSettings& settings)
 CSeekHandler& CApplicationPlayer::GetSeekHandler()
 {
   return m_seekHandler;
+}
+
+void CApplicationPlayer::SetUpdateStreamDetails()
+{
+  std::shared_ptr<IPlayer> player = GetInternal();
+  CVideoPlayer* vp = dynamic_cast<CVideoPlayer*>(player.get());
+  if (vp)
+    vp->SetUpdateStreamDetails();
 }

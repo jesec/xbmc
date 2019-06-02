@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -66,7 +66,7 @@ public:
    \param needsRecaching [out] whether the image needs recaching.
    \return cached url of this image
    \sa GetCachedImage
-   */ 
+   */
   std::string CheckCachedImage(const std::string &image, bool &needsRecaching);
 
   /*! \brief Cache image (if required) using a background job

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2009-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,13 +18,12 @@
  *
  */
 
-#include "system.h"
 #include "DPMSSupport.h"
 #include "utils/log.h"
 #include <assert.h>
 #include <string>
 #ifdef TARGET_WINDOWS
-#include "guilib/GraphicContext.h"
+#include "windowing/GraphicContext.h"
 #include "rendering/dx/RenderContext.h"
 #endif
 
@@ -108,22 +107,8 @@ bool DPMSSupport::DisablePowerSaving()
 #include "windowing/X11/WinSystemX11.h"
 //// X Windows
 
-// Here's a sad story: our Windows-inspired BOOL type from linux/PlatformDefs.h
-// is incompatible with the BOOL in X11's Xmd.h (int vs. unsigned char).
-// This is not a good idea for a X11 app and it should
-// probably be fixed. Meanwhile, we can work around it rather cleanly with
-// the preprocessor (which is partly to blame for this needless conflict
-// anyway). BOOL is not used in the DPMS APIs that we need. Try not to use
-// BOOL in the remaining X11-specific code in this file, since X might
-// someday use a #define instead of a typedef.
-// Addendum: INT64 apparently hhas the same problem on x86_64. Oh well.
-// Once again, INT64 is not used in the APIs we need, so we can #ifdef it away.
-#define BOOL __X11_SPECIFIC_BOOL
-#define INT64 __X11_SPECIFIC_INT64
 #include <X11/Xlib.h>
 #include <X11/extensions/dpms.h>
-#undef INT64
-#undef BOOL
 
 // Mapping of PowerSavingMode to X11's mode constants.
 static const CARD16 X_DPMS_MODES[] =
@@ -131,8 +116,8 @@ static const CARD16 X_DPMS_MODES[] =
 
 void DPMSSupport::PlatformSpecificInit()
 {
-  CWinSystemX11 &winSystem = dynamic_cast<CWinSystemX11&>(CServiceBroker::GetWinSystem());
-  Display* dpy = winSystem.GetDisplay();
+  CWinSystemX11 *winSystem = dynamic_cast<CWinSystemX11*>(CServiceBroker::GetWinSystem());
+  Display* dpy = winSystem->GetDisplay();
   if (dpy == NULL)
     return;
 
@@ -156,8 +141,8 @@ void DPMSSupport::PlatformSpecificInit()
 
 bool DPMSSupport::PlatformSpecificEnablePowerSaving(PowerSavingMode mode)
 {
-  CWinSystemX11 &winSystem = dynamic_cast<CWinSystemX11&>(CServiceBroker::GetWinSystem());
-  Display* dpy = winSystem.GetDisplay();
+  CWinSystemX11 *winSystem = dynamic_cast<CWinSystemX11*>(CServiceBroker::GetWinSystem());
+  Display* dpy = winSystem->GetDisplay();
   if (dpy == NULL)
     return false;
 
@@ -173,8 +158,8 @@ bool DPMSSupport::PlatformSpecificEnablePowerSaving(PowerSavingMode mode)
 
 bool DPMSSupport::PlatformSpecificDisablePowerSaving()
 {
-  CWinSystemX11 &winSystem = dynamic_cast<CWinSystemX11&>(CServiceBroker::GetWinSystem());
-  Display* dpy = winSystem.GetDisplay();
+  CWinSystemX11 *winSystem = dynamic_cast<CWinSystemX11*>(CServiceBroker::GetWinSystem());
+  Display* dpy = winSystem->GetDisplay();
   if (dpy == NULL)
     return false;
 
@@ -182,7 +167,7 @@ bool DPMSSupport::PlatformSpecificDisablePowerSaving()
   DPMSDisable(dpy);
   XFlush(dpy);
 
-  winSystem.RecreateWindow();
+  winSystem->RecreateWindow();
 
   return true;
 }
@@ -202,7 +187,7 @@ void DPMSSupport::PlatformSpecificInit()
 
 bool DPMSSupport::PlatformSpecificEnablePowerSaving(PowerSavingMode mode)
 {
-  if(!g_graphicsContext.IsFullScreenRoot())
+  if(!CServiceBroker::GetWinSystem()->GetGfxContext().IsFullScreenRoot())
   {
     CLog::Log(LOGDEBUG, "DPMS: not in fullscreen, power saving disabled");
     return false;
@@ -212,10 +197,10 @@ bool DPMSSupport::PlatformSpecificEnablePowerSaving(PowerSavingMode mode)
 #ifdef TARGET_WINDOWS_DESKTOP
   case OFF:
     // Turn off display
-    return SendMessage(DX::Windowing().GetHwnd(), WM_SYSCOMMAND, SC_MONITORPOWER, (LPARAM) 2) == 0;
+    return SendMessage(DX::Windowing()->GetHwnd(), WM_SYSCOMMAND, SC_MONITORPOWER, (LPARAM) 2) == 0;
   case STANDBY:
     // Set display to low power
-    return SendMessage(DX::Windowing().GetHwnd(), WM_SYSCOMMAND, SC_MONITORPOWER, (LPARAM) 1) == 0;
+    return SendMessage(DX::Windowing()->GetHwnd(), WM_SYSCOMMAND, SC_MONITORPOWER, (LPARAM) 1) == 0;
 #endif
   default:
     return true;
@@ -228,7 +213,7 @@ bool DPMSSupport::PlatformSpecificDisablePowerSaving()
   return false;
 #else
   // Turn display on
-  return SendMessage(DX::Windowing().GetHwnd(), WM_SYSCOMMAND, SC_MONITORPOWER, (LPARAM) -1) == 0;
+  return SendMessage(DX::Windowing()->GetHwnd(), WM_SYSCOMMAND, SC_MONITORPOWER, (LPARAM) -1) == 0;
 #endif
 }
 
@@ -280,6 +265,32 @@ bool DPMSSupport::PlatformSpecificDisablePowerSaving()
 
   // Turn display on
   return (IORegistryEntrySetCFProperty(r, CFSTR("IORequestIdle"), kCFBooleanFalse) == 0);
+}
+
+#elif defined(HAVE_GBM)
+#include "ServiceBroker.h"
+#include "windowing/gbm/WinSystemGbm.h"
+void DPMSSupport::PlatformSpecificInit()
+{
+  m_supportedModes.push_back(OFF);
+}
+bool DPMSSupport::PlatformSpecificEnablePowerSaving(PowerSavingMode mode)
+{
+  CWinSystemGbm *winSystem = dynamic_cast<CWinSystemGbm*>(CServiceBroker::GetWinSystem());
+  switch(mode)
+  {
+  case OFF:
+    return winSystem->Hide();
+  default:
+    return false;
+  }
+}
+
+bool DPMSSupport::PlatformSpecificDisablePowerSaving()
+{
+  CWinSystemGbm *winSystem = dynamic_cast<CWinSystemGbm*>(CServiceBroker::GetWinSystem());
+  winSystem->Show();
+  return true;
 }
 
 #else

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -171,9 +171,9 @@ LibraryLoader* DllLoaderContainer::FindModule(const char* sName, const char* sCu
   std::vector<std::string> vecEnv;
 
 #if defined(TARGET_ANDROID)
-  std::string systemLibs = getenv("XBMC_ANDROID_SYSTEM_LIBS");
+  std::string systemLibs = getenv("KODI_ANDROID_SYSTEM_LIBS");
   vecEnv = StringUtils::Split(systemLibs, ':');
-  std::string localLibs = getenv("XBMC_ANDROID_LIBS");
+  std::string localLibs = getenv("KODI_ANDROID_LIBS");
   vecEnv.insert(vecEnv.begin(),localLibs);
 #else
   vecEnv = StringUtils::Split(ENV_PATH, ';');

@@ -1,8 +1,6 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include <string>
 #include <utility>
 #include <vector>
@@ -34,7 +34,7 @@ public:
   ~CGUIDialogAddonInfo(void) override;
   bool OnMessage(CGUIMessage& message) override;
   bool OnAction(const CAction &action) override;
-  
+
   CFileItemPtr GetCurrentListItem(int offset = 0) override { return m_item; }
   bool HasListItems() const override { return true; }
 
@@ -82,7 +82,7 @@ private:
    *  \param reactivate If true, reactivate info dialog when done
    *  \return True if okay was selected, false otherwise
    */
-  bool ShowDependencyList(const ADDON::ADDONDEPS& deps, bool reactivate);
+  bool ShowDependencyList(const std::vector<ADDON::DependencyInfo>& deps, bool reactivate);
 
   CFileItemPtr m_item;
   ADDON::AddonPtr m_localAddon;

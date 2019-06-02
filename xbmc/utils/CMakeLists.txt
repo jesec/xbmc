@@ -13,9 +13,10 @@ set(SOURCES ActorProtocol.cpp
             CharsetDetection.cpp
             CPUInfo.cpp
             Crc32.cpp
+            CryptThreading.cpp
             DatabaseUtils.cpp
+            Digest.cpp
             EndianSwap.cpp
-            Environment.cpp
             EmbeddedArt.cpp
             FileExtensionProvider.cpp
             Fanart.cpp
@@ -37,7 +38,6 @@ set(SOURCES ActorProtocol.cpp
             LegacyPathTranslation.cpp
             Locale.cpp
             log.cpp
-            md5.cpp
             Mime.cpp
             Observer.cpp
             POUtils.cpp
@@ -87,10 +87,12 @@ set(HEADERS ActorProtocol.h
             CharsetConverter.h
             CharsetDetection.h
             CPUInfo.h
+            Color.h
             Crc32.h
+            CryptThreading.h
             DatabaseUtils.h
+            Digest.h
             EndianSwap.h
-            Environment.h
             EventStream.h
             EventStreamDetail.h
             FileExtensionProvider.h
@@ -107,6 +109,7 @@ set(HEADERS ActorProtocol.h
             HttpRangeUtils.h
             HttpResponse.h
             IArchivable.h
+            IBufferObject.h
             ILocalizer.h
             InfoLoader.h
             IRssObserver.h
@@ -123,7 +126,6 @@ set(HEADERS ActorProtocol.h
             Locale.h
             log.h
             MathUtils.h
-            md5.h
             Mime.h
             Observer.h
             params_check_macros.h
@@ -152,6 +154,7 @@ set(HEADERS ActorProtocol.h
             Temperature.h
             TextSearch.h
             TimeUtils.h
+            TransformMatrix.h
             URIUtils.h
             UrlOptions.h
             Utf8Utils.h
@@ -176,10 +179,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL Clang)
 endif()
 
 if(NOT CORE_SYSTEM_NAME STREQUAL windows AND NOT CORE_SYSTEM_NAME STREQUAL windowsstore)
-  list(APPEND SOURCES CryptThreading.cpp
-                      GLUtils.cpp)
-  list(APPEND HEADERS CryptThreading.h
-                      GLUtils.h)
+  list(APPEND SOURCES GLUtils.cpp)
+  list(APPEND HEADERS GLUtils.h)
 endif()
 
 if(CORE_SYSTEM_NAME STREQUAL android OR AML_FOUND)
@@ -190,6 +191,16 @@ endif()
 if(AML_FOUND)
   list(APPEND HEADERS ScreenshotAML.cpp)
   list(APPEND HEADERS ScreenshotAML.h)
+endif()
+
+if(CORE_PLATFORM_NAME_LC STREQUAL gbm)
+  list(APPEND SOURCES EGLImage.cpp)
+  list(APPEND HEADERS EGLImage.h)
+
+  if(GBM_HAS_BO_MAP)
+    list(APPEND SOURCES GBMBufferObject.cpp)
+    list(APPEND HEADERS GBMBufferObject.h)
+  endif()
 endif()
 
 core_add_library(utils)

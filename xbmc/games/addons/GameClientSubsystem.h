@@ -17,7 +17,10 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
+
+#include <memory>
 
 struct AddonInstance_Game;
 class CCriticalSection;
@@ -28,6 +31,15 @@ namespace GAME
 {
   class CGameClient;
   class CGameClientInput;
+  class CGameClientProperties;
+  class CGameClientStreams;
+
+  struct GameClientSubsystems
+  {
+    std::unique_ptr<CGameClientInput> Input;
+    std::unique_ptr<CGameClientProperties> AddonProperties;
+    std::unique_ptr<CGameClientStreams> Streams;
+  };
 
   /*!
    * \brief Base class for game client subsystems
@@ -39,11 +51,34 @@ namespace GAME
                          AddonInstance_Game &addonStruct,
                          CCriticalSection &clientAccess);
 
-    virtual ~CGameClientSubsystem() = default;
+    virtual ~CGameClientSubsystem();
 
-    CGameClientInput &Input() const;
-    
+  public:
+    /*!
+     * \brief Create a struct with the allocated subsystems
+     *
+     * \param gameClient The owner of the subsystems
+     * \param gameStruct The game client's add-on function table
+     * \param clientAccess Mutex guarding client function access
+     *
+     * \return A fully-allocated GameClientSubsystems struct
+     */
+    static GameClientSubsystems CreateSubsystems(CGameClient &gameClient, AddonInstance_Game &gameStruct, CCriticalSection &clientAccess);
+
+    /*!
+     * \brief Deallocate subsystems
+     *
+     * \param subsystems The subsystems created by CreateSubsystems()
+     */
+    static void DestroySubsystems(GameClientSubsystems &subsystems);
+
   protected:
+    // Subsystems
+    CGameClientInput &Input() const;
+    CGameClientProperties &AddonProperties() const;
+    CGameClientStreams &Streams() const;
+
+    // Construction parameters
     CGameClient &m_gameClient;
     AddonInstance_Game &m_struct;
     CCriticalSection &m_clientAccess;

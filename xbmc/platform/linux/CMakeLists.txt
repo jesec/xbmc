@@ -1,6 +1,7 @@
 set(SOURCES ConvUtils.cpp
             LinuxResourceCounter.cpp
             LinuxTimezone.cpp
+            OptionalsReg.cpp
             PosixMountProvider.cpp
             TimeUtils.cpp
             XFileUtils.cpp
@@ -11,9 +12,9 @@ set(SOURCES ConvUtils.cpp
 set(HEADERS ConvUtils.h
             LinuxResourceCounter.h
             LinuxTimezone.h
+            OptionalsReg.h
             PlatformConstants.h
             PlatformDefs.h
-            PlatformInclude.h
             PosixMountProvider.h
             stat_utf8.h
             stdio_utf8.h

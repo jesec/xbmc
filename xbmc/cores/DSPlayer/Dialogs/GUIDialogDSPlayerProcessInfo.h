@@ -21,6 +21,7 @@
  */
 
 #include "guilib/GUIDialog.h"
+#include "guilib/GUIMessage.h"
 
 class CGUIDialogDSPlayerProcessInfo : public CGUIDialog
 {

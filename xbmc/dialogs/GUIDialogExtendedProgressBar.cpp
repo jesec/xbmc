@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 
 #include <cmath>
 #include "GUIDialogExtendedProgressBar.h"
+#include "guilib/GUIMessage.h"
 #include "guilib/GUIProgressControl.h"
 #include "threads/SingleLock.h"
 #include "threads/SystemClock.h"

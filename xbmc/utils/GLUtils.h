@@ -1,8 +1,6 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,6 +18,8 @@
  *
  */
 
+#pragma once
+
 // GL Error checking macro
 // this function is useful for tracking down GL errors, which otherwise
 // just result in undefined behavior and can be difficult to track down.
@@ -31,7 +31,6 @@
 // if not it's just an empty inline stub, and thus won't affect performance
 // and will be optimized out.
 
-#include "system.h"
 #include "system_gl.h"
 
 void _VerifyGLState(const char* szfile, const char* szfunction, int lineno);

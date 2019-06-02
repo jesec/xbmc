@@ -1,4 +1,4 @@
-﻿/*
+/*
  *      Copyright (C) 2005-2017 Team Kodi
  *      http://kodi.tv
  *
@@ -17,6 +17,7 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
 #include <ppltasks.h>	// For create_task
@@ -24,6 +25,8 @@
 #include "dxerr.h"
 #include "platform/win32/CharsetConverter.h"
 #include "ServiceBroker.h"
+
+#include <d3d11_1.h>
 
 namespace DX
 {
@@ -141,12 +144,15 @@ namespace DX
 }
 
 #ifdef TARGET_WINDOWS_DESKTOP
-namespace Windows
+namespace winrt
 {
-  namespace Foundation
+  namespace Windows
   {
-    typedef DX::SizeGen<float>  Size;
-    typedef DX::SizeGen<int>    SizeInt;
+    namespace Foundation
+    {
+      typedef DX::SizeGen<float>  Size;
+      typedef DX::SizeGen<int>    SizeInt;
+    }
   }
 }
 #endif

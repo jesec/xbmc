@@ -27,6 +27,7 @@
 #error DSPlayer's header file included without HAS_DS_PLAYER defined
 #endif
 
+#include <d3d9.h>
 #include "DSUtil/DSUtil.h"
 #include "DSUtil/SmartPtr.h"
 #include "streams.h"

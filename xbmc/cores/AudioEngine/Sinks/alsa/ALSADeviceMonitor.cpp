@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2014 Team Kodi
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -132,6 +132,6 @@ void CALSADeviceMonitor::FDEventCallback(int id, int fd, short revents, void *da
 
   if (audioDevicesChanged)
   {
-    CServiceBroker::GetActiveAE().DeviceChange();
+    CServiceBroker::GetActiveAE()->DeviceChange();
   }
 }

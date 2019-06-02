@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,10 +18,12 @@
  *
  */
 
+#pragma once
+
 #include "platform/linux/RBP.h"
 #include "EGL/egl.h"
 #include <bcm_host.h>
-#include "guilib/Resolution.h"
+#include "windowing/Resolution.h"
 
 class DllBcmHost;
 class CRPIUtils

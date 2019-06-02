@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
  */
 
 #include "GUIWindowPointer.h"
-#include "input/MouseStat.h"
+#include "input/mouse/MouseStat.h"
 #include "input/InputManager.h"
 #include "ServiceBroker.h"
 #include "windowing/WinSystem.h"
@@ -56,7 +56,7 @@ void CGUIWindowPointer::SetPointer(int pointer)
 
 void CGUIWindowPointer::UpdateVisibility()
 {
-  if(CServiceBroker::GetWinSystem().HasCursor())
+  if(CServiceBroker::GetWinSystem()->HasCursor())
   {
     if (CServiceBroker::GetInputManager().IsMouseActive())
       Open();

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2016 Christian Browet
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -57,7 +57,7 @@ void CJNIXBMCNsdManagerDiscoveryListener::RegisterNatives(JNIEnv* env)
   jclass cClass = env->FindClass(s_className.c_str());
   if(cClass)
   {
-    JNINativeMethod methods[] = 
+    JNINativeMethod methods[] =
     {
       {"_onDiscoveryStarted", "(Ljava/lang/String;)V", (void*)&CJNIXBMCNsdManagerDiscoveryListener::_onDiscoveryStarted},
       {"_onDiscoveryStopped", "(Ljava/lang/String;)V", (void*)&CJNIXBMCNsdManagerDiscoveryListener::_onDiscoveryStopped},

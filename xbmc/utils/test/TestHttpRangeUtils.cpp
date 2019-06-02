@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2015 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -189,7 +189,7 @@ TEST(TestHttpRanges, GetAll)
   ranges_raw.push_back(range_0);
   ranges_raw.push_back(range_1);
   ranges_raw.push_back(range_2);
-  
+
   CHttpRanges ranges(ranges_raw);
 
   const HttpRanges& ranges_raw_get = ranges.Get();

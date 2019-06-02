@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -30,6 +30,7 @@
 #include "cores/playercorefactory/PlayerCoreFactory.h"
 #include "utils/LabelFormatter.h"
 #include "music/tags/MusicInfoTag.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/GUIKeyboardFactory.h"
 #include "input/Key.h"
@@ -84,6 +85,14 @@ bool CGUIWindowMusicPlayList::OnMessage(CGUIMessage& message)
     {
       // global playlist changed outside playlist window
       UpdateButtons();
+
+      if (m_vecItemsUpdating)
+      {
+        CLog::Log(LOGWARNING, "CGUIWindowMusicPlayList::OnMessage - updating in progress");
+        return true;
+      }
+      CUpdateGuard ug(m_vecItemsUpdating);
+
       Refresh(true);
 
       if (m_viewControl.HasControl(m_iLastControl) && m_vecItems->Size() <= 0)
@@ -221,7 +230,7 @@ bool CGUIWindowMusicPlayList::OnAction(const CAction &action)
   }
   if (action.GetID() == ACTION_SHOW_PLAYLIST)
   {
-    g_windowManager.PreviousWindow();
+    CServiceBroker::GetGUI()->GetWindowManager().PreviousWindow();
     return true;
   }
   if ((action.GetID() == ACTION_MOVE_ITEM_UP) || (action.GetID() == ACTION_MOVE_ITEM_DOWN))
@@ -238,6 +247,8 @@ bool CGUIWindowMusicPlayList::OnAction(const CAction &action)
 
 bool CGUIWindowMusicPlayList::OnBack(int actionID)
 {
+  CancelUpdateItems();
+
   if (actionID == ACTION_NAV_BACK)
     return CGUIWindow::OnBack(actionID); // base class goes up a folder, but none to go up
   return CGUIWindowMusicBase::OnBack(actionID);
@@ -512,10 +523,13 @@ void CGUIWindowMusicPlayList::GetContextButtons(int itemNumber, CContextButtons 
       buttons.Add(CONTEXT_BUTTON_CANCEL_MOVE, 13253);
     }
     else
-    { // aren't in a move
+    {
+      const CPlayerCoreFactory &playerCoreFactory = CServiceBroker::GetPlayerCoreFactory();
+
+      // aren't in a move
       // check what players we have, if we have multiple display play with option
       std::vector<std::string> players;
-      CPlayerCoreFactory::GetInstance().GetPlayers(*item, players);
+      playerCoreFactory.GetPlayers(*item, players);
       if (players.size() > 1)
         buttons.Add(CONTEXT_BUTTON_PLAY_WITH, 15213); // Play With...
 
@@ -553,9 +567,11 @@ bool CGUIWindowMusicPlayList::OnContextButton(int itemNumber, CONTEXT_BUTTON but
       if (!item)
         break;
 
+      const CPlayerCoreFactory &playerCoreFactory = CServiceBroker::GetPlayerCoreFactory();
+
       std::vector<std::string> players;
-      CPlayerCoreFactory::GetInstance().GetPlayers(*item, players);
-      std::string player = CPlayerCoreFactory::GetInstance().SelectPlayerDialog(players);
+      playerCoreFactory.GetPlayers(*item, players);
+      std::string player = playerCoreFactory.SelectPlayerDialog(players);
       if (!player.empty())
         OnClick(itemNumber, player);
       return true;
@@ -598,7 +614,9 @@ bool CGUIWindowMusicPlayList::OnContextButton(int itemNumber, CONTEXT_BUTTON but
 
   case CONTEXT_BUTTON_EDIT_PARTYMODE:
   {
-    std::string playlist = CProfilesManager::GetInstance().GetUserDataItem("PartyMode.xsp");
+    const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+
+    std::string playlist = profileManager.GetUserDataItem("PartyMode.xsp");
     if (CGUIDialogSmartPlaylistEditor::EditPlaylist(playlist))
     {
       // apply new rules

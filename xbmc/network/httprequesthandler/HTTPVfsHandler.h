@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2011-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include <string>
 
 #include "network/httprequesthandler/HTTPFileHandler.h"
@@ -28,7 +29,7 @@ class CHTTPVfsHandler : public CHTTPFileHandler
 public:
   CHTTPVfsHandler() = default;
   ~CHTTPVfsHandler() override = default;
-  
+
   IHTTPRequestHandler* Create(const HTTPRequest &request) const override { return new CHTTPVfsHandler(request); }
   bool CanHandleRequest(const HTTPRequest &request) const override;
 

@@ -22,6 +22,7 @@
 #ifdef HAS_DS_PLAYER
 
 #include "PixelShaderList.h"
+#include "ServiceBroker.h"
 #include "profiles/ProfilesManager.h"
 #include "FileSystem\File.h"
 #include "FileSystem\Directory.h"
@@ -47,7 +48,7 @@ CPixelShaderList::~CPixelShaderList()
 
 void CPixelShaderList::SaveXML()
 {
-  std::string userDataDSPlayer = URIUtils::AddFileToFolder(CProfilesManager::GetInstance().GetUserDataFolder(), "dsplayer");
+  std::string userDataDSPlayer = URIUtils::AddFileToFolder(CServiceBroker::GetProfileManager().GetUserDataFolder(), "dsplayer");
   if (!XFILE::CDirectory::Exists(userDataDSPlayer))
   {
     if (!XFILE::CDirectory::Create(userDataDSPlayer))
@@ -77,7 +78,7 @@ void CPixelShaderList::SaveXML()
 
 void CPixelShaderList::Load()
 {
-  LoadXMLFile(CProfilesManager::GetInstance().GetUserDataItem("dsplayer/shaders.xml"));
+  LoadXMLFile(CServiceBroker::GetProfileManager().GetUserDataItem("dsplayer/shaders.xml"));
   LoadXMLFile("special://xbmc/system/players/dsplayer/shaders/shaders.xml");
 }
 

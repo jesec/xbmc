@@ -23,8 +23,10 @@
 
 #include "addons/binary-addons/AddonDll.h"
 #include "dialogs/GUIDialogTextViewer.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "utils/log.h"
+#include "ServiceBroker.h"
 
 extern "C"
 {
@@ -52,11 +54,13 @@ void Interface_GUIDialogTextViewer::open(void* kodiBase, const char *heading, co
     return;
   }
 
-  CGUIDialogTextViewer* dialog = g_windowManager.GetWindow<CGUIDialogTextViewer>(WINDOW_DIALOG_TEXT_VIEWER);
+  CGUIDialogTextViewer* dialog = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogTextViewer>(WINDOW_DIALOG_TEXT_VIEWER);
   if (!heading || !text || !dialog)
   {
-    CLog::Log(LOGERROR, "Interface_GUIDialogTextViewer::%s - invalid handler data (heading='%p', text='%p', dialog='%p') on addon '%s'", __FUNCTION__,
-                            heading, text, dialog, addon->ID().c_str());
+    CLog::Log(LOGERROR,
+              "Interface_GUIDialogTextViewer::%s - invalid handler data (heading='%p', text='%p', "
+              "dialog='%p') on addon '%s'",
+              __FUNCTION__, heading, text, static_cast<void*>(dialog), addon->ID().c_str());
     return;
   }
 

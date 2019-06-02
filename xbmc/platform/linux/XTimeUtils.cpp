@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,6 @@
  *
  */
 
-#include "system.h"
 #include "XTimeUtils.h"
 #include "LinuxTimezone.h"
 
@@ -88,7 +87,7 @@ int FileTimeToLocalFileTime(const FILETIME* lpFileTime, LPFILETIME lpLocalFileTi
   FileTimeToTimeT(lpFileTime, &ft);
   localtime_r(&ft, &tm_ft);
 
-  l.QuadPart += (ULONGLONG)tm_ft.tm_gmtoff * 10000000;
+  l.QuadPart += static_cast<unsigned long long>(tm_ft.tm_gmtoff) * 10000000;
 
   lpLocalFileTime->dwLowDateTime = l.u.LowPart;
   lpLocalFileTime->dwHighDateTime = l.u.HighPart;
@@ -231,11 +230,6 @@ int TimeTToFileTime(time_t timeT, FILETIME* lpLocalFileTime) {
   lpLocalFileTime->dwHighDateTime = result.u.HighPart;
 
   return 1;
-}
-
-void GetSystemTimeAsFileTime(LPFILETIME lpSystemTimeAsFileTime)
-{
-  TimeTToFileTime(time(NULL), lpSystemTimeAsFileTime);
 }
 
 #endif

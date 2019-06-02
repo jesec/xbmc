@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -17,7 +17,6 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
-#include "system.h"
 #include "DBusReserve.h"
 
 #include <dbus/dbus.h>
@@ -34,7 +33,7 @@
 CDBusReserve::CDBusReserve()
 {
   CDBusError error;
-  
+
   m_conn.Connect(DBUS_BUS_SESSION);
 }
 
@@ -54,7 +53,7 @@ bool CDBusReserve::AcquireDevice(const std::string& device)
   CDBusError error;
   int res;
 
-  // currently only max prio is supported since 
+  // currently only max prio is supported since
   // we don't implement the RequestRelease interface
   int prio = INT_MAX;
 
@@ -126,7 +125,7 @@ bool CDBusReserve::AcquireDevice(const std::string& device)
   }
 
   res = dbus_bus_request_name(m_conn, service.c_str()
-                                  , DBUS_NAME_FLAG_DO_NOT_QUEUE 
+                                  , DBUS_NAME_FLAG_DO_NOT_QUEUE
                                   | (prio == INT_MAX ? 0 : DBUS_NAME_FLAG_ALLOW_REPLACEMENT)
                                   | DBUS_NAME_FLAG_REPLACE_EXISTING
                                   , error);

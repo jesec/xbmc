@@ -1,9 +1,6 @@
-#ifndef CPUINFO_H
-#define CPUINFO_H
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <stdio.h>
 #include <time.h>
@@ -130,7 +129,7 @@ private:
   unsigned long long m_ioTicks;
 
   int          m_lastUsedPercentage;
-  XbmcThreads::EndTime m_nextUsedReadTime; 
+  XbmcThreads::EndTime m_nextUsedReadTime;
   std::string  m_cpuModel;
   std::string  m_cpuBogoMips;
   std::string  m_cpuHardware;
@@ -145,4 +144,3 @@ private:
 
 extern CCPUInfo g_cpuInfo;
 
-#endif

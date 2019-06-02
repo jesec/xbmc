@@ -23,7 +23,8 @@
 
 #include <string.h>
 
-#include "guilib/GraphicContext.h"
+#include "windowing/GraphicContext.h"
+#include "platform/linux/powermanagement/LinuxPowerSyscall.h"
 #include "settings/DisplaySettings.h"
 #include "utils/log.h"
 #include "WinEventsMir.h"
@@ -35,6 +36,7 @@ CWinSystemMir::CWinSystemMir() :
 {
   m_eWindowSystem = WINDOW_SYSTEM_MIR;
   m_winEvents.reset(new CWinEventsMir());
+  CLinuxPowerSyscall::Register();
 }
 
 bool CWinSystemMir::InitWindowSystem()
@@ -179,4 +181,9 @@ void CWinSystemMir::Register(IDispResource * /*resource*/)
 
 void CWinSystemMir::Unregister(IDispResource * /*resource*/)
 {
+}
+
+bool CWinSystemMir::MessagePump()
+{
+  return m_winEvents->MessagePump();
 }

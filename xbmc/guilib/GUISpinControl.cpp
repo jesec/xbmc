@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@
  */
 
 #include "GUISpinControl.h"
+#include "GUIMessage.h"
 #include "input/Key.h"
 #include "utils/StringUtils.h"
 #include <stdio.h>
@@ -542,6 +543,9 @@ void CGUISpinControl::SetValueFromLabel(const std::string &label)
   }
   else
     m_iValue = atoi(label.c_str());
+
+  MarkDirtyRegion();
+  SetInvalid();
 }
 
 void CGUISpinControl::SetValue(int iValue)
@@ -556,6 +560,7 @@ void CGUISpinControl::SetValue(int iValue)
   else
     m_iValue = iValue;
 
+  MarkDirtyRegion();
   SetInvalid();
 }
 

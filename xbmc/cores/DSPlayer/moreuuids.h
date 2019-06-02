@@ -24,6 +24,7 @@
 #pragma once
 
 #include <dvdmedia.h>
+#include <mmreg.h>
 
 // 30323449-0000-0010-8000-00AA00389B71  'I420' == MEDIASUBTYPE_I420
 DEFINE_GUID(MEDIASUBTYPE_I420,

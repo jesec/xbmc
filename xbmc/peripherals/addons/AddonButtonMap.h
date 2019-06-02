@@ -17,6 +17,7 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
 #include "PeripheralAddon.h" // for FeatureMap
@@ -82,13 +83,13 @@ namespace PERIPHERALS
 
     bool GetRelativePointer(
       const KODI::JOYSTICK::FeatureName& feature,
-      KODI::JOYSTICK::ANALOG_STICK_DIRECTION direction,
+      KODI::JOYSTICK::RELATIVE_POINTER_DIRECTION direction,
       KODI::JOYSTICK::CDriverPrimitive& primitive
     ) override;
 
     void AddRelativePointer(
       const KODI::JOYSTICK::FeatureName& feature,
-      KODI::JOYSTICK::ANALOG_STICK_DIRECTION direction,
+      KODI::JOYSTICK::RELATIVE_POINTER_DIRECTION direction,
       const KODI::JOYSTICK::CDriverPrimitive& primitive
     ) override;
 
@@ -130,6 +131,16 @@ namespace PERIPHERALS
       const KODI::JOYSTICK::CDriverPrimitive& primitive
     ) override;
 
+    bool GetKey(
+      const KODI::JOYSTICK::FeatureName& feature,
+      KODI::JOYSTICK::CDriverPrimitive& primitive
+    ) override;
+
+    void AddKey(
+      const KODI::JOYSTICK::FeatureName& feature,
+      const KODI::JOYSTICK::CDriverPrimitive& primitive
+    ) override;
+
     void SetIgnoredPrimitives(const std::vector<KODI::JOYSTICK::CDriverPrimitive>& primitives) override;
 
     bool IsIgnored(const KODI::JOYSTICK::CDriverPrimitive& primitive) override;
@@ -147,7 +158,8 @@ namespace PERIPHERALS
     // Utility functions
     static DriverMap CreateLookupTable(const FeatureMap& features);
 
-    static JOYSTICK_FEATURE_PRIMITIVE GetPrimitiveIndex(KODI::JOYSTICK::ANALOG_STICK_DIRECTION dir);
+    static JOYSTICK_FEATURE_PRIMITIVE GetAnalogStickIndex(KODI::JOYSTICK::ANALOG_STICK_DIRECTION dir);
+    static JOYSTICK_FEATURE_PRIMITIVE GetRelativePointerIndex(KODI::JOYSTICK::RELATIVE_POINTER_DIRECTION dir);
     static JOYSTICK_FEATURE_PRIMITIVE GetPrimitiveIndex(KODI::JOYSTICK::WHEEL_DIRECTION dir);
     static JOYSTICK_FEATURE_PRIMITIVE GetPrimitiveIndex(KODI::JOYSTICK::THROTTLE_DIRECTION dir);
 

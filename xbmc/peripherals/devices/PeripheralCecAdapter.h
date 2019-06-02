@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,7 +18,7 @@
  *
  */
 
-#include "system.h"
+#pragma once
 
 #if !defined(HAVE_LIBCEC)
 #include "Peripheral.h"
@@ -58,7 +57,6 @@ namespace PERIPHERALS
 #endif
 #include <libcec/cectypes.h>
 
-class DllLibCEC;
 class CVariant;
 
 namespace CEC
@@ -154,7 +152,6 @@ namespace PERIPHERALS
     static void CecSourceActivated(void *param, const CEC::cec_logical_address address, const uint8_t activated);
     static void CecKeyPress(void *cbParam, const CEC::cec_keypress* key);
 
-    DllLibCEC* m_dll;
     CEC::ICECAdapter* m_cecAdapter;
     bool m_bStarted;
     bool m_bHasButton;

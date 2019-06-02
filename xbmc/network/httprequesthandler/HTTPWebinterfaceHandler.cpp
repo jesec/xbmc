@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2011-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -57,7 +57,7 @@ int CHTTPWebinterfaceHandler::ResolveUrl(const std::string &url, std::string &pa
   // determine the addon and addon's path
   if (!ResolveAddon(url, addon, path))
     return MHD_HTTP_NOT_FOUND;
-  
+
   if (XFILE::CDirectory::Exists(path))
   {
     if (URIUtils::GetFileName(path).empty())

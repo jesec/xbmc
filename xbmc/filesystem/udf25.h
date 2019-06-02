@@ -1,11 +1,9 @@
-#ifndef UDF25_H
-#define UDF25_H
 /*
  *      Copyright (C) 2010 Team Boxee
  *      http://www.boxee.tv
  *
  *      Copyright (C) 2010-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -25,6 +23,9 @@
  *  Jorgen Lundman and team boxee did the necessary modifications to support udf 2.5
  *
  */
+
+#pragma once
+
 #include "File.h"
 
 /**
@@ -188,7 +189,7 @@ public:
   udf25( );
   virtual ~udf25( );
 
-  DWORD SetFilePointer(HANDLE hFile, LONG lDistanceToMove, PLONG lpDistanceToMoveHigh, DWORD dwMoveMethod );
+  DWORD SetFilePointer(HANDLE hFile, long lDistanceToMove, long* lpDistanceToMoveHigh, DWORD dwMoveMethod );
   int64_t GetFileSize(HANDLE hFile);
   int64_t GetFilePosition(HANDLE hFile);
   int64_t Seek(HANDLE hFile, int64_t lOffset, int whence);
@@ -226,4 +227,3 @@ protected:
   XFILE::CFile* m_fp;
 };
 
-#endif

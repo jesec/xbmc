@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -23,12 +23,9 @@
 
 #include <cstring>
 
-// For HAS_SDL
-#include "system.h"
-
 #if defined(TARGET_DARWIN_OSX) || defined(TARGET_FREEBSD)
   #include "Util.h"
-  // SDL redefines main as SDL_main 
+  // SDL redefines main as SDL_main
   #ifdef HAS_SDL
     #include <SDL/SDL.h>
   #endif
@@ -40,7 +37,6 @@
 #include "PlayListPlayer.h"
 #include "platform/MessagePrinter.h"
 #include "platform/xbmc.h"
-#include "platform/XbmcContext.h"
 #include "settings/AdvancedSettings.h"
 #include "utils/log.h"
 
@@ -87,16 +83,13 @@ void XBMC_POSIX_HandleSignal(int sig)
 
 int main(int argc, char* argv[])
 {
-  // set up some xbmc specific relationships
-  XBMC::Context context;
-
 #if defined(_DEBUG)
   struct rlimit rlim;
   rlim.rlim_cur = rlim.rlim_max = RLIM_INFINITY;
   if (setrlimit(RLIMIT_CORE, &rlim) == -1)
     CLog::Log(LOGDEBUG, "Failed to set core size limit (%s)", strerror(errno));
 #endif
-  
+
   // Set up global SIGINT/SIGTERM handler
   struct sigaction signalHandler;
   std::memset(&signalHandler, 0, sizeof(signalHandler));
@@ -106,11 +99,11 @@ int main(int argc, char* argv[])
   sigaction(SIGTERM, &signalHandler, nullptr);
 
   setlocale(LC_NUMERIC, "C");
- 
+
   // Initialize before CAppParamParser so it can set the log level
   g_advancedSettings.Initialize();
   CAppParamParser appParamParser;
   appParamParser.Parse(argv, argc);
-  
+
   return XBMC_Run(true, appParamParser);
 }

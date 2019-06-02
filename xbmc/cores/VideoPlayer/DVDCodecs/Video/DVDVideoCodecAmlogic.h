@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include "DVDVideoCodec.h"
 #include "DVDStreamInfo.h"
 #include "threads/CriticalSection.h"
@@ -28,7 +29,6 @@
 #include <atomic>
 
 class CAMLCodec;
-struct frame_queue;
 struct mpeg2_sequence;
 class CBitstreamParser;
 class CBitstreamConverter;
@@ -88,8 +88,6 @@ public:
 
 protected:
   void            Dispose(void);
-  void            FrameQueuePop(void);
-  void            FrameQueuePush(double dts, double pts);
   void            FrameRateTracking(uint8_t *pData, int iSize, double dts, double pts);
   //void            RemoveInfo(CDVDAmlogicInfo* info);
 
@@ -100,10 +98,6 @@ protected:
   bool            m_opened;
   int             m_codecControlFlags;
   CDVDStreamInfo  m_hints;
-  double          m_last_pts;
-  frame_queue    *m_frame_queue;
-  int32_t         m_queue_depth;
-  pthread_mutex_t m_queue_mutex;
   double          m_framerate;
   int             m_video_rate;
   float           m_aspect_ratio;

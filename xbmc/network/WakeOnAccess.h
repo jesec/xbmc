@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,11 +18,15 @@
  *
  */
 
+#pragma once
+
 #include "URL.h"
 #include "XBDateTime.h"
-#include "utils/Job.h"
 #include "settings/lib/ISettingCallback.h"
 #include "settings/lib/ISettingsHandler.h"
+#include "threads/CriticalSection.h"
+#include "utils/Job.h"
+
 #include <string>
 #include <vector>
 

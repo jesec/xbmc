@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,14 +18,11 @@
  *
  */
 
-#ifndef STDIO_UTF8_H__
-#define STDIO_UTF8_H__
+#pragma once
 
 #include <cstdio>
 
 #define remove_utf8     remove
 #define rename_utf8     rename
 #define fopen64_utf8    fopen
-
-#endif // STDIO_UTF8_H__
 

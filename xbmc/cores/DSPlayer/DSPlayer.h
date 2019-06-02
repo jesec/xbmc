@@ -181,13 +181,6 @@ public:
   void Unregister(IDSRendererAllocatorCallback* pAllocatorCallback) override { m_pAllocatorCallback = nullptr; }
   void Unregister(IDSRendererPaintCallback* pPaintCallback) override { m_pPaintCallback = nullptr; }
 
-  int  GetEditionsCount() override { return (CStreamsManager::Get()) ? CStreamsManager::Get()->GetEditionsCount() : 0; }
-  int  GetEdition() override { return (CStreamsManager::Get()) ? CStreamsManager::Get()->GetEdition() : 0; }
-  void GetEditionInfo(int iEdition, std::string &strEditionName, REFERENCE_TIME *prt) override { if (CStreamsManager::Get()) CStreamsManager::Get()->GetEditionInfo(iEdition, strEditionName, prt); };
-  void SetEdition(int iEdition) override { if (CStreamsManager::Get()) CStreamsManager::Get()->SetEdition(iEdition); };
-  bool IsMatroskaEditions() override { return (CStreamsManager::Get()) ? CStreamsManager::Get()->IsMatroskaEditions() : false; }
-  void ShowEditionDlg(bool playStart) override;
-
   // IDispResource interface
   virtual void OnLostDisplay();
   virtual void OnResetDisplay();
@@ -302,7 +295,6 @@ protected:
   CRect m_videoRect;
   CRect m_viewRect;
 
-  void SetVisibleScreenArea(CRect activeVideoRect);
   CRect m_lastActiveVideoRect;
 
   IDSRendererAllocatorCallback* m_pAllocatorCallback;

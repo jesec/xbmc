@@ -17,6 +17,7 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
 #include "input/hardware/IHardwareInput.h"
@@ -41,10 +42,10 @@ namespace GAME
      */
     explicit CGameClientHardware(CGameClient &gameClient);
 
-    virtual ~CGameClientHardware() = default;
+    ~CGameClientHardware() override = default;
 
     // Implementation of IHardwareInput
-    virtual void OnResetButton(unsigned int port) override;
+    void OnResetButton() override;
 
   private:
     // Construction parameter

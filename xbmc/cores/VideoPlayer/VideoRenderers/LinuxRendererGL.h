@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2007-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,8 +20,6 @@
 
 #pragma once
 
-#include "system.h"
-
 #include <vector>
 
 #include "system_gl.h"
@@ -31,11 +29,15 @@
 #include "cores/VideoSettings.h"
 #include "RenderFlags.h"
 #include "RenderInfo.h"
-#include "guilib/GraphicContext.h"
+#include "windowing/GraphicContext.h"
 #include "BaseRenderer.h"
 #include "ColorManager.h"
 #include "threads/Event.h"
 #include "VideoShaders/ShaderFormats.h"
+
+extern "C" {
+#include "libavutil/mastering_display_metadata.h"
+}
 
 class CRenderCapture;
 class CRenderSystemGL;
@@ -50,20 +52,6 @@ struct DRAWRECT
   float top;
   float right;
   float bottom;
-};
-
-struct YUVRANGE
-{
-  int y_min, y_max;
-  int u_min, u_max;
-  int v_min, v_max;
-};
-
-struct YUVCOEF
-{
-  float r_up, r_vp;
-  float g_up, g_vp;
-  float b_up, b_vp;
 };
 
 enum RenderMethod
@@ -87,13 +75,6 @@ enum RenderQuality
 #define FIELD_TOP 1
 #define FIELD_BOT 2
 
-extern YUVRANGE yuv_range_lim;
-extern YUVRANGE yuv_range_full;
-extern YUVCOEF yuv_coef_bt601;
-extern YUVCOEF yuv_coef_bt709;
-extern YUVCOEF yuv_coef_ebu;
-extern YUVCOEF yuv_coef_smtp240m;
-
 class CLinuxRendererGL : public CBaseRenderer
 {
 public:
@@ -104,7 +85,7 @@ public:
   static bool Register();
 
   // Player functions
-  bool Configure(const VideoPicture &picture, float fps, unsigned flags, unsigned int orientation) override;
+  bool Configure(const VideoPicture &picture, float fps, unsigned int orientation) override;
   bool IsConfigured() override { return m_bConfigured; }
   void AddVideoPicture(const VideoPicture &picture, int index, double currentClock) override;
   void UnInit() override;
@@ -123,7 +104,7 @@ public:
   bool Supports(ESCALINGMETHOD method) override;
 
 protected:
-  bool Render(DWORD flags, int renderBuffer);
+  bool Render(unsigned int flags, int renderBuffer);
   void ClearBackBuffer();
   void DrawBlackBars();
 
@@ -132,6 +113,7 @@ protected:
   virtual void LoadShaders(int field=FIELD_FULL);
   void SetTextureFilter(GLenum method);
   void UpdateVideoFilter();
+  AVColorPrimaries GetSrcPrimaries(AVColorPrimaries srcPrimaries, unsigned int width, unsigned int height);
 
   // textures
   virtual bool UploadTexture(int index);
@@ -179,7 +161,7 @@ protected:
   int m_renderMethod;
   RenderQuality m_renderQuality;
   CRenderSystemGL *m_renderSystem;
-  
+
   // Raw data used by renderer
   int m_currentField;
   int m_reloadShaders;
@@ -202,10 +184,10 @@ protected:
     unsigned pixpertex_y;
   };
 
-  struct YUVBUFFER
+  struct CPictureBuffer
   {
-    YUVBUFFER();
-   ~YUVBUFFER();
+    CPictureBuffer();
+   ~CPictureBuffer();
 
     YUVPLANE fields[MAX_FIELDS][YuvImage::MAX_PLANES];
     YuvImage image;
@@ -213,11 +195,22 @@ protected:
 
     CVideoBuffer *videoBuffer;
     bool loaded;
+
+    AVColorPrimaries m_srcPrimaries;
+    AVColorSpace m_srcColSpace;
+    int m_srcBits = 8;
+    int m_srcTextureBits = 8;
+    bool m_srcFullRange;
+
+    bool hasDisplayMetadata = false;
+    AVMasteringDisplayMetadata displayMetadata;
+    bool hasLightMetadata = false;
+    AVContentLightMetadata lightMetadata;
   };
 
   // YV12 decoder textures
   // field index 0 is full image, 1 is odd scanlines, 2 is even scanlines
-  YUVBUFFER m_buffers[NUM_BUFFERS];
+  CPictureBuffer m_buffers[NUM_BUFFERS];
 
   void LoadPlane(YUVPLANE& plane, int type,
                  unsigned width,  unsigned height,
@@ -232,12 +225,14 @@ protected:
   bool m_useDithering;
   unsigned int m_ditherDepth;
   bool m_fullRange;
+  AVColorPrimaries m_srcPrimaries;
+  bool m_toneMap = false;
 
   // clear colour for "black" bars
   float m_clearColour;
 
-  void BindPbo(YUVBUFFER& buff);
-  void UnBindPbo(YUVBUFFER& buff);
+  void BindPbo(CPictureBuffer& buff);
+  void UnBindPbo(CPictureBuffer& buff);
   bool m_pboSupported;
   bool m_pboUsed;
 

@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2016 Christian Browet
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include <androidjni/JNIBase.h>
 
 #include <androidjni/NsdManager.h>
@@ -30,12 +31,12 @@ class CJNIXBMCNsdManagerDiscoveryListener : public CJNINsdManagerDiscoveryListen
 {
 public:
   CJNIXBMCNsdManagerDiscoveryListener();
-  CJNIXBMCNsdManagerDiscoveryListener(const CJNIXBMCNsdManagerDiscoveryListener& other); 
+  CJNIXBMCNsdManagerDiscoveryListener(const CJNIXBMCNsdManagerDiscoveryListener& other);
   explicit CJNIXBMCNsdManagerDiscoveryListener(const jni::jhobject &object) : CJNIBase(object) {}
   virtual ~CJNIXBMCNsdManagerDiscoveryListener();
-  
+
   static void RegisterNatives(JNIEnv* env);
-   
+
   // CJNINsdManagerDiscoveryListener interface
 public:
   void onDiscoveryStarted(const std::string& serviceType) = 0;

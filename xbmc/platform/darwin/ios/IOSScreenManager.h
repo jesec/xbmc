@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -47,8 +47,6 @@
 - (void)    screenDisconnect;
 // wrapper for g_Windowing.UpdateResolutions();
 + (void)    updateResolutions;
-// returns the landscape resolution for the given screen
-+ (CGRect)  getLandscapeResolution:(UIScreen *)screen;
 // fades the screen from black back to full alpha after delaySecs seconds
 - (void)    fadeFromBlack:(CGFloat) delaySecs;
 // returns true if switching to screenIdx will change from internal to external screen

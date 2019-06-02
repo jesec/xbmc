@@ -22,6 +22,8 @@
  */
 #pragma once
 
+#include <d3d9.h>
+#include <d3d11.h>
 #include "threads/Event.h"
 #include "IDSPlayer.h"
 

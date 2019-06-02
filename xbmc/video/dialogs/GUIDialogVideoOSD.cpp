@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 #include "GUIDialogVideoOSD.h"
 #include "Application.h"
 #include "GUIUserMessages.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/WindowIDs.h"
 #include "input/ActionIDs.h"
@@ -43,20 +44,20 @@ void CGUIDialogVideoOSD::FrameMove()
   {
     // check for movement of mouse or a submenu open
     if (CServiceBroker::GetInputManager().IsMouseActive()
-                           || g_windowManager.IsWindowActive(WINDOW_DIALOG_AUDIO_OSD_SETTINGS)
-                           || g_windowManager.IsWindowActive(WINDOW_DIALOG_AUDIO_DSP_OSD_SETTINGS)
-                           || g_windowManager.IsWindowActive(WINDOW_DIALOG_VIDEO_OSD_SETTINGS)
-                           || g_windowManager.IsWindowActive(WINDOW_DIALOG_CMS_OSD_SETTINGS)
+                           || CServiceBroker::GetGUI()->GetWindowManager().IsWindowActive(WINDOW_DIALOG_AUDIO_OSD_SETTINGS)
+                           || CServiceBroker::GetGUI()->GetWindowManager().IsWindowActive(WINDOW_DIALOG_SUBTITLE_OSD_SETTINGS)
+                           || CServiceBroker::GetGUI()->GetWindowManager().IsWindowActive(WINDOW_DIALOG_VIDEO_OSD_SETTINGS)
+                           || CServiceBroker::GetGUI()->GetWindowManager().IsWindowActive(WINDOW_DIALOG_CMS_OSD_SETTINGS)
 #ifdef HAS_DS_PLAYER
-                           || g_windowManager.IsWindowActive(WINDOW_DIALOG_LAVVIDEO)
-                           || g_windowManager.IsWindowActive(WINDOW_DIALOG_LAVAUDIO)
-                           || g_windowManager.IsWindowActive(WINDOW_DIALOG_LAVSPLITTER)
-                           || g_windowManager.IsWindowActive(WINDOW_DIALOG_SANEAR)
+                           || CServiceBroker::GetGUI()->GetWindowManager().IsWindowActive(WINDOW_DIALOG_LAVVIDEO)
+                           || CServiceBroker::GetGUI()->GetWindowManager().IsWindowActive(WINDOW_DIALOG_LAVAUDIO)
+                           || CServiceBroker::GetGUI()->GetWindowManager().IsWindowActive(WINDOW_DIALOG_LAVSPLITTER)
+                           || CServiceBroker::GetGUI()->GetWindowManager().IsWindowActive(WINDOW_DIALOG_SANEAR)
 #endif
-                           || g_windowManager.IsWindowActive(WINDOW_DIALOG_VIDEO_BOOKMARKS)
-                           || g_windowManager.IsWindowActive(WINDOW_DIALOG_PVR_OSD_CHANNELS)
-                           || g_windowManager.IsWindowActive(WINDOW_DIALOG_PVR_CHANNEL_GUIDE)
-                           || g_windowManager.IsWindowActive(WINDOW_DIALOG_OSD_TELETEXT))
+                           || CServiceBroker::GetGUI()->GetWindowManager().IsWindowActive(WINDOW_DIALOG_VIDEO_BOOKMARKS)
+                           || CServiceBroker::GetGUI()->GetWindowManager().IsWindowActive(WINDOW_DIALOG_PVR_OSD_CHANNELS)
+                           || CServiceBroker::GetGUI()->GetWindowManager().IsWindowActive(WINDOW_DIALOG_PVR_CHANNEL_GUIDE)
+                           || CServiceBroker::GetGUI()->GetWindowManager().IsWindowActive(WINDOW_DIALOG_OSD_TELETEXT))
       // extend show time by original value
       SetAutoClose(m_showDuration);
   }
@@ -101,26 +102,26 @@ bool CGUIDialogVideoOSD::OnMessage(CGUIMessage& message)
   case GUI_MSG_WINDOW_DEINIT:  // fired when OSD is hidden
     {
       // Remove our subdialogs if visible
-      CGUIDialog *pDialog = g_windowManager.GetDialog(WINDOW_DIALOG_AUDIO_DSP_OSD_SETTINGS);
+      CGUIDialog *pDialog = CServiceBroker::GetGUI()->GetWindowManager().GetDialog(WINDOW_DIALOG_AUDIO_OSD_SETTINGS);
       if (pDialog && pDialog->IsDialogRunning())
         pDialog->Close(true);
-      pDialog = g_windowManager.GetDialog(WINDOW_DIALOG_AUDIO_OSD_SETTINGS);
+      pDialog = CServiceBroker::GetGUI()->GetWindowManager().GetDialog(WINDOW_DIALOG_SUBTITLE_OSD_SETTINGS);
       if (pDialog && pDialog->IsDialogRunning())
         pDialog->Close(true);
 #ifdef HAS_DS_PLAYER
-      pDialog = (CGUIDialog *)g_windowManager.GetWindow(WINDOW_DIALOG_VIDEO_OSD_SETTINGS);
+      pDialog = (CGUIDialog *)CServiceBroker::GetGUI()->GetWindowManager().GetWindow(WINDOW_DIALOG_VIDEO_OSD_SETTINGS);
       if (pDialog && pDialog->IsDialogRunning()) 
         pDialog->Close(true);
-      pDialog = (CGUIDialog *)g_windowManager.GetWindow(WINDOW_DIALOG_LAVVIDEO);
+      pDialog = (CGUIDialog *)CServiceBroker::GetGUI()->GetWindowManager().GetWindow(WINDOW_DIALOG_LAVVIDEO);
       if (pDialog && pDialog->IsDialogRunning()) 
         pDialog->Close(true);
-      pDialog = (CGUIDialog *)g_windowManager.GetWindow(WINDOW_DIALOG_LAVAUDIO);
+      pDialog = (CGUIDialog *)CServiceBroker::GetGUI()->GetWindowManager().GetWindow(WINDOW_DIALOG_LAVAUDIO);
       if (pDialog && pDialog->IsDialogRunning()) 
         pDialog->Close(true);
-      pDialog = (CGUIDialog *)g_windowManager.GetWindow(WINDOW_DIALOG_LAVSPLITTER);
+      pDialog = (CGUIDialog *)CServiceBroker::GetGUI()->GetWindowManager().GetWindow(WINDOW_DIALOG_LAVSPLITTER);
       if (pDialog && pDialog->IsDialogRunning()) 
         pDialog->Close(true);
-      pDialog = (CGUIDialog *)g_windowManager.GetWindow(WINDOW_DIALOG_SANEAR);
+      pDialog = (CGUIDialog *)CServiceBroker::GetGUI()->GetWindowManager().GetWindow(WINDOW_DIALOG_SANEAR);
       if (pDialog && pDialog->IsDialogRunning())
         pDialog->Close(true);
 #endif

@@ -47,6 +47,7 @@
 #include "qnetwork.h"
 #include "DSUtil/SmartPtr.h"
 #include "DVDSubtitles/DVDFactorySubtitle.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "GUIUserMessages.h"
 #include "DSUtil/MediaTypeEx.h"
@@ -256,7 +257,7 @@ void CDSGraph::UpdateTime()
     if (SUCCEEDED(m_pMediaSeeking->GetDuration(&Position)))
       m_State.time_total = Position;
 
-    if (CServiceBroker::GetPVRManager().IsPlayingTV() && g_windowManager.IsWindowActive(WINDOW_DIALOG_VIDEO_OSD))
+    if (CServiceBroker::GetPVRManager().IsPlayingTV() && CServiceBroker::GetGUI()->GetWindowManager().IsWindowActive(WINDOW_DIALOG_VIDEO_OSD))
     {
       // LiveTV EPG time
       m_State.time_live = MSEC_TO_DS_TIME(g_pPVRStream->GetTime());
@@ -337,7 +338,7 @@ void CDSGraph::UpdateWindowPosition()
     HRESULT hr;
     Com::SmartRect videoRect, windowRect;
     CRect vr;
-    vr = g_graphicsContext.GetViewWindow();
+    vr = CServiceBroker::GetWinSystem()->GetGfxContext().GetViewWindow();
 
     hr = m_pBasicVideo->SetDefaultSourcePosition();
     hr = m_pBasicVideo->SetDestinationPosition(videoRect.left, videoRect.top, videoRect.Width(), videoRect.Height());
@@ -710,7 +711,7 @@ void CDSGraph::Seek(uint64_t position, uint32_t flags /*= AM_SEEKING_AbsolutePos
   }
 
   if (showPopup)
-    g_infoManager.SetDisplayAfterSeek(100000);
+    CServiceBroker::GetGUI()->GetInfoManager().GetInfoProviders().GetPlayerInfoProvider().SetDisplayAfterSeek(100000);
 
   if (!m_pMediaSeeking)
     return;
@@ -731,7 +732,7 @@ void CDSGraph::Seek(uint64_t position, uint32_t flags /*= AM_SEEKING_AbsolutePos
   int seekOffset = (int)(iTime - DS_TIME_TO_MSEC(GetTime()));
   m_callback.OnPlayBackSeek(iTime, seekOffset);
   if (showPopup)
-    g_infoManager.SetDisplayAfterSeek();
+    CServiceBroker::GetGUI()->GetInfoManager().GetInfoProviders().GetPlayerInfoProvider().SetDisplayAfterSeek();
 }
 
 void CDSGraph::Seek(bool bPlus, bool bLargeStep)

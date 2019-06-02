@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,7 +18,10 @@
  *
  */
 
-#include "GUIPassword.h"
+#pragma once
+
+#include "SettingsLock.h"
+#include "LockType.h"
 
 #include <string>
 #include <vector>
@@ -51,7 +53,7 @@ public:
 
   CProfile(const std::string &directory = "", const std::string &name = "", const int id = -1);
   ~CProfile(void);
-  
+
   void Load(const TiXmlNode *node, int nextIdProfile);
   void Save(TiXmlNode *root) const;
 

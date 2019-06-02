@@ -36,7 +36,7 @@
 #include "StreamsManager.h"
 #include "settings/DisplaySettings.h"
 #include "settings/MediaSettings.h"
-#include "guilib\GraphicContext.h"
+#include "windowing/GraphicContext.h"
 #include "Application.h"
 
 #include "DVDCodecs/DVDCodecUtils.h"
@@ -56,14 +56,12 @@ void CWinDsRenderer::SetupScreenshot()
 {
 }
 
-bool CWinDsRenderer::Configure(const VideoPicture &picture, float fps, unsigned flags, unsigned int orientation)
+bool CWinDsRenderer::Configure(const VideoPicture &picture, float fps, unsigned int orientation)
 {
   m_sourceWidth = picture.iWidth;
   m_sourceHeight = picture.iHeight;
 
   m_fps = fps;
-  m_iFlags = flags;
-  m_flags = flags;
 
   // calculate the input frame aspect ratio
   CalculateFrameAspectRatio(picture.iDisplayWidth, picture.iDisplayHeight);
@@ -124,17 +122,17 @@ bool CWinDsRenderer::RenderCapture(CRenderCapture* capture)
 void CWinDsRenderer::RenderUpdate(int index, int index2, bool clear, unsigned int flags, unsigned int alpha)
 {
   if (clear)
-    g_graphicsContext.Clear(m_clearColour);
+    CServiceBroker::GetWinSystem()->GetGfxContext().Clear(m_clearColour);
 
   if (alpha < 255)
-    DX::Windowing().SetAlphaBlendEnable(true);
+    DX::Windowing()->SetAlphaBlendEnable(true);
   else
-    DX::Windowing().SetAlphaBlendEnable(false);
+    DX::Windowing()->SetAlphaBlendEnable(false);
 
   if (!m_bConfigured)
     return;
 
-  CSingleLock lock(g_graphicsContext);
+  CSingleLock lock(CServiceBroker::GetWinSystem()->GetGfxContext());
 
   ManageRenderArea();
 
@@ -160,7 +158,7 @@ void CWinDsRenderer::Render(DWORD flags)
   /*if( flags & RENDER_FLAG_NOOSD ) 
     return;*/
 
-  CSingleLock lock(g_graphicsContext);
+  CSingleLock lock(CServiceBroker::GetWinSystem()->GetGfxContext());
   if (m_oldVideoRect != m_destRect)
   {
     g_application.GetAppPlayer().SetPosition(m_sourceRect, m_destRect, m_viewRect);

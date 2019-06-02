@@ -1,8 +1,6 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <string>
 #include <vector>
@@ -55,6 +55,8 @@ protected:
   void UpdateButtons();
   int GetSelectedItem();
   void HighlightItem(int item);
+  std::string GetUniqueMediaSourceName();
+  static void OnMediaSourceChanged(const std::string& type, const std::string& oldName, const CMediaSource& share);
 
   std::vector<std::string> GetPaths() const;
 

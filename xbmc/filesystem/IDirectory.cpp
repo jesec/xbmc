@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -25,11 +25,13 @@
 #include "PasswordManager.h"
 #include "utils/URIUtils.h"
 #include "utils/StringUtils.h"
+#include "ServiceBroker.h"
 
 using namespace KODI::MESSAGING;
 using namespace XFILE;
 
-IDirectory::IDirectory(void)
+IDirectory::IDirectory() :
+  m_profileManager(CServiceBroker::GetProfileManager())
 {
   m_flags = DIR_FLAG_DEFAULTS;
 }
@@ -59,13 +61,13 @@ bool IDirectory::IsAllowed(const CURL& url) const
     std::string fileName = URIUtils::GetFileName(url);
 
     // Allow filenames of the form video_ts.ifo or vts_##_0.ifo
-    
+
     return StringUtils::EqualsNoCase(fileName, "video_ts.ifo") ||
           (fileName.length() == 12 &&
            StringUtils::StartsWithNoCase(fileName, "vts_") &&
            StringUtils::EndsWithNoCase(fileName, "_0.ifo"));
   }
-  
+
   if (URIUtils::HasExtension(url, ".dat"))
   {
     std::string fileName = URIUtils::GetFileName(url);

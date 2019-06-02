@@ -116,11 +116,10 @@ void CmadVRAllocatorPresenter::SetResolution()
 
   SIZE nativeVideoSize = GetVideoSize(false);
 
-  if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) != ADJUST_REFRESHRATE_OFF && g_graphicsContext.IsFullScreenRoot())
+  if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) != ADJUST_REFRESHRATE_OFF && CServiceBroker::GetWinSystem()->GetGfxContext().IsFullScreenRoot())
   {
     RESOLUTION res = CResolutionUtils::ChooseBestResolution(fps, nativeVideoSize.cx, false);   
-    bool bChanged = SetResolutionInternal(res);
-    CLog::Log(LOGDEBUG, "%s change resolution %s", __FUNCTION__, bChanged ?  "<success>" : "<failed>");
+    CServiceBroker::GetWinSystem()->GetGfxContext().SetVideoResolution(res, false);
   }
 }
 
@@ -173,7 +172,7 @@ STDMETHODIMP CmadVRAllocatorPresenter::RenderOsd(LPCSTR name, REFERENCE_TIME fra
 {
   CAutoLock cAutoLock(this);
 
-  if (g_graphicsContext.IsFullScreenVideo())
+  if (CServiceBroker::GetWinSystem()->GetGfxContext().IsFullScreenVideo())
     m_activeVideoRect.SetRect(activeVideoRect->left, activeVideoRect->top, activeVideoRect->right, activeVideoRect->bottom);
 
   if (m_pMadvrShared != nullptr)
@@ -365,8 +364,8 @@ STDMETHODIMP CmadVRAllocatorPresenter::CreateRenderer(IUnknown** ppRenderer)
     RECT w;
     w.left = 0;
     w.top = 0;
-    w.right = g_graphicsContext.GetWidth();
-    w.bottom = g_graphicsContext.GetHeight();
+    w.right = CServiceBroker::GetWinSystem()->GetGfxContext().GetWidth();
+    w.bottom = CServiceBroker::GetWinSystem()->GetGfxContext().GetHeight();
     pVW->SetWindowPosition(w.left, w.top, w.right - w.left, w.bottom - w.top);
 
     // madVR supports calling IVideoWindow::put_Owner before the pins are connected
@@ -389,15 +388,15 @@ void CmadVRAllocatorPresenter::SetPosition(CRect sourceRect, CRect videoRect, CR
 
 STDMETHODIMP_(void) CmadVRAllocatorPresenter::SetPosition(RECT w, RECT v)
 {
-  if (!g_graphicsContext.IsFullScreenVideo())
+  if (!CServiceBroker::GetWinSystem()->GetGfxContext().IsFullScreenVideo())
   {
     w.left = 0;
     w.top = 0;
-    w.right = g_graphicsContext.GetWidth();
-    w.bottom = g_graphicsContext.GetHeight();
+    w.right = CServiceBroker::GetWinSystem()->GetGfxContext().GetWidth();
+    w.bottom = CServiceBroker::GetWinSystem()->GetGfxContext().GetHeight();
   }
 
-  RENDER_STEREO_MODE stereoMode = g_graphicsContext.GetStereoMode();
+  RENDER_STEREO_MODE stereoMode = CServiceBroker::GetWinSystem()->GetGfxContext().GetStereoMode();
   switch (stereoMode)
   {
   case RENDER_STEREO_MODE_SPLIT_VERTICAL:

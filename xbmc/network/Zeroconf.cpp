@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -23,19 +23,18 @@
 
 #include "ServiceBroker.h"
 #include "settings/Settings.h"
-#include "system.h" //HAS_ZEROCONF define
 #include "threads/Atomics.h"
 #include "threads/CriticalSection.h"
 #include "threads/SingleLock.h"
 #include "utils/JobManager.h"
 
 #if defined(HAS_AVAHI)
-#include "linux/ZeroconfAvahi.h"
+#include "platform/linux/network/ZeroconfAvahi.h"
 #elif defined(TARGET_DARWIN)
 //on osx use the native implementation
-#include "osx/ZeroconfOSX.h"
+#include "platform/darwin/osx/network/ZeroconfOSX.h"
 #elif defined(TARGET_ANDROID)
-#include "android/ZeroconfAndroid.h"
+#include "platform/android/network/ZeroconfAndroid.h"
 #elif defined(HAS_MDNS)
 #include "mdns/ZeroconfMDNS.h"
 #endif
@@ -50,7 +49,7 @@ class CZeroconfDummy : public CZeroconf
     return false;
   }
 
-  virtual bool doForceReAnnounceService(const std::string&){return false;} 
+  virtual bool doForceReAnnounceService(const std::string&){return false;}
   virtual bool doRemoveService(const std::string& fcr_ident){return false;}
   virtual void doStop(){}
 };
@@ -175,7 +174,7 @@ CZeroconf::CPublish::CPublish(const std::string& fcr_identifier, const PublishIn
   m_servmap.insert(std::make_pair(fcr_identifier, pubinfo));
 }
 
-CZeroconf::CPublish::CPublish(const tServiceMap& servmap) 
+CZeroconf::CPublish::CPublish(const tServiceMap& servmap)
   : m_servmap(servmap)
 {
 }

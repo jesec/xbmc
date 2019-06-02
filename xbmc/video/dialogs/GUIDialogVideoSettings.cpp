@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2014 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
 #include "ServiceBroker.h"
 #include "addons/Skin.h"
 #include "dialogs/GUIDialogYesNo.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
 #include "GUIPassword.h"
@@ -33,7 +34,6 @@
 #include "settings/lib/SettingsManager.h"
 #include "settings/MediaSettings.h"
 #include "settings/Settings.h"
-#include "system.h"
 #include "utils/log.h"
 #include "utils/Variant.h"
 #include "video/VideoDatabase.h"
@@ -61,6 +61,8 @@
 #define SETTING_VIDEO_NONLIN_STRETCH      "video.nonlinearstretch"
 #define SETTING_VIDEO_POSTPROCESS         "video.postprocess"
 #define SETTING_VIDEO_VERTICAL_SHIFT      "video.verticalshift"
+#define SETTING_VIDEO_TONEMAP_METHOD      "video.tonemapmethod"
+#define SETTING_VIDEO_TONEMAP_PARAM       "video.tonemapparam"
 
 #define SETTING_VIDEO_VDPAU_NOISE         "vdpau.noise"
 #define SETTING_VIDEO_VDPAU_SHARPNESS     "vdpau.sharpness"
@@ -201,6 +203,18 @@ void CGUIDialogVideoSettings::OnSettingChanged(std::shared_ptr<const CSetting> s
     vs.m_Sharpness = static_cast<float>(std::static_pointer_cast<const CSettingNumber>(setting)->GetValue());
     g_application.GetAppPlayer().SetVideoSettings(vs);
   }
+  else if (settingId == SETTING_VIDEO_TONEMAP_METHOD)
+  {
+    CVideoSettings vs = g_application.GetAppPlayer().GetVideoSettings();
+    vs.m_ToneMapMethod = static_cast<int>(std::static_pointer_cast<const CSettingInt>(setting)->GetValue());
+    g_application.GetAppPlayer().SetVideoSettings(vs);
+  }
+  else if (settingId == SETTING_VIDEO_TONEMAP_PARAM)
+  {
+    CVideoSettings vs = g_application.GetAppPlayer().GetVideoSettings();
+    vs.m_ToneMapParam = static_cast<float>(std::static_pointer_cast<const CSettingNumber>(setting)->GetValue());
+    g_application.GetAppPlayer().SetVideoSettings(vs);
+  }
   else if (settingId == SETTING_VIDEO_STEREOSCOPICMODE)
   {
     CVideoSettings vs = g_application.GetAppPlayer().GetVideoSettings();
@@ -225,11 +239,13 @@ void CGUIDialogVideoSettings::OnSettingAction(std::shared_ptr<const CSetting> se
   const std::string &settingId = setting->GetId();
   if (settingId == SETTING_VIDEO_CALIBRATION)
   {
+    const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+
     // launch calibration window
-    if (CProfilesManager::GetInstance().GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE  &&
+    if (profileManager.GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE  &&
         g_passwordManager.CheckSettingLevelLock(CServiceBroker::GetSettings().GetSetting(CSettings::SETTING_VIDEOSCREEN_GUICALIBRATION)->GetLevel()))
       return;
-    g_windowManager.ForceActivateWindow(WINDOW_SCREEN_CALIBRATION);
+    CServiceBroker::GetGUI()->GetWindowManager().ForceActivateWindow(WINDOW_SCREEN_CALIBRATION);
   }
   //! @todo implement
   else if (settingId == SETTING_VIDEO_MAKE_DEFAULT)
@@ -238,7 +254,7 @@ void CGUIDialogVideoSettings::OnSettingAction(std::shared_ptr<const CSetting> se
 #ifdef HAS_DS_PLAYER
   else if (settingId == VIDEO_SETTINGS_DS_FILTERS)
   {
-    CGUIDialogSelect *pDlg = (CGUIDialogSelect *)g_windowManager.GetWindow(WINDOW_DIALOG_SELECT);
+    CGUIDialogSelect *pDlg = (CGUIDialogSelect *)CServiceBroker::GetGUI()->GetWindowManager().GetWindow(WINDOW_DIALOG_SELECT);
       if (!pDlg)
         return;
     
@@ -300,7 +316,9 @@ void CGUIDialogVideoSettings::OnSettingAction(std::shared_ptr<const CSetting> se
 
 void CGUIDialogVideoSettings::Save()
 {
-  if (CProfilesManager::GetInstance().GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE &&
+  const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+
+  if (profileManager.GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE &&
       !g_passwordManager.CheckSettingLevelLock(::SettingLevel::Expert))
     return;
 
@@ -359,12 +377,6 @@ void CGUIDialogVideoSettings::InitializeSettings()
   }
   const std::shared_ptr<CSettingGroup> groupVideo = AddGroup(category);
   if (groupVideo == NULL)
-  {
-    CLog::Log(LOGERROR, "CGUIDialogVideoSettings: unable to setup settings");
-    return;
-  }
-  const std::shared_ptr<CSettingGroup> groupVideoPlayback = AddGroup(category);
-  if (groupVideoPlayback == NULL)
   {
     CLog::Log(LOGERROR, "CGUIDialogVideoSettings: unable to setup settings");
     return;
@@ -444,7 +456,6 @@ void CGUIDialogVideoSettings::InitializeSettings()
   entries.push_back(std::make_pair(16322, VS_SCALINGMETHOD_SPLINE36));
   entries.push_back(std::make_pair(16305, VS_SCALINGMETHOD_LANCZOS3));
   entries.push_back(std::make_pair(16306, VS_SCALINGMETHOD_SINC8));
-  // entries.push_back(std::make_pair(?????, VS_SCALINGMETHOD_NEDI));
   entries.push_back(std::make_pair(16307, VS_SCALINGMETHOD_BICUBIC_SOFTWARE));
   entries.push_back(std::make_pair(16308, VS_SCALINGMETHOD_LANCZOS_SOFTWARE));
   entries.push_back(std::make_pair(16309, VS_SCALINGMETHOD_SINC_SOFTWARE));
@@ -485,17 +496,27 @@ void CGUIDialogVideoSettings::InitializeSettings()
   if (g_application.GetAppPlayer().Supports(RENDERFEATURE_POSTPROCESS))
     AddToggle(groupVideo, SETTING_VIDEO_POSTPROCESS, 16400, SettingLevel::Basic, videoSettings.m_PostProcess);
   if (g_application.GetAppPlayer().Supports(RENDERFEATURE_BRIGHTNESS))
-    AddPercentageSlider(groupVideoPlayback, SETTING_VIDEO_BRIGHTNESS, 464, SettingLevel::Basic, static_cast<int>(videoSettings.m_Brightness), 14047, 1, 464, usePopup);
+    AddPercentageSlider(groupVideo, SETTING_VIDEO_BRIGHTNESS, 464, SettingLevel::Basic, static_cast<int>(videoSettings.m_Brightness), 14047, 1, 464, usePopup);
   if (g_application.GetAppPlayer().Supports(RENDERFEATURE_CONTRAST))
-    AddPercentageSlider(groupVideoPlayback, SETTING_VIDEO_CONTRAST, 465, SettingLevel::Basic, static_cast<int>(videoSettings.m_Contrast), 14047, 1, 465, usePopup);
+    AddPercentageSlider(groupVideo, SETTING_VIDEO_CONTRAST, 465, SettingLevel::Basic, static_cast<int>(videoSettings.m_Contrast), 14047, 1, 465, usePopup);
   if (g_application.GetAppPlayer().Supports(RENDERFEATURE_GAMMA))
-    AddPercentageSlider(groupVideoPlayback, SETTING_VIDEO_GAMMA, 466, SettingLevel::Basic, static_cast<int>(videoSettings.m_Gamma), 14047, 1, 466, usePopup);
+    AddPercentageSlider(groupVideo, SETTING_VIDEO_GAMMA, 466, SettingLevel::Basic, static_cast<int>(videoSettings.m_Gamma), 14047, 1, 466, usePopup);
   if (g_application.GetAppPlayer().Supports(RENDERFEATURE_NOISE))
-    AddSlider(groupVideoPlayback, SETTING_VIDEO_VDPAU_NOISE, 16312, SettingLevel::Basic, videoSettings.m_NoiseReduction, "%2.2f", 0.0f, 0.01f, 1.0f, 16312, usePopup);
+    AddSlider(groupVideo, SETTING_VIDEO_VDPAU_NOISE, 16312, SettingLevel::Basic, videoSettings.m_NoiseReduction, "%2.2f", 0.0f, 0.01f, 1.0f, 16312, usePopup);
   if (g_application.GetAppPlayer().Supports(RENDERFEATURE_SHARPNESS))
-    AddSlider(groupVideoPlayback, SETTING_VIDEO_VDPAU_SHARPNESS, 16313, SettingLevel::Basic, videoSettings.m_Sharpness, "%2.2f", -1.0f, 0.02f, 1.0f, 16313, usePopup);
+    AddSlider(groupVideo, SETTING_VIDEO_VDPAU_SHARPNESS, 16313, SettingLevel::Basic, videoSettings.m_Sharpness, "%2.2f", -1.0f, 0.02f, 1.0f, 16313, usePopup);
   if (g_application.GetAppPlayer().Supports(RENDERFEATURE_NONLINSTRETCH))
-    AddToggle(groupVideoPlayback, SETTING_VIDEO_NONLIN_STRETCH, 659, SettingLevel::Basic, videoSettings.m_CustomNonLinStretch);
+    AddToggle(groupVideo, SETTING_VIDEO_NONLIN_STRETCH, 659, SettingLevel::Basic, videoSettings.m_CustomNonLinStretch);
+
+  // tone mapping
+  if (g_application.GetAppPlayer().Supports(RENDERFEATURE_TONEMAP))
+  {
+    entries.clear();
+    entries.push_back(std::make_pair(36554, VS_TONEMAPMETHOD_OFF));
+    entries.push_back(std::make_pair(36555, VS_TONEMAPMETHOD_REINHARD));
+    AddSpinner(groupVideo, SETTING_VIDEO_TONEMAP_METHOD, 36553, SettingLevel::Basic, videoSettings.m_ToneMapMethod, entries);
+    AddSlider(groupVideo, SETTING_VIDEO_TONEMAP_PARAM, 36556, SettingLevel::Basic, videoSettings.m_ToneMapParam, "%2.2f", 0.1f, 0.1f, 5.0f, 36556, usePopup);
+  }
 
   // stereoscopic settings
   entries.clear();

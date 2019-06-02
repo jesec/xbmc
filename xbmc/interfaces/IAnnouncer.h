@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 class CVariant;
 namespace ANNOUNCEMENT
@@ -40,7 +41,7 @@ namespace ANNOUNCEMENT
   #define ANNOUNCE_ALL (Player | Playlist | GUI | System | VideoLibrary | AudioLibrary | Application | Input | ANNOUNCEMENT::PVR | Other)
 
   /*!
-    \brief Returns a string representation for the 
+    \brief Returns a string representation for the
     given AnnouncementFlag
     \param notification Specific AnnouncementFlag
     \return String representation of the given AnnouncementFlag
@@ -69,6 +70,8 @@ namespace ANNOUNCEMENT
       return "PVR";
     case Other:
       return "Other";
+    case Info:
+      return "Info";
     default:
       return "Unknown";
     }

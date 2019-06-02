@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@
  */
 
 #include "threads/SystemClock.h"
-#include "system.h"
 
 #include "EventClient.h"
 #include "EventPacket.h"
@@ -34,7 +33,7 @@
 #include "utils/log.h"
 #include "utils/TimeUtils.h"
 #include "dialogs/GUIDialogKaiToast.h"
-#include "guilib/GraphicContext.h"
+#include "windowing/GraphicContext.h"
 #include "input/Key.h"
 #include "guilib/LocalizeStrings.h"
 #include "utils/StringUtils.h"
@@ -91,13 +90,7 @@ void CEventButtonState::Load()
       else if ( (m_mapName.length() > 3) &&
                 (StringUtils::StartsWith(m_mapName, "LI:")) ) // starts with LI: ?
       {
-#if defined(HAS_LIRC) || defined(HAS_IRSERVERSUITE)
-        std::string lircDevice = m_mapName.substr(3);
-        m_iKeyCode = CServiceBroker::GetInputManager().TranslateLircRemoteString( lircDevice.c_str(),
-                                                                   m_buttonName.c_str() );
-#else
-        CLog::Log(LOGERROR, "ES: LIRC support not enabled");
-#endif
+        CLog::Log(LOGNOTICE, "ES: LIRC support not implemented");
       }
       else
       {
@@ -117,7 +110,7 @@ void CEventButtonState::Load()
         - (unsigned char)'0'; // convert <num> to int
       m_joystickName = m_joystickName.substr(2); // extract joyname
     }
-    
+
     if (m_mapName.length() > 3 &&
         (StringUtils::StartsWith(m_mapName, "CC")) ) // custom map - CC:<controllerName>
     {
@@ -807,8 +800,8 @@ bool CEventClient::GetMousePos(float& x, float& y)
   CSingleLock lock(m_critSection);
   if (m_bMouseMoved)
   {
-    x = (float)((m_iMouseX / 65535.0f) * g_graphicsContext.GetWidth());
-    y = (float)((m_iMouseY / 65535.0f) * g_graphicsContext.GetHeight());
+    x = (float)((m_iMouseX / 65535.0f) * CServiceBroker::GetWinSystem()->GetGfxContext().GetWidth());
+    y = (float)((m_iMouseY / 65535.0f) * CServiceBroker::GetWinSystem()->GetGfxContext().GetHeight());
     m_bMouseMoved = false;
     return true;
   }

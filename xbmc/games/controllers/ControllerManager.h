@@ -17,6 +17,7 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
 #include "ControllerTypes.h"
@@ -55,6 +56,20 @@ namespace GAME
      * \return The default controller, or empty if the controller failed to load
      */
     ControllerPtr GetDefaultController();
+
+    /*!
+     * \brief Get the default keyboard
+     *
+     * \return The keyboard controller, or empty if the controller failed to load
+     */
+    ControllerPtr GetDefaultKeyboard();
+
+    /*!
+     * \brief Get the default mouse
+     *
+     * \return The mouse controller, or empty if the controller failed to load
+     */
+    ControllerPtr GetDefaultMouse();
 
     /*!
      * \brief Get installed controllers

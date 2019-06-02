@@ -52,6 +52,7 @@
 #include <tinyxml.h>
 #include "utils/XMLUtils.h"
 #include "dialogs/GUIDialogOK.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "dialogs/GUIDialogYesNo.h"
 //END XML CONFIG HEADERS
@@ -856,7 +857,7 @@ HRESULT CFGManager::RecoverFromGraphError(const CFileItem& pFileItem)
   }
   if (videoError || audioError)
   {
-    CGUIDialogOK *dialog = (CGUIDialogOK *)g_windowManager.GetWindow(WINDOW_DIALOG_OK);
+    CGUIDialogOK *dialog = (CGUIDialogOK *)CServiceBroker::GetGUI()->GetWindowManager().GetWindow(WINDOW_DIALOG_OK);
     if (dialog)
     {
       std::string strError;

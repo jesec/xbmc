@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2015 Team Kodi
  *      http://kodi.tv
@@ -20,9 +18,15 @@
  *
  */
 
+#pragma once
+
 #include <stdio.h>
 #include "dataset.h"
+#ifdef HAS_MYSQL
 #include "mysql/mysql.h"
+#elif defined(HAS_MARIADB)
+#include <mariadb/mysql.h>
+#endif
 
 namespace dbiplus {
 /***************** Class MysqlDatabase definition ******************
@@ -136,7 +140,7 @@ public:
 /* destructor */
   ~MysqlDataset() override;
 
-/* set autorefresh boolean value (if true - refresh the data after edit() 
+/* set autorefresh boolean value (if true - refresh the data after edit()
 or insert() operations default = false) */
   void set_autorefresh(bool val);
 

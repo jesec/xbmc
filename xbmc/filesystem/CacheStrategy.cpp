@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2014 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 #include "CacheStrategy.h"
 #include "IFile.h"
 #ifdef TARGET_POSIX
-#include "PlatformInclude.h"
+#include "PlatformDefs.h"
 #include "ConvUtils.h"
 #endif
 #include "Util.h"
@@ -30,10 +30,10 @@
 #include "SpecialProtocol.h"
 #include "URL.h"
 #if defined(TARGET_POSIX)
-#include "posix/PosixFile.h"
+#include "platform/posix/filesystem/PosixFile.h"
 #define CacheLocalFile CPosixFile
 #elif defined(TARGET_WINDOWS)
-#include "win32/Win32File.h"
+#include "platform/win32/filesystem/Win32File.h"
 #define CacheLocalFile CWin32File
 #endif // TARGET_WINDOWS
 

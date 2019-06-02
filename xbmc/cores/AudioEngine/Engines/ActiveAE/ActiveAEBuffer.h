@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2010-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,9 +18,10 @@
  *
  */
 
+#pragma once
+
 #include "cores/AudioEngine/Utils/AEAudioFormat.h"
 #include "cores/AudioEngine/Interfaces/AE.h"
-#include "cores/AudioEngine/Engines/ActiveAE/AudioDSPAddons/ActiveAEDSP.h"
 #include <deque>
 #include <memory>
 
@@ -162,5 +162,5 @@ protected:
   int64_t m_lastSamplePts;
   bool m_fillPackets;
 };
-  
+
 }

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@ namespace XBMCAddon
   {
     //! @todo need a means to check for a valid construction
     //!  either by throwing an exception or by an "isValid" check
-    PlayList::PlayList(int playList) : 
+    PlayList::PlayList(int playList) :
       iPlayList(playList), pPlayList(NULL)
     {
       // we do not create our own playlist, just using the ones from playlistplayer

@@ -8,7 +8,7 @@ OBJS = libplist.so libshairplay.so \
   libbluray.so libsmbclient.so
 
 PLATFORM_OBJS =
-EXCLUDED_ADDONS = 
+EXCLUDED_ADDONS =
 
 CMAKE_SOURCE_DIR = $(shell cd $(CURDIR)/../../..; pwd)
 APP_PACKAGE_DIR = $(subst .,/,@APP_PACKAGE@)
@@ -28,7 +28,7 @@ endif
 X86OVERRIDES=XBMC_OVERRIDE_HOST=i686-android-linux XBMC_OVERRIDE_TOOLCHAIN=$(XBMC_X86_TOOLCHAIN)
 ARMOVERRIDES=XBMC_OVERRIDE_HOST=arm-linux-androideabi XBMC_OVERRIDE_TOOLCHAIN=$(XBMC_ARM_TOOLCHAIN)
 
-#this fixes a android ndk fuckup where the paths to 
+#this fixes a android ndk fuckup where the paths to
 #prebuilt stuff follow different name schemes for
 #arm and x86
 ifeq ($(findstring i686,$(CPU)),i686)
@@ -69,7 +69,7 @@ ifeq ($(JAVA8),yes)
   JAVAC_EXTRA_ARGS = -source 1.7 -target 1.7
 endif
 
-SRCLIBS = $(addprefix $(PREFIX)/lib/,$(OBJS)) $(addprefix $(PREFIX)/lib/$(SDK_PLATFORM)/,$(PLATFORM_OBJS))
+SRCLIBS = $(addprefix $(PREFIX)/lib/,$(OBJS))
 DSTLIBS = $(CPU)/lib/lib@APP_NAME_LC@.so $(addprefix $(CPU)/lib/,$(OBJS)) $(addprefix $(CPU)/lib/,$(PLATFORM_OBJS))
 libs= $(DSTLIBS)
 

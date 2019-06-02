@@ -25,6 +25,8 @@
 #include "guilib/GUIImage.h"
 #include "utils/log.h"
 
+using namespace KODI;
+
 extern "C"
 {
 namespace ADDON
@@ -50,8 +52,10 @@ void Interface_GUIControlImage::set_visible(void* kodiBase, void* handle, bool v
   CGUIImage* control = static_cast<CGUIImage*>(handle);
   if (!addon || !control)
   {
-    CLog::Log(LOGERROR, "Interface_GUIControlImage::%s - invalid handler data (kodiBase='%p', handle='%p') on addon '%s'",
-                          __FUNCTION__, addon, control, addon ? addon->ID().c_str() : "unknown");
+    CLog::Log(LOGERROR,
+              "Interface_GUIControlImage::%s - invalid handler data (kodiBase='%p', handle='%p') "
+              "on addon '%s'",
+              __FUNCTION__, kodiBase, handle, addon ? addon->ID().c_str() : "unknown");
     return;
   }
 
@@ -64,8 +68,10 @@ void Interface_GUIControlImage::set_filename(void* kodiBase, void* handle, const
   CGUIImage* control = static_cast<CGUIImage*>(handle);
   if (!addon || !control || !filename)
   {
-    CLog::Log(LOGERROR, "Interface_GUIControlImage::%s - invalid handler data (kodiBase='%p', handle='%p', filename='%p') on addon '%s'",
-                          __FUNCTION__, addon, control, filename, addon ? addon->ID().c_str() : "unknown");
+    CLog::Log(LOGERROR,
+              "Interface_GUIControlImage::%s - invalid handler data (kodiBase='%p', handle='%p', "
+              "filename='%p') on addon '%s'",
+              __FUNCTION__, kodiBase, handle, filename, addon ? addon->ID().c_str() : "unknown");
     return;
   }
 
@@ -78,12 +84,14 @@ void Interface_GUIControlImage::set_color_diffuse(void* kodiBase, void* handle, 
   CGUIImage* control = static_cast<CGUIImage*>(handle);
   if (!addon || !control)
   {
-    CLog::Log(LOGERROR, "Interface_GUIControlImage::%s - invalid handler data (kodiBase='%p', handle='%p') on addon '%s'",
-                          __FUNCTION__, addon, control, addon ? addon->ID().c_str() : "unknown");
+    CLog::Log(LOGERROR,
+              "Interface_GUIControlImage::%s - invalid handler data (kodiBase='%p', handle='%p') "
+              "on addon '%s'",
+              __FUNCTION__, kodiBase, handle, addon ? addon->ID().c_str() : "unknown");
     return;
   }
 
-  control->SetColorDiffuse(CGUIInfoColor(colorDiffuse));
+  control->SetColorDiffuse(GUILIB::GUIINFO::CGUIInfoColor(colorDiffuse));
 }
 
 } /* namespace ADDON */

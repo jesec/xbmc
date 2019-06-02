@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2014 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,8 +18,7 @@
  *
  */
 
-#ifndef CACHECIRCULAR_H
-#define CACHECIRCULAR_H
+#pragma once
 
 #include "CacheStrategy.h"
 #include "threads/CriticalSection.h"
@@ -45,7 +44,7 @@ public:
     bool Reset(int64_t pos, bool clearAnyway=true) override;
 
     int64_t CachedDataEndPosIfSeekTo(int64_t iFilePosition) override;
-    int64_t CachedDataEndPos() override; 
+    int64_t CachedDataEndPos() override;
     bool IsCachedPosition(int64_t iFilePosition) override;
 
     CCacheStrategy *CreateNew() override;
@@ -64,4 +63,4 @@ protected:
 };
 
 } // namespace XFILE
-#endif
+

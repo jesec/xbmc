@@ -1,7 +1,7 @@
 include ../../Makefile.include
 PREFIX=$(NATIVEPREFIX)
 PLATFORM=$(NATIVEPLATFORM)
-DEPS= ../../Makefile.include.in Makefile osx_snprintf.patch
+DEPS= ../../Makefile.include Makefile osx_snprintf.patch
 
 # lib name, version
 LIBNAME=m4
@@ -13,8 +13,6 @@ ARCHIVE=$(SOURCE).tar.gz
 CONFIGURE=./configure --prefix=$(PREFIX)
 
 LIBDYLIB=$(PLATFORM)/src/$(LIBNAME)
-
-CLEAN_FILES=$(ARCHIVE) $(PLATFORM)
 
 all: .installed-$(PLATFORM)
 

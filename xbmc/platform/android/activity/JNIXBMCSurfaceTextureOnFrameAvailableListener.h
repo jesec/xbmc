@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2016 Christian Browet
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include <androidjni/JNIBase.h>
 
 #include <androidjni/SurfaceTexture.h>
@@ -30,11 +31,11 @@ public:
   CJNIXBMCSurfaceTextureOnFrameAvailableListener(const CJNIXBMCSurfaceTextureOnFrameAvailableListener& other);
   CJNIXBMCSurfaceTextureOnFrameAvailableListener(const jni::jhobject &object) : CJNIBase(object) {}
   virtual ~CJNIXBMCSurfaceTextureOnFrameAvailableListener();
-  
+
   static void RegisterNatives(JNIEnv* env);
-    
+
   void onFrameAvailable(CJNISurfaceTexture) {}
-  
+
 protected:
-  static void _onFrameAvailable(JNIEnv* env, jobject thiz, jobject surface);  
+  static void _onFrameAvailable(JNIEnv* env, jobject thiz, jobject surface);
 };

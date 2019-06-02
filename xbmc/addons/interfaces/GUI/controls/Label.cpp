@@ -23,8 +23,10 @@
 
 #include "addons/binary-addons/AddonDll.h"
 #include "guilib/GUILabelControl.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "utils/log.h"
+#include "ServiceBroker.h"
 
 extern "C"
 {
@@ -52,7 +54,7 @@ void Interface_GUIControlLabel::set_visible(void* kodiBase, void* handle, bool v
   if (!addon || !control)
   {
     CLog::Log(LOGERROR, "Interface_GUIControlLabel::%s - invalid handler data (kodiBase='%p', handle='%p') on addon '%s'",
-                          __FUNCTION__, addon, control, addon ? addon->ID().c_str() : "unknown");
+                          __FUNCTION__, kodiBase, handle, addon ? addon->ID().c_str() : "unknown");
     return;
   }
 
@@ -66,13 +68,13 @@ void Interface_GUIControlLabel::set_label(void* kodiBase, void* handle, const ch
   if (!addon || !control || !label)
   {
     CLog::Log(LOGERROR, "Interface_GUIControlLabel::%s - invalid handler data (kodiBase='%p', handle='%p', label='%p') on addon '%s'",
-                          __FUNCTION__, addon, control, label, addon ? addon->ID().c_str() : "unknown");
+                          __FUNCTION__, kodiBase, handle, label, addon ? addon->ID().c_str() : "unknown");
     return;
   }
 
   CGUIMessage msg(GUI_MSG_LABEL_SET, control->GetParentID(), control->GetID());
   msg.SetLabel(label);
-  g_windowManager.SendThreadMessage(msg, control->GetParentID());
+  CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg, control->GetParentID());
 }
 
 char* Interface_GUIControlLabel::get_label(void* kodiBase, void* handle)
@@ -82,7 +84,7 @@ char* Interface_GUIControlLabel::get_label(void* kodiBase, void* handle)
   if (!addon || !control)
   {
     CLog::Log(LOGERROR, "Interface_GUIControlLabel::%s - invalid handler data (kodiBase='%p', handle='%p') on addon '%s'",
-                          __FUNCTION__, addon, control, addon ? addon->ID().c_str() : "unknown");
+                          __FUNCTION__, kodiBase, handle, addon ? addon->ID().c_str() : "unknown");
     return nullptr;
   }
 

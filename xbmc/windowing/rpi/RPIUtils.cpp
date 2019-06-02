@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2011-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,8 +20,6 @@
 
 #include "RPIUtils.h"
 
-#include "system.h"
-
 #include <math.h>
 #include "ServiceBroker.h"
 #include "utils/log.h"
@@ -30,7 +28,7 @@
 #include "platform/linux/RBP.h"
 #include "utils/StringUtils.h"
 #include "settings/Settings.h"
-#include "guilib/GraphicContext.h"
+#include "windowing/GraphicContext.h"
 #include "guilib/StereoscopicsManager.h"
 #include "rendering/RenderSystem.h"
 #include <cassert>
@@ -130,7 +128,7 @@ bool CRPIUtils::SetNativeResolution(const RESOLUTION_INFO res, EGLSurface m_nati
 
   DestroyDispmanxWindow();
 
-  RENDER_STEREO_MODE stereo_mode = g_graphicsContext.GetStereoMode();
+  RENDER_STEREO_MODE stereo_mode = CServiceBroker::GetWinSystem()->GetGfxContext().GetStereoMode();
   if(GETFLAGS_GROUP(res.dwFlags) && GETFLAGS_MODE(res.dwFlags))
   {
     uint32_t mode3d = HDMI_3D_FORMAT_NONE;
@@ -172,7 +170,7 @@ bool CRPIUtils::SetNativeResolution(const RESOLUTION_INFO res, EGLSurface m_nati
     {
       CLog::Log(LOGDEBUG, "EGL set HDMI mode (%d,%d)=%d %s%s\n",
                           GETFLAGS_GROUP(res.dwFlags), GETFLAGS_MODE(res.dwFlags), success,
-                          CStereoscopicsManager::GetInstance().ConvertGuiStereoModeToString(stereo_mode),
+                          CStereoscopicsManager::ConvertGuiStereoModeToString(stereo_mode),
                           mode3d==HDMI_3D_FORMAT_FRAME_PACKING ? " FP" : mode3d==HDMI_3D_FORMAT_SBS_HALF ? " SBS" : mode3d==HDMI_3D_FORMAT_TB_HALF ? " TB" : "");
 
       sem_wait(&m_tv_synced);
@@ -181,7 +179,7 @@ bool CRPIUtils::SetNativeResolution(const RESOLUTION_INFO res, EGLSurface m_nati
     {
       CLog::Log(LOGERROR, "EGL failed to set HDMI mode (%d,%d)=%d %s%s\n",
                           GETFLAGS_GROUP(res.dwFlags), GETFLAGS_MODE(res.dwFlags), success,
-                          CStereoscopicsManager::GetInstance().ConvertGuiStereoModeToString(stereo_mode),
+                          CStereoscopicsManager::ConvertGuiStereoModeToString(stereo_mode),
                           mode3d==HDMI_3D_FORMAT_FRAME_PACKING ? " FP" : mode3d==HDMI_3D_FORMAT_SBS_HALF ? " SBS" : mode3d==HDMI_3D_FORMAT_TB_HALF ? " TB" : "");
     }
     m_DllBcmHost->vc_tv_unregister_callback(CallbackTvServiceCallback);
@@ -560,8 +558,8 @@ void CRPIUtils::GetSupportedModes(HDMI_RES_GROUP_T group, std::vector<RESOLUTION
         m_desktopRes = res;
 
       AddUniqueResolution(res, resolutions);
-      CLog::Log(LOGDEBUG, "EGL mode %d: %s (%.2f) %s%s:%x\n", i, res.strMode.c_str(), res.fPixelRatio,
-          tv->native ? "N" : "", tv->scan_mode ? "I" : "", tv->code);
+      CLog::Log(LOGDEBUG, "EGL mode %d: %s (%.2f) %s%s:%x\n", i, res.strMode, res.fPixelRatio,
+          tv->native ? "N" : "", tv->scan_mode ? "I" : "", int(tv->code));
 
       if (tv->frame_rate == 24 || tv->frame_rate == 30 || tv->frame_rate == 48 || tv->frame_rate == 60 || tv->frame_rate == 72)
       {

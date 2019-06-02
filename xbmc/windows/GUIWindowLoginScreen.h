@@ -1,8 +1,6 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include "guilib/GUIDialog.h"
 #include "utils/Stopwatch.h"
@@ -38,7 +38,6 @@ public:
   bool HasListItems() const override { return true; };
   CFileItemPtr GetCurrentListItem(int offset = 0) override;
   int GetViewContainerID() const override { return m_viewControl.GetCurrentControl(); };
-  static void LoadProfile(unsigned int profile);
 
 protected:
   void OnInitWindow() override;

@@ -82,11 +82,4 @@ public:
   virtual void Register(IDSRendererPaintCallback* pPaintCallback) {};
   virtual void Unregister(IDSRendererAllocatorCallback* pAllocatorCallback) {};
   virtual void Unregister(IDSRendererPaintCallback* pPaintCallback) {};
-
-  virtual int  GetEditionsCount() { return 0; };
-  virtual int  GetEdition() { return -1; }
-  virtual void GetEditionInfo(int iEdition, std::string &strEditionName, REFERENCE_TIME *prt) {};
-  virtual void SetEdition(int iEdition) {};
-  virtual bool IsMatroskaEditions() { return false; };
-  virtual void ShowEditionDlg(bool playStart) {};
 };

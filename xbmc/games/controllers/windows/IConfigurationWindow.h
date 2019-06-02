@@ -17,10 +17,12 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
 #include "games/controllers/ControllerTypes.h"
 #include "input/joysticks/JoystickTypes.h"
+#include "input/InputTypes.h"
 
 #include <string>
 #include <vector>
@@ -165,6 +167,12 @@ namespace GAME
     virtual const CControllerFeature& Feature(void) const = 0;
 
     /*!
+     * \brief Allow the wizard to include this feature in a list of buttons
+     *        to map
+     */
+    virtual bool AllowWizard() const { return true; }
+
+    /*!
      * \brief Prompt the user for a single input element
      * \param waitEvent The event to block on while prompting for input
      * \return true if input was received (event fired), false if the prompt timed out
@@ -181,11 +189,12 @@ namespace GAME
     virtual bool IsFinished(void) const = 0;
 
     /*!
-     * \brief Get the direction of the next analog stick prompt
-     * \return The next direction to be prompted, or UNKNOWN if this isn't an
-     *         analog stick or the prompt is finished
+     * \brief Get the direction of the next analog stick or relative pointer
+     *        prompt
+     * \return The next direction to be prompted, or UNKNOWN if this isn't a
+     *         cardinal feature or the prompt is finished
      */
-    virtual JOYSTICK::ANALOG_STICK_DIRECTION GetAnalogStickDirection(void) const = 0;
+    virtual INPUT::CARDINAL_DIRECTION GetCardinalDirection(void) const = 0;
 
     /*!
      * \brief Get the direction of the next wheel prompt
@@ -200,6 +209,18 @@ namespace GAME
      *         throttle or the prompt is finished
      */
     virtual JOYSTICK::THROTTLE_DIRECTION GetThrottleDirection(void) const = 0;
+
+    /*!
+     * \brief True if the button is waiting for a key press
+     */
+    virtual bool NeedsKey() const { return false; }
+
+    /*!
+     * \brief Set the pressed key that the user will be prompted to map
+     *
+     * \param key The key that was pressed
+     */
+    virtual void SetKey(const CControllerFeature &key) { }
 
     /*!
      * \brief Reset button after prompting for input has finished
@@ -234,6 +255,20 @@ namespace GAME
      * \return true if aborted, or false if the wizard wasn't running
      */
     virtual bool Abort(bool bWait = true) = 0;
+
+    /*!
+     * \brief Register a key by its keycode
+     * \param key A key with a valid keycode
+     *
+     * This should be called before Run(). It allows the user to choose a key
+     * to map instead of scrolling through a long list.
+     */
+    virtual void RegisterKey(const CControllerFeature &key) = 0;
+
+    /*!
+     * \brief Unregister all registered keys
+     */
+    virtual void UnregisterKeys() = 0;
   };
 }
 }

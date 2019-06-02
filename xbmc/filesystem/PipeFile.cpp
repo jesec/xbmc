@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2011-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -80,7 +80,7 @@ ssize_t CPipeFile::Read(void* lpBuf, size_t uiBufSize)
 {
   if (!m_pipe)
     return -1;
-  
+
   if (uiBufSize > SSIZE_MAX)
     uiBufSize = SSIZE_MAX;
 
@@ -91,7 +91,7 @@ ssize_t CPipeFile::Write(const void* lpBuf, size_t uiBufSize)
 {
   if (!m_pipe)
     return -1;
-  
+
   // m_pipe->Write return bool. either all was written or not.
   return m_pipe->Write((const char *)lpBuf,uiBufSize) ? uiBufSize : -1;
 }
@@ -127,7 +127,7 @@ void CPipeFile::Close()
   if (m_pipe)
   {
     m_pipe->RemoveListener(this);
-    PipesManager::GetInstance().ClosePipe(m_pipe);    
+    PipesManager::GetInstance().ClosePipe(m_pipe);
   }
   m_pipe = NULL;
 }

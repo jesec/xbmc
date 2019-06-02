@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -59,7 +59,7 @@ void Observable::UnregisterObserver(Observer *obs)
 
 void Observable::NotifyObservers(const ObservableMessage message /* = ObservableMessageNone */)
 {
-  // Make sure the set/compare is atomic 
+  // Make sure the set/compare is atomic
   // so we don't clobber the variable in a race condition
   auto bNotify = m_bObservableChanged.exchange(false);
 

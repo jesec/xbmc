@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -59,8 +59,7 @@ namespace XBMCAddon
         m_width = 0;
         m_height = 0;
       }
-      //! @todo Switch to 'override' usage once 14.04 (Trusty) hits EOL. swig <3.0 doesn't understand C++11
-      inline virtual ~RenderCapture()
+      inline ~RenderCapture() override
       {
         g_application.GetAppPlayer().RenderCaptureRelease(m_captureId);
         delete [] m_buffer;
@@ -123,7 +122,7 @@ namespace XBMCAddon
       ///
       /// @return                        Format of captured image: 'BGRA'
       ///-----------------------------------------------------------------------
-      /// @python_v17 Image will now always be returned in BGRA 
+      /// @python_v17 Image will now always be returned in BGRA
       ///
       getImageFormat()
 #else

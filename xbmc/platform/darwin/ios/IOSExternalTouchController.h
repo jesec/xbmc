@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,12 +21,11 @@
 #import <UIKit/UIKit.h>
 
 
-@interface IOSExternalTouchController : UIViewController 
+@interface IOSExternalTouchController : UIViewController
 {
   UIWindow      *_internalWindow;
   UIView        *_touchView;
   NSTimer       *_sleepTimer;
-  bool          _startup;
 }
 - (id)init;
 - (void)createGestureRecognizers;

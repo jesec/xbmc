@@ -1,7 +1,7 @@
 /*
  *      Initial code sponsored by: Voddler Inc (voddler.com)
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@
  *
  */
 
-#include "system.h"
 #include "OverlayRenderer.h"
 #include "cores/VideoPlayer/DVDCodecs/Overlay/DVDOverlay.h"
 #include "cores/VideoPlayer/DVDCodecs/Overlay/DVDOverlayImage.h"
@@ -27,7 +26,7 @@
 #include "cores/VideoPlayer/DVDCodecs/Overlay/DVDOverlaySSA.h"
 #include "cores/VideoPlayer/DVDCodecs/Overlay/DVDOverlayText.h"
 #include "cores/VideoPlayer/VideoRenderers/RenderManager.h"
-#include "guilib/GraphicContext.h"
+#include "windowing/GraphicContext.h"
 #include "guilib/GUIFontManager.h"
 #include "Application.h"
 #include "ServiceBroker.h"
@@ -165,7 +164,7 @@ void CRenderer::Render(int idx)
 
     if(!o)
       continue;
- 
+
     render.push_back(o);
   }
 
@@ -264,7 +263,7 @@ void CRenderer::Render(COverlay* o, float adjust_height)
     {
       if(align == COverlay::ALIGN_SUBTITLE)
       {
-        RESOLUTION_INFO res = g_graphicsContext.GetResInfo(g_graphicsContext.GetVideoResolution());
+        RESOLUTION_INFO res = CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo(CServiceBroker::GetWinSystem()->GetGfxContext().GetVideoResolution());
         state.x += m_rv.x1 + m_rv.Width() * 0.5f;
         state.y += m_rv.y1  + (res.iSubtitles - res.Overscan.top);
       }
@@ -349,7 +348,7 @@ COverlay* CRenderer::Convert(CDVDOverlaySSA* o, double pts)
   else if (subalign == SUBTITLE_ALIGN_MANUAL && g_advancedSettings.m_videoAssFixedWorks)
   {
     RESOLUTION_INFO res;
-    res = g_graphicsContext.GetResInfo(g_graphicsContext.GetVideoResolution());
+    res = CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo(CServiceBroker::GetWinSystem()->GetGfxContext().GetVideoResolution());
     position = 100.0 - (res.iSubtitles - res.Overscan.top) * 100 / res.iHeight;
   }
   else

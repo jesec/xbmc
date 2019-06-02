@@ -1,9 +1,6 @@
-#ifndef BITSTREAM_STATS__H__
-#define BITSTREAM_STATS__H__
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include <string>
 #ifdef TARGET_POSIX
 #include "platform/linux/PlatformDefs.h"
@@ -28,14 +27,13 @@
 #include <stdint.h>
 #endif
 
-class BitstreamStats
+class BitstreamStats final
 {
 public:
   // in order not to cause a performance hit, we should only check the clock when
   // we reach m_nEstimatedBitrate bits.
   // if this value is 1, we will calculate bitrate on every sample.
   explicit BitstreamStats(unsigned int nEstimatedBitrate=(10240*8) /*10Kbit*/);
-  virtual ~BitstreamStats();
 
   void AddSampleBytes(unsigned int nBytes);
   void AddSampleBits(unsigned int nBits);
@@ -56,6 +54,4 @@ private:
   int64_t m_tmStart;
   static int64_t m_tmFreq;
 };
-
-#endif
 

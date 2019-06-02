@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -68,7 +68,7 @@ VECSOURCES& CGUIViewStateWindowPrograms::GetSources()
     CMediaSource source;
     source.strPath = "androidapp://sources/apps/";
     source.strName = g_localizeStrings.Get(20244);
-    if (g_TextureManager.HasTexture("DefaultProgram.png"))
+    if (CServiceBroker::GetGUI()->GetTextureManager().HasTexture("DefaultProgram.png"))
       source.m_strThumbnailImage = "DefaultProgram.png";
     source.m_iDriveType = CMediaSource::SOURCE_TYPE_LOCAL;
     source.m_ignore = true;

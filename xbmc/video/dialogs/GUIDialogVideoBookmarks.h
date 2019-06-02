@@ -1,8 +1,6 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include "guilib/GUIDialog.h"
 #include "view/GUIViewControl.h"
@@ -41,16 +41,16 @@ public:
 
   /*!
    \brief Creates a bookmark of the currently playing video file.
-   
+
           NOTE: sends a GUI_MSG_REFRESH_LIST message to DialogVideoBookmark on success
    \return True if creation of bookmark was succesful
    \sa OnAddEpisodeBookmark
    */
   static bool OnAddBookmark();
-  
+
   /*!
    \brief Creates an episode bookmark of the currently playing file
-   
+
           An episode bookmark specifies the end/beginning of episodes on files like: S01E01E02
           Fails if the current video isn't a multi-episode file
           NOTE: sends a GUI_MSG_REFRESH_LIST message to DialogVideoBookmark on success
@@ -58,8 +58,8 @@ public:
    \sa OnAddBookmark
    **/
   static bool OnAddEpisodeBookmark();
-  
-  
+
+
   void Update();
 protected:
   void GotoBookmark(int iItem);

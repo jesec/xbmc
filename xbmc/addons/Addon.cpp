@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -35,7 +35,6 @@
 #include "RepositoryUpdater.h"
 #include "settings/Settings.h"
 #include "ServiceBroker.h"
-#include "system.h"
 #include "URL.h"
 #include "Util.h"
 #include "utils/log.h"
@@ -50,12 +49,6 @@
 
 #ifdef HAS_PYTHON
 #include "interfaces/python/XBPython.h"
-#endif
-#if defined(TARGET_DARWIN)
-#include "../platform/darwin/OSXGNUReplacements.h"
-#endif
-#ifdef TARGET_FREEBSD
-#include "freebsd/FreeBSDGNUReplacements.h"
 #endif
 
 using XFILE::CDirectory;
@@ -205,7 +198,7 @@ void CAddon::SaveSettings(void)
     doc.SaveFile(m_userSettingsPath);
 
   m_hasUserSettings = true;
-  
+
   //push the settings changes to the running addon instance
   CServiceBroker::GetAddonMgr().ReloadSettings(ID());
 #ifdef HAS_PYTHON
@@ -390,10 +383,11 @@ std::string CAddon::LibPath() const
 
 AddonVersion CAddon::GetDependencyVersion(const std::string &dependencyID) const
 {
-  const ADDON::ADDONDEPS &deps = GetDeps();
-  ADDONDEPS::const_iterator it = deps.find(dependencyID);
+  const auto& deps = GetDependencies();
+  auto it = std::find_if(deps.begin(), deps.end(), [&](const DependencyInfo& other) { return other.id == dependencyID; });
+
   if (it != deps.end())
-    return it->second.first;
+    return it->requiredVersion;
   return AddonVersion("0.0.0");
 }
 

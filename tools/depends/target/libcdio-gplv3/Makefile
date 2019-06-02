@@ -1,5 +1,5 @@
 include ../../Makefile.include
-DEPS= ../../Makefile.include Makefile osx.patch
+DEPS= ../../Makefile.include Makefile osx.patch osx2.patch
 
 # lib name, version
 LIBNAME=libcdio
@@ -13,8 +13,6 @@ CONFIGURE=cp -f $(CONFIG_SUB) $(CONFIG_GUESS) .; \
           --disable-cpp-progs --disable-cxx --disable-shared
 
 LIBDYLIB=$(PLATFORM)/lib/driver/.libs/$(LIBNAME).a
-
-CLEAN_FILES=$(ARCHIVE) $(PLATFORM)
 
 all: .installed-$(PLATFORM)
 

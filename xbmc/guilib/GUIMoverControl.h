@@ -1,16 +1,6 @@
-/*!
-\file GUIMoverControl.h
-\brief
-*/
-
-#ifndef GUILIB_GUIMoverCONTROL_H
-#define GUILIB_GUIMoverCONTROL_H
-
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,6 +17,13 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
+
+/*!
+\file GUIMoverControl.h
+\brief
+*/
 
 #include "GUITexture.h"
 #include "GUIControl.h"
@@ -91,4 +88,4 @@ protected:
   int m_iX1, m_iX2, m_iY1, m_iY2;
   int m_iLocationX, m_iLocationY;
 };
-#endif
+

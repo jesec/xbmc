@@ -22,14 +22,6 @@
 #error DSPlayer's header file included without HAS_DS_PLAYER defined
 #endif
 
-
-//Include platform specific datatypes, header files, defines and constants:
-#define WIN32_LEAN_AND_MEAN             // Enable LEAN_AND_MEAN support
-#pragma warning(disable:4005)           // Disable "warning C4005: '_WINSOCKAPI_' : macro redefinition"
-#include <winsock2.h>
-#pragma warning(default:4005)
-#include <windows.h>
-
 #ifndef NI_MAXHOST
   #define NI_MAXHOST 1025
 #endif

@@ -17,6 +17,7 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
 #include "cores/RetroPlayer/process/RPProcessInfo.h"
@@ -30,6 +31,8 @@ namespace RETRO
   class CRPProcessInfoIOS : public CRPProcessInfo
   {
   public:
+    CRPProcessInfoIOS();
+
     static CRPProcessInfo* Create();
     static void Register();
   };

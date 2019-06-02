@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2010-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -42,6 +42,39 @@ VideoPicture::~VideoPicture()
   }
 }
 
+void VideoPicture::Reset()
+{
+  if (videoBuffer)
+    videoBuffer->Release();
+  videoBuffer = nullptr;
+  pts = DVD_NOPTS_VALUE;
+  dts = DVD_NOPTS_VALUE;
+  iFlags = 0;
+  iRepeatPicture = 0;
+  iDuration = 0;
+  iFrameType = 0;
+  color_space = AVCOL_SPC_UNSPECIFIED;
+  color_range = 0;
+  chroma_position = 0;
+  color_primaries = 0;
+  color_transfer = 0;
+  colorBits = 8;
+  stereoMode.clear();
+
+  qp_table = nullptr;
+  qstride = 0;
+  qscale_type = 0;
+  pict_type = 0;
+
+  hasDisplayMetadata = false;
+  hasLightMetadata = false;
+
+  iWidth = 0;
+  iHeight = 0;
+  iDisplayWidth = 0;
+  iDisplayHeight = 0;
+}
+
 VideoPicture& VideoPicture::CopyRef(const VideoPicture &pic)
 {
   if (videoBuffer)
@@ -63,77 +96,3 @@ VideoPicture& VideoPicture::SetParams(const VideoPicture &pic)
 
 VideoPicture::VideoPicture(VideoPicture const&) = default;
 VideoPicture& VideoPicture::operator=(VideoPicture const&) = default;
-
-//******************************************************************************
-// VideoCodec
-//******************************************************************************
-bool CDVDVideoCodec::IsSettingVisible(const std::string &condition, const std::string &value, std::shared_ptr<const CSetting> setting, void *data)
-{
-  if (setting == NULL || value.empty())
-    return false;
-
-  const std::string &settingId = setting->GetId();
-
-  if (settingId == CSettings::SETTING_VIDEOPLAYER_USEVDPAU)
-  {
-    auto hwaccels = CDVDFactoryCodec::GetHWAccels();
-    for (auto &id : hwaccels)
-    {
-      if (id == "vdpau")
-        return true;
-    }
-    return false;
-  }
-  else if (settingId == CSettings::SETTING_VIDEOPLAYER_USEVAAPI)
-  {
-    auto hwaccels = CDVDFactoryCodec::GetHWAccels();
-    for (auto &id : hwaccels)
-    {
-      if (id == "vaapi")
-        return true;
-    }
-    return false;
-  }
-
-  // check if we are running on nvidia hardware
-  std::string gpuvendor = CServiceBroker::GetRenderSystem().GetRenderVendor();
-  std::transform(gpuvendor.begin(), gpuvendor.end(), gpuvendor.begin(), ::tolower);
-  bool isNvidia = (gpuvendor.compare(0, 6, "nvidia") == 0);
-  bool isIntel = (gpuvendor.compare(0, 5, "intel") == 0);
-
-  // nvidia does only need mpeg-4 setting
-  if (isNvidia)
-  {
-    if (settingId == CSettings::SETTING_VIDEOPLAYER_USEVDPAUMPEG4)
-      return true;
-
-    return false; // will also hide intel settings on nvidia hardware
-  }
-  else if (isIntel) // intel needs vc1, mpeg-2 and mpeg4 setting
-  {
-    if (settingId == CSettings::SETTING_VIDEOPLAYER_USEVAAPIMPEG4)
-      return true;
-    if (settingId == CSettings::SETTING_VIDEOPLAYER_USEVAAPIVC1)
-      return true;
-    if (settingId == CSettings::SETTING_VIDEOPLAYER_USEVAAPIMPEG2)
-      return true;
-
-    return false; // this will also hide nvidia settings on intel hardware
-  }
-  // if we don't know the hardware we are running on e.g. amd oss vdpau 
-  // or fglrx with xvba-driver we show everything
-  return true;
-}
-
-bool CDVDVideoCodec::IsCodecDisabled(const std::map<AVCodecID, std::string> &map, AVCodecID id)
-{
-  auto codec = map.find(id);
-  if (codec != map.end())
-  {
-    return (!CServiceBroker::GetSettings().GetBool(codec->second) ||
-            !CDVDVideoCodec::IsSettingVisible("unused", "unused",
-                                              CServiceBroker::GetSettings().GetSetting(codec->second),
-                                              NULL));
-  }
-  return false; // don't disable what we don't have
-}

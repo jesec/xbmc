@@ -17,9 +17,10 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
-#include "input/keyboard/interfaces/IKeyboardHandler.h"
+#include "input/keyboard/interfaces/IKeyboardDriverHandler.h"
 #include "input/XBMC_vkeys.h"
 
 #include <vector>
@@ -31,13 +32,13 @@ namespace KEYBOARD
   /*!
    * \brief Hush!!!
    */
-  class CKeyboardEasterEgg : public IKeyboardHandler
+  class CKeyboardEasterEgg : public IKeyboardDriverHandler
   {
   public:
     CKeyboardEasterEgg(void);
     ~CKeyboardEasterEgg() override = default;
 
-    // implementation of IKeyboardHandler
+    // implementation of IKeyboardDriverHandler
     bool OnKeyPress(const CKey& key) override;
     void OnKeyRelease(const CKey& key) override { }
 

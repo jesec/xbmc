@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2011-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,7 +18,7 @@
  *
  */
 
-#include "system.h"
+#pragma once
 
 #if defined(TARGET_DARWIN_OSX)
 
@@ -42,15 +41,15 @@ public:
   CCoreAudioDevice();
   explicit CCoreAudioDevice(AudioDeviceID deviceId);
   virtual ~CCoreAudioDevice();
-  
+
   bool          Open(AudioDeviceID deviceId);
   void          Close();
-  
+
   void          Start();
   void          Stop();
   void          RemoveObjectListenerProc(AudioObjectPropertyListenerProc callback, void *pClientData);
   bool          SetObjectListenerProc(AudioObjectPropertyListenerProc callback, void *pClientData);
-  
+
   AudioDeviceID GetId() {return m_DeviceId;}
   std::string   GetName() const;
   bool          IsDigital() const;
@@ -76,7 +75,7 @@ public:
   UInt32        GetNumLatencyFrames();
   UInt32        GetBufferSize();
   bool          SetBufferSize(UInt32 size);
-    
+
   static void   RegisterDeviceChangedCB(bool bRegister, AudioObjectPropertyListenerProc callback,  void *ref);
   static void   RegisterDefaultOutputDeviceChangedCB(bool bRegister, AudioObjectPropertyListenerProc callback, void *ref);
   // suppresses the default output device changed callback for given time in ms
@@ -91,7 +90,7 @@ protected:
   int               m_MixerRestore;
   AudioDeviceIOProc m_IoProc;
   AudioObjectPropertyListenerProc m_ObjectListenerProc;
-  
+
   Float64           m_SampleRateRestore;
   pid_t             m_HogPid;
   unsigned int      m_frameSize;

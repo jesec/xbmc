@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <map>
 #include <utility>
@@ -42,7 +43,7 @@ public:
   ~CSeekHandler() override;
 
   static void SettingOptionsSeekStepsFiller(std::shared_ptr<const CSetting> setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data);
-  
+
   void OnSettingChanged(std::shared_ptr<const CSetting> setting) override;
   bool OnAction(const CAction &action) override;
 

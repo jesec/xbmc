@@ -1,8 +1,6 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,7 +18,8 @@
  *
  */
 
-#include "system.h"
+#pragma once
+
 #include "cores/VideoPlayer/Process/ProcessInfo.h"
 #include "cores/VideoPlayer/Process/VideoBuffer.h"
 #include "cores/VideoPlayer/Interface/Addon/DemuxPacket.h"
@@ -53,6 +52,7 @@ public:
   ~VideoPicture();
   VideoPicture& CopyRef(const VideoPicture &pic);
   VideoPicture& SetParams(const VideoPicture &pic);
+  void Reset(); // reinitialize members, videoBuffer will be released if set!
 
   CVideoBuffer *videoBuffer = nullptr;
 
@@ -62,12 +62,13 @@ public:
   double iRepeatPicture;
   double iDuration;
   unsigned int iFrameType         : 4;  //< see defines above // 1->I, 2->P, 3->B, 0->Undef
-  unsigned int color_matrix       : 4;
+  unsigned int color_space;
   unsigned int color_range        : 1;  //< 1 indicate if we have a full range of color
   unsigned int chroma_position;
   unsigned int color_primaries;
   unsigned int color_transfer;
-  char stereo_mode[32];
+  unsigned int colorBits = 8;
+  std::string stereoMode;
 
   int8_t* qp_table;                //< Quantization parameters, primarily used by filters
   int qstride;
@@ -121,6 +122,7 @@ public:
   {
     VC_NONE = 0,
     VC_ERROR,           //< an error occured, no other messages will be returned
+    VC_FATAL,           //< non recoverable error
     VC_BUFFER,          //< the decoder needs more data
     VC_PICTURE,         //< the decoder got a picture, call Decode(NULL, 0) again to parse the rest of the data
     VC_FLUSHED,         //< the decoder lost it's state, we need to restart decoding again
@@ -194,16 +196,6 @@ public:
    * calling decode on the next demux packet
    */
   virtual unsigned GetAllowedReferences() { return 0; }
-
-  /**
-   * Hide or Show Settings depending on the currently running hardware
-   */
-  static bool IsSettingVisible(const std::string &condition, const std::string &value, std::shared_ptr<const CSetting> setting, void *data);
-
-  /**
-   * Interact with user settings so that user disabled codecs are disabled
-   */
-  static bool IsCodecDisabled(const std::map<AVCodecID, std::string> &map, AVCodecID id);
 
   /**
    * For calculation of dropping requirements player asks for some information.

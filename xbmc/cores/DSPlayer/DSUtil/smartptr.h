@@ -1,7 +1,8 @@
 #pragma once
 #ifndef _SMARTPTR_H
 #define _SMARTPTR_H
-#include "threads/platform/win/CriticalSection.h"
+#define TARGET_WINDOWS 1
+#include "threads/CriticalSection.h"
 
 
 

@@ -1,7 +1,6 @@
-#pragma once
 /*
 *      Copyright (C) 2005-2014 Team XBMC
-*      http://xbmc.org
+*      http://kodi.tv
 *
 *  This Program is free software; you can redistribute it and/or modify
 *  it under the terms of the GNU General Public License as published by
@@ -19,24 +18,18 @@
 *
 */
 
+#pragma once
+
 #include <map>
 #include <memory>
 #include <string>
 #include <vector>
 
-#if defined(HAS_LIRC)
-#include "platform/linux/input/LIRC.h"
-#endif
-#if defined(HAS_IRSERVERSUITE)
-#include "input/windows/IRServerSuite.h"
-#endif
-
 #include "Action.h"
 #include "windowing/XBMC_events.h"
-#include "input/keyboard/interfaces/IKeyboardInputProvider.h"
 #include "input/mouse/interfaces/IMouseInputProvider.h"
+#include "input/mouse/MouseStat.h"
 #include "input/KeyboardStat.h"
-#include "input/MouseStat.h"
 #include "interfaces/IActionListener.h"
 #include "settings/lib/ISettingCallback.h"
 #include "threads/CriticalSection.h"
@@ -45,25 +38,24 @@
 class CAppParamParser;
 class CButtonTranslator;
 class CCustomControllerTranslator;
-class CIRTranslator;
 class CJoystickMapper;
 class CKey;
+class CProfilesManager;
 class CTouchTranslator;
 class IKeymapEnvironment;
 class IWindowKeymap;
 
 namespace KODI
 {
+
 namespace KEYBOARD
 {
-  class IKeyboardHandler;
+  class IKeyboardDriverHandler;
 }
 
 namespace MOUSE
 {
-  class IMouseButtonMap;
   class IMouseDriverHandler;
-  class IMouseInputHandler;
 }
 }
 
@@ -82,8 +74,6 @@ namespace MOUSE
  */
 class CInputManager : public ISettingCallback,
                       public IActionListener,
-                      public KODI::KEYBOARD::IKeyboardInputProvider,
-                      public KODI::MOUSE::IMouseInputProvider,
                       public Observable
 {
 public:
@@ -91,13 +81,6 @@ public:
   CInputManager(const CInputManager&) = delete;
   CInputManager const& operator=(CInputManager const&) = delete;
   ~CInputManager() override;
-
-  /*! \brief decode an input event from remote controls.
-   *
-   * \param windowId Currently active window
-   * \return true if event is handled, false otherwise
-   */
-  bool ProcessRemote(int windowId);
 
   /*! \brief decode a mouse event and reset idle timers.
    *
@@ -140,7 +123,7 @@ public:
   void Deinitialize();
 
   /*! \brief Handle an input event
-   * 
+   *
    * \param newEvent event details
    * \return true on successfully handled event
    * \sa XBMC_Event
@@ -168,7 +151,7 @@ public:
 
   /*! \brief Check if the mouse is currently active
    *
-   * \return true if active, false otherwise 
+   * \return true if active, false otherwise
    */
   bool IsMouseActive();
 
@@ -192,43 +175,9 @@ public:
    * \param[in] maxY    screen height
    * \param[in] speedX  mouse speed in x dimension
    * \param[in] speedY  mouse speed in y dimension
-   * \return 
+   * \return
    */
   void SetMouseResolution(int maxX, int maxY, float speedX, float speedY);
-
-  /*! \brief Enable the remote control
-   *
-   */
-  void EnableRemoteControl();
-
-  /*! \brief Disable the remote control
-   *
-   */
-  void DisableRemoteControl();
-
-  /*! \brief Try to connect to a remote control to listen for commands
-   *
-   */
-  void InitializeRemoteControl();
-
-  /*! \brief Check if the remote control is enabled
-   *
-   * \return true if remote control is enabled, false otherwise 
-   */
-  bool IsRemoteControlEnabled();
-
-  /*! \brief Check if the remote control is initialized
-   *
-   * \return true if initialized, false otherwise 
-   */
-  bool IsRemoteControlInitialized();
-
-  /*! \brief Set the device name to use with LIRC, does nothing 
-   *   if IRServerSuite is used
-   *
-   * \param[in] name Name of the device to use with LIRC
-   */
-  void SetRemoteControlName(const std::string& name);
 
   /*! \brief Returns whether or not we can handle a given built-in command.
    *
@@ -263,21 +212,16 @@ public:
    */
   CAction GetAction(int window, const CKey &key, bool fallback = true);
 
-  /*! \brief Obtain the global action configured for a given key
-   *
-   * \param key the key to query the action for
-   *
-   * \return the global action
-   */
-  CAction GetGlobalAction(const CKey &key);
-
   bool TranslateCustomControllerString(int windowId, const std::string& controllerName, int buttonId, int& action, std::string& strAction);
 
   bool TranslateTouchAction(int windowId, int touchAction, int touchPointers, int &action, std::string &actionString);
 
   std::vector<std::shared_ptr<const IWindowKeymap>> GetJoystickKeymaps() const;
 
-  int TranslateLircRemoteString(const std::string &szDevice, const std::string &szButton);
+  /*!
+   * \brief Queue an action to be processed on the next call to Process()
+   */
+  void QueueAction(const CAction& action);
 
   // implementation of ISettingCallback
   virtual void OnSettingChanged(std::shared_ptr<const CSetting> setting) override;
@@ -285,13 +229,11 @@ public:
   // implementation of IActionListener
   virtual bool OnAction(const CAction& action) override;
 
-  // implementation of IKeyboardInputProvider
-  virtual void RegisterKeyboardHandler(KODI::KEYBOARD::IKeyboardHandler* handler) override;
-  virtual void UnregisterKeyboardHandler(KODI::KEYBOARD::IKeyboardHandler* handler) override;
+  void RegisterKeyboardDriverHandler(KODI::KEYBOARD::IKeyboardDriverHandler* handler);
+  void UnregisterKeyboardDriverHandler(KODI::KEYBOARD::IKeyboardDriverHandler* handler);
 
-  // implementation of IMouseInputProvider
-  virtual std::string RegisterMouseHandler(KODI::MOUSE::IMouseInputHandler* handler) override;
-  virtual void UnregisterMouseHandler(KODI::MOUSE::IMouseInputHandler* handler) override;
+  virtual void RegisterMouseDriverHandler(KODI::MOUSE::IMouseDriverHandler* handler);
+  virtual void UnregisterMouseDriverHandler(KODI::MOUSE::IMouseDriverHandler* handler);
 
 private:
 
@@ -339,17 +281,9 @@ private:
    */
   void ProcessQueuedActions();
 
-  /*! \brief Queue an action to be processed on the next call to Process()
-   */
-  void QueueAction(const CAction& action);
-
   CKeyboardStat m_Keyboard;
   CMouseStat m_Mouse;
   CKey m_LastKey;
-
-#if defined(HAS_LIRC) || defined(HAS_IRSERVERSUITE)
-  CRemoteControl m_RemoteControl;
-#endif
 
   std::map<std::string, std::map<int, float> > m_lastAxisMap;
 
@@ -359,23 +293,14 @@ private:
   // Button translation
   std::unique_ptr<IKeymapEnvironment> m_keymapEnvironment;
   std::unique_ptr<CButtonTranslator> m_buttonTranslator;
-  std::unique_ptr<CIRTranslator> m_irTranslator;
   std::unique_ptr<CCustomControllerTranslator> m_customControllerTranslator;
   std::unique_ptr<CTouchTranslator> m_touchTranslator;
   std::unique_ptr<CJoystickMapper> m_joystickTranslator;
 
-  std::vector<KODI::KEYBOARD::IKeyboardHandler*> m_keyboardHandlers;
+  std::vector<KODI::KEYBOARD::IKeyboardDriverHandler*> m_keyboardHandlers;
+  std::vector<KODI::MOUSE::IMouseDriverHandler*> m_mouseHandlers;
 
-  struct MouseHandlerHandle
-  {
-    KODI::MOUSE::IMouseInputHandler*                  inputHandler;
-    std::unique_ptr<KODI::MOUSE::IMouseDriverHandler> driverHandler;
-  };
-
-  std::vector<MouseHandlerHandle> m_mouseHandlers;
-  std::unique_ptr<KODI::MOUSE::IMouseButtonMap> m_mouseButtonMap;
-
-  std::unique_ptr<KODI::KEYBOARD::IKeyboardHandler> m_keyboardEasterEgg;
+  std::unique_ptr<KODI::KEYBOARD::IKeyboardDriverHandler> m_keyboardEasterEgg;
 };
 
 /// \}

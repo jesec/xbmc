@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,6 @@
  *
  */
 
-#include "system.h"
 #include "GUITextureGL.h"
 #include "ServiceBroker.h"
 #include "Texture.h"
@@ -34,10 +33,10 @@ CGUITextureGL::CGUITextureGL(float posX, float posY, float width, float height, 
 : CGUITextureBase(posX, posY, width, height, texture)
 {
   memset(m_col, 0, sizeof(m_col));
-  m_renderSystem = dynamic_cast<CRenderSystemGL*>(&CServiceBroker::GetRenderSystem());
+  m_renderSystem = dynamic_cast<CRenderSystemGL*>(CServiceBroker::GetRenderSystem());
 }
 
-void CGUITextureGL::Begin(color_t color)
+void CGUITextureGL::Begin(UTILS::Color color)
 {
   CBaseTexture* texture = m_texture.m_textures[m_currentFrame];
   texture->LoadToGPU();
@@ -51,13 +50,6 @@ void CGUITextureGL::Begin(color_t color)
   m_col[1] = (GLubyte)GET_G(color);
   m_col[2] = (GLubyte)GET_B(color);
   m_col[3] = (GLubyte)GET_A(color);
-
-  if (CServiceBroker::GetWinSystem().UseLimitedColor())
-  {
-    m_col[0] = (235 - 16) * m_col[0] / 255 + 16.0f / 255.0f;
-    m_col[1] = (235 - 16) * m_col[1] / 255 + 16.0f / 255.0f;
-    m_col[2] = (235 - 16) * m_col[2] / 255 + 16.0f / 255.0f;
-  }
 
   bool hasAlpha = m_texture.m_textures[m_currentFrame]->HasAlpha() || m_col[3] < 255;
 
@@ -250,9 +242,9 @@ void CGUITextureGL::Draw(float *x, float *y, float *z, const CRect &texture, con
   }
 }
 
-void CGUITextureGL::DrawQuad(const CRect &rect, color_t color, CBaseTexture *texture, const CRect *texCoords)
+void CGUITextureGL::DrawQuad(const CRect &rect, UTILS::Color color, CBaseTexture *texture, const CRect *texCoords)
 {
-  CRenderSystemGL *renderSystem = dynamic_cast<CRenderSystemGL*>(&CServiceBroker::GetRenderSystem());
+  CRenderSystemGL *renderSystem = dynamic_cast<CRenderSystemGL*>(CServiceBroker::GetRenderSystem());
   if (texture)
   {
     texture->LoadToGPU();
@@ -337,7 +329,7 @@ void CGUITextureGL::DrawQuad(const CRect &rect, color_t color, CBaseTexture *tex
   glGenBuffers(1, &indexVBO);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexVBO);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLubyte)*4, idx, GL_STATIC_DRAW);
-  
+
   glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_BYTE, 0);
 
   glDisableVertexAttribArray(posLoc);

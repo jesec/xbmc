@@ -3,12 +3,11 @@ DEPS=Makefile
 
 # lib name, version
 LIBNAME=waylandpp
-VERSION=0.2.2
+VERSION=0.2.3
 SOURCE=$(LIBNAME)-$(VERSION)
 ARCHIVE=$(SOURCE).tar.gz
 
 LIBDYLIB=$(PLATFORM)/src/libwayland-client++.so
-CLEAN_FILES=$(ARCHIVE) $(PLATFORM)
 
 ifeq ($(PLATFORM),)
 	# Building stand-alone

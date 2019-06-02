@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,15 +20,16 @@
 
 #pragma once
 
-#include "system.h"
 #include "system_gl.h"
 #include "GLShader.h"
 #include "rendering/RenderSystem.h"
+#include "utils/Color.h"
 
 enum ESHADERMETHOD
 {
   SM_DEFAULT = 0,
   SM_TEXTURE,
+  SM_TEXTURE_LIM,
   SM_MULTI,
   SM_FONTS,
   SM_TEXTURE_NOBLEND,
@@ -41,7 +42,6 @@ class CRenderSystemGL : public CRenderSystemBase
 public:
   CRenderSystemGL();
   ~CRenderSystemGL() override;
-  void CheckOpenGLQuirks();
   bool InitRenderSystem() override;
   bool DestroyRenderSystem() override;
   bool ResetRenderSystem(int width, int height) override;
@@ -49,8 +49,8 @@ public:
   bool BeginRender() override;
   bool EndRender() override;
   void PresentRender(bool rendered, bool videoLayer) override;
-  bool ClearBuffers(color_t color) override;
-  bool IsExtSupported(const char* extension) override;
+  bool ClearBuffers(UTILS::Color color) override;
+  bool IsExtSupported(const char* extension) const override;
 
   void SetVSync(bool vsync);
   void ResetVSync() { m_bVsyncInit = false; }
@@ -68,12 +68,9 @@ public:
 
   void SetCameraPosition(const CPoint &camera, int screenWidth, int screenHeight, float stereoFactor = 0.0f) override;
 
-  void ApplyHardwareTransform(const TransformMatrix &matrix) override;
-  void RestoreHardwareTransform() override;
   void SetStereoMode(RENDER_STEREO_MODE mode, RENDER_STEREO_VIEW view) override;
   bool SupportsStereo(RENDER_STEREO_MODE mode) const override;
-
-  bool TestRender() override;
+  bool SupportsNPOT(bool dxt) const override;
 
   void Project(float &x, float &y, float &z) override;
 
@@ -98,17 +95,19 @@ protected:
   virtual void SetVSyncImpl(bool enable) = 0;
   virtual void PresentRenderImpl(bool rendered) = 0;
   void CalculateMaxTexturesize();
-  void InitialiseShader();
+  void InitialiseShaders();
+  void ReleaseShaders();
 
   bool m_bVsyncInit = false;
   int m_width;
   int m_height;
+  bool m_supportsNPOT = true;
 
   std::string m_RenderExtensions;
 
   int m_glslMajor = 0;
   int m_glslMinor = 0;
-  
+
   GLint m_viewPort[4];
 
   std::unique_ptr<CGLShader*[]> m_pShader;

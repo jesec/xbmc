@@ -17,9 +17,9 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
-#include "cores/IPlayer.h"
 #include "../RPProcessInfo.h"
 
 namespace KODI
@@ -29,6 +29,8 @@ namespace RETRO
   class CRPProcessInfoWin : public CRPProcessInfo
   {
   public:
+    CRPProcessInfoWin();
+
     static CRPProcessInfo* Create();
     static void Register();
   };

@@ -22,6 +22,7 @@
 
 #include <utility>
 
+#include "EventScanner.h"
 #include "addons/PeripheralAddon.h"
 #include "addons/AddonButtonMap.h"
 #include "addons/AddonManager.h"
@@ -30,7 +31,7 @@
 #include "bus/PeripheralBus.h"
 #include "bus/PeripheralBusUSB.h"
 #if defined(TARGET_ANDROID)
-#include "bus/android/PeripheralBusAndroid.h"
+#include "platform/android/peripherals/PeripheralBusAndroid.h"
 #endif
 #include "bus/virtual/PeripheralBusAddon.h"
 #include "devices/PeripheralBluetooth.h"
@@ -39,7 +40,8 @@
 #include "devices/PeripheralHID.h"
 #include "devices/PeripheralImon.h"
 #include "devices/PeripheralJoystick.h"
-#include "devices/PeripheralJoystickEmulation.h"
+#include "devices/PeripheralKeyboard.h"
+#include "devices/PeripheralMouse.h"
 #include "devices/PeripheralNIC.h"
 #include "devices/PeripheralNyxboard.h"
 #include "devices/PeripheralTuner.h"
@@ -49,6 +51,7 @@
 #include "input/joysticks/interfaces/IButtonMapper.h"
 #include "interfaces/AnnouncementManager.h"
 #include "filesystem/Directory.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
 #include "guilib/WindowIDs.h"
@@ -83,7 +86,7 @@ CPeripherals::CPeripherals(ANNOUNCEMENT::CAnnouncementManager &announcements,
   m_announcements(announcements),
   m_inputManager(inputManager),
   m_controllerProfiles(controllerProfiles),
-  m_eventScanner(this)
+  m_eventScanner(new CEventScanner(*this))
 {
   // Register settings
   std::set<std::string> settingSet;
@@ -105,6 +108,8 @@ CPeripherals::~CPeripherals()
 
 void CPeripherals::Initialise()
 {
+  Clear();
+
 #if !defined(TARGET_DARWIN_IOS)
   CDirectory::Create("special://profile/peripheral_data");
 
@@ -134,7 +139,7 @@ void CPeripherals::Initialise()
   for (auto& bus : busses)
     bus->Initialise();
 
-  m_eventScanner.Start();
+  m_eventScanner->Start();
 
   MESSAGING::CApplicationMessenger::GetInstance().RegisterReceiver(this);
   m_announcements.AddAnnouncer(this);
@@ -145,7 +150,7 @@ void CPeripherals::Clear()
 {
   m_announcements.RemoveAnnouncer(this);
 
-  m_eventScanner.Stop();
+  m_eventScanner->Stop();
 
   // avoid deadlocks by copying all busses into a temporary variable and destroying them from there
   std::vector<PeripheralBusPtr> busses;
@@ -354,8 +359,12 @@ void CPeripherals::CreatePeripheral(CPeripheralBus &bus, const PeripheralScanRes
     peripheral = PeripheralPtr(new CPeripheralJoystick(*this, mappedResult, &bus));
     break;
 
-  case PERIPHERAL_JOYSTICK_EMULATION:
-    peripheral = PeripheralPtr(new CPeripheralJoystickEmulation(*this, mappedResult, &bus));
+  case PERIPHERAL_KEYBOARD:
+    peripheral = PeripheralPtr(new CPeripheralKeyboard(*this, mappedResult, &bus));
+    break;
+
+  case PERIPHERAL_MOUSE:
+    peripheral = PeripheralPtr(new CPeripheralMouse(*this, mappedResult, &bus));
     break;
 
   default:
@@ -387,10 +396,6 @@ void CPeripherals::OnDeviceAdded(const CPeripheralBus &bus, const CPeripheral &p
   if (!bus.IsInitialised())
     bNotify = false;
 
-  // don't show a notification for emulated peripherals
-  if (peripheral.Type() == PERIPHERAL_JOYSTICK_EMULATION) //! @todo Change to peripheral.IsEmulated()
-    bNotify = false;
-
   if (bNotify)
     CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Info, g_localizeStrings.Get(35005), peripheral.DeviceName());
 #endif
@@ -404,10 +409,6 @@ void CPeripherals::OnDeviceDeleted(const CPeripheralBus &bus, const CPeripheral 
 #if 0
   bool bNotify = true;
 
-  // don't show a notification for emulated peripherals
-  if (peripheral.Type() == PERIPHERAL_JOYSTICK_EMULATION) //! @todo Change to peripheral.IsEmulated()
-    bNotify = false;
-
   if (bNotify)
     CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Info, g_localizeStrings.Get(35006), peripheral.DeviceName());
 #endif
@@ -417,7 +418,7 @@ void CPeripherals::OnDeviceChanged()
 {
   // refresh settings (peripherals manager could be enabled/disabled now)
   CGUIMessage msgSettings(GUI_MSG_UPDATE, WINDOW_SETTINGS_SYSTEM, 0);
-  g_windowManager.SendThreadMessage(msgSettings, WINDOW_SETTINGS_SYSTEM);
+  CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msgSettings, WINDOW_SETTINGS_SYSTEM);
 
   SetChanged();
 }
@@ -777,6 +778,16 @@ bool CPeripherals::GetNextKeypress(float frameTime, CKey &key)
   return false;
 }
 
+EventPollHandlePtr CPeripherals::RegisterEventPoller()
+{
+  return m_eventScanner->RegisterPollHandle();
+}
+
+EventLockHandlePtr CPeripherals::RegisterEventLock()
+{
+  return m_eventScanner->RegisterLock();
+}
+
 void CPeripherals::OnUserNotification()
 {
   if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_INPUT_RUMBLENOTIFY))
@@ -877,27 +888,11 @@ void CPeripherals::RegisterJoystickButtonMapper(IButtonMapper* mapper)
 {
   PeripheralVector peripherals;
   GetPeripheralsWithFeature(peripherals, FEATURE_JOYSTICK);
+  GetPeripheralsWithFeature(peripherals, FEATURE_KEYBOARD);
+  GetPeripheralsWithFeature(peripherals, FEATURE_MOUSE);
 
   for (auto& peripheral : peripherals)
-  {
-    if (mapper->Emulation())
-    {
-      if (peripheral->Type() != PERIPHERAL_JOYSTICK_EMULATION)
-        continue;
-
-      unsigned int controllerNumber = std::static_pointer_cast<CPeripheralJoystickEmulation>(peripheral)->ControllerNumber();
-
-      if (mapper->ControllerNumber() != controllerNumber)
-        continue;
-    }
-    else
-    {
-      if (peripheral->Type() != PERIPHERAL_JOYSTICK)
-        continue;
-    }
-
     peripheral->RegisterJoystickButtonMapper(mapper);
-  }
 }
 
 void CPeripherals::UnregisterJoystickButtonMapper(IButtonMapper* mapper)
@@ -906,6 +901,8 @@ void CPeripherals::UnregisterJoystickButtonMapper(IButtonMapper* mapper)
 
   PeripheralVector peripherals;
   GetPeripheralsWithFeature(peripherals, FEATURE_JOYSTICK);
+  GetPeripheralsWithFeature(peripherals, FEATURE_KEYBOARD);
+  GetPeripheralsWithFeature(peripherals, FEATURE_MOUSE);
 
   for (auto& peripheral : peripherals)
     peripheral->UnregisterJoystickButtonMapper(mapper);
@@ -938,7 +935,7 @@ void CPeripherals::OnSettingAction(std::shared_ptr<const CSetting> setting)
   if (settingId == CSettings::SETTING_INPUT_PERIPHERALS)
     CGUIDialogPeripherals::Show(*this);
   else if (settingId == CSettings::SETTING_INPUT_CONTROLLERCONFIG)
-    g_windowManager.ActivateWindow(WINDOW_DIALOG_GAME_CONTROLLERS);
+    CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(WINDOW_DIALOG_GAME_CONTROLLERS);
   else if (settingId == CSettings::SETTING_INPUT_TESTRUMBLE)
     TestFeature(FEATURE_RUMBLE);
   else if (settingId == CSettings::SETTING_INPUT_PERIPHERALLIBRARIES)

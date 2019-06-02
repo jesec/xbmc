@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2012-2017 Team Kodi
  *      http://kodi.tv
@@ -19,14 +18,23 @@
  *
  */
 
+#pragma once
+
 #include "addons/AddonInfo.h"
 #include "addons/AddonEvents.h"
 #include "settings/AdvancedSettings.h"
 
+namespace ADDON
+{
+  class CAddonMgr;
+  class CBinaryAddonManager;
+}
+
 class CFileExtensionProvider
 {
 public:
-  CFileExtensionProvider();
+  CFileExtensionProvider(ADDON::CAddonMgr &addonManager,
+                         ADDON::CBinaryAddonManager &binaryAddonManager);
   ~CFileExtensionProvider();
 
   /*!
@@ -67,6 +75,11 @@ private:
 
   void OnAddonEvent(const ADDON::AddonEvent& event);
 
+  // Construction properties
+  ADDON::CAddonMgr &m_addonManager;
+  ADDON::CBinaryAddonManager &m_binaryAddonManager;
+
+  // File extension properties
   std::map<ADDON::TYPE, std::string> m_addonExtensions;
   std::shared_ptr<CAdvancedSettings> m_advancedSettings;
   std::map<ADDON::TYPE, std::string> m_addonFileFolderExtensions;

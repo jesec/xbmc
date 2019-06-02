@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -240,7 +240,7 @@ void CPVRChannelGroup::SearchAndSetChannelIcons(bool bUpdateDb /* = false */)
 
   /* fetch files in icon path for fast lookup */
   CFileItemList fileItemList;
-  XFILE::CDirectory::GetDirectory(iconPath, fileItemList, ".jpg|.png|.tbn");
+  XFILE::CDirectory::GetDirectory(iconPath, fileItemList, ".jpg|.png|.tbn", XFILE::DIR_FLAG_DEFAULTS);
 
   if (fileItemList.IsEmpty())
     return;
@@ -554,6 +554,13 @@ int CPVRChannelGroup::GetMembers(CFileItemList &results, bool bGroupMembers /* =
   return results.Size() - iOrigSize;
 }
 
+void CPVRChannelGroup::GetChannelNumbers(std::vector<std::string>& channelNumbers) const
+{
+  CSingleLock lock(m_critSection);
+  for (const auto& member : m_sortedMembers)
+    channelNumbers.emplace_back(member.channelNumber.FormattedChannelNumber());
+}
+
 CPVRChannelGroupPtr CPVRChannelGroup::GetNextGroup(void) const
 {
   return CServiceBroker::GetPVRManager().ChannelGroups()->Get(m_bRadio)->GetNextGroup(*this);
@@ -685,7 +692,7 @@ bool CPVRChannelGroup::RemoveDeletedChannels(const CPVRChannelGroup &channels)
 
       if (possiblyRemovedGroup != m_sortedMembers.end())
         m_sortedMembers.erase(possiblyRemovedGroup);
-      
+
       //We have to start over from the beginning, list can have been modified and
       //resorted, there's no safe way to continue where we left of
       it = m_sortedMembers.begin();

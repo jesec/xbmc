@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2015 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -28,102 +28,33 @@
 #include "cores/AudioEngine/Interfaces/AE.h"
 #include "dialogs/GUIDialogBusy.h"
 #include "dialogs/GUIDialogKaiToast.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
 #include "interfaces/AnnouncementManager.h"
 #include "interfaces/builtins/Builtins.h"
 #include "network/Network.h"
 #include "pvr/PVRManager.h"
+#include "ServiceBroker.h"
 #include "settings/lib/Setting.h"
 #include "settings/Settings.h"
-#include "system.h"
 #include "utils/log.h"
 #include "weather/WeatherManager.h"
 #include "windowing/WinSystem.h"
 
-#if defined(TARGET_DARWIN)
-#include "osx/CocoaPowerSyscall.h"
-#elif defined(TARGET_ANDROID)
-#include "android/AndroidPowerSyscall.h"
-#elif defined(TARGET_POSIX)
-#include "linux/FallbackPowerSyscall.h"
-#if defined(HAS_DBUS)
-#include "linux/ConsoleUPowerSyscall.h"
-#include "linux/LogindUPowerSyscall.h"
-#include "linux/UPowerSyscall.h"
-#endif // HAS_DBUS
-#elif defined(TARGET_WINDOWS_DESKTOP)
-#include "powermanagement/windows/Win32PowerSyscall.h"
+#if defined(TARGET_WINDOWS_DESKTOP)
 extern HWND g_hWnd;
-#elif defined(TARGET_WINDOWS_STORE)
-#include "powermanagement/win10/Win10PowerSyscall.h"
 #endif
 
 using namespace ANNOUNCEMENT;
 
-CPowerManager::CPowerManager()
-{
-  m_instance = NULL;
-}
+CPowerManager::CPowerManager() = default;
 
-CPowerManager::~CPowerManager()
-{
-  delete m_instance;
-}
+CPowerManager::~CPowerManager() = default;
 
 void CPowerManager::Initialize()
 {
-  SAFE_DELETE(m_instance);
-
-#if defined(TARGET_DARWIN)
-  m_instance = new CCocoaPowerSyscall();
-#elif defined(TARGET_ANDROID)
-  m_instance = new CAndroidPowerSyscall();
-#elif defined(TARGET_POSIX)
-#if defined(HAS_DBUS)
-  std::unique_ptr<IPowerSyscall> bestPowerManager;
-  std::unique_ptr<IPowerSyscall> currPowerManager;
-  int bestCount = -1;
-  int currCount = -1;
-
-  std::list< std::pair< std::function<bool()>,
-                        std::function<IPowerSyscall*()> > > powerManagers =
-  {
-    std::make_pair(CConsoleUPowerSyscall::HasConsoleKitAndUPower,
-                   [] { return new CConsoleUPowerSyscall(); }),
-    std::make_pair(CLogindUPowerSyscall::HasLogind,
-                   [] { return new CLogindUPowerSyscall(); }),
-    std::make_pair(CUPowerSyscall::HasUPower,
-                   [] { return new CUPowerSyscall(); })
-  };
-  for(const auto& powerManager : powerManagers)
-  {
-    if (powerManager.first())
-    {
-      currPowerManager.reset(powerManager.second());
-      currCount = currPowerManager->CountPowerFeatures();
-      if (currCount > bestCount)
-      {
-        bestCount = currCount;
-        bestPowerManager = std::move(currPowerManager);
-      }
-      if (bestCount == IPowerSyscall::MAX_COUNT_POWER_FEATURES)
-        break;
-    }
-  }
-  if (bestPowerManager)
-    m_instance = bestPowerManager.release();
-  else
-#endif // HAS_DBUS
-    m_instance = new CFallbackPowerSyscall();
-#elif defined(TARGET_WINDOWS_DESKTOP)
-  m_instance = new CWin32PowerSyscall();
-#elif defined(TARGET_WINDOWS_STORE)
-  m_instance = new CPowerSyscall();
-#endif
-
-  if (m_instance == NULL)
-    m_instance = new CNullPowerSyscall();
+  m_instance.reset(IPowerSyscall::CreateInstance());
 }
 
 void CPowerManager::SetDefaults()
@@ -174,7 +105,7 @@ bool CPowerManager::Powerdown()
 {
   if (CanPowerdown() && m_instance->Powerdown())
   {
-    CGUIDialogBusy* dialog = g_windowManager.GetWindow<CGUIDialogBusy>(WINDOW_DIALOG_BUSY);
+    CGUIDialogBusy* dialog = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogBusy>(WINDOW_DIALOG_BUSY);
     if (dialog)
       dialog->Open();
 
@@ -202,7 +133,7 @@ bool CPowerManager::Reboot()
   {
     CAnnouncementManager::GetInstance().Announce(System, "xbmc", "OnRestart");
 
-    CGUIDialogBusy* dialog = g_windowManager.GetWindow<CGUIDialogBusy>(WINDOW_DIALOG_BUSY);
+    CGUIDialogBusy* dialog = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogBusy>(WINDOW_DIALOG_BUSY);
     if (dialog)
       dialog->Open();
   }
@@ -232,6 +163,9 @@ int CPowerManager::BatteryLevel()
 }
 void CPowerManager::ProcessEvents()
 {
+  if (!m_instance)
+    return;
+
   static int nesting = 0;
 
   if (++nesting == 1)
@@ -244,17 +178,11 @@ void CPowerManager::OnSleep()
 {
   CAnnouncementManager::GetInstance().Announce(System, "xbmc", "OnSleep");
 
-  CGUIDialogBusy* dialog = g_windowManager.GetWindow<CGUIDialogBusy>(WINDOW_DIALOG_BUSY);
+  CGUIDialogBusy* dialog = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogBusy>(WINDOW_DIALOG_BUSY);
   if (dialog)
     dialog->Open();
 
   CLog::Log(LOGNOTICE, "%s: Running sleep jobs", __FUNCTION__);
-
-  // stop lirc
-#if defined(HAS_LIRC) || defined(HAS_IRSERVERSUITE)
-  CLog::Log(LOGNOTICE, "%s: Stopping lirc", __FUNCTION__);
-  CBuiltins::GetInstance().Execute("LIRC.Stop");
-#endif
 
   CServiceBroker::GetPVRManager().OnSleep();
   StorePlayerState();
@@ -262,7 +190,7 @@ void CPowerManager::OnSleep()
   g_application.StopShutdownTimer();
   g_application.StopScreenSaverTimer();
   g_application.CloseNetworkShares();
-  CServiceBroker::GetActiveAE().Suspend();
+  CServiceBroker::GetActiveAE()->Suspend();
 }
 
 void CPowerManager::OnWake()
@@ -274,28 +202,22 @@ void CPowerManager::OnWake()
   // reset out timers
   g_application.ResetShutdownTimers();
 
-  CGUIDialogBusy* dialog = g_windowManager.GetWindow<CGUIDialogBusy>(WINDOW_DIALOG_BUSY);
+  CGUIDialogBusy* dialog = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogBusy>(WINDOW_DIALOG_BUSY);
   if (dialog)
     dialog->Close(true); // force close. no closing animation, sound etc at this early stage
 
 #if defined(HAS_SDL) || defined(TARGET_WINDOWS)
-  if (CServiceBroker::GetWinSystem().IsFullScreen())
+  if (CServiceBroker::GetWinSystem()->IsFullScreen())
   {
 #if defined(TARGET_WINDOWS_DESKTOP)
-    ShowWindow(g_hWnd,SW_RESTORE);
+    ShowWindow(g_hWnd, SW_RESTORE);
     SetForegroundWindow(g_hWnd);
 #endif
   }
   g_application.ResetScreenSaver();
 #endif
 
-  // restart lirc
-#if defined(HAS_LIRC) || defined(HAS_IRSERVERSUITE)
-  CLog::Log(LOGNOTICE, "%s: Restarting lirc", __FUNCTION__);
-  CBuiltins::GetInstance().Execute("LIRC.Start");
-#endif
-
-  CServiceBroker::GetActiveAE().Resume();
+  CServiceBroker::GetActiveAE()->Resume();
   g_application.UpdateLibraries();
   CServiceBroker::GetWeatherManager().Refresh();
   CServiceBroker::GetPVRManager().OnWake();

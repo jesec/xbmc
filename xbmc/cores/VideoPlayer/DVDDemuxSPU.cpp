@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -376,7 +376,7 @@ CDVDOverlaySpu* CDVDDemuxSPU::ParseRLE(CDVDOverlaySpu* pSPU, uint8_t* pUnparsedD
   /* The subtitles are interlaced, we need two offsets */
   unsigned int i_id = 0;                   /* Start on the even SPU layer */
   unsigned int pi_table[2];
-  
+
   /* Colormap statistics */
   int i_border = -1;
   int stats[4]; stats[0] = stats[1] = stats[2] = stats[3] = 0;

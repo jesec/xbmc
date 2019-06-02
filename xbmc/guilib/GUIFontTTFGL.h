@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -24,7 +24,6 @@
 #include <vector>
 
 #include "GUIFontTTF.h"
-#include "system.h"
 #include "system_gl.h"
 
 class CGUIFontTTFGL : public CGUIFontTTFBase
@@ -51,7 +50,7 @@ protected:
 private:
   unsigned int m_updateY1;
   unsigned int m_updateY2;
-  
+
   enum TextureStatus
   {
     TEXTURE_VOID = 0,
@@ -59,7 +58,7 @@ private:
     TEXTURE_REALLOCATED,
     TEXTURE_UPDATED,
   };
-  
+
   TextureStatus m_textureStatus;
 
   static bool m_staticVertexBufferCreated;

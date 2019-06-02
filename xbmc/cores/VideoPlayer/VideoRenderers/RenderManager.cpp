@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,12 +18,11 @@
  *
  */
 
-#include "system.h"
 #include "RenderManager.h"
 #include "RenderFlags.h"
 #include "RenderFactory.h"
 #include "cores/VideoPlayer/Interface/Addon/TimingConstants.h"
-#include "guilib/GraphicContext.h"
+#include "windowing/GraphicContext.h"
 #include "utils/MathUtils.h"
 #include "threads/SingleLock.h"
 #include "utils/log.h"
@@ -97,7 +96,7 @@ void CRenderManager::SetVideoSettings(CVideoSettings settings)
   }
 }
 
-bool CRenderManager::Configure(const VideoPicture& picture, float fps, unsigned flags, unsigned int orientation, int buffers)
+bool CRenderManager::Configure(const VideoPicture& picture, float fps, unsigned int orientation, int buffers)
 {
 
   // check if something has changed
@@ -109,8 +108,8 @@ bool CRenderManager::Configure(const VideoPicture& picture, float fps, unsigned 
         m_dwidth == picture.iDisplayWidth &&
         m_dheight == picture.iDisplayHeight &&
         m_fps == fps &&
-        (m_flags & ~CONF_FLAGS_FULLSCREEN) == (flags & ~CONF_FLAGS_FULLSCREEN) &&
         m_orientation == orientation &&
+        m_stereomode == picture.stereoMode &&
         m_NumberBuffers == buffers &&
         m_pRenderer != nullptr &&
         !m_pRenderer->ConfigChanged(picture))
@@ -146,8 +145,8 @@ bool CRenderManager::Configure(const VideoPicture& picture, float fps, unsigned 
     m_dwidth = picture.iDisplayWidth;
     m_dheight = picture.iDisplayHeight;
     m_fps = fps;
-    m_flags = flags;
     m_orientation = orientation;
+    m_stereomode = picture.stereoMode;
     m_NumberBuffers  = buffers;
     m_renderState = STATE_CONFIGURING;
     m_stateEvent.Reset();
@@ -198,7 +197,7 @@ bool CRenderManager::Configure()
   }
 
   m_pRenderer->SetVideoSettings(m_playerPort->GetVideoSettings());
-  bool result = m_pRenderer->Configure(*m_pConfigPicture, m_fps, m_flags, m_orientation);
+  bool result = m_pRenderer->Configure(*m_pConfigPicture, m_fps, m_orientation);
   if (result)
   {
     CRenderInfo info = m_pRenderer->GetRenderInfo();
@@ -262,6 +261,13 @@ bool CRenderManager::IsConfigured() const
     return false;
 }
 
+void CRenderManager::ShowVideo(bool enable)
+{
+  m_showVideo = enable;
+  if (!enable)
+    DiscardBuffer();
+}
+
 void CRenderManager::FrameWait(int ms)
 {
   XbmcThreads::EndTime timeout(ms);
@@ -300,11 +306,6 @@ void CRenderManager::FrameMove()
 
       firstFrame = true;
       FrameWait(50);
-
-      if (m_flags & CONF_FLAGS_FULLSCREEN)
-      {
-        CApplicationMessenger::GetInstance().PostMsg(TMSG_SWITCHTOFULLSCREEN);
-      }
     }
 
     CheckEnableClockSync();
@@ -356,6 +357,12 @@ void CRenderManager::FrameMove()
 
 void CRenderManager::PreInit()
 {
+  {
+    CSingleLock lock(m_statelock);
+    if (m_renderState != STATE_UNCONFIGURED)
+      return;
+  }
+
   if (!g_application.IsCurrentThread())
   {
     m_initEvent.Reset();
@@ -418,7 +425,7 @@ bool CRenderManager::Flush(bool wait)
   {
     CLog::Log(LOGDEBUG, "%s - flushing renderer", __FUNCTION__);
 
-    CSingleExit exitlock(g_graphicsContext);
+    CSingleExit exitlock(CServiceBroker::GetWinSystem()->GetGfxContext());
 
     CSingleLock lock(m_statelock);
     CSingleLock lock2(m_presentlock);
@@ -672,21 +679,21 @@ void CRenderManager::SetViewMode(int iViewMode)
 
 RESOLUTION CRenderManager::GetResolution()
 {
-  RESOLUTION res = g_graphicsContext.GetVideoResolution();
+  RESOLUTION res = CServiceBroker::GetWinSystem()->GetGfxContext().GetVideoResolution();
 
   CSingleLock lock(m_statelock);
   if (m_renderState == STATE_UNCONFIGURED)
     return res;
 
   if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) != ADJUST_REFRESHRATE_OFF)
-    res = CResolutionUtils::ChooseBestResolution(m_fps, m_width, CONF_FLAGS_STEREO_MODE_MASK(m_flags) != 0);
+    res = CResolutionUtils::ChooseBestResolution(m_fps, m_width, !m_stereomode.empty());
 
   return res;
 }
 
 void CRenderManager::Render(bool clear, DWORD flags, DWORD alpha, bool gui)
 {
-  CSingleExit exitLock(g_graphicsContext);
+  CSingleExit exitLock(CServiceBroker::GetWinSystem()->GetGfxContext());
 
   {
     CSingleLock lock(m_statelock);
@@ -853,9 +860,9 @@ void CRenderManager::PresentBlend(bool clear, DWORD flags, DWORD alpha)
 
 void CRenderManager::UpdateLatencyTweak()
 {
-  float fps = g_graphicsContext.GetFPS();
+  float fps = CServiceBroker::GetWinSystem()->GetGfxContext().GetFPS();
   float refresh = fps;
-  if (g_graphicsContext.GetVideoResolution() == RES_WINDOW)
+  if (CServiceBroker::GetWinSystem()->GetGfxContext().GetVideoResolution() == RES_WINDOW)
     refresh = 0; // No idea about refresh rate when windowed, just get the default latency
   m_latencyTweak = g_advancedSettings.GetLatencyTweak(refresh);
 }
@@ -864,13 +871,15 @@ void CRenderManager::UpdateResolution()
 {
   if (m_bTriggerUpdateResolution)
   {
-    if (g_graphicsContext.IsFullScreenVideo() && g_graphicsContext.IsFullScreenRoot())
+    if (CServiceBroker::GetWinSystem()->GetGfxContext().IsFullScreenVideo() && CServiceBroker::GetWinSystem()->GetGfxContext().IsFullScreenRoot())
     {
       if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) != ADJUST_REFRESHRATE_OFF && m_fps > 0.0f)
       {
-        RESOLUTION res = CResolutionUtils::ChooseBestResolution(m_fps, m_width, CONF_FLAGS_STEREO_MODE_MASK(m_flags) != 0);
-        g_graphicsContext.SetVideoResolution(res, false);
+        RESOLUTION res = CResolutionUtils::ChooseBestResolution(m_fps, m_width, !m_stereomode.empty());
+        CServiceBroker::GetWinSystem()->GetGfxContext().SetVideoResolution(res, false);
         UpdateLatencyTweak();
+        if (m_pRenderer)
+          m_pRenderer->Update();
       }
       m_bTriggerUpdateResolution = false;
       m_playerPort->VideoParamsChange();
@@ -878,13 +887,13 @@ void CRenderManager::UpdateResolution()
   }
 }
 
-void CRenderManager::TriggerUpdateResolution(float fps, int width, int flags)
+void CRenderManager::TriggerUpdateResolution(float fps, int width, std::string &stereomode)
 {
   if (width)
   {
     m_fps = fps;
     m_width = width;
-    m_flags = flags;
+    m_stereomode = stereomode;
   }
   m_bTriggerUpdateResolution = true;
 }
@@ -1079,10 +1088,13 @@ void CRenderManager::PrepareNextRender()
     return;
   }
 
-  double frameOnScreen = m_dvdClock.GetClock();
-  double frametime = 1.0 / g_graphicsContext.GetFPS() * DVD_TIME_BASE;
+  if (!m_showVideo && !m_forceNext)
+    return;
 
-  m_displayLatency = DVD_MSEC_TO_TIME(m_latencyTweak + g_graphicsContext.GetDisplayLatency() - m_videoDelay - CServiceBroker::GetWinSystem().GetFrameLatencyAdjustment());
+  double frameOnScreen = m_dvdClock.GetClock();
+  double frametime = 1.0 / CServiceBroker::GetWinSystem()->GetGfxContext().GetFPS() * DVD_TIME_BASE;
+
+  m_displayLatency = DVD_MSEC_TO_TIME(m_latencyTweak + CServiceBroker::GetWinSystem()->GetGfxContext().GetDisplayLatency() - m_videoDelay - CServiceBroker::GetWinSystem()->GetFrameLatencyAdjustment());
 
   double renderPts = frameOnScreen + m_displayLatency;
 
@@ -1219,7 +1231,7 @@ void CRenderManager::CheckEnableClockSync()
       fps *= clockspeed;
     }
 
-    diff = g_graphicsContext.GetFPS() / fps;
+    diff = CServiceBroker::GetWinSystem()->GetGfxContext().GetFPS() / fps;
     if (diff < 1.0)
       diff = 1.0 / diff;
 

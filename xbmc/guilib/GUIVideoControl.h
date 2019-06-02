@@ -1,16 +1,6 @@
-/*!
-\file GUIVideoControl.h
-\brief
-*/
-
-#ifndef GUILIB_GUIVIDEOCONTROL_H
-#define GUILIB_GUIVIDEOCONTROL_H
-
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,6 +17,13 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
+
+/*!
+\file GUIVideoControl.h
+\brief
+*/
 
 #include "GUIControl.h"
 
@@ -49,4 +46,4 @@ public:
   bool CanFocus() const override;
   bool CanFocusFromPoint(const CPoint &point) const override;
 };
-#endif
+

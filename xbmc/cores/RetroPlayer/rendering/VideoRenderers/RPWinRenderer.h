@@ -17,13 +17,15 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
 #include "RPBaseRenderer.h"
-#include "cores/RetroPlayer/process/BaseRenderBufferPool.h"
-#include "cores/RetroPlayer/process/RenderBufferSysMem.h"
+#include "cores/RetroPlayer/buffers/BaseRenderBufferPool.h"
+#include "cores/RetroPlayer/buffers/video/RenderBufferSysMem.h"
 #include "cores/RetroPlayer/process/RPProcessInfo.h"
 
+#include <dxgi.h>
 #include <memory>
 #include <stdint.h>
 #include <vector>
@@ -44,8 +46,9 @@ namespace RETRO
     virtual ~CWinRendererFactory() = default;
 
     // implementation of IRendererFactory
+    std::string RenderSystemName() const override;
     CRPBaseRenderer *CreateRenderer(const CRenderSettings &settings, CRenderContext &context, std::shared_ptr<IRenderBufferPool> bufferPool) override;
-    RenderBufferPoolVector CreateBufferPools() override;
+    RenderBufferPoolVector CreateBufferPools(CRenderContext &context) override;
   };
 
   class CWinRenderBuffer : public CRenderBufferSysMem
@@ -61,11 +64,11 @@ namespace RETRO
 
   private:
     bool CreateTexture();
-    uint8_t *GetTexture();
+    bool GetTexture(uint8_t*& data, unsigned int& stride);
     bool ReleaseTexture();
 
     bool CreateScalingContext();
-    void ScalePixels(uint8_t *source, size_t sourceSize, uint8_t *target, size_t targetSize);
+    void ScalePixels(uint8_t *source, unsigned int sourceStride, uint8_t *target, unsigned int targetStride);
 
     static AVPixelFormat GetPixFormat(DXGI_FORMAT dxFormat);
 
@@ -95,15 +98,15 @@ namespace RETRO
 
     // DirectX interface
     bool ConfigureDX(DXGI_FORMAT dxFormat);
-    CRPWinOutputShader *GetShader(ESCALINGMETHOD scalingMethod) const;
+    CRPWinOutputShader *GetShader(SCALINGMETHOD scalingMethod) const;
 
   private:
-    static const std::vector<ESCALINGMETHOD> &GetScalingMethods();
+    static const std::vector<SCALINGMETHOD> &GetScalingMethods();
 
     void CompileOutputShaders();
 
     DXGI_FORMAT m_targetDxFormat = DXGI_FORMAT_UNKNOWN;
-    std::map<ESCALINGMETHOD, std::unique_ptr<CRPWinOutputShader>> m_outputShaders;
+    std::map<SCALINGMETHOD, std::unique_ptr<CRPWinOutputShader>> m_outputShaders;
   };
 
   class CRPWinRenderer : public CRPBaseRenderer
@@ -113,15 +116,15 @@ namespace RETRO
     ~CRPWinRenderer() override;
 
     // implementation of CRPBaseRenderer
-    bool Supports(ERENDERFEATURE feature) const override;
-    ESCALINGMETHOD GetDefaultScalingMethod() const override { return DEFAULT_SCALING_METHOD; }
+    bool Supports(RENDERFEATURE feature) const override;
+    SCALINGMETHOD GetDefaultScalingMethod() const override { return DEFAULT_SCALING_METHOD; }
 
-    static bool SupportsScalingMethod(ESCALINGMETHOD method);
+    static bool SupportsScalingMethod(SCALINGMETHOD method);
 
     /*!
      * \brief The default scaling method of the renderer
      */
-    static const ESCALINGMETHOD DEFAULT_SCALING_METHOD = VS_SCALINGMETHOD_NEAREST;
+    static const SCALINGMETHOD DEFAULT_SCALING_METHOD = SCALINGMETHOD::NEAREST;
 
   protected:
     // implementation of CRPBaseRenderer

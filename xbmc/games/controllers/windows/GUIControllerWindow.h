@@ -17,6 +17,7 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
 #include "addons/RepositoryUpdater.h"
@@ -60,7 +61,6 @@ namespace GAME
 
     IControllerList* m_controllerList;
     IFeatureList*    m_featureList;
-    std::string      m_param; // First auxiliary parameter in call to ActivateWindow()
   };
 }
 }

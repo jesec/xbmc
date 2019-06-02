@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <list>
 #include <set>
@@ -61,7 +62,7 @@ public:
 
   bool Deserialize(const TiXmlNode *node) override;
   bool Check() const override;
-  
+
   const std::string& GetName() const { return m_name; }
   const std::string& GetSetting() const { return m_setting; }
   SettingDependencyTarget GetTarget() const { return m_target; }
@@ -70,7 +71,7 @@ public:
 private:
   bool setTarget(const std::string &target);
   bool setOperator(const std::string &op);
-  
+
   SettingDependencyTarget m_target = SettingDependencyTarget::Unknown;
   SettingDependencyOperator m_operator = SettingDependencyOperator::Equals;
 };

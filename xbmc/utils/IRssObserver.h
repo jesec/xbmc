@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include <vector>
 
 typedef uint32_t character_t;
@@ -26,9 +27,11 @@ typedef std::vector<character_t> vecText;
 
 class IRssObserver
 {
-public:
-  virtual ~IRssObserver() = default;
+protected:
+  /* make sure nobody deletes a pointer to this class */
+  ~IRssObserver() = default;
 
+public:
   virtual void OnFeedUpdate(const vecText &feed) = 0;
   virtual void OnFeedRelease() = 0;
 };

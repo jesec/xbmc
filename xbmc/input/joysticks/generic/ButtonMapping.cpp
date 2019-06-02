@@ -27,6 +27,7 @@
 #include "input/joysticks/DriverPrimitive.h"
 #include "input/joysticks/JoystickTranslator.h"
 #include "input/joysticks/JoystickUtils.h"
+#include "input/InputTranslator.h"
 #include "input/IKeymap.h"
 #include "input/Key.h"
 #include "threads/SystemClock.h"
@@ -245,6 +246,83 @@ void CAxisDetector::DetectType(float position)
   }
 }
 
+// --- CKeyDetector ---------------------------------------------------------
+
+CKeyDetector::CKeyDetector(CButtonMapping* buttonMapping, XBMCKey keycode) :
+  CPrimitiveDetector(buttonMapping),
+  m_keycode(keycode)
+{
+}
+
+bool CKeyDetector::OnMotion(bool bPressed)
+{
+  if (bPressed)
+    return MapPrimitive(CDriverPrimitive(m_keycode));
+
+  return false;
+}
+
+// --- CMouseButtonDetector ----------------------------------------------------
+
+CMouseButtonDetector::CMouseButtonDetector(CButtonMapping* buttonMapping, MOUSE::BUTTON_ID buttonIndex) :
+  CPrimitiveDetector(buttonMapping),
+  m_buttonIndex(buttonIndex)
+{
+}
+
+bool CMouseButtonDetector::OnMotion(bool bPressed)
+{
+  if (bPressed)
+    return MapPrimitive(CDriverPrimitive(m_buttonIndex));
+
+  return false;
+}
+
+// --- CPointerDetector --------------------------------------------------------
+
+CPointerDetector::CPointerDetector(CButtonMapping* buttonMapping) :
+  CPrimitiveDetector(buttonMapping)
+{
+}
+
+bool CPointerDetector::OnMotion(int x, int y)
+{
+  if (!m_bStarted)
+  {
+    m_bStarted = true;
+    m_startX = x;
+    m_startY = y;
+    m_frameCount = 0;
+  }
+
+  if (m_frameCount++ >= MIN_FRAME_COUNT)
+  {
+    int dx = x - m_startX;
+    int dy = y - m_startY;
+
+    INPUT::INTERCARDINAL_DIRECTION dir = GetPointerDirection(dx, dy);
+
+    CDriverPrimitive primitive(static_cast<RELATIVE_POINTER_DIRECTION>(dir));
+    if (primitive.IsValid())
+    {
+      if (MapPrimitive(primitive))
+        m_bStarted = false;
+    }
+  }
+
+  return true;
+}
+
+KODI::INPUT::INTERCARDINAL_DIRECTION CPointerDetector::GetPointerDirection(int x, int y)
+{
+  using namespace INPUT;
+
+  // Translate from left-handed coordinate system to right-handed coordinate system
+  y *= -1;
+
+  return CInputTranslator::VectorToIntercardinalDirection(static_cast<float>(x), static_cast<float>(y));
+}
+
 // --- CButtonMapping ----------------------------------------------------------
 
 CButtonMapping::CButtonMapping(IButtonMapper* buttonMapper, IButtonMap* buttonMap, IKeymap* keymap) :
@@ -319,6 +397,26 @@ void CButtonMapping::ProcessAxisMotions(void)
   m_buttonMapper->OnEventFrame(m_buttonMap, IsMapping());
 
   m_frameCount++;
+}
+
+bool CButtonMapping::OnKeyPress(const CKey& key)
+{
+  return GetKey(static_cast<XBMCKey>(key.GetKeycode())).OnMotion(true);
+}
+
+bool CButtonMapping::OnPosition(int x, int y)
+{
+  return GetPointer().OnMotion(x, y);
+}
+
+bool CButtonMapping::OnButtonPress(MOUSE::BUTTON_ID button)
+{
+  return GetMouseButton(button).OnMotion(true);
+}
+
+void CButtonMapping::OnButtonRelease(MOUSE::BUTTON_ID button)
+{
+  GetMouseButton(button).OnMotion(false);
 }
 
 void CButtonMapping::SaveButtonMap()
@@ -432,6 +530,40 @@ CAxisDetector& CButtonMapping::GetAxis(unsigned int axisIndex,
   }
 
   return itAxis->second;
+}
+
+CKeyDetector& CButtonMapping::GetKey(XBMCKey keycode)
+{
+  auto itKey = m_keys.find(keycode);
+
+  if (itKey == m_keys.end())
+  {
+    m_keys.insert(std::make_pair(keycode, CKeyDetector(this, keycode)));
+    itKey = m_keys.find(keycode);
+  }
+
+  return itKey->second;
+}
+
+CMouseButtonDetector& CButtonMapping::GetMouseButton(MOUSE::BUTTON_ID buttonIndex)
+{
+  auto itButton = m_mouseButtons.find(buttonIndex);
+
+  if (itButton == m_mouseButtons.end())
+  {
+    m_mouseButtons.insert(std::make_pair(buttonIndex, CMouseButtonDetector(this, buttonIndex)));
+    itButton = m_mouseButtons.find(buttonIndex);
+  }
+
+  return itButton->second;
+}
+
+CPointerDetector &CButtonMapping::GetPointer()
+{
+  if (!m_pointer)
+    m_pointer.reset(new CPointerDetector(this));
+
+  return *m_pointer;
 }
 
 void CButtonMapping::OnLateDiscovery(unsigned int axisIndex)

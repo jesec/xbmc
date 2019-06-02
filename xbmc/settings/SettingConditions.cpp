@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,10 +18,9 @@
  *
  */
 
-#include "system.h"
 #include "SettingConditions.h"
 #include "Application.h"
-#include "GUIPassword.h"
+#include "LockType.h"
 #include "Util.h"
 #include "addons/AddonManager.h"
 #include "addons/binary-addons/BinaryAddonManager.h"
@@ -33,8 +32,8 @@
 #include "cores/AudioEngine/Engines/ActiveAE/ActiveAESettings.h"
 #include "ServiceBroker.h"
 #include "cores/AudioEngine/Interfaces/AE.h"
-#include "cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodec.h"
 #include "guilib/LocalizeStrings.h"
+#include "GUIPassword.h"
 #if defined(HAS_WEB_SERVER)
 #include "network/WebServer.h"
 #endif
@@ -80,7 +79,7 @@ bool CheckMasterLock(const std::string &condition, const std::string &value, Set
 
 bool CheckPVRParentalPin(const std::string &condition, const std::string &value, SettingConstPtr setting, void *data)
 {
-  return CServiceBroker::GetPVRManager().GUIActions()->CheckParentalPIN();
+  return CServiceBroker::GetPVRManager().GUIActions()->CheckParentalPIN() == PVR::ParentalCheckResult::SUCCESS;
 }
 
 bool HasPeripherals(const std::string &condition, const std::string &value, SettingConstPtr setting, void *data)
@@ -110,7 +109,7 @@ bool HasPowerOffFeature(const std::string &condition, const std::string &value, 
 
 bool IsFullscreen(const std::string &condition, const std::string &value, SettingConstPtr setting, void *data)
 {
-  return CServiceBroker::GetWinSystem().IsFullScreen();
+  return CServiceBroker::GetWinSystem()->IsFullScreen();
 }
 
 bool IsMasterUser(const std::string &condition, const std::string &value, SettingConstPtr setting, void *data)
@@ -125,52 +124,52 @@ bool IsUsingTTFSubtitles(const std::string &condition, const std::string &value,
 
 bool ProfileCanWriteDatabase(const std::string &condition, const std::string &value, SettingConstPtr setting, void *data)
 {
-  return CProfilesManager::GetInstance().GetCurrentProfile().canWriteDatabases();
+  return CSettingConditions::GetCurrentProfile().canWriteDatabases();
 }
 
 bool ProfileCanWriteSources(const std::string &condition, const std::string &value, SettingConstPtr setting, void *data)
 {
-  return CProfilesManager::GetInstance().GetCurrentProfile().canWriteSources();
+  return CSettingConditions::GetCurrentProfile().canWriteSources();
 }
 
 bool ProfileHasAddons(const std::string &condition, const std::string &value, SettingConstPtr setting, void *data)
 {
-  return CProfilesManager::GetInstance().GetCurrentProfile().hasAddons();
+  return CSettingConditions::GetCurrentProfile().hasAddons();
 }
 
 bool ProfileHasDatabase(const std::string &condition, const std::string &value, SettingConstPtr setting, void *data)
 {
-  return CProfilesManager::GetInstance().GetCurrentProfile().hasDatabases();
+  return CSettingConditions::GetCurrentProfile().hasDatabases();
 }
 
 bool ProfileHasSources(const std::string &condition, const std::string &value, SettingConstPtr setting, void *data)
 {
-  return CProfilesManager::GetInstance().GetCurrentProfile().hasSources();
+  return CSettingConditions::GetCurrentProfile().hasSources();
 }
 
 bool ProfileHasAddonManagerLocked(const std::string &condition, const std::string &value, SettingConstPtr setting, void *data)
 {
-  return CProfilesManager::GetInstance().GetCurrentProfile().addonmanagerLocked();
+  return CSettingConditions::GetCurrentProfile().addonmanagerLocked();
 }
 
 bool ProfileHasFilesLocked(const std::string &condition, const std::string &value, SettingConstPtr setting, void *data)
 {
-  return CProfilesManager::GetInstance().GetCurrentProfile().filesLocked();
+  return CSettingConditions::GetCurrentProfile().filesLocked();
 }
 
 bool ProfileHasMusicLocked(const std::string &condition, const std::string &value, SettingConstPtr setting, void *data)
 {
-  return CProfilesManager::GetInstance().GetCurrentProfile().musicLocked();
+  return CSettingConditions::GetCurrentProfile().musicLocked();
 }
 
 bool ProfileHasPicturesLocked(const std::string &condition, const std::string &value, SettingConstPtr setting, void *data)
 {
-  return CProfilesManager::GetInstance().GetCurrentProfile().picturesLocked();
+  return CSettingConditions::GetCurrentProfile().picturesLocked();
 }
 
 bool ProfileHasProgramsLocked(const std::string &condition, const std::string &value, SettingConstPtr setting, void *data)
 {
-  return CProfilesManager::GetInstance().GetCurrentProfile().programsLocked();
+  return CSettingConditions::GetCurrentProfile().programsLocked();
 }
 
 bool ProfileHasSettingsLocked(const std::string &condition, const std::string &value, SettingConstPtr setting, void *data)
@@ -184,12 +183,12 @@ bool ProfileHasSettingsLocked(const std::string &condition, const std::string &v
     slValue = LOCK_LEVEL::ADVANCED;
   else if (StringUtils::EqualsNoCase(value, "expert"))
     slValue = LOCK_LEVEL::EXPERT;
-  return slValue <= CProfilesManager::GetInstance().GetCurrentProfile().settingsLockLevel();
+  return slValue <= CSettingConditions::GetCurrentProfile().settingsLockLevel();
 }
 
 bool ProfileHasVideosLocked(const std::string &condition, const std::string &value, SettingConstPtr setting, void *data)
 {
-  return CProfilesManager::GetInstance().GetCurrentProfile().videoLocked();
+  return CSettingConditions::GetCurrentProfile().videoLocked();
 }
 
 bool ProfileLockMode(const std::string &condition, const std::string &value, SettingConstPtr setting, void *data)
@@ -199,7 +198,7 @@ bool ProfileLockMode(const std::string &condition, const std::string &value, Set
   if (tmp != NULL && *tmp != '\0')
     return false;
 
-  return CProfilesManager::GetInstance().GetCurrentProfile().getLockMode() == lock;
+  return CSettingConditions::GetCurrentProfile().getLockMode() == lock;
 }
 
 bool GreaterThan(const std::string &condition, const std::string &value, SettingConstPtr setting, void *data)
@@ -270,13 +269,16 @@ bool LessThanOrEqual(const std::string &condition, const std::string &value, Set
   return lhs <= rhs;
 }
 
+const CProfilesManager *CSettingConditions::m_profileManager = nullptr;
 std::set<std::string> CSettingConditions::m_simpleConditions;
 std::map<std::string, SettingConditionCheck> CSettingConditions::m_complexConditions;
 
-void CSettingConditions::Initialize()
+void CSettingConditions::Initialize(const CProfilesManager &profileManager)
 {
   if (!m_simpleConditions.empty())
     return;
+
+  m_profileManager = &profileManager;
 
   // add simple conditions
   m_simpleConditions.insert("true");
@@ -327,6 +329,12 @@ void CSettingConditions::Initialize()
 #endif
 #ifdef TARGET_DARWIN
   m_simpleConditions.insert("HasVTB");
+#endif
+#ifdef TARGET_DARWIN_OSX
+  m_simpleConditions.insert("have_osx");
+#endif
+#ifdef TARGET_DARWIN_IOS
+  m_simpleConditions.insert("have_ios");
 #endif
 #ifdef HAS_LIBAMCODEC
   if (aml_present())
@@ -380,12 +388,25 @@ void CSettingConditions::Initialize()
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("profilehasvideoslocked",        ProfileHasVideosLocked));
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("profilelockmode",               ProfileLockMode));
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("aesettingvisible",              ActiveAE::CActiveAESettings::IsSettingVisible));
-  m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("codecoptionvisible",            CDVDVideoCodec::IsSettingVisible));
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("gt",                            GreaterThan));
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("gte",                           GreaterThanOrEqual));
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("lt",                            LessThan));
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("lte",                           LessThanOrEqual));
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("pvrsettingvisible",             PVR::CPVRSettings::IsSettingVisible));
+}
+
+void CSettingConditions::Deinitialize()
+{
+  m_profileManager = nullptr;
+}
+
+const CProfile& CSettingConditions::GetCurrentProfile()
+{
+  if (m_profileManager)
+    return m_profileManager->GetCurrentProfile();
+
+  static CProfile emptyProfile;
+  return emptyProfile;
 }
 
 bool CSettingConditions::Check(const std::string &condition, const std::string &value /* = "" */, SettingConstPtr setting /* = NULL */)

@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <string>
 
@@ -117,15 +118,11 @@ public:
   static const std::string SETTING_VIDEOPLAYER_USEVDPAUMPEG2;
   static const std::string SETTING_VIDEOPLAYER_USEVDPAUMPEG4;
   static const std::string SETTING_VIDEOPLAYER_USEVDPAUVC1;
-  static const std::string SETTING_VIDEOPLAYER_USEVAAPI;
-  static const std::string SETTING_VIDEOPLAYER_USEVAAPIMPEG2;
-  static const std::string SETTING_VIDEOPLAYER_USEVAAPIMPEG4;
-  static const std::string SETTING_VIDEOPLAYER_USEVAAPIVC1;
-  static const std::string SETTING_VIDEOPLAYER_PREFERVAAPIRENDER;
   static const std::string SETTING_VIDEOPLAYER_USEDXVA2;
   static const std::string SETTING_VIDEOPLAYER_USEOMXPLAYER;
   static const std::string SETTING_VIDEOPLAYER_USEVTB;
   static const std::string SETTING_VIDEOPLAYER_USEMMAL;
+  static const std::string SETTING_VIDEOPLAYER_USEPRIMEDECODER;
   static const std::string SETTING_VIDEOPLAYER_USESTAGEFRIGHT;
   static const std::string SETTING_VIDEOPLAYER_LIMITGUIUPDATE;
   static const std::string SETTING_VIDEOPLAYER_SUPPORTMVC;
@@ -209,6 +206,7 @@ public:
   static const std::string SETTING_MUSICLIBRARY_SHOWCOMPILATIONARTISTS;
   static const std::string SETTING_MUSICLIBRARY_DOWNLOADINFO;
   static const std::string SETTING_MUSICLIBRARY_ARTISTSFOLDER;
+  static const std::string SETTING_MUSICLIBRARY_PREFERONLINEALBUMART;
   static const std::string SETTING_MUSICLIBRARY_ALBUMSSCRAPER;
   static const std::string SETTING_MUSICLIBRARY_ARTISTSSCRAPER;
   static const std::string SETTING_MUSICLIBRARY_OVERRIDETAGS;
@@ -294,6 +292,7 @@ public:
   static const std::string SETTING_SMB_LEGACYSECURITY;
   static const std::string SETTING_VIDEOSCREEN_MONITOR;
   static const std::string SETTING_VIDEOSCREEN_SCREEN;
+  static const std::string SETTING_VIDEOSCREEN_WHITELIST;
   static const std::string SETTING_VIDEOSCREEN_RESOLUTION;
   static const std::string SETTING_VIDEOSCREEN_SCREENMODE;
   static const std::string SETTING_VIDEOSCREEN_FAKEFULLSCREEN;
@@ -317,9 +316,6 @@ public:
   static const std::string SETTING_AUDIOOUTPUT_ATEMPOTHRESHOLD;
   static const std::string SETTING_AUDIOOUTPUT_STREAMSILENCE;
   static const std::string SETTING_AUDIOOUTPUT_STREAMNOISE;
-  static const std::string SETTING_AUDIOOUTPUT_DSPADDONSENABLED;
-  static const std::string SETTING_AUDIOOUTPUT_DSPSETTINGS;
-  static const std::string SETTING_AUDIOOUTPUT_DSPRESETDB;
   static const std::string SETTING_AUDIOOUTPUT_GUISOUNDMODE;
   static const std::string SETTING_AUDIOOUTPUT_PASSTHROUGH;
   static const std::string SETTING_AUDIOOUTPUT_PASSTHROUGHDEVICE;
@@ -384,15 +380,6 @@ public:
   static const std::string SETTING_SOURCE_VIDEOS;
   static const std::string SETTING_SOURCE_MUSIC;
   static const std::string SETTING_SOURCE_PICTURES;
-  static const std::string SETTING_GAMES_KEYBOARD_PLAYERS;
-  static const std::string SETTING_GAMES_KEYBOARD_PLAYERCONFIG_1;
-  static const std::string SETTING_GAMES_KEYBOARD_PLAYERCONFIG_2;
-  static const std::string SETTING_GAMES_KEYBOARD_PLAYERCONFIG_3;
-  static const std::string SETTING_GAMES_KEYBOARD_PLAYERCONFIG_4;
-  static const std::string SETTING_GAMES_KEYBOARD_PLAYERCONFIG_5;
-  static const std::string SETTING_GAMES_KEYBOARD_PLAYERCONFIG_6;
-  static const std::string SETTING_GAMES_KEYBOARD_PLAYERCONFIG_7;
-  static const std::string SETTING_GAMES_KEYBOARD_PLAYERCONFIG_8;
   static const std::string SETTING_GAMES_ENABLE;
   static const std::string SETTING_GAMES_ENABLEREWIND;
   static const std::string SETTING_GAMES_REWINDTIME;
@@ -430,14 +417,6 @@ public:
   static const std::string CSettings::SETTING_DSPLAYER_FILTERSMANAGEMENT;
   static const std::string CSettings::SETTING_DSPLAYER_PREFAUDIOCODEC;
   static const std::string CSettings::SETTING_DSPLAYER_EXSUBTITLELANGUAGE;
-  static const std::string CSettings::SETTING_DSPLAYER_OSDINTOACTIVEAREA;
-  static const std::string CSettings::SETTING_DSPLAYER_DEFINEDSAREA;
-  static const std::string CSettings::SETTING_DSPLAYER_DSAREALEFT;
-  static const std::string CSettings::SETTING_DSPLAYER_DSAREARIGHT;
-  static const std::string CSettings::SETTING_DSPLAYER_DSAREATOP;
-  static const std::string CSettings::SETTING_DSPLAYER_DSAREABOTTOM;
-  static const std::string CSettings::SETTING_DSPLAYER_COPYACTIVERECT;
-  static const std::string CSettings::SETTING_DSPLAYER_DSAREARESET;
 #endif
 
 
@@ -510,6 +489,7 @@ protected:
   void InitializeOptionFillers() override;
   void UninitializeOptionFillers() override;
   void InitializeConditions() override;
+  void UninitializeConditions() override;
   void InitializeVisibility() override;
   void InitializeDefaults() override;
   void InitializeISettingsHandlers() override;

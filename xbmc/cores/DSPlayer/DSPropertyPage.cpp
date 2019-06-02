@@ -35,7 +35,7 @@
 #include "DSUtil/DSUtil.h"
 #include "rendering/dx/RenderContext.h"
 #include "utils/CharsetConverter.h"
-#include "guilib/GraphicContext.h"
+#include "windowing/GraphicContext.h"
 #include "settings/MediaSettings.h"
 #include "Application.h"
 #include "settings/Settings.h"
@@ -154,7 +154,7 @@ void CDSPropertyPage::Process()
 
     if (m_type.empty())
     {
-      hr = OleCreatePropertyFrame(DX::Windowing().GetHwnd(), 0, 0, GetFilterName(m_pBF).c_str(),
+      hr = OleCreatePropertyFrame(DX::Windowing()->GetHwnd(), 0, 0, GetFilterName(m_pBF).c_str(),
         1, (LPUNKNOWN *)&m_pBF, pPages.cElems,
         pPages.pElems, 0, 0, 0);
 
@@ -177,7 +177,7 @@ void CDSPropertyPage::Process()
 
     propSheet.dwSize = sizeof(propSheet);
     propSheet.dwFlags = PSH_PROPTITLE;
-    propSheet.hwndParent = DX::Windowing().GetHwnd();
+    propSheet.hwndParent = DX::Windowing()->GetHwnd();
 
     std::string filterName;
     g_charsetConverter.wToUTF8(GetFilterName(m_pBF), filterName);

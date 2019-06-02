@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -17,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <vector>
 
@@ -341,7 +343,7 @@ namespace XBMCAddon
     /// | movies   | tvshows  | episodes | musicvideos
     /// | videos   | images   |  games   |
     ///
-    /// @remark Use **videos** for all videos which do not apply to the 
+    /// @remark Use **videos** for all videos which do not apply to the
     /// more specific mentioned ones like "movies", "episodes" etc.
     /// A good example is youtube.
     ///

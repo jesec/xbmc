@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #ifndef USE_VCHIQ_ARM
 #define USE_VCHIQ_ARM
 #endif
@@ -29,10 +30,6 @@
 #define HAVE_VMCS_CONFIG
 #endif
 
-#if !defined(TARGET_WINDOWS)
-#define DECLARE_UNUSED(a,b) a __attribute__((unused)) b;
-#endif
-
 #include "DllBCM.h"
 #include "OMXCore.h"
 #include "xbmc/utils/CPUInfo.h"
@@ -40,16 +37,37 @@
 #include "threads/Event.h"
 
 
-typedef struct AVRpiZcFrameGeometry
+class AVRpiZcFrameGeometry
 {
-  unsigned int stride_y;
-  unsigned int height_y;
-  unsigned int stride_c;
-  unsigned int height_c;
-  unsigned int planes_c;
-  unsigned int stripes;
-  unsigned int bytes_per_pixel;
-} AVRpiZcFrameGeometry;
+public:
+  unsigned int getStrideY() { return stride_y; }
+  unsigned int getHeightY() { return height_y; }
+  unsigned int getStrideC() { return stride_c; }
+  unsigned int getHeightC() { return height_c; }
+  unsigned int getPlanesC() { return planes_c; }
+  unsigned int getStripes() { return stripes; }
+  unsigned int getBitsPerPixel() { return bits_per_pixel; }
+  unsigned int getBytesPerPixel() { return (bits_per_pixel + 7) >> 3; }
+  unsigned int getSizeY() { return stride_y * height_y; }
+  unsigned int getSizeC() { return stride_c * height_c; }
+  unsigned int getSize() { return (getSizeY() + getSizeC() * getPlanesC()) * getStripes(); }
+  void setStrideY(unsigned int v) { stride_y = v; }
+  void setHeightY(unsigned int v) { height_y = v; }
+  void setStrideC(unsigned int v) { stride_c = v; }
+  void setHeightC(unsigned int v) { height_c = v; }
+  void setPlanesC(unsigned int v) { planes_c = v; }
+  void setStripes(unsigned int v) { stripes = v; }
+  void setBitsPerPixel(unsigned int v) { bits_per_pixel = v; }
+  void setBytesPerPixel(unsigned int v) { bits_per_pixel = v * 8; }
+private:
+  unsigned int stride_y = 0;
+  unsigned int height_y = 0;
+  unsigned int stride_c = 0;
+  unsigned int height_c = 0;
+  unsigned int planes_c = 0;
+  unsigned int stripes = 0;
+  unsigned int bits_per_pixel = 0;
+};
 
 class CGPUMEM
 {

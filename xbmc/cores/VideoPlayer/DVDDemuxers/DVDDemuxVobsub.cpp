@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -84,7 +84,6 @@ bool CDVDDemuxVobsub::Open(const std::string& filename, int source, const std::s
   hints.codec = AV_CODEC_ID_DVD_SUBTITLE;
 
   char line[2048];
-  DECLARE_UNUSED(bool,res)
 
   SState state;
   state.delay = 0;
@@ -95,13 +94,13 @@ bool CDVDDemuxVobsub::Open(const std::string& filename, int source, const std::s
     if (*line == 0 || *line == '\r' || *line == '\n' || *line == '#')
       continue;
     else if (strncmp("langidx:", line, 8) == 0)
-      res = ParseLangIdx(state, line + 8);
+      ParseLangIdx(state, line + 8);
     else if (strncmp("delay:", line, 6) == 0)
-      res = ParseDelay(state, line + 6);
+      ParseDelay(state, line + 6);
     else if (strncmp("id:", line, 3) == 0)
-      res = ParseId(state, line + 3);
+      ParseId(state, line + 3);
     else if (strncmp("timestamp:", line, 10) == 0)
-      res = ParseTimestamp(state, line + 10);
+      ParseTimestamp(state, line + 10);
     else if (strncmp("palette:", line, 8) == 0
          ||  strncmp("size:", line, 5) == 0
          ||  strncmp("org:", line, 4) == 0
@@ -110,7 +109,7 @@ bool CDVDDemuxVobsub::Open(const std::string& filename, int source, const std::s
          ||  strncmp("alpha:", line, 6) == 0
          ||  strncmp("fadein/out:", line, 11) == 0
          ||  strncmp("forced subs:", line, 12) == 0)
-      res = ParseExtra(state, line);
+      ParseExtra(state, line);
     else
       continue;
   }
@@ -209,8 +208,7 @@ bool CDVDDemuxVobsub::ParseId(SState& state, char* line)
   std::unique_ptr<CStream> stream(new CStream(this));
 
   while(*line == ' ') line++;
-  strncpy(stream->language, line, 2);
-  stream->language[2] = '\0';
+  stream->language = std::string(line, 2);
   line+=2;
 
   while(*line == ' ' || *line == ',') line++;

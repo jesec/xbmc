@@ -1,9 +1,9 @@
 set(SOURCES CharsetConverter.cpp
+            Environment.cpp
             MessagePrinter.cpp
             dxerr.cpp
             Filesystem.cpp
             pch.cpp
-            strverscmp.cpp
             WIN32Util.cpp
             WindowHelper.cpp)
 
@@ -16,7 +16,6 @@ set(HEADERS CharsetConverter.h
             netdb.h
             pch.h
             PlatformDefs.h
-            PlatformInclude.h
             resource.h
             unistd.h
             WIN32Util.h

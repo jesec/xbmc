@@ -35,6 +35,7 @@
 #include "utils/log.h"
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "dialogs/GUIDialogSelect.h"
 #include "dialogs/GUIDialogKaiToast.h"
@@ -237,7 +238,7 @@ void CGUIDialogDSPlayercoreFactory::ActionInternal(const std::string &settingId)
 
     m_dsmanager->SaveDsXML(PLAYERCOREFACTORY);
 
-    CPlayerCoreFactory::GetInstance().OnSettingsLoaded();
+    CServiceBroker::GetPlayerCoreFactory().OnSettingsLoaded();
 
     CGUIDialogDSPlayercoreFactory::Close();
   }
@@ -271,7 +272,7 @@ void CGUIDialogDSPlayercoreFactory::ActionInternal(const std::string &settingId)
     m_bEdited = false;
     m_dsmanager->SaveDsXML(PLAYERCOREFACTORY);
 
-    CPlayerCoreFactory::GetInstance().OnSettingsLoaded();
+    CServiceBroker::GetPlayerCoreFactory().OnSettingsLoaded();
 
     CGUIDialogDSPlayercoreFactory::Close();
   }
@@ -288,7 +289,7 @@ void CGUIDialogDSPlayercoreFactory::ShowDSPlayercoreFactory()
   int selected;
   int count = 0;
 
-  CGUIDialogSelect *pDlg = (CGUIDialogSelect *)g_windowManager.GetWindow(WINDOW_DIALOG_SELECT);
+  CGUIDialogSelect *pDlg = (CGUIDialogSelect *)CServiceBroker::GetGUI()->GetWindowManager().GetWindow(WINDOW_DIALOG_SELECT);
   if (!pDlg)
     return ;
 
@@ -346,7 +347,7 @@ void CGUIDialogDSPlayercoreFactory::ShowDSPlayercoreFactory()
   CGUIDialogDSManager::Get()->SetConfig(selected == count, selected);
 
   if (selected > -1) 
-    g_windowManager.ActivateWindow(WINDOW_DIALOG_DSPLAYERCORE);
+    CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(WINDOW_DIALOG_DSPLAYERCORE);
 }
 
 

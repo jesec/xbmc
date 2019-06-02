@@ -19,19 +19,12 @@
  */
 
 #include <time.h>
-#include "system.h"
 #ifdef TARGET_ANDROID
 #include "platform/android/bionic_supplement/bionic_supplement.h"
 #endif
-#include "PlatformInclude.h"
+#include "PlatformDefs.h"
 #include "LinuxTimezone.h"
 #include "utils/SystemInfo.h"
-#if defined(TARGET_DARWIN)
-#include "platform/darwin/OSXGNUReplacements.h"
-#endif
-#ifdef TARGET_FREEBSD
-#include "freebsd/FreeBSDGNUReplacements.h"
-#endif
 
 #include "ServiceBroker.h"
 #include "Util.h"
@@ -204,7 +197,7 @@ void CLinuxTimezone::SetTimezone(std::string timezoneName)
 #else
   bool use_timezone = false;
 #endif
-  
+
   if (use_timezone)
   {
     static char env_var[255];

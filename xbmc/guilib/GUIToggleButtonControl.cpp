@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -182,5 +182,5 @@ void CGUIToggleButtonControl::OnClick()
 
 void CGUIToggleButtonControl::SetToggleSelect(const std::string &toggleSelect)
 {
-  m_toggleSelect = g_infoManager.Register(toggleSelect, GetParentID());
+  m_toggleSelect = CServiceBroker::GetGUI()->GetInfoManager().Register(toggleSelect, GetParentID());
 }

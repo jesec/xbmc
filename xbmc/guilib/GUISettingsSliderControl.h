@@ -1,16 +1,6 @@
-/*!
-\file GUISliderControl.h
-\brief
-*/
-
-#ifndef GUILIB_GUISettingsSliderCONTROL_H
-#define GUILIB_GUISettingsSliderCONTROL_H
-
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,6 +17,13 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
+
+/*!
+\file GUISliderControl.h
+\brief
+*/
 
 #include "GUISliderControl.h"
 #include "GUIButtonControl.h"
@@ -76,4 +73,4 @@ private:
   CGUILabel m_label;
   bool m_active; ///< Whether the slider has been activated by a click.
 };
-#endif
+

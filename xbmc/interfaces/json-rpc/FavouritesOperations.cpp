@@ -21,6 +21,7 @@
 #include "FavouritesOperations.h"
 #include "favourites/FavouritesService.h"
 #include "input/WindowTranslator.h"
+#include "URL.h"
 #include "utils/StringUtils.h"
 #include "Util.h"
 #include "utils/URIUtils.h"
@@ -36,7 +37,7 @@ JSONRPC_STATUS CFavouritesOperations::GetFavourites(const std::string &method, I
 {
   CFileItemList favourites;
   CServiceBroker::GetFavouritesService().GetAll(favourites);
-  
+
   std::string type = !parameterObject["type"].isNull() ? parameterObject["type"].asString() : "";
 
   std::set<std::string> fields;
@@ -53,7 +54,12 @@ JSONRPC_STATUS CFavouritesOperations::GetFavourites(const std::string &method, I
 
     std::string function;
     std::vector<std::string> parameters;
-    CUtil::SplitExecFunction(item->GetPath(), function, parameters);
+
+    //FIXME: this path is internal to the favourites system and should not be parsed and exposed
+    CURL url(item->GetPath());
+    std::string internalPath = CURL::Decode(url.GetHostName());
+
+    CUtil::SplitExecFunction(internalPath, function, parameters);
     if (parameters.empty())
       continue;
 
@@ -75,7 +81,7 @@ JSONRPC_STATUS CFavouritesOperations::GetFavourites(const std::string &method, I
       {
         if (parameters.size() > 1)
           object["windowparameter"] = parameters[1];
-        else 
+        else
           object["windowparameter"] = "";
       }
     }
@@ -93,11 +99,11 @@ JSONRPC_STATUS CFavouritesOperations::GetFavourites(const std::string &method, I
     }
     else
       object["type"] = "unknown";
-    
+
     if (type.empty() || type.compare(object["type"].asString()) == 0)
       result["favourites"].append(object);
   }
-  
+
   int start, end;
   HandleLimits(parameterObject, result, result["favourites"].size(), start, end);
 
@@ -140,14 +146,14 @@ JSONRPC_STATUS CFavouritesOperations::AddFavourite(const std::string &method, IT
     contextWindow = CWindowTranslator::TranslateWindow(parameterObject["window"].asString());
     if (contextWindow == WINDOW_INVALID)
       return InvalidParams;
-  } 
-  else if (type.compare("script") == 0) 
+  }
+  else if (type.compare("script") == 0)
   {
     if (!URIUtils::IsScript(path))
       path = "script://" + path;
     item = CFileItem(path, false);
   }
-  else if (type.compare("media") == 0) 
+  else if (type.compare("media") == 0)
   {
     item = CFileItem(path, false);
   }

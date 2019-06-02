@@ -102,14 +102,14 @@ void CGUIDialogDSManager::GetPath(xmlType type, std::string &xmlFile, std::strin
 {
   if (type == MEDIASCONFIG)
   {
-    xmlFile = CProfilesManager::GetInstance().GetUserDataItem("dsplayer/mediasconfig.xml");
+    xmlFile = CServiceBroker::GetProfileManager().GetUserDataItem("dsplayer/mediasconfig.xml");
     xmlRoot = "mediasconfig";
     xmlNode = "rules";
   }
 
   if (type == FILTERSCONFIG)
   {
-    xmlFile = CProfilesManager::GetInstance().GetUserDataItem("dsplayer/filtersconfig.xml");
+    xmlFile = CServiceBroker::GetProfileManager().GetUserDataItem("dsplayer/filtersconfig.xml");
     xmlRoot = "filtersconfig";
     xmlNode = "filters";
   }
@@ -123,13 +123,13 @@ void CGUIDialogDSManager::GetPath(xmlType type, std::string &xmlFile, std::strin
 
   if (type == SHADERS)
   {
-    xmlFile = CProfilesManager::GetInstance().GetUserDataItem("dsplayer/shaders.xml");
+    xmlFile = CServiceBroker::GetProfileManager().GetUserDataItem("dsplayer/shaders.xml");
     xmlRoot = "shaders";
   }
 
   if (type == PLAYERCOREFACTORY)
   {
-    xmlFile = CProfilesManager::GetInstance().GetUserDataItem("playercorefactory.xml");
+    xmlFile = CServiceBroker::GetProfileManager().GetUserDataItem("playercorefactory.xml");
     xmlRoot = "playercorefactory";
     xmlNode = "rules";
   }

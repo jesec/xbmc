@@ -1,7 +1,6 @@
-#pragma once
 /*
 *      Copyright (C) 2005-2013 Team XBMC
-*      http://xbmc.org
+*      http://kodi.tv
 *
 *  This Program is free software; you can redistribute it and/or modify
 *  it under the terms of the GNU General Public License as published by
@@ -19,6 +18,8 @@
 *
 */
 
+#pragma once
+
 #include "AddonInfo.h"
 
 #include <memory>
@@ -28,7 +29,6 @@ class TiXmlElement;
 
 namespace ADDON
 {
-
   class IAddon;
   typedef std::shared_ptr<IAddon> AddonPtr;
   class CInstanceVisualization;
@@ -85,7 +85,7 @@ namespace ADDON
     virtual bool GetSettingNumber(const std::string& key, double& value) = 0;
     virtual bool GetSettingString(const std::string& key, std::string& value) = 0;
     virtual CAddonSettings* GetSettings() const =0;
-    virtual const ADDONDEPS &GetDeps() const =0;
+    virtual const std::vector<DependencyInfo> &GetDependencies() const =0;
     virtual AddonVersion GetDependencyVersion(const std::string &dependencyID) const =0;
     virtual bool MeetsVersion(const AddonVersion &version) const =0;
     virtual bool ReloadSettings() =0;

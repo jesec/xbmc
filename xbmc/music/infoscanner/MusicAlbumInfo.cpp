@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -37,7 +37,7 @@ CMusicAlbumInfo::CMusicAlbumInfo(const std::string& strAlbum, const std::string&
   const std::string& strAlbumInfo, const CScraperUrl& strAlbumURL)
 {
   m_album.strAlbum = strAlbum;
-  //Just setting artist desc, not populating album artist credits. 
+  //Just setting artist desc, not populating album artist credits.
   m_album.strArtistDesc = strArtist;
   m_strTitle2 = strAlbumInfo;
   m_albumURL = strAlbumURL;

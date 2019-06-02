@@ -1,16 +1,6 @@
-/*!
-\file LocalizeStrings.h
-\brief
-*/
-
-#ifndef GUILIB_LOCALIZESTRINGS_H
-#define GUILIB_LOCALIZESTRINGS_H
-
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,6 +17,13 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
+
+/*!
+\file LocalizeStrings.h
+\brief
+*/
 
 #include "threads/CriticalSection.h"
 #include "threads/SharedSection.h"
@@ -86,4 +83,4 @@ protected:
  */
 extern CLocalizeStrings g_localizeStrings;
 extern CLocalizeStrings g_localizeStringsTemp;
-#endif
+

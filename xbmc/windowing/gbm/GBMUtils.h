@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -34,10 +34,12 @@ public:
   struct gbm_bo *LockFrontBuffer();
   void ReleaseBuffer();
 
-  struct gbm_device *m_device = nullptr;
-  struct gbm_surface *m_surface = nullptr;
+  struct gbm_device* GetDevice() const { return m_device; }
+  struct gbm_surface* GetSurface() const { return m_surface; }
 
 protected:
+  struct gbm_device *m_device = nullptr;
+  struct gbm_surface *m_surface = nullptr;
   struct gbm_bo *m_bo = nullptr;
   struct gbm_bo *m_next_bo = nullptr;
 };

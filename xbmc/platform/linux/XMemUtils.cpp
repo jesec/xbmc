@@ -4,7 +4,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -117,7 +117,7 @@ void GlobalMemoryStatusEx(LPMEMORYSTATUSEX lpBuffer)
 #elif defined(TARGET_FREEBSD)
   /* sysctl hw.physmem */
   size_t physmem = 0, mem_free = 0, pagesize = 0, swap_free = 0;
-  size_t mem_avail = 0, mem_inactive = 0, mem_cache = 0, len = 0;
+  size_t mem_inactive = 0, mem_cache = 0, len = 0;
 
   /* physmem */
   len = sizeof(physmem);

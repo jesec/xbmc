@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2016 Christian Browet
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include <androidjni/JNIBase.h>
 
 #include <androidjni/AudioManager.h>
@@ -27,14 +28,14 @@ class CJNIXBMCAudioManagerOnAudioFocusChangeListener : public CJNIAudioManagerAu
 {
 public:
   CJNIXBMCAudioManagerOnAudioFocusChangeListener();
-  CJNIXBMCAudioManagerOnAudioFocusChangeListener(const CJNIXBMCAudioManagerOnAudioFocusChangeListener& other); 
+  CJNIXBMCAudioManagerOnAudioFocusChangeListener(const CJNIXBMCAudioManagerOnAudioFocusChangeListener& other);
   explicit CJNIXBMCAudioManagerOnAudioFocusChangeListener(const jni::jhobject &object) : CJNIBase(object) {}
   virtual ~CJNIXBMCAudioManagerOnAudioFocusChangeListener();
-  
+
   static void RegisterNatives(JNIEnv* env);
-    
+
   void onAudioFocusChange(int focusChange) override;
-  
+
 protected:
-  static void _onAudioFocusChange(JNIEnv* env, jobject thiz, jint focusChange);  
+  static void _onAudioFocusChange(JNIEnv* env, jobject thiz, jint focusChange);
 };

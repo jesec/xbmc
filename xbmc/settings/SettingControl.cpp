@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -145,7 +145,7 @@ bool CSettingControlButton::Deserialize(const TiXmlNode *node, bool update /* = 
 {
   if (!ISettingControl::Deserialize(node, update))
     return false;
-  
+
   XMLUtils::GetInt(node, SETTING_XML_ELM_CONTROL_HEADING, m_heading);
   XMLUtils::GetBoolean(node, SETTING_XML_ELM_CONTROL_HIDEVALUE, m_hideValue);
 
@@ -224,7 +224,7 @@ bool CSettingControlList::Deserialize(const TiXmlNode *node, bool update /* = fa
 {
   if (!CSettingControlFormattedRange::Deserialize(node, update))
     return false;
-  
+
   XMLUtils::GetInt(node, SETTING_XML_ELM_CONTROL_HEADING, m_heading);
   XMLUtils::GetBoolean(node, SETTING_XML_ELM_CONTROL_MULTISELECT, m_multiselect);
   XMLUtils::GetBoolean(node, SETTING_XML_ELM_CONTROL_HIDEVALUE, m_hideValue);

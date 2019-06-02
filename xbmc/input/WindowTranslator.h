@@ -17,6 +17,7 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
 #include <set>
@@ -50,6 +51,12 @@ public:
    * \return The fallback window, or -1 for no fallback window
    */
   static int GetFallbackWindow(int windowId);
+
+  /*!
+   * \brief Get the special window ID if conditions met
+   * \return The special window ID or the given window ID
+   */
+  static int GetVirtualWindow(int windowId);
 
 private:
   struct WindowMapItem

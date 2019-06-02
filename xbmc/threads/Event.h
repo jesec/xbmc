@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -43,7 +43,7 @@ namespace XbmcThreads
  *
  * This class manages 'spurious returns' from the condition variable.
  */
-class CEvent : public XbmcThreads::NonCopyable
+class CEvent
 {
   bool manualReset;
   volatile bool signaled;
@@ -53,7 +53,7 @@ class CEvent : public XbmcThreads::NonCopyable
   std::unique_ptr<std::vector<XbmcThreads::CEventGroup*>> groups;
 
   /**
-   * To satisfy the TightConditionVariable requirements and allow the 
+   * To satisfy the TightConditionVariable requirements and allow the
    *  predicate being monitored to include both the signaled and interrupted
    *  states.
    */
@@ -69,8 +69,11 @@ class CEvent : public XbmcThreads::NonCopyable
   // helper for the two wait methods
   inline bool prepReturn() { bool ret = signaled; if (!manualReset && numWaits == 0) signaled = false; return ret; }
 
+  CEvent(const CEvent&) = delete;
+  CEvent& operator=(const CEvent&) = delete;
+
 public:
-  inline CEvent(bool manual = false, bool signaled_ = false) : 
+  inline CEvent(bool manual = false, bool signaled_ = false) :
     manualReset(manual), signaled(signaled_), numWaits(0), condVar(actualCv,signaled) {}
 
   inline void Reset() { CSingleLock lock(mutex); signaled = false; }
@@ -84,11 +87,11 @@ public:
    *  to be triggered. The method will return 'true' if the Event
    *  was triggered. Otherwise it will return false.
    */
-  inline bool WaitMSec(unsigned int milliSeconds) 
+  inline bool WaitMSec(unsigned int milliSeconds)
   { CSingleLock lock(mutex); numWaits++; condVar.wait(mutex,milliSeconds); numWaits--; return prepReturn(); }
 
   /**
-   * This will wait for the Event to be triggered. The method will return 
+   * This will wait for the Event to be triggered. The method will return
    * 'true' if the Event was triggered. If it was either interrupted
    * it will return false. Otherwise it will return false.
    */
@@ -96,7 +99,7 @@ public:
   { CSingleLock lock(mutex); numWaits++; condVar.wait(mutex); numWaits--; return prepReturn(); }
 
   /**
-   * This is mostly for testing. It allows a thread to make sure there are 
+   * This is mostly for testing. It allows a thread to make sure there are
    *  the right amount of other threads waiting.
    */
   inline int getNumWaits() { CSingleLock lock(mutex); return numWaits; }
@@ -130,7 +133,7 @@ namespace XbmcThreads
    * It is equivalent to WaitOnMultipleObject that returns when "any" Event
    * in the group signaled.
    */
-  class CEventGroup : public NonCopyable
+  class CEventGroup
   {
     std::vector<CEvent*> events;
     CEvent* signaled{};
@@ -145,6 +148,9 @@ namespace XbmcThreads
 
     friend class ::CEvent;
 
+    CEventGroup(const CEventGroup&) = delete;
+    CEventGroup& operator=(const CEventGroup&) = delete;
+
   public:
     /**
      * Create a CEventGroup from a number of CEvents.
@@ -155,7 +161,7 @@ namespace XbmcThreads
 
     /**
      * This will block until any one of the CEvents in the group are
-     * signaled at which point a pointer to that CEvents will be 
+     * signaled at which point a pointer to that CEvents will be
      * returned.
      */
     CEvent* wait();
@@ -169,7 +175,7 @@ namespace XbmcThreads
     CEvent* wait(unsigned int milliseconds);
 
     /**
-     * This is mostly for testing. It allows a thread to make sure there are 
+     * This is mostly for testing. It allows a thread to make sure there are
      *  the right amount of other threads waiting.
      */
     inline int getNumWaits() { CSingleLock lock(mutex); return numWaits; }

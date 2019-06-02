@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include "IDirectory.h"
 #include "SortFileItem.h"
@@ -71,6 +72,8 @@ private:
 
   static std::map<int,CPluginDirectory*> globalHandles;
   static int getNewHandle(CPluginDirectory *cp);
+  static void reuseHandle(int handle, CPluginDirectory *cp);
+
   static void removeHandle(int handle);
   static CPluginDirectory *dirFromHandle(int handle);
   static CCriticalSection m_handleLock;

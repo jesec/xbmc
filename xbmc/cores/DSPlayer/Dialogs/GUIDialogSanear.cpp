@@ -197,8 +197,6 @@ void CGUIDialogSanear::OnSettingChanged(std::shared_ptr<const CSetting> setting)
   if (setting == NULL)
     return;
 
-  CLavSettings &lavSettings = CMediaSettings::GetInstance().GetCurrentLavSettings();
-
   CGUIDialogSettingsManualBase::OnSettingChanged(setting);
   const std::string &settingId = setting->GetId();
 

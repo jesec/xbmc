@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -40,7 +40,7 @@ void CPeripheralImon::OnDeviceRemoved()
   if (m_bImonConflictsWithDInput)
   {
     if (--m_lCountOfImonsConflictWithDInput == 0)
-      ActionOnImonConflict(false);    
+      ActionOnImonConflict(false);
   }
 }
 
@@ -51,7 +51,7 @@ bool CPeripheralImon::InitialiseFeature(const PeripheralFeature feature)
 #if defined(TARGET_WINDOWS)
     if (HasSetting("disable_winjoystick") && GetSettingBool("disable_winjoystick"))
       m_bImonConflictsWithDInput = true;
-    else 
+    else
 #endif // TARGET_WINDOWS
       m_bImonConflictsWithDInput = false;
 

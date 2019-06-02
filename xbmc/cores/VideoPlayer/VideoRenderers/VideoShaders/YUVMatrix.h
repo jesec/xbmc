@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2007-2015 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -17,9 +17,10 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
-#include "guilib/TransformMatrix.h"
+#include "utils/TransformMatrix.h"
 #include "ShaderFormats.h"
 
 void CalculateYUVMatrix(TransformMatrix &matrix

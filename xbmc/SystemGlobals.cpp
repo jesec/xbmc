@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -17,10 +17,7 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
-#include "system.h"
 #include "SectionLoader.h"
-#include "GUILargeTextureManager.h"
-#include "guilib/TextureManager.h"
 #include "utils/AlarmClock.h"
 #include "GUIInfoManager.h"
 #include "filesystem/DllLibCurl.h"
@@ -49,11 +46,7 @@ std::map<std::string, std::string> CSpecialProtocol::m_pathMap;
 
   XFILE::CDirectoryCache g_directoryCache;
 
-  CGUITextureManager g_TextureManager;
-  CGUILargeTextureManager g_largeTextureManager;
-
   CGUIPassword       g_passwordManager;
-  CGUIInfoManager    g_infoManager;
 
   XCURL::DllLibCurlGlobal g_curlInterface;
   CPartyModeManager     g_partyModeManager;

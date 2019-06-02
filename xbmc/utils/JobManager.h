@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <queue>
 #include <vector>
@@ -170,10 +171,10 @@ public:
 protected:
   /*!
    \brief Returns if we still have jobs waiting to be processed
-   NOTE: This function does not take into account the jobs that are currently processing 
+   NOTE: This function does not take into account the jobs that are currently processing
    */
   bool QueueEmpty() const;
-  
+
 private:
   void QueueNextJob();
 
@@ -199,7 +200,7 @@ private:
 
  \sa CJob and IJobCallback
  */
-class CJobManager
+class CJobManager final
 {
   class CWorkItem
   {
@@ -322,6 +323,7 @@ public:
 protected:
   friend class CJobWorker;
   friend class CJob;
+  friend class CJobQueue;
 
   /*!
    \brief Get a new job to process. Blocks until a new job is available, or a timeout has occurred.
@@ -355,7 +357,6 @@ private:
   CJobManager();
   CJobManager(const CJobManager&) = delete;
   CJobManager const& operator=(CJobManager const&) = delete;
-  virtual ~CJobManager();
 
   /*! \brief Pop a job off the job queue and add to the processing queue ready to process
    \return the job to process, NULL if no jobs are available

@@ -17,6 +17,7 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
 #include <memory>
@@ -30,6 +31,14 @@ namespace GAME
   class CGameClient;
   using GameClientPtr = std::shared_ptr<CGameClient>;
   using GameClientVector = std::vector<GameClientPtr>;
+
+  class CGameClientPort;
+  using GameClientPortPtr = std::unique_ptr<CGameClientPort>;
+  using GameClientPortVec = std::vector<GameClientPortPtr>;
+
+  class CGameClientDevice;
+  using GameClientDevicePtr = std::unique_ptr<CGameClientDevice>;
+  using GameClientDeviceVec = std::vector<GameClientDevicePtr>;
 
 }
 }

@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2011-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,7 +18,7 @@
  *
  */
 
-#include "system.h"
+#pragma once
 
 #if defined(TARGET_DARWIN_OSX)
 
@@ -30,11 +29,6 @@
 #include <list>
 #include <vector>
 
-// not defined in 10.6 sdk
-#ifndef kIOAudioDeviceTransportTypeThunderbolt
-#define kIOAudioDeviceTransportTypeThunderbolt 'thun'
-#endif
-
 
 typedef std::vector<AudioStreamID> AudioStreamIdList;
 typedef std::vector<AudioStreamRangedDescription> StreamFormatList;
@@ -44,7 +38,7 @@ class CCoreAudioStream
 public:
   CCoreAudioStream();
   virtual ~CCoreAudioStream();
-  
+
   bool    Open(AudioStreamID streamId);
   void    Close(bool restore = true);
 
@@ -71,7 +65,7 @@ protected:
   CEvent m_physical_format_event;
 
   AudioStreamID m_StreamId;
-  AudioStreamBasicDescription m_OriginalVirtualFormat;  
+  AudioStreamBasicDescription m_OriginalVirtualFormat;
   AudioStreamBasicDescription m_OriginalPhysicalFormat;
 };
 

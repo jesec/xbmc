@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -22,8 +22,7 @@
 
 #include <string.h>
 #include <sys/wait.h>
-#include "system.h"
-#include "PlatformInclude.h"
+#include "PlatformDefs.h"
 #include "utils/XBMCTinyXML.h"
 #include "utils/StringUtils.h"
 #include "../xbmc/utils/log.h"
@@ -330,7 +329,7 @@ bool CXRandR::SetMode(XOutput output, XMode mode)
   char cmd[255];
 
   if (getenv("KODI_BIN_HOME"))
-    snprintf(cmd, sizeof(cmd), "%s/%s-xrandr --screen %d --output %s --mode %s", 
+    snprintf(cmd, sizeof(cmd), "%s/%s-xrandr --screen %d --output %s --mode %s",
                getenv("KODI_BIN_HOME"),appname.c_str(),
                outputFound.screen, outputFound.name.c_str(), modeFound.id.c_str());
   else

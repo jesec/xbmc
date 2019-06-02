@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
 #include "cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodec.h"
@@ -27,6 +28,7 @@
 #include <libavcodec/avcodec.h>
 #include <libavcodec/d3d11va.h>
 #include <vector>
+#include <wrl/client.h>
 
 class CProcessInfo;
 
@@ -40,19 +42,21 @@ class CDXVAOutputBuffer : public CVideoBuffer
 public:
   virtual ~CDXVAOutputBuffer();
 
-  ID3D11View* GetSRV(unsigned idx);
   void SetRef(AVFrame *frame);
   void Unref();
+
+  HANDLE GetHandle();
+  unsigned GetIdx();
 
   ID3D11View* view{ nullptr };
   DXGI_FORMAT format{ DXGI_FORMAT_UNKNOWN };
   unsigned width{ 0 };
   unsigned height{ 0 };
+  bool shared{ false };
 
 private:
   CDXVAOutputBuffer(int id);
 
-  ID3D11View* planes[2]{ nullptr, nullptr };
   AVFrame* m_pFrame{ nullptr };
 };
 
@@ -72,7 +76,7 @@ public:
   void ReturnView(ID3D11View* view);
   ID3D11View* GetView();
   bool IsValid(ID3D11View* view);
-  int Size();
+  size_t Size();
   bool HasFree();
   bool HasRefs();
 
@@ -81,9 +85,9 @@ protected:
   CCriticalSection m_section;
 
   std::vector<ID3D11View*> m_views;
-  std::deque<int> m_freeViews;
+  std::deque<size_t> m_freeViews;
   std::vector<CDXVAOutputBuffer*> m_out;
-  std::deque<int> m_freeOut;
+  std::deque<size_t> m_freeOut;
 };
 
 class CDecoder;
@@ -92,12 +96,14 @@ class CDXVAContext
 {
 public:
   static bool EnsureContext(CDXVAContext **ctx, CDecoder *decoder);
-  bool GetInputAndTarget(int codec, bool bHighBitdepth, GUID &inGuid, DXGI_FORMAT &outFormat) const;
-  bool GetConfig(const D3D11_VIDEO_DECODER_DESC *format, D3D11_VIDEO_DECODER_CONFIG &config) const;
-  bool CreateSurfaces(D3D11_VIDEO_DECODER_DESC format, unsigned int count, unsigned int alignment, ID3D11VideoDecoderOutputView **surfaces) const;
-  bool CreateDecoder(D3D11_VIDEO_DECODER_DESC *format, const D3D11_VIDEO_DECODER_CONFIG *config, ID3D11VideoDecoder **decoder, ID3D11VideoContext **context);
+  bool GetFormatAndConfig(AVCodecContext* avctx, D3D11_VIDEO_DECODER_DESC &format, D3D11_VIDEO_DECODER_CONFIG &config) const;
+  bool CreateSurfaces(const D3D11_VIDEO_DECODER_DESC &format, const uint32_t count, const uint32_t alignment
+                    , ID3D11VideoDecoderOutputView **surfaces) const;
+  bool CreateDecoder(const D3D11_VIDEO_DECODER_DESC &format, const D3D11_VIDEO_DECODER_CONFIG &config
+                   , ID3D11VideoDecoder **decoder, ID3D11VideoContext **context);
   void Release(CDecoder *decoder);
-  ID3D11VideoContext* GetVideoContext() const { return m_vcontext; }
+  ID3D11VideoContext* GetVideoContext() const { return m_vcontext.Get(); }
+  bool IsContextShared() const { return m_sharingAllowed; }
 
 private:
   CDXVAContext();
@@ -106,17 +112,19 @@ private:
   void DestroyContext();
   void QueryCaps();
   bool IsValidDecoder(CDecoder *decoder);
+  bool GetConfig(const D3D11_VIDEO_DECODER_DESC &format, D3D11_VIDEO_DECODER_CONFIG &config) const;
 
   static CDXVAContext *m_context;
   static CCriticalSection m_section;
 
-  ID3D11VideoContext* m_vcontext;
-  ID3D11VideoDevice* m_service;
+  Microsoft::WRL::ComPtr<ID3D11VideoContext> m_vcontext;
+  Microsoft::WRL::ComPtr<ID3D11VideoDevice> m_service;
   int m_refCount;
   UINT m_input_count;
   GUID *m_input_list;
   std::vector<CDecoder*> m_decoders;
   bool m_atiWorkaround;
+  bool m_sharingAllowed;
 };
 
 class CDecoder
@@ -167,8 +175,8 @@ protected:
 
   int m_refs;
   HANDLE m_device;
-  ID3D11VideoDecoder *m_decoder;
-  ID3D11VideoContext *m_vcontext;
+  Microsoft::WRL::ComPtr<ID3D11VideoDecoder> m_decoder;
+  Microsoft::WRL::ComPtr<ID3D11VideoContext> m_vcontext;
   D3D11_VIDEO_DECODER_DESC m_format;
   CDXVAOutputBuffer *m_videoBuffer;
   struct AVD3D11VAContext *m_context;

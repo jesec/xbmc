@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,7 +18,7 @@
  *
  */
 
-#include "system.h"
+#pragma once
 
 #include <math.h>
 #include <pthread.h>
@@ -111,13 +110,14 @@ public:
   virtual void onAudioFocusChange(int focusChange);
   virtual void doFrame(int64_t frameTimeNanos) override;
   virtual void onVisibleBehindCanceled() override;
-  
+
   // implementation of CJNIInputManagerInputDeviceListener
   void onInputDeviceAdded(int deviceId) override;
   void onInputDeviceChanged(int deviceId) override;
   void onInputDeviceRemoved(int deviceId) override;
 
   bool isValid() { return m_activity != NULL; }
+  const ANativeActivity *getActivity() const { return m_activity; }
 
   void onStart() override;
   void onResume() override;
@@ -141,11 +141,12 @@ public:
   static ANativeWindow* GetNativeWindow(int timeout);
   static int SetBuffersGeometry(int width, int height, int format);
   static int android_printf(const char *format, ...);
-  
+
   static int GetBatteryLevel();
   static bool EnableWakeLock(bool on);
   static bool HasFocus() { return m_hasFocus; }
   static bool IsHeadsetPlugged();
+  static bool IsHDMIPlugged();
 
   static bool StartActivity(const std::string &package, const std::string &intent = std::string(), const std::string &dataType = std::string(), const std::string &dataURI = std::string());
   static std::vector <androidPackage> GetApplications();
@@ -161,7 +162,6 @@ public:
   static int GetMaxSystemVolume();
   static float GetSystemVolume();
   static void SetSystemVolume(float percent);
-  static void InitDirectories();
 
   static void SetRefreshRate(float rate);
   static void SetDisplayMode(int mode);
@@ -226,6 +226,7 @@ private:
   static int m_batteryLevel;
   static bool m_hasFocus;
   static bool m_headsetPlugged;
+  static bool m_hdmiPlugged;
   static IInputDeviceCallbacks* m_inputDeviceCallbacks;
   static IInputDeviceEventHandler* m_inputDeviceEventHandler;
   static bool m_hasReqVisible;

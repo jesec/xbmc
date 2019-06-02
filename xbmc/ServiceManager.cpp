@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2016 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -23,9 +23,9 @@
 #include "addons/VFSEntry.h"
 #include "addons/binary-addons/BinaryAddonManager.h"
 #include "ContextMenuManager.h"
-#include "cores/AudioEngine/Engines/ActiveAE/ActiveAE.h"
 #include "cores/DataCacheCore.h"
-#include "cores/RetroPlayer/rendering/GUIGameRenderManager.h"
+#include "cores/playercorefactory/PlayerCoreFactory.h"
+#include "cores/RetroPlayer/guibridge/GUIGameRenderManager.h"
 #include "favourites/FavouritesService.h"
 #include "games/controllers/ControllerManager.h"
 #include "games/GameServices.h"
@@ -44,6 +44,7 @@
 #include "windowing/WinSystem.h"
 #include "powermanagement/PowerManager.h"
 #include "weather/WeatherManager.h"
+#include "DatabaseManager.h"
 
 using namespace KODI;
 
@@ -64,15 +65,31 @@ CServiceManager::~CServiceManager()
 bool CServiceManager::InitForTesting()
 {
   m_settings.reset(new CSettings());
-  m_network.reset(SetupNetwork());
-  m_fileExtensionProvider.reset(new CFileExtensionProvider());
+  m_network.reset(new CNetwork(*m_settings));
 
+  m_profileManager.reset(new CProfilesManager(*m_settings));
+  CProfile profile("special://temp");
+  m_profileManager.get()->AddProfile(profile);
+  m_profileManager.get()->CreateProfileFolders();
+
+  m_databaseManager.reset(new CDatabaseManager);
+
+  m_binaryAddonManager.reset(new ADDON::CBinaryAddonManager());
   m_addonMgr.reset(new ADDON::CAddonMgr());
   if (!m_addonMgr->Init())
   {
     CLog::Log(LOGFATAL, "CServiceManager::%s: Unable to start CAddonMgr", __FUNCTION__);
     return false;
   }
+
+  if (!m_binaryAddonManager->Init())
+  {
+    CLog::Log(LOGFATAL, "CServiceManager::%s: Unable to initialize CBinaryAddonManager", __FUNCTION__);
+    return false;
+  }
+
+  m_fileExtensionProvider.reset(new CFileExtensionProvider(*m_addonMgr,
+                                                           *m_binaryAddonManager));
 
   init_level = 1;
   return true;
@@ -81,8 +98,11 @@ bool CServiceManager::InitForTesting()
 void CServiceManager::DeinitTesting()
 {
   init_level = 0;
-  m_addonMgr.reset();
   m_fileExtensionProvider.reset();
+  m_binaryAddonManager.reset();
+  m_addonMgr.reset();
+  m_databaseManager.reset();
+  m_profileManager.reset();
   m_network.reset();
   m_settings.reset();
 }
@@ -100,14 +120,26 @@ bool CServiceManager::InitStageOne()
   m_playlistPlayer.reset(new PLAYLIST::CPlayListPlayer());
 
   m_settings.reset(new CSettings());
-  m_network.reset(SetupNetwork());
+  m_network.reset(new CNetwork(*m_settings));
 
   init_level = 1;
   return true;
 }
 
+bool CServiceManager::InitStageOnePointFive()
+{
+  m_profileManager.reset(new CProfilesManager(*m_settings));
+  if (!m_profileManager->Load())
+    return false;
+
+  return true;
+}
+
 bool CServiceManager::InitStageTwo(const CAppParamParser &params)
 {
+  // Initialize the addon database (must be before the addon manager is init'd)
+  m_databaseManager.reset(new CDatabaseManager);
+
   m_Platform.reset(CPlatform::CreateInstance());
   m_Platform->Init();
 
@@ -137,7 +169,7 @@ bool CServiceManager::InitStageTwo(const CAppParamParser &params)
   m_binaryAddonCache.reset( new ADDON::CBinaryAddonCache());
   m_binaryAddonCache->Init();
 
-  m_favouritesService.reset(new CFavouritesService(CProfilesManager::GetInstance().GetProfileUserDataFolder()));
+  m_favouritesService.reset(new CFavouritesService(m_profileManager->GetProfileUserDataFolder()));
 
   m_serviceAddons.reset(new ADDON::CServiceAddonManager(*m_addonMgr));
 
@@ -153,7 +185,8 @@ bool CServiceManager::InitStageTwo(const CAppParamParser &params)
 
   m_gameRenderManager.reset(new RETRO::CGUIGameRenderManager);
 
-  m_fileExtensionProvider.reset(new CFileExtensionProvider());
+  m_fileExtensionProvider.reset(new CFileExtensionProvider(*m_addonMgr,
+                                                           *m_binaryAddonManager));
 
   m_powerManager.reset(new CPowerManager());
   m_powerManager->Initialize();
@@ -165,35 +198,6 @@ bool CServiceManager::InitStageTwo(const CAppParamParser &params)
   return true;
 }
 
-bool CServiceManager::CreateAudioEngine()
-{
-  m_ActiveAE.reset(new ActiveAE::CActiveAE());
-
-  return true;
-}
-
-bool CServiceManager::DestroyAudioEngine()
-{
-  if (m_ActiveAE)
-  {
-    m_ActiveAE->Shutdown();
-    m_ActiveAE.reset();
-  }
-
-  return true;
-}
-
-bool CServiceManager::StartAudioEngine()
-{
-  if (!m_ActiveAE)
-  {
-    CLog::Log(LOGFATAL, "CServiceManager::%s: Unable to start ActiveAE", __FUNCTION__);
-    return false;
-  }
-
-  return m_ActiveAE->Initialize();
-}
-
 // stage 3 is called after successful initialization of WindowManager
 bool CServiceManager::InitStageThree()
 {
@@ -203,10 +207,14 @@ bool CServiceManager::InitStageThree()
   m_gameServices.reset(new GAME::CGameServices(*m_gameControllerManager,
     *m_gameRenderManager,
     *m_settings,
-    *m_peripherals));
+    *m_peripherals,
+    *m_profileManager));
 
   m_contextMenuManager->Init();
   m_PVRManager->Init();
+
+  m_playerCoreFactory.reset(new CPlayerCoreFactory(*m_settings,
+                                                   *m_profileManager));
 
   init_level = 3;
   return true;
@@ -216,6 +224,7 @@ void CServiceManager::DeinitStageThree()
 {
   init_level = 2;
 
+  m_playerCoreFactory.reset();
   m_PVRManager->Deinit();
   m_contextMenuManager->Deinit();
   m_gameServices.reset();
@@ -244,6 +253,12 @@ void CServiceManager::DeinitStageTwo()
   m_binaryAddonManager.reset();
   m_addonMgr.reset();
   m_Platform.reset();
+  m_databaseManager.reset();
+}
+
+void CServiceManager::DeinitStageOnePointFive()
+{
+  m_profileManager.reset();
 }
 
 void CServiceManager::DeinitStageOne()
@@ -307,12 +322,6 @@ PVR::CPVRManager& CServiceManager::GetPVRManager()
   return *m_PVRManager;
 }
 
-IAE& CServiceManager::GetActiveAE()
-{
-  ActiveAE::CActiveAE& ae = *m_ActiveAE;
-  return ae;
-}
-
 CContextMenuManager& CServiceManager::GetContextMenuManager()
 {
   return *m_contextMenuManager;
@@ -373,16 +382,6 @@ CFileExtensionProvider& CServiceManager::GetFileExtensionProvider()
   return *m_fileExtensionProvider;
 }
 
-CWinSystemBase &CServiceManager::GetWinSystem()
-{
-  return *m_winSystem.get();
-}
-
-void CServiceManager::SetWinSystem(std::unique_ptr<CWinSystemBase> winSystem)
-{
-  m_winSystem = std::move(winSystem);
-}
-
 CPowerManager &CServiceManager::GetPowerManager()
 {
   return *m_powerManager;
@@ -399,32 +398,12 @@ void CServiceManager::delete_contextMenuManager::operator()(CContextMenuManager 
   delete p;
 }
 
-void CServiceManager::delete_activeAE::operator()(ActiveAE::CActiveAE *p) const
-{
-  delete p;
-}
-
 void CServiceManager::delete_favouritesService::operator()(CFavouritesService *p) const
 {
   delete p;
 }
 
-CNetwork* CServiceManager::SetupNetwork() const
-{
-#if defined(TARGET_ANDROID)
-  return new CNetworkAndroid();
-#elif defined(HAS_LINUX_NETWORK)
-  return new CNetworkLinux();
-#elif defined(HAS_WIN32_NETWORK)
-  return new CNetworkWin32();
-#elif defined(HAS_WIN10_NETWORK)
-  return new CNetworkWin10();
-#else
-  return new CNetwork();
-#endif
-}
-
-CNetwork& CServiceManager::GetNetwork()
+CNetworkBase& CServiceManager::GetNetwork()
 {
   return *m_network;
 }
@@ -434,3 +413,22 @@ CWeatherManager& CServiceManager::GetWeatherManager()
   return *m_weatherManager;
 }
 
+CPlayerCoreFactory &CServiceManager::GetPlayerCoreFactory()
+{
+  return *m_playerCoreFactory;
+}
+
+CDatabaseManager &CServiceManager::GetDatabaseManager()
+{
+  return *m_databaseManager;
+}
+
+CProfilesManager &CServiceManager::GetProfileManager()
+{
+  return *m_profileManager;
+}
+
+CEventLog &CServiceManager::GetEventLog()
+{
+  return m_profileManager->GetEventLog();
+}

@@ -17,6 +17,7 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
 #include "cores/RetroPlayer/process/RPProcessInfo.h"
@@ -28,8 +29,14 @@ namespace RETRO
   class CRPProcessInfoAmlogic : public CRPProcessInfo
   {
   public:
+    CRPProcessInfoAmlogic();
+
     static CRPProcessInfo* Create();
     static void Register();
+
+    // Implementation of CRPProcessInfo
+    void ConfigureRenderSystem(AVPixelFormat format) override;
+
   };
 }
 }

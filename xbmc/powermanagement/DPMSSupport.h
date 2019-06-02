@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2009-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,8 +18,7 @@
  *
  */
 
-#ifndef DPMSSUPPORT_H
-#define DPMSSUPPORT_H
+#pragma once
 
 #include <vector>
 
@@ -85,4 +84,3 @@ private:
   bool PlatformSpecificDisablePowerSaving();
 };
 
-#endif  // DPMSSUPPORT_H

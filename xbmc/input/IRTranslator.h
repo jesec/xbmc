@@ -17,6 +17,7 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
 #include <map>
@@ -28,12 +29,12 @@ class TiXmlNode;
 class CIRTranslator
 {
 public:
-  CIRTranslator() = default;
+  CIRTranslator();
 
   /*!
    * \brief Loads Lircmap.xml/IRSSmap.xml
    */
-  void Load();
+  void Load(const std::string &irMapName);
 
   /*!
    * \brief Clears the map

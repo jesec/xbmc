@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2010-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,14 +17,17 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
+
 #include <string>
 #include "FileItem.h"
 
 class CFileUtils
 {
 public:
-  static bool DeleteItem(const CFileItemPtr &item, bool force=false);
-  static bool DeleteItem(const std::string &strPath, bool force=false);
+  static bool DeleteItem(const CFileItemPtr &item);
+  static bool DeleteItem(const std::string &strPath);
   static bool RenameFile(const std::string &strFile);
   static bool RemoteAccessAllowed(const std::string &strPath);
   static unsigned int LoadFile(const std::string &filename, void* &outputBuffer);

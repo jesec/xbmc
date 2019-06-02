@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,8 +18,7 @@
  *
  */
 
-#ifndef XBAPPLICATIONEX_H
-#define XBAPPLICATIONEX_H
+#pragma once
 
 #include "guilib/IWindowManagerCallback.h"
 
@@ -48,13 +47,11 @@ public:
   // Overridable functions for the 3D scene created by the app
   virtual bool Initialize() { return true; }
   virtual bool Cleanup() { return true; }
-  virtual void SetRenderGUI(bool renderGUI) {};
 
 public:
-  INT Run(const CAppParamParser &params);
-  VOID Destroy();
+  int Run(const CAppParamParser &params);
+  void Destroy();
 
 private:
 };
 
-#endif /* XBAPPLICATIONEX_H */

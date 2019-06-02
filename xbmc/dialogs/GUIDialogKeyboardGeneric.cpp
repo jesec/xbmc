@@ -21,6 +21,7 @@
 #include "interfaces/AnnouncementManager.h"
 #include "input/XBMC_vkeys.h"
 #include "input/InputCodingTable.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIEditControl.h"
 #include "guilib/GUILabelControl.h"
 #include "guilib/GUIWindowManager.h"
@@ -194,22 +195,24 @@ void CGUIDialogKeyboardGeneric::OnInitWindow()
 
 bool CGUIDialogKeyboardGeneric::OnAction(const CAction &action)
 {
+  int actionId = action.GetID();
   bool handled = true;
-  if (action.GetID() == (KEY_VKEY | XBMCVK_BACK))
+  if (actionId == (KEY_VKEY | XBMCVK_BACK))
     Backspace();
-  else if (action.GetID() == ACTION_ENTER || (m_isKeyboardNavigationMode && action.GetID() == ACTION_SELECT_ITEM))
+  else if (actionId == ACTION_ENTER ||
+           (actionId == ACTION_SELECT_ITEM && (m_isKeyboardNavigationMode || GetFocusedControlID() == CTL_EDIT)))
     OnOK();
-  else if (action.GetID() == ACTION_SHIFT)
+  else if (actionId == ACTION_SHIFT)
     OnShift();
-  else if (action.GetID() == ACTION_SYMBOLS)
+  else if (actionId == ACTION_SYMBOLS)
     OnSymbols();
   // don't handle move left/right and select in the edit control
   else if (!m_isKeyboardNavigationMode &&
-           (action.GetID() == ACTION_MOVE_LEFT ||
-           action.GetID() == ACTION_MOVE_RIGHT ||
-           action.GetID() == ACTION_SELECT_ITEM))
+           (actionId == ACTION_MOVE_LEFT ||
+           actionId == ACTION_MOVE_RIGHT ||
+           actionId == ACTION_SELECT_ITEM))
     handled = false;
-  else if (action.GetID() == ACTION_VOICE_RECOGNIZE)
+  else if (actionId == ACTION_VOICE_RECOGNIZE)
     OnVoiceRecognition();
   else
   {
@@ -224,9 +227,9 @@ bool CGUIDialogKeyboardGeneric::OnAction(const CAction &action)
       CGUIControl *edit = GetControl(CTL_EDIT);
       if (edit)
         handled = edit->OnAction(action);
-      if (!handled && action.GetID() >= KEY_VKEY && action.GetID() < KEY_ASCII)
+      if (!handled && actionId >= KEY_VKEY && actionId < KEY_ASCII)
       {
-        BYTE b = action.GetID() & 0xFF;
+        unsigned char b = actionId & 0xFF;
         if (b == XBMCVK_TAB)
         {
           // Toggle left/right key mode
@@ -393,7 +396,7 @@ void CGUIDialogKeyboardGeneric::Backspace()
     g_charsetConverter.utf8ToW(m_hzcode, tmp);
     tmp.erase(tmp.length() - 1, 1);
     g_charsetConverter.wToUTF8(tmp, m_hzcode);
-    
+
     switch (m_codingtable->GetType())
     {
     case IInputCodingTable::TYPE_WORD_LIST:
@@ -631,7 +634,7 @@ void CGUIDialogKeyboardGeneric::Cancel()
 
 bool CGUIDialogKeyboardGeneric::ShowAndGetInput(char_callback_t pCallback, const std::string &initialString, std::string &typedString, const std::string &heading, bool bHiddenInput)
 {
-  CGUIDialogKeyboardGeneric *pKeyboard = g_windowManager.GetWindow<CGUIDialogKeyboardGeneric>(WINDOW_DIALOG_KEYBOARD);
+  CGUIDialogKeyboardGeneric *pKeyboard = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogKeyboardGeneric>(WINDOW_DIALOG_KEYBOARD);
 
   if (!pKeyboard)
     return false;
@@ -685,7 +688,7 @@ void CGUIDialogKeyboardGeneric::ShowWordList(int direct)
 {
   CSingleLock lock(m_CS);
   std::wstring hzlist = L"";
-  g_graphicsContext.SetScalingResolution(m_coordsRes, true);
+  CServiceBroker::GetWinSystem()->GetGfxContext().SetScalingResolution(m_coordsRes, true);
   float width = m_listfont->GetCharWidth(L'<') + m_listfont->GetCharWidth(L'>');
   float spacewidth = m_listfont->GetCharWidth(L' ');
   float numwidth = m_listfont->GetCharWidth(L'1') + m_listfont->GetCharWidth(L'.');

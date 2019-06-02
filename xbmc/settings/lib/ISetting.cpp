@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@ ISetting::ISetting(const std::string &id, CSettingsManager *settingsManager /* =
   , m_settingsManager(settingsManager)
   , m_requirementCondition(settingsManager)
 { }
-  
+
 bool ISetting::Deserialize(const TiXmlNode *node, bool update /* = false */)
 {
   if (node == nullptr)

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,11 +21,13 @@
 #include "GUIDialogTextViewer.h"
 #include "GUIUserMessages.h"
 #include "filesystem/File.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "input/Action.h"
 #include "input/ActionIDs.h"
 #include "utils/log.h"
 #include "utils/URIUtils.h"
+#include "ServiceBroker.h"
 
 using namespace XFILE;
 
@@ -123,7 +125,7 @@ void CGUIDialogTextViewer::ShowForFile(const std::string& path, bool useMonoFont
     {
       data.resize(file.GetLength()+1);
       file.Read(&data[0], file.GetLength());
-      CGUIDialogTextViewer* pDialog = g_windowManager.GetWindow<CGUIDialogTextViewer>(WINDOW_DIALOG_TEXT_VIEWER);
+      CGUIDialogTextViewer* pDialog = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogTextViewer>(WINDOW_DIALOG_TEXT_VIEWER);
       pDialog->SetHeading(URIUtils::GetFileName(path));
       pDialog->SetText(data);
       pDialog->UseMonoFont(useMonoFont);

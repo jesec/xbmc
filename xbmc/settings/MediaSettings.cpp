@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -53,6 +53,8 @@
 #include "GraphFilters.h"
 #include "Filters/Sanear/Interfaces.h"
 #endif
+
+using namespace KODI;
 using namespace KODI::MESSAGING;
 
 using KODI::MESSAGING::HELPERS::DialogResponse;
@@ -131,19 +133,26 @@ bool CMediaSettings::Load(const TiXmlNode *settings)
     XMLUtils::GetBoolean(pElement, "nonlinstretch", m_defaultVideoSettings.m_CustomNonLinStretch);
     if (!XMLUtils::GetInt(pElement, "stereomode", m_defaultVideoSettings.m_StereoMode))
       m_defaultVideoSettings.m_StereoMode = 0;
+
+    m_defaultVideoSettings.m_ToneMapMethod = 1;
+    m_defaultVideoSettings.m_ToneMapParam = 1.0f;
   }
 
   m_defaultGameSettings.Reset();
   pElement = settings->FirstChildElement("defaultgamesettings");
   if (pElement != nullptr)
   {
-    int scalingMethod;
-    if (XMLUtils::GetInt(pElement, "scalingmethod", scalingMethod, VS_SCALINGMETHOD_NEAREST, VS_SCALINGMETHOD_MAX))
-      m_defaultGameSettings.SetScalingMethod(static_cast<ESCALINGMETHOD>(scalingMethod));
+    std::string videoFilter;
+    if (XMLUtils::GetString(pElement, "videofilter", videoFilter))
+      m_defaultGameSettings.SetVideoFilter(videoFilter);
 
     int viewMode;
-    if (XMLUtils::GetInt(pElement, "viewmode", viewMode, ViewModeNormal, ViewModeZoom110Width))
-      m_defaultGameSettings.SetViewMode(static_cast<ViewMode>(viewMode));
+    if (XMLUtils::GetInt(pElement, "viewmode", viewMode, static_cast<int>(RETRO::VIEWMODE::Normal), static_cast<int>(RETRO::VIEWMODE::Max)))
+      m_defaultGameSettings.SetViewMode(static_cast<RETRO::VIEWMODE>(viewMode));
+
+    int rotation;
+    if (XMLUtils::GetInt(pElement, "rotation", rotation, 0, 270) && rotation >= 0)
+      m_defaultGameSettings.SetRotationDegCCW(static_cast<unsigned int>(rotation));
   }
 
   // mymusic settings
@@ -159,7 +168,7 @@ bool CMediaSettings::Load(const TiXmlNode *settings)
     if (!XMLUtils::GetInt(pElement, "needsupdate", m_musicNeedsUpdate, 0, INT_MAX))
       m_musicNeedsUpdate = 0;
   }
-  
+
   // Read the watchmode settings for the various media views
   pElement = settings->FirstChildElement("myvideos");
   if (pElement != NULL)
@@ -238,8 +247,9 @@ bool CMediaSettings::Save(TiXmlNode *settings) const
   if (pNode == nullptr)
     return false;
 
-  XMLUtils::SetInt(pNode, "scalingmethod", m_defaultGameSettings.ScalingMethod());
-  XMLUtils::SetInt(pNode, "viewmode", m_defaultGameSettings.ViewMode());
+  XMLUtils::SetString(pNode, "videofilter", m_defaultGameSettings.VideoFilter());
+  XMLUtils::SetInt(pNode, "viewmode", static_cast<int>(m_defaultGameSettings.ViewMode()));
+  XMLUtils::SetInt(pNode, "rotation", m_defaultGameSettings.RotationDegCCW());
 
   // mymusic
   pNode = settings->FirstChild("mymusic");
@@ -366,13 +376,6 @@ void CMediaSettings::OnSettingAction(std::shared_ptr<const CSetting> setting)
     CGraphFilters::Get()->ShowInternalPPage(CGraphFilters::INTERNAL_LAVAUDIO, false);
   else if (settingId == CSettings::SETTING_DSPLAYER_XYSUBFILTER || settingId == CSettings::SETTING_DSPLAYER_XYVSFILTER)
     CGraphFilters::Get()->ShowInternalPPage(CGraphFilters::INTERNAL_XYSUBFILTER, true);
-  else if (settingId == CSettings::SETTING_DSPLAYER_DSAREARESET)
-  {
-    CServiceBroker::GetSettings().SetInt(CSettings::SETTING_DSPLAYER_DSAREALEFT, 0);
-    CServiceBroker::GetSettings().SetInt(CSettings::SETTING_DSPLAYER_DSAREARIGHT, 0);
-    CServiceBroker::GetSettings().SetInt(CSettings::SETTING_DSPLAYER_DSAREATOP, 0);
-    CServiceBroker::GetSettings().SetInt(CSettings::SETTING_DSPLAYER_DSAREABOTTOM, 0);
-  }
   else if (settingId == CSettings::SETTING_DSPLAYER_SANEARCMOY)
   {
     CServiceBroker::GetSettings().SetInt(CSettings::SETTING_DSPLAYER_SANEARCUTOFF, SaneAudioRenderer::ISettings::CROSSFEED_CUTOFF_FREQ_CMOY);

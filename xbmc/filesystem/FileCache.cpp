@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2014 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -200,7 +200,7 @@ bool CFileCache::Open(const CURL& url)
 
       size_t back = cacheSize / 4;
       size_t front = cacheSize - back;
-      
+
       if (m_flags & READ_MULTI_STREAM)
       {
         // READ_MULTI_STREAM requires double buffering, so use half the amount of memory for each buffer
@@ -225,7 +225,7 @@ bool CFileCache::Open(const CURL& url)
     Close();
     return false;
   }
-  
+
   m_readPos = 0;
   m_writePos = 0;
   m_writeRate = 1024 * 1024;
@@ -534,7 +534,7 @@ int64_t CFileCache::Seek(int64_t iFilePosition, int iWhence)
   else
     m_readPos = iTarget;
 
-  return m_nSeekResult;
+  return iTarget;
 }
 
 void CFileCache::Close()

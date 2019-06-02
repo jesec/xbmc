@@ -82,7 +82,7 @@ bool CInputStreamAddon::Supports(BinaryAddonBasePtr& addonBase, const CFileItem 
     return (addon.asString() == addonBase->ID());
 
   // check protocols
-  std::string protocol = fileitem.GetURL().GetProtocol();
+  std::string protocol = CURL(fileitem.GetDynPath()).GetProtocol();
   if (!protocol.empty())
   {
     std::string protocols = addonBase->Type(ADDON_INPUTSTREAM)->GetValue("@protocols").asString();
@@ -373,7 +373,6 @@ CDemuxStream* CInputStreamAddon::GetStream(int streamId) const
     videoStream->iWidth = stream.m_Width;
     videoStream->iHeight = stream.m_Height;
     videoStream->fAspect = stream.m_Aspect;
-    videoStream->stereo_mode = "mono";
     videoStream->iBitRate = stream.m_BitRate;
     videoStream->profile = ConvertVideoCodecProfile(stream.m_codecProfile);
     demuxStream = videoStream;
@@ -390,16 +389,13 @@ CDemuxStream* CInputStreamAddon::GetStream(int streamId) const
   demuxStream->codec = codec->id;
   demuxStream->codecName = stream.m_codecInternalName;
   demuxStream->uniqueId = streamId;
-  demuxStream->language[0] = stream.m_language[0];
-  demuxStream->language[1] = stream.m_language[1];
-  demuxStream->language[2] = stream.m_language[2];
-  demuxStream->language[3] = stream.m_language[3];
+  demuxStream->flags = static_cast<StreamFlags>(stream.m_flags);
+  demuxStream->language = stream.m_language;
 
   if (stream.m_ExtraData && stream.m_ExtraSize)
   {
     demuxStream->ExtraData = new uint8_t[stream.m_ExtraSize];
     demuxStream->ExtraSize = stream.m_ExtraSize;
-    demuxStream->flags = static_cast<StreamFlags>(stream.m_flags);
     for (unsigned int j = 0; j < stream.m_ExtraSize; ++j)
       demuxStream->ExtraData[j] = stream.m_ExtraData[j];
   }

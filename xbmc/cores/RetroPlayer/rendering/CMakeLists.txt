@@ -1,30 +1,16 @@
-set(SOURCES GUIGameRenderManager.cpp
-            GUIGameSettings.cpp
-            GUIGameVideoHandle.cpp
-            GUIRenderHandle.cpp
-            GUIRenderTarget.cpp
-            GUIRenderTargetFactory.cpp
-            RenderContext.cpp
-            RenderGeometry.cpp
+set(SOURCES RenderContext.cpp
             RenderSettings.cpp
             RenderTranslator.cpp
+            RenderUtils.cpp
             RenderVideoSettings.cpp
             RPRenderManager.cpp
 )
 
-set(HEADERS GUIGameRenderManager.h
-            GUIGameSettings.h
-            GUIGameVideoHandle.h
-            GUIRenderHandle.h
-            GUIRenderTarget.h
-            GUIRenderTargetFactory.h
-            IGUIRenderSettings.h
-            IRenderCallback.h
-            IRenderManager.h
+set(HEADERS IRenderManager.h
             RenderContext.h
-            RenderGeometry.h
             RenderSettings.h
             RenderTranslator.h
+            RenderUtils.h
             RenderVideoSettings.h
             RPRenderManager.h
 )

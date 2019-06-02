@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@
 #include "utils/XBMCTinyXML.h"
 
 #define MAKECODE(a, b, c, d)  ((((long)(a)) << 24) | (((long)(b)) << 16) | (((long)(c)) << 8) | (long)(d))
-#define MAKETWOCHARCODE(a, b) ((((long)(a)) << 8) | (long)(b)) 
+#define MAKETWOCHARCODE(a, b) ((((long)(a)) << 8) | (long)(b))
 
 typedef struct LCENTRY
 {

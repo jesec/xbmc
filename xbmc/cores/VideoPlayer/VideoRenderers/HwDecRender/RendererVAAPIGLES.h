@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2007-2015 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 
 #pragma once
 
-#include "system.h"
+#include <memory>
 
 #include "cores/VideoPlayer/VideoRenderers/LinuxRendererGLES.h"
 #include "VaapiEGL.h"
@@ -37,9 +37,9 @@ public:
   ~CRendererVAAPI() override;
 
   static CBaseRenderer* Create(CVideoBuffer *buffer);
-  static void Register(VAAPI::IVaapiWinSystem *winSystem, VADisplay vaDpy, EGLDisplay eglDisplay, bool &general, bool &hevc);
+  static void Register(VAAPI::IVaapiWinSystem *winSystem, VADisplay vaDpy, EGLDisplay eglDisplay, bool &general, bool &deepColor);
 
-  bool Configure(const VideoPicture &picture, float fps, unsigned flags, unsigned int orientation) override;
+  bool Configure(const VideoPicture &picture, float fps, unsigned int orientation) override;
 
   // Player functions
   bool ConfigChanged(const VideoPicture &picture) override;
@@ -63,7 +63,7 @@ protected:
   EShaderFormat GetShaderFormat() override;
 
   bool m_isVAAPIBuffer = true;
-  VAAPI::CVaapiTexture m_vaapiTextures[NUM_BUFFERS];
+  std::unique_ptr<VAAPI::CVaapiTexture> m_vaapiTextures[NUM_BUFFERS];
   GLsync m_fences[NUM_BUFFERS];
   static VAAPI::IVaapiWinSystem *m_pWinSystem;
 };

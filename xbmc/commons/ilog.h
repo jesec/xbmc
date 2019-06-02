@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,8 +19,6 @@
  */
 
 #pragma once
-
-#include <stdio.h>
 
 #define LOG_LEVEL_NONE         -1 // nothing at all is logged
 #define LOG_LEVEL_NORMAL        0 // shows notice, error, severe and fatal
@@ -55,6 +53,7 @@
 #define LOGWEBSERVER  (1 << (LOGMASKBIT + 11))
 #define LOGDATABASE   (1 << (LOGMASKBIT + 12))
 #define LOGAVTIMING   (1 << (LOGMASKBIT + 13))
+#define LOGWINDOWING  (1 << (LOGMASKBIT + 14))
 
 #include "utils/params_check_macros.h"
 

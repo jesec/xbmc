@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -17,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 /**
  * design goals:
@@ -35,8 +37,6 @@
  * - move to an actor based design in order to reduce the number
  *   of locks needed.
  */
-
-#pragma once
 
 #include "cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodec.h"
 #include "cores/VideoPlayer/Process/VideoBuffer.h"
@@ -175,6 +175,7 @@ struct CVdpauConfig
   CVDPAUContext *context;
   CProcessInfo *processInfo;
   int resetCounter;
+  uint64_t timeOpened;
 };
 
 /**
@@ -240,7 +241,7 @@ public:
   CRect crop;
   void *device;
   void *procFunc;
-  void *ident;
+  int64_t ident;
 };
 
 //-----------------------------------------------------------------------------

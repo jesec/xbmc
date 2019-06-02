@@ -17,6 +17,7 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
 #include <map>
@@ -61,22 +62,6 @@ namespace JOYSTICK
     *         timeout from the previous command.
     */
     virtual bool NeedsCooldown(void) const = 0;
-
-    /*!
-     * \brief Test if the mapping process is being performed for an emulated controller
-     *
-     * \return true if an emulated controller is being mapped, false otherwise
-     */
-    virtual bool Emulation(void) const = 0;
-
-    /*!
-     * \brief Get the number of the emulated controller being mapped
-     *
-     * \return The number, or 0 if an emulated controller is not being mapped
-     *
-     * \remark Emulated controllers are 1-indexed
-     */
-    virtual unsigned int ControllerNumber(void) const = 0;
 
     /*!
      * \brief Handle button/hat press or axis threshold

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2027 Team Kodi
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -17,18 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
-
-#include <stdint.h>
-
-using color_t = uint32_t;
-
-enum
-{
-  RENDER_QUIRKS_MAJORMEMLEAK_OVERLAYRENDERER = 1 << 0,
-  RENDER_QUIRKS_YV12_PREFERED = 1 << 1,
-  RENDER_QUIRKS_BROKEN_OCCLUSION_QUERY = 1 << 2,
-};
 
 enum RENDER_STEREO_VIEW
 {

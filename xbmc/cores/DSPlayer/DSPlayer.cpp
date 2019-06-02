@@ -32,7 +32,7 @@
 #include "windowing/windows/winsystemwin32.h" //Important needed to get the right hwnd
 #include "xbmc/GUIInfoManager.h"
 #include "utils/SystemInfo.h"
-#include "input/MouseStat.h"
+#include "input/mouse/MouseStat.h"
 #include "settings/Settings.h"
 #include "FileItem.h"
 #include "utils/log.h"
@@ -43,6 +43,7 @@
 #include "windowing/WinSystem.h"
 #include "dialogs/GUIDialogOK.h"
 #include "PixelShaderList.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/LocalizeStrings.h"
 #include "dialogs/GUIDialogSelect.h"
 #include "dialogs/GUIDialogKaiToast.h"
@@ -55,6 +56,7 @@
 #include "pvr/channels/PVRChannel.h"
 #include "settings/AdvancedSettings.h"
 #include "Application.h"
+#include "AppInboundProtocol.h"
 #include "GUIUserMessages.h"
 #include "input/Key.h"
 #include "cores/VideoPlayer/Interface/Addon/TimingConstants.h"
@@ -98,11 +100,11 @@ CDSPlayer::CDSPlayer(IPlayerCallback& callback)
   m_isMadvr = (CServiceBroker::GetSettings().GetString(CSettings::SETTING_DSPLAYER_VIDEORENDERER) == "madVR");
 
   if (InitWindow(m_hWnd))
-    CLog::Log(LOGDEBUG, "%s : Create DSPlayer window - hWnd: %i", __FUNCTION__, m_hWnd);
+    CLog::Log(LOGDEBUG, "%s : Create DSPlayer window - hWnd: %i", __FUNCTION__, static_cast<void*>(m_hWnd));
 
   /* Suspend AE temporarily so exclusive or hog-mode sinks */
   /* don't block DSPlayer access to audio device  */
-  if (!CServiceBroker::GetActiveAE().Suspend())
+  if (!CServiceBroker::GetActiveAE()->Suspend())
   {
     CLog::Log(LOGNOTICE, __FUNCTION__, "Failed to suspend AudioEngine before launching DSPlayer");
   }
@@ -117,17 +119,17 @@ CDSPlayer::CDSPlayer(IPlayerCallback& callback)
 
   m_processInfo = CProcessInfo::CreateInstance();
 
-  CServiceBroker::GetWinSystem().Register(this);
-  CServiceBroker::GetWinSystem().RegisterRenderLoop(this);
+  CServiceBroker::GetWinSystem()->Register(this);
+  CServiceBroker::GetWinSystem()->RegisterRenderLoop(this);
 }
 
 CDSPlayer::~CDSPlayer()
 {
-  CServiceBroker::GetWinSystem().UnregisterRenderLoop(this);
-  CServiceBroker::GetWinSystem().Unregister(this);
+  CServiceBroker::GetWinSystem()->UnregisterRenderLoop(this);
+  CServiceBroker::GetWinSystem()->Unregister(this);
 
   /* Resume AE processing of XBMC native audio */
-  if (!CServiceBroker::GetActiveAE().Resume())
+  if (!CServiceBroker::GetActiveAE()->Resume())
   {
     CLog::Log(LOGFATAL, __FUNCTION__, "Failed to restart AudioEngine after return from DSPlayer");
   }
@@ -150,8 +152,6 @@ CDSPlayer::~CDSPlayer()
 
   SAFE_DELETE(g_dsGraph);
   SAFE_DELETE(g_pPVRStream);
-
-  SetVisibleScreenArea(m_lastActiveVideoRect);
 
   CLog::Log(LOGNOTICE, "%s DSPlayer is now closed", __FUNCTION__);
 }
@@ -217,8 +217,9 @@ bool CDSPlayer::OpenFileInternal(const CFileItem& file)
 
     Create();
 
-    // wait for the ready event
-    CGUIDialogBusy::WaitOnEvent(m_hReadyEvent, 200, false);
+    m_callback.OnPlayBackStarted(m_currentFileItem);
+
+    m_hReadyEvent.WaitMSec(500);
 
     return (PlayerState != DSPLAYER_ERROR);
   }
@@ -609,8 +610,6 @@ void CDSPlayer::Process()
   m_pGraphThread.Create();
   UpdateApplication();
 
-  m_callback.OnPlayBackStarted(m_currentFileItem);
-
   // Start playback
   // If there's an error, the lock must be released in order to show the error dialog
   m_hReadyEvent.Set();
@@ -629,9 +628,6 @@ void CDSPlayer::Process()
     SetSubTitleDelay(g_application.GetAppPlayer().GetVideoSettings().m_SubtitleDelay);
     SetSubtitleVisible(g_application.GetAppPlayer().GetVideoSettings().m_SubtitleOn);
 
-    if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_SHOWBDTITLECHOICE))
-      ShowEditionDlg(true);
-
     // Seek
     if (m_PlayerOptions.starttime > 0)
       g_dsGraph->Seek(SEC_TO_DS_TIME(m_PlayerOptions.starttime), 1U, false);
@@ -640,6 +636,7 @@ void CDSPlayer::Process()
 
     // Starts playback
     g_dsGraph->Play(true);
+    m_callback.OnAVStarted(m_currentFileItem);
 
     if (CGraphFilters::Get()->IsDVD())
       CStreamsManager::Get()->LoadDVDStreams();
@@ -726,9 +723,9 @@ void CDSPlayer::HandleMessages()
         newEvent.type = XBMC_MOUSEMOTION;
         newEvent.motion.x = (uint16_t)pt.x;
         newEvent.motion.y = (uint16_t)pt.y;
-        g_application.OnEvent(newEvent);
+        CServiceBroker::GetAppPort()->OnEvent(newEvent);
         /*CGUIMessage pMsg(GUI_MSG_VIDEO_MENU_STARTED, 0, 0);
-        g_windowManager.SendMessage(pMsg);*/
+        CServiceBroker::GetGUI()->GetWindowManager().SendMessage(pMsg);*/
         /**** End of ugly hack ***/
         if (SUCCEEDED(CGraphFilters::Get()->DVD.dvdInfo->GetButtonAtPosition(pt, &pButtonIndex)))
           CGraphFilters::Get()->DVD.dvdControl->SelectButton(pButtonIndex);
@@ -762,7 +759,7 @@ void CDSPlayer::HandleMessages()
       else if (pMsg->IsType(CDSMsg::PLAYER_DVD_MENU_ROOT))
       {
         CGUIMessage _msg(GUI_MSG_VIDEO_MENU_STARTED, 0, 0);
-        g_windowManager.SendMessage(_msg);
+        CServiceBroker::GetGUI()->GetWindowManager().SendMessage(_msg);
         CGraphFilters::Get()->DVD.dvdControl->ShowMenu(DVD_MENU_Root, DVD_CMD_FLAG_Block | DVD_CMD_FLAG_Flush, NULL);
       }
       else if (pMsg->IsType(CDSMsg::PLAYER_DVD_MENU_EXIT))
@@ -827,7 +824,7 @@ void CDSPlayer::Pause()
 void CDSPlayer::SetSpeed(float iSpeed)
 {
   if (iSpeed != 1 && iSpeed != 0)
-    g_infoManager.SetDisplayAfterSeek();
+    CServiceBroker::GetGUI()->GetInfoManager().GetInfoProviders().GetPlayerInfoProvider().SetDisplayAfterSeek();
 
   m_pGraphThread.SetCurrentRate(iSpeed);
   m_pGraphThread.SetSpeedChanged(true);
@@ -945,7 +942,7 @@ bool CDSPlayer::OnAction(const CAction &action)
     if (GetChapterCount() > 0)
     {
       SeekChapter(GetChapter() + 1);
-      g_infoManager.SetDisplayAfterSeek();
+      CServiceBroker::GetGUI()->GetInfoManager().GetInfoProviders().GetPlayerInfoProvider().SetDisplayAfterSeek();
       return true;
     }
     else
@@ -955,7 +952,7 @@ bool CDSPlayer::OnAction(const CAction &action)
     if (GetChapterCount() > 0)
     {
       SeekChapter(GetChapter() - 1);
-      g_infoManager.SetDisplayAfterSeek();
+      CServiceBroker::GetGUI()->GetInfoManager().GetInfoProviders().GetPlayerInfoProvider().SetDisplayAfterSeek();
       return true;
     }
     else
@@ -965,9 +962,9 @@ bool CDSPlayer::OnAction(const CAction &action)
     break;
 
   case ACTION_PLAYER_PROCESS_INFO:
-    if (g_windowManager.GetActiveWindow() != WINDOW_DIALOG_DSPLAYER_PROCESS_INFO)
+    if (CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow() != WINDOW_DIALOG_DSPLAYER_PROCESS_INFO)
     {
-      g_windowManager.ActivateWindow(WINDOW_DIALOG_DSPLAYER_PROCESS_INFO);
+      CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(WINDOW_DIALOG_DSPLAYER_PROCESS_INFO);
       return true;
     }
     break;  
@@ -1028,7 +1025,7 @@ bool CDSPlayer::SelectChannel(bool bNext)
 
   if (!bShowPreview)
   {
-    g_infoManager.SetDisplayAfterSeek(100000);
+    CServiceBroker::GetGUI()->GetInfoManager().GetInfoProviders().GetPlayerInfoProvider().SetDisplayAfterSeek(100000);
   }
 
   bool bResult = (bNext ? g_pPVRStream->NextChannel(bShowPreview) : g_pPVRStream->PrevChannel(bShowPreview));
@@ -1178,20 +1175,6 @@ void CDSPlayer::DisplayChange(bool bExternalChange)
     m_pAllocatorCallback->DisplayChange(bExternalChange);
 }
 
-void CDSPlayer::SetVisibleScreenArea(CRect activeVideoRect)
-{
-  if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_OSDINTOACTIVEAREA)
-    && CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_COPYACTIVERECT)
-    && activeVideoRect != CRect {0,0,0,0})
-  {
-    CRect wndRect = g_graphicsContext.GetViewWindow();
-    CServiceBroker::GetSettings().SetInt(CSettings::SETTING_DSPLAYER_DSAREALEFT, activeVideoRect.x1 - wndRect.x1);
-    CServiceBroker::GetSettings().SetInt(CSettings::SETTING_DSPLAYER_DSAREARIGHT, wndRect.x2 - activeVideoRect.x2);
-    CServiceBroker::GetSettings().SetInt(CSettings::SETTING_DSPLAYER_DSAREATOP, activeVideoRect.y1 - wndRect.y1);
-    CServiceBroker::GetSettings().SetInt(CSettings::SETTING_DSPLAYER_DSAREABOTTOM, wndRect.y2 - activeVideoRect.y2);
-  }
-}
-
 // IDSRendererAllocatorCallback
 CRect CDSPlayer::GetActiveVideoRect()
 {
@@ -1312,88 +1295,6 @@ bool CDSPlayer::ReadyDS(DIRECTSHOW_RENDERER videoRenderer)
     videoRenderer = m_CurrentVideoRenderer;
 
   return (m_pAllocatorCallback != NULL && m_renderOnDs && m_CurrentVideoRenderer == videoRenderer);
-}
-
-void CDSPlayer::ShowEditionDlg(bool playStart)
-{
-  UINT count = GetEditionsCount();
-
-  if (count < 2)
-    return;
-
-  if (playStart && m_PlayerOptions.starttime > 0)
-  {
-    CDSPlayerDatabase db;
-    if (db.Open())
-    {
-      CEdition edition;
-      if (db.GetResumeEdition(m_currentFileItem.GetPath(), edition))
-      {
-        CLog::Log(LOGDEBUG, "%s select bookmark, edition with idx %i selected", __FUNCTION__, edition.editionNumber);
-        SetEdition(edition.editionNumber);
-        return;
-      }
-    }
-  }
-
-  g_dsGraph->Play(true);
-  g_dsGraph->Pause();
-
-  CGUIDialogSelect *dialog = (CGUIDialogSelect *)g_windowManager.GetWindow(WINDOW_DIALOG_SELECT);
-
-  bool listAllTitles = false;
-  UINT minLength = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_MINTITLELENGTH);
-
-  while (true)
-  {
-    std::vector<UINT> editionOptions;
-
-    dialog->SetHeading(IsMatroskaEditions() ? 55025 : 55026);
-
-    CLog::Log(LOGDEBUG, "%s Edition count - %i", __FUNCTION__, count);
-    int selected = GetEdition();
-    for (UINT i = 0; i < count; i++)
-    {
-      std::string name;
-      REFERENCE_TIME duration;
-
-      GetEditionInfo(i, name, &duration);
-
-      if (duration == _I64_MIN || listAllTitles || count == 1 || duration >= DS_TIME_BASE * 60 * minLength)
-      {
-        if (i == selected)
-          selected = editionOptions.size();
-
-        if (name.length() == 0)
-          name = "Unnamed";
-        dialog->Add(name);
-        editionOptions.push_back(i);
-      }
-    }
-
-    if (count > 1 && count != editionOptions.size())
-    {
-      dialog->Add(g_localizeStrings.Get(55027));
-    }
-
-    dialog->SetSelected(selected);
-    dialog->Open();
-
-    selected = dialog->GetSelectedItem();
-    if (selected >= 0)
-    {
-      if (selected == editionOptions.size())
-      {
-        listAllTitles = true;
-        continue;
-      }
-      UINT idx = editionOptions[selected];
-      CLog::Log(LOGDEBUG, "%s edition with idx %i selected", __FUNCTION__, idx);
-      SetEdition(idx);
-      break;
-    }
-    break;
-  }
 }
 
 CGraphManagementThread::CGraphManagementThread(CDSPlayer * pPlayer)

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -148,7 +148,7 @@ void CAnnouncementManager::DoAnnounce(AnnouncementFlag flag, const char *sender,
   CVariant object = data.isNull() || data.isObject() ? data : CVariant::VariantTypeObject;
   std::string type;
   int id = 0;
-  
+
   if(item->HasPVRChannelInfoTag())
   {
     const PVR::CPVRChannelPtr channel(item->GetPVRChannelInfoTag());

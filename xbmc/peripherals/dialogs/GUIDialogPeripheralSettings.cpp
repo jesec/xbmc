@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@
  */
 
 #include "GUIDialogPeripheralSettings.h"
+#include "guilib/GUIMessage.h"
 
 #include <utility>
 
@@ -163,7 +164,7 @@ void CGUIDialogPeripheralSettings::InitializeSettings()
     CLog::Log(LOGERROR, "CGUIDialogPeripheralSettings: unable to setup settings");
     return;
   }
-  
+
   std::vector<SettingPtr> settings = peripheral->GetSettings();
   for (std::vector<SettingPtr>::iterator itSetting = settings.begin(); itSetting != settings.end(); ++itSetting)
   {

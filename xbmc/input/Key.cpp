@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,6 @@
  *
  */
 
-#include "system.h"
 #include "input/Key.h"
 
 CKey::CKey(void)
@@ -48,7 +47,7 @@ CKey::CKey(uint32_t buttonCode, unsigned int held)
   m_held = held;
 }
 
-CKey::CKey(uint32_t keycode, uint8_t vkey, wchar_t unicode, char ascii, uint32_t modifiers, unsigned int held)
+CKey::CKey(uint32_t keycode, uint8_t vkey, wchar_t unicode, char ascii, uint32_t modifiers, uint32_t lockingModifiers, unsigned int held)
 {
   Reset();
   if (vkey) // FIXME: This needs cleaning up - should we always use the unicode key where available?
@@ -61,6 +60,7 @@ CKey::CKey(uint32_t keycode, uint8_t vkey, wchar_t unicode, char ascii, uint32_t
   m_unicode = unicode;
   m_ascii = ascii;
   m_modifiers = modifiers;
+  m_lockingModifiers = lockingModifiers;
   m_held = held;
 }
 
@@ -85,6 +85,7 @@ void CKey::Reset()
   m_unicode = 0;
   m_ascii = 0;
   m_modifiers = 0;
+  m_lockingModifiers = 0;
   m_held = 0;
 }
 
@@ -105,16 +106,17 @@ CKey& CKey::operator=(const CKey& key)
   m_unicode     = key.m_unicode;
   m_ascii       = key.m_ascii;
   m_modifiers    = key.m_modifiers;
+  m_lockingModifiers = key.m_lockingModifiers;
   m_held         = key.m_held;
   return *this;
 }
 
-BYTE CKey::GetLeftTrigger() const
+uint8_t CKey::GetLeftTrigger() const
 {
   return m_leftTrigger;
 }
 
-BYTE CKey::GetRightTrigger() const
+uint8_t CKey::GetRightTrigger() const
 {
   return m_rightTrigger;
 }
@@ -169,6 +171,6 @@ void CKey::SetFromService(bool fromService)
 {
   if (fromService && (m_buttonCode & KEY_ASCII))
     m_unicode = m_buttonCode - KEY_ASCII;
-    
+
   m_fromService = fromService;
 }

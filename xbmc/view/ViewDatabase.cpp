@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -24,7 +24,6 @@
 
 #include "dbwrappers/dataset.h"
 #include "SortFileItem.h"
-#include "system.h"
 #include "utils/LegacyPathTranslation.h"
 #include "utils/log.h"
 #include "utils/SortUtils.h"
@@ -109,7 +108,7 @@ void CViewDatabase::UpdateTables(int version)
                 "sortOrder integer,"
                 "sortAttributes integer,"
                 "skin text)\n");
-    
+
     m_pDS->query("SELECT * FROM tmp_view");
     while (!m_pDS->eof())
     {

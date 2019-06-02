@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2007 Team XboxMediaCenter
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -209,7 +209,7 @@ bool CIptcParse::Process (const unsigned char* const Data, const unsigned short 
           strncat(tag, pos, min(length, maxLen - 3));
         }
       }
-/*      if (id == SLIDE_IPTC_CAPTION)
+/*      if (id == SLIDESHOW_IPTC_CAPTION)
       {
         CExifParse::FixComment(m_IptcInfo[id]);     // Ensure comment is printable
       }*/

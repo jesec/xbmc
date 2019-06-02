@@ -1,12 +1,6 @@
-// Fanart.h
-//////////////////////////////////////////////////////////////////////
-
-#if !defined(FANART_H_)
-#define FANART_H_
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -24,10 +18,13 @@
  *
  */
 
+#pragma once
+
+// Fanart.h
+//////////////////////////////////////////////////////////////////////
+
 #include <string>
 #include <vector>
-
-#pragma once
 
 ///
 /// /brief CFanart is the core of fanart support and contains all fanart data for a specific show
@@ -120,4 +117,3 @@ private:
   std::vector<SFanartData> m_fanart;
 };
 
-#endif

@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 class ILanguageInvoker;
 
 class ILanguageInvocationHandler
@@ -35,7 +36,7 @@ public:
   virtual bool OnScriptInitialized(ILanguageInvoker *invoker) { return true; }
   virtual void OnScriptStarted(ILanguageInvoker *invoker) { }
   virtual void OnScriptAbortRequested(ILanguageInvoker *invoker) { }
-  virtual void OnScriptEnded(ILanguageInvoker *invoker) { }
+  virtual void OnExecutionEnded(ILanguageInvoker *invoker) { }
   virtual void OnScriptFinalized(ILanguageInvoker *invoker) { }
 
   virtual ILanguageInvoker* CreateInvoker() = 0;

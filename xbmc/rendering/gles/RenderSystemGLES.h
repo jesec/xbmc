@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,10 +20,10 @@
 
 #pragma once
 
-#include "system.h"
 #include "system_gl.h"
 #include "rendering/RenderSystem.h"
-#include "xbmc/guilib/GUIShader.h"
+#include "utils/Color.h"
+#include "GLESShader.h"
 
 enum ESHADERMETHOD
 {
@@ -38,7 +38,7 @@ enum ESHADERMETHOD
   SM_TEXTURE_RGBA_BLENDCOLOR,
   SM_TEXTURE_RGBA_BOB,
   SM_TEXTURE_RGBA_BOB_OES,
-  SM_ESHADERCOUNT
+  SM_MAX
 };
 
 class CRenderSystemGLES : public CRenderSystemBase
@@ -54,8 +54,8 @@ public:
   bool BeginRender() override;
   bool EndRender() override;
   void PresentRender(bool rendered, bool videoLayer) override;
-  bool ClearBuffers(color_t color) override;
-  bool IsExtSupported(const char* extension) override;
+  bool ClearBuffers(UTILS::Color color) override;
+  bool IsExtSupported(const char* extension) const override;
 
   void SetVSync(bool vsync);
   void ResetVSync() { m_bVsyncInit = false; }
@@ -73,15 +73,14 @@ public:
 
   void SetCameraPosition(const CPoint &camera, int screenWidth, int screenHeight, float stereoFactor = 0.0f) override;
 
-  void ApplyHardwareTransform(const TransformMatrix &matrix) override;
-  void RestoreHardwareTransform() override;
   bool SupportsStereo(RENDER_STEREO_MODE mode) const override;
-
-  bool TestRender() override;
 
   void Project(float &x, float &y, float &z) override;
 
-  void InitialiseGUIShader();
+  std::string GetShaderPath(const std::string &filename) override { return "GLES/2.0/"; }
+
+  void InitialiseShaders();
+  void ReleaseShaders();
   void EnableGUIShader(ESHADERMETHOD method);
   void DisableGUIShader();
 
@@ -110,8 +109,8 @@ protected:
 
   std::string m_RenderExtensions;
 
-  CGUIShader  **m_pGUIshader = nullptr; // One GUI shader for each method
-  ESHADERMETHOD m_method = SM_DEFAULT; // Current GUI Shader method
+  std::unique_ptr<CGLESShader*[]> m_pShader;
+  ESHADERMETHOD m_method = SM_DEFAULT;
 
   GLint      m_viewPort[4];
 };

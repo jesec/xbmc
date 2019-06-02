@@ -8,10 +8,11 @@ APPLY_PATCHES=no
 
 # configuration settings
 ffmpg_config = --prefix=$(PREFIX) --extra-version="kodi-$(VERSION)"
-ffmpg_config += --cc="$(CC)" --cxx="$(CXX)" --ar=$(AR) --ranlib=$(RANLIB)
+ffmpg_config += --cc="$(CC)" --cxx="$(CXX)" --ar=$(AR) --ranlib=$(RANLIB) --strip=$(STRIP)
 ffmpg_config += --disable-devices --disable-doc
 ffmpg_config += --disable-ffplay --disable-ffmpeg
-ffmpg_config += --disable-ffprobe --disable-ffserver
+ffmpg_config += --disable-ffprobe
+ffmpg_config += --disable-sdl2
 ffmpg_config += --enable-gpl --enable-runtime-cpudetect
 ffmpg_config += --enable-postproc --enable-pthreads
 ffmpg_config += --enable-muxer=spdif --enable-muxer=adts
@@ -48,11 +49,11 @@ ifeq ($(OS), ios)
     ffmpg_config += --as="$(NATIVEPREFIX)/bin/gas-preprocessor.pl -arch aarch64 -- $(CC)"
   endif
   ffmpg_config += --yasmexe=$(NATIVEPREFIX)/bin/yasm
-  ffmpg_config += --disable-decoder=mpeg_xvmc --disable-vda --disable-crystalhd --enable-videotoolbox
+  ffmpg_config += --disable-decoder=mpeg_xvmc --disable-crystalhd --enable-videotoolbox
   ffmpg_config += --target-os=darwin
 endif
 ifeq ($(OS), osx)
-  ffmpg_config += --disable-decoder=mpeg_xvmc --disable-vda --disable-crystalhd --enable-videotoolbox
+  ffmpg_config += --disable-decoder=mpeg_xvmc --disable-crystalhd --enable-videotoolbox
   ffmpg_config += --target-os=darwin
   ffmpg_config += --disable-securetransport
 endif
@@ -65,9 +66,6 @@ endif
 ifeq ($(Configuration), Release)
   ffmpg_config += --disable-debug
 endif
-
-
-CLEAN_FILES=$(ARCHIVE) $(PLATFORM)
 
 all: .installed-$(PLATFORM)
 
@@ -85,10 +83,11 @@ ifeq ($(OS), ios)
 	cd $(PLATFORM); sed -i -- 's/HAVE_CLOCK_GETTIME 1/HAVE_CLOCK_GETTIME 0/g' config.h
 endif
 
-build: $(PLATFORM)
+.build-$(PLATFORM): $(PLATFORM)
 	$(MAKE) -C $(PLATFORM)
+	touch $@
 
-.installed-$(PLATFORM): build
+.installed-$(PLATFORM): .build-$(PLATFORM)
 	$(MAKE) -C $(PLATFORM) install
 	touch $@
 

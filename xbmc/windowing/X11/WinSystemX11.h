@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -60,9 +60,10 @@ public:
   bool Restore() override;
   bool Hide() override;
   bool Show(bool raise = true) override;
-  virtual void Register(IDispResource *resource);
-  virtual void Unregister(IDispResource *resource);
+  void Register(IDispResource *resource) override;
+  void Unregister(IDispResource *resource) override;
   bool HasCalibration(const RESOLUTION_INFO &resInfo) override;
+  bool UseLimitedColor() override;
 
   // Local to WinSystemX11 only
   Display*  GetDisplay() { return m_dpy; }
@@ -71,6 +72,9 @@ public:
   bool IsCurrentOutput(std::string output);
   void RecreateWindow();
   int GetCrtc() { return m_crtc; }
+
+  // winevents override
+  bool MessagePump() override;
 
 protected:
   std::unique_ptr<KODI::WINDOWING::IOSScreenSaver> GetOSScreenSaverImpl() override;

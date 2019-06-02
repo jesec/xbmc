@@ -2,7 +2,7 @@
  *      Copyright (c) 2002 Frodo
  *      Portions Copyright (c) by the authors of ffmpeg and xvid
  *      Copyright (C) 2002-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,11 +19,12 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
+
 // SingleLock.h: interface for the CSingleLock class.
 //
 //////////////////////////////////////////////////////////////////////
-
-#pragma once
 
 #include "threads/CriticalSection.h"
 #include "threads/Lockables.h"
@@ -44,18 +45,6 @@ protected:
   inline CSingleLock(CCriticalSection& cs, bool dicrim) : XbmcThreads::UniqueLock<CCriticalSection>(cs,true) {}
 };
 
-/**
- * This implements a "guard" pattern for a CCriticalSection that
- *  works like a CSingleLock but only "try"s the lock and so
- *  it's possible it doesn't actually get it..
- */
-class CSingleTryLock : public CSingleLock
-{
-public:
-  inline explicit CSingleTryLock(CCriticalSection& cs) : CSingleLock(cs,true) {}
-
-  inline bool IsOwner() const { return owns_lock(); }
-};
 
 /**
  * This implements a "guard" pattern for exiting all locks

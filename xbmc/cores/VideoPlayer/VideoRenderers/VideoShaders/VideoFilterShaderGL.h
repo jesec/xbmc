@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2007-2015 Team Kodi
  *      http://kodi.tv
@@ -20,7 +18,7 @@
  *
  */
 
-#include "system.h"
+#pragma once
 
 #include "system_gl.h"
 #include "guilib/Shader.h"
@@ -45,7 +43,7 @@ namespace Shaders {
     GLint GetVertexLoc() { return m_hVertex; }
     GLint GetCoordLoc() { return m_hCoord; }
 
-    void SetMatrices(GLfloat *p, GLfloat *m) { m_proj = p; m_model = m; }
+    void SetMatrices(const GLfloat *p, const GLfloat *m) { m_proj = p; m_model = m; }
 
   protected:
     int m_width;
@@ -55,8 +53,8 @@ namespace Shaders {
     float m_stretch;
     GLfloat m_alpha;
     GLint m_sourceTexUnit;
-    GLfloat *m_proj = nullptr;
-    GLfloat *m_model = nullptr;
+    const GLfloat *m_proj = nullptr;
+    const GLfloat *m_model = nullptr;
 
     // shader attribute handles
     GLint m_hSourceTex;

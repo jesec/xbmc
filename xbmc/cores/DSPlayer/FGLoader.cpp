@@ -36,6 +36,7 @@
 #include "utils/charsetconverter.h"
 #include "utils/Log.h"
 #include "dialogs/GUIDialogOK.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "filtercorefactory/filtercorefactory.h"
 #include "profiles/ProfilesManager.h"
@@ -467,7 +468,7 @@ HRESULT CFGLoader::LoadFilterRules(const CFileItem& _pFileItem)
 
     CLog::Log(LOGERROR, "%s Extension \"%s\" not found. Please check mediasconfig.xml",
       __FUNCTION__, CURL(pFileItem.GetPath()).GetFileType().c_str());
-    CGUIDialogOK *dialog = (CGUIDialogOK *)g_windowManager.GetWindow(WINDOW_DIALOG_OK);
+    CGUIDialogOK *dialog = (CGUIDialogOK *)CServiceBroker::GetGUI()->GetWindowManager().GetWindow(WINDOW_DIALOG_OK);
     if (dialog)
     {
       dialog->SetHeading("Extension not found");
@@ -666,17 +667,17 @@ HRESULT CFGLoader::LoadConfig(FILTERSMAN_TYPE filterManager)
   if (filterManager == MEDIARULES)
   {
     // First, filters
-    LoadFilterCoreFactorySettings(CProfilesManager::GetInstance().GetUserDataItem("dsplayer/filtersconfig.xml"), FILTERS, true);
+    LoadFilterCoreFactorySettings(CServiceBroker::GetProfileManager().GetUserDataItem("dsplayer/filtersconfig.xml"), FILTERS, true);
     LoadFilterCoreFactorySettings("special://xbmc/system/players/dsplayer/filtersconfig.xml", FILTERS, false);
 
     // Second, medias rules
-    LoadFilterCoreFactorySettings(CProfilesManager::GetInstance().GetUserDataItem("dsplayer/mediasconfig.xml"), MEDIAS, false);
+    LoadFilterCoreFactorySettings(CServiceBroker::GetProfileManager().GetUserDataItem("dsplayer/mediasconfig.xml"), MEDIAS, false);
     LoadFilterCoreFactorySettings("special://xbmc/system/players/dsplayer/mediasconfig.xml", MEDIAS, false, 100);
   }
   else if (filterManager == INTERNALFILTERS)
   {
     LoadFilterCoreFactorySettings("special://xbmc/system/players/dsplayer/filtersconfig_internal.xml", FILTERS, true);
-    LoadFilterCoreFactorySettings(CProfilesManager::GetInstance().GetUserDataItem("dsplayer/filtersconfig.xml"), FILTERS, false);
+    LoadFilterCoreFactorySettings(CServiceBroker::GetProfileManager().GetUserDataItem("dsplayer/filtersconfig.xml"), FILTERS, false);
     LoadFilterCoreFactorySettings("special://xbmc/system/players/dsplayer/filtersconfig.xml", FILTERS, false);
     LoadFilterCoreFactorySettings("special://xbmc/system/players/dsplayer/mediasconfig_internal.xml", MEDIAS, false);
   }

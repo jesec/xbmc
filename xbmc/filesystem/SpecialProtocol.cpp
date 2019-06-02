@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 #include "ServiceBroker.h"
 #include "URL.h"
 #include "Util.h"
-#include "guilib/GraphicContext.h"
+#include "windowing/GraphicContext.h"
 #include "profiles/ProfilesManager.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
@@ -34,6 +34,18 @@
 #include <dirent.h>
 #include "utils/StringUtils.h"
 #endif
+
+const CProfilesManager *CSpecialProtocol::m_profileManager = nullptr;
+
+void CSpecialProtocol::RegisterProfileManager(const CProfilesManager &profileManager)
+{
+  m_profileManager = &profileManager;
+}
+
+void CSpecialProtocol::UnregisterProfileManager()
+{
+  m_profileManager = nullptr;
+}
 
 void CSpecialProtocol::SetProfilePath(const std::string &dir)
 {
@@ -149,12 +161,12 @@ std::string CSpecialProtocol::TranslatePath(const CURL &url)
 
   if (RootDir == "subtitles")
     translatedPath = URIUtils::AddFileToFolder(CServiceBroker::GetSettings().GetString(CSettings::SETTING_SUBTITLES_CUSTOMPATH), FileName);
-  else if (RootDir == "userdata")
-    translatedPath = URIUtils::AddFileToFolder(CProfilesManager::GetInstance().GetUserDataFolder(), FileName);
-  else if (RootDir == "database")
-    translatedPath = URIUtils::AddFileToFolder(CProfilesManager::GetInstance().GetDatabaseFolder(), FileName);
-  else if (RootDir == "thumbnails")
-    translatedPath = URIUtils::AddFileToFolder(CProfilesManager::GetInstance().GetThumbnailsFolder(), FileName);
+  else if (RootDir == "userdata" && m_profileManager)
+    translatedPath = URIUtils::AddFileToFolder(m_profileManager->GetUserDataFolder(), FileName);
+  else if (RootDir == "database" && m_profileManager)
+    translatedPath = URIUtils::AddFileToFolder(m_profileManager->GetDatabaseFolder(), FileName);
+  else if (RootDir == "thumbnails" && m_profileManager)
+    translatedPath = URIUtils::AddFileToFolder(m_profileManager->GetThumbnailsFolder(), FileName);
   else if (RootDir == "recordings" || RootDir == "cdrips")
     translatedPath = URIUtils::AddFileToFolder(CServiceBroker::GetSettings().GetString(CSettings::SETTING_AUDIOCDS_RECORDINGPATH), FileName);
   else if (RootDir == "screenshots")
@@ -164,8 +176,13 @@ std::string CSpecialProtocol::TranslatePath(const CURL &url)
   else if (RootDir == "videoplaylists")
     translatedPath = URIUtils::AddFileToFolder(CUtil::VideoPlaylistsLocation(), FileName);
   else if (RootDir == "skin")
-    translatedPath = URIUtils::AddFileToFolder(g_graphicsContext.GetMediaDir(), FileName);
-
+  {
+    auto winSystem = CServiceBroker::GetWinSystem();
+    // windowing may not have been initialized yet
+    if (!winSystem)
+      return url.Get();
+    translatedPath = URIUtils::AddFileToFolder(CServiceBroker::GetWinSystem()->GetGfxContext().GetMediaDir(), FileName);
+  }
   // from here on, we have our "real" special paths
   else if (RootDir == "xbmc" ||
            RootDir == "xbmcbin" ||

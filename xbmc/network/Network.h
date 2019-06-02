@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,12 +18,14 @@
  *
  */
 
+#pragma once
+
 #include <string>
 #include <vector>
 
-#include "system.h"
-
 #include "settings/lib/ISettingCallback.h"
+
+#include "PlatformDefs.h"
 
 enum EncMode { ENC_NONE = 0, ENC_WEP = 1, ENC_WPA = 2, ENC_WPA2 = 3 };
 enum NetworkAssignment { NETWORK_DASH = 0, NETWORK_DHCP = 1, NETWORK_STATIC = 2, NETWORK_DISABLED = 3 };
@@ -97,7 +98,10 @@ public:
    virtual void SetSettings(NetworkAssignment& assignment, std::string& ipAddress, std::string& networkMask, std::string& defaultGateway, std::string& essId, std::string& key, EncMode& encryptionMode) = 0;
 };
 
-class CNetwork
+class CSettings;
+class CNetworkServices;
+
+class CNetworkBase
 {
 public:
   enum EMESSAGE
@@ -106,8 +110,11 @@ public:
     SERVICES_DOWN
   };
 
-   CNetwork();
-   virtual ~CNetwork();
+   CNetworkBase(CSettings &settings);
+   virtual ~CNetworkBase();
+
+   // Get network services
+   CNetworkServices& GetServices() { return *m_services; }
 
    // Return our hostname
    virtual bool GetHostName(std::string& hostname);
@@ -152,20 +159,22 @@ public:
 
    // Waits for the first network interface to become available
    void WaitForNet();
+  std::unique_ptr<CNetworkServices> m_services;
 };
 
 #if defined(TARGET_ANDROID)
-#include "android/NetworkAndroid.h"
+#include "platform/android/network/NetworkAndroid.h"
 #elif defined(HAS_LINUX_NETWORK)
-#include "linux/NetworkLinux.h"
+#include "platform/linux/network/NetworkLinux.h"
 #elif defined(HAS_WIN32_NETWORK)
-#include "windows/NetworkWin32.h"
+#include "platform/win32/network/NetworkWin32.h"
 #elif defined(HAS_WIN10_NETWORK)
-#include "win10/NetworkWin10.h"
+#include "platform/win10/network/NetworkWin10.h"
+#else
+using CNetwork = CNetworkBase;
 #endif
 
-//creates, binds and listens a tcp socket on the desired port. Set bindLocal to
-//true to bind to localhost only. The socket will listen over ipv6 if possible
-//and fall back to ipv4 if ipv6 is not available on the platform.
-int CreateTCPServerSocket(const int port, const bool bindLocal, const int backlog, const char *callerName);
+//creates, binds and listens tcp sockets on the desired port. Set bindLocal to
+//true to bind to localhost only.
+std::vector<SOCKET> CreateTCPServerSocket(const int port, const bool bindLocal, const int backlog, const char *callerName);
 

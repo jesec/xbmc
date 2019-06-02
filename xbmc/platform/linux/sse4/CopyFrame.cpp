@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -21,7 +21,6 @@
 #include "smmintrin.h"
 
 #define CACHED_BUFFER_SIZE 4096
-typedef unsigned int UINT;
 
 extern "C"
 {
@@ -32,16 +31,16 @@ extern "C"
  * ASSUMES PITCH IS A MULTIPLE OF 64B CACHE LINE SIZE, WIDTH MAY NOT BE
  */
 void copy_frame( void * pSrc, void * pDest, void * pCacheBlock,
-    UINT width, UINT height, UINT pitch )
+    unsigned int width, unsigned int height, unsigned int pitch )
 {
   __m128i         x0, x1, x2, x3;
   __m128i         *pLoad;
   __m128i         *pStore;
   __m128i         *pCache;
-  UINT            x, y, yLoad, yStore;
-  UINT            rowsPerBlock;
-  UINT            width64;
-  UINT            extraPitch;
+  unsigned int x, y, yLoad, yStore;
+  unsigned int rowsPerBlock;
+  unsigned int width64;
+  unsigned int extraPitch;
 
 
   rowsPerBlock = CACHED_BUFFER_SIZE / pitch;

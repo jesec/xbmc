@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2017 Team Kodi
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@
  */
 
 #include "platform/Filesystem.h"
-#include "system.h"
 #include "filesystem/SpecialProtocol.h"
 #include "utils/URIUtils.h"
 
@@ -34,6 +33,8 @@
 
 #include <cstdlib>
 #include <limits.h>
+#include <string.h>
+#include <unistd.h>
 
 namespace KODI
 {
@@ -96,7 +97,7 @@ std::string create_temp_directory(std::error_code &ec)
     ec.assign(errno, std::system_category());
     return std::string();
   }
-  
+
   ec.clear();
   return std::string(tmp);
 }

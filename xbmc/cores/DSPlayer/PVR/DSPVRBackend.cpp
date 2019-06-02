@@ -38,8 +38,7 @@ CDSPVRBackend::CDSPVRBackend(const std::string& strBackendBaseAddress, const std
 
 CDSPVRBackend::~CDSPVRBackend()
 {
-  TCPClientDisconnect();
-  SAFE_DELETE(m_tcpclient);
+  // TODO
 }
 
 bool CDSPVRBackend::JSONRPCSendCommand(HttpRequestMethod requestType, const std::string& strCommand, const std::string& strArguments, CVariant &json_response)

@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2010-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,11 +18,16 @@
  *
  */
 
+#pragma once
+
 #include <stdint.h>
 #include "cores/AudioEngine/Interfaces/AESink.h"
 #include "cores/AudioEngine/Utils/AEDeviceInfo.h"
-
 #include "threads/CriticalSection.h"
+
+#include <mmsystem.h>
+#include <DSound.h>
+#include <wrl/client.h>
 
 class CAESinkDirectSound : public IAESink
 {
@@ -55,8 +59,8 @@ private:
   unsigned int  GetSpace();
   const char    *dserr2str(int err);
 
-  LPDIRECTSOUNDBUFFER m_pBuffer;
-  LPDIRECTSOUND8      m_pDSound;
+  Microsoft::WRL::ComPtr<IDirectSoundBuffer> m_pBuffer;
+  Microsoft::WRL::ComPtr<IDirectSound> m_pDSound;
 
   AEAudioFormat       m_format;
   enum AEDataFormat   m_encodedFormat;

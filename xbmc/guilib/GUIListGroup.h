@@ -1,13 +1,6 @@
-/*!
-\file GUIListGroup.h
-\brief
-*/
-
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -25,13 +18,20 @@
  *
  */
 
+#pragma once
+
+/*!
+\file GUIListGroup.h
+\brief
+*/
+
 #include "GUIControlGroup.h"
 
 /*!
  \ingroup controls
  \brief a group of controls within a list/panel container
  */
-class CGUIListGroup : public CGUIControlGroup
+class CGUIListGroup final : public CGUIControlGroup
 {
 public:
   CGUIListGroup(int parentID, int controlID, float posX, float posY, float width, float height);

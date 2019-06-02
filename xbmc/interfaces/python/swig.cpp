@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -176,6 +176,14 @@ namespace PythonBindings
     if (exc_type == NULL && exc_value == NULL && exc_traceback == NULL)
       return false;
 
+    // See https://docs.python.org/3/c-api/exceptions.html#c.PyErr_NormalizeException
+    PyErr_NormalizeException(&exc_type, &exc_value, &exc_traceback);
+#if PY_MAJOR_VERSION > 2
+    if (exc_traceback != NULL) {
+      PyException_SetTraceback(exc_value, exc_traceback);
+    }
+#endif
+
     exceptionType.clear();
     exceptionValue.clear();
     exceptionTraceback.clear();
@@ -252,8 +260,8 @@ namespace PythonBindings
 
     UncheckedException::SetMessage("%s", msg.c_str());
   }
-  
-  XBMCAddon::AddonClass* doretrieveApiInstance(const PyHolder* pythonObj, const TypeInfo* typeInfo, const char* expectedType, 
+
+  XBMCAddon::AddonClass* doretrieveApiInstance(const PyHolder* pythonObj, const TypeInfo* typeInfo, const char* expectedType,
                               const char* methodNamespacePrefix, const char* methodNameForErrorString)
   {
     if (pythonObj->magicNumber != XBMC_PYTHON_TYPE_MAGIC_NUMBER)
@@ -263,7 +271,7 @@ namespace PythonBindings
     {
       // maybe it's a child class
       if (typeInfo->parentType)
-        return doretrieveApiInstance(pythonObj, typeInfo->parentType,expectedType, 
+        return doretrieveApiInstance(pythonObj, typeInfo->parentType,expectedType,
                                      methodNamespacePrefix, methodNameForErrorString);
       else
         throw XBMCAddon::WrongTypeException("Incorrect type passed to \"%s\", was expecting a \"%s\" but received a \"%s\"",
@@ -279,8 +287,8 @@ namespace PythonBindings
   void prepareForReturn(XBMCAddon::AddonClass* c)
   {
     XBMC_TRACE;
-    if(c) { 
-      c->Acquire(); 
+    if(c) {
+      c->Acquire();
       PyThreadState* state = PyThreadState_Get();
       XBMCAddon::Python::PythonLanguageHook::GetIfExists(state->interp)->RegisterAddonClassInstance(c);
     }
@@ -290,7 +298,7 @@ namespace PythonBindings
   {
     XBMC_TRACE;
     if(c){
-      XBMCAddon::AddonClass::Ref<XBMCAddon::Python::PythonLanguageHook> lh = 
+      XBMCAddon::AddonClass::Ref<XBMCAddon::Python::PythonLanguageHook> lh =
         XBMCAddon::AddonClass::Ref<XBMCAddon::AddonClass>(c->GetLanguageHook());
 
       if (lh.isNotNull())
@@ -313,8 +321,8 @@ namespace PythonBindings
    * This method is a helper for the generated API. It's called prior to any API
    * class destructor being dealloc-ed from the generated code from Python
    */
-  void cleanForDealloc(XBMCAddon::AddonClass* c) 
-  { 
+  void cleanForDealloc(XBMCAddon::AddonClass* c)
+  {
     XBMC_TRACE;
     if (handleInterpRegistrationForClean(c))
       c->Release();
@@ -328,14 +336,14 @@ namespace PythonBindings
    * called on destruction but cannot be called from the destructor.
    * This overrides the default cleanForDealloc to resolve that.
    */
-  void cleanForDealloc(XBMCAddon::xbmcgui::Window* c) 
+  void cleanForDealloc(XBMCAddon::xbmcgui::Window* c)
   {
     XBMC_TRACE;
     if (handleInterpRegistrationForClean(c))
-    { 
+    {
       c->dispose();
-      c->Release(); 
-    } 
+      c->Release();
+    }
   }
 
   /**
@@ -344,10 +352,10 @@ namespace PythonBindings
    * When this form of the call is used (and pytype isn't NULL) then the
    * passed type is used in the instance. This is for classes that extend API
    * classes in python. The type passed may not be the same type that's stored
-   * in the class metadata of the AddonClass of which 'api' is an instance, 
+   * in the class metadata of the AddonClass of which 'api' is an instance,
    * it can be a subclass in python.
    *
-   * if pytype is NULL then the type is inferred using the class metadata 
+   * if pytype is NULL then the type is inferred using the class metadata
    * stored in the AddonClass instance 'api'.
    */
   PyObject* makePythonInstance(XBMCAddon::AddonClass* api, PyTypeObject* pytype, bool incrementRefCount)

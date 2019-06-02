@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -17,8 +17,6 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
-
-#include "system.h"
 
 #include "ServiceBroker.h"
 #include "Shader.h"
@@ -47,7 +45,7 @@ bool CShader::LoadSource(const std::string& filename, const std::string& prefix)
   CFileStream file;
 
   std::string path = "special://xbmc/system/shaders/";
-  path += CServiceBroker::GetRenderSystem().GetShaderPath(filename);
+  path += CServiceBroker::GetRenderSystem()->GetShaderPath(filename);
   path += filename;
   if(!file.Open(path))
   {
@@ -77,7 +75,7 @@ bool CShader::AppendSource(const std::string& filename)
   std::string temp;
 
   std::string path = "special://xbmc/system/shaders/";
-  path += CServiceBroker::GetRenderSystem().GetShaderPath(filename);
+  path += CServiceBroker::GetRenderSystem()->GetShaderPath(filename);
   path += filename;
   if(!file.Open(path))
   {
@@ -86,6 +84,36 @@ bool CShader::AppendSource(const std::string& filename)
   }
   getline(file, temp, '\0');
   m_source.append(temp);
+  return true;
+}
+
+bool CShader::InsertSource(const std::string& filename, const std::string& loc)
+{
+  if(filename.empty())
+    return true;
+
+  CFileStream file;
+  std::string temp;
+
+  std::string path = "special://xbmc/system/shaders/";
+  path += CServiceBroker::GetRenderSystem()->GetShaderPath(filename);
+  path += filename;
+  if(!file.Open(path))
+  {
+    CLog::Log(LOGERROR, "CShader::InsertSource - failed to open file %s", filename.c_str());
+    return false;
+  }
+  getline(file, temp, '\0');
+
+  size_t locPos = m_source.find(loc);
+  if (locPos == std::string::npos)
+  {
+    CLog::Log(LOGERROR, "CShader::InsertSource - could not find location %s", loc.c_str());
+    return false;
+  }
+
+  m_source.insert(locPos, temp);
+
   return true;
 }
 
@@ -105,7 +133,7 @@ bool CGLSLVertexShader::Compile()
   glCompileShader(m_vertexShader);
   glGetShaderiv(m_vertexShader, GL_COMPILE_STATUS, params);
   VerifyGLState();
-  if (params[0]!=GL_TRUE)
+  if (params[0] != GL_TRUE)
   {
     GLchar log[LOG_SIZE];
     CLog::Log(LOGERROR, "GL: Error compiling vertex shader");
@@ -117,9 +145,13 @@ bool CGLSLVertexShader::Compile()
   else
   {
     GLchar log[LOG_SIZE];
-    CLog::Log(LOGDEBUG, "GL: Vertex Shader compilation log:");
-    glGetShaderInfoLog(m_vertexShader, LOG_SIZE, NULL, log);
-    CLog::Log(LOGDEBUG, "%s", log);
+    GLsizei length;
+    glGetShaderInfoLog(m_vertexShader, LOG_SIZE, &length, log);
+    if (length > 0)
+    {
+      CLog::Log(LOGDEBUG, "GL: Vertex Shader compilation log:");
+      CLog::Log(LOGDEBUG, "%s", log);
+    }
     m_lastLog = log;
     m_compiled = true;
   }

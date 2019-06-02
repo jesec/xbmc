@@ -1,8 +1,6 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include "cores/AudioEngine/Utils/AEAudioFormat.h"
 
@@ -40,8 +40,8 @@ public:
   virtual ~COMXAudioCodecOMX();
   bool Open(CDVDStreamInfo &hints);
   void Dispose();
-  int Decode(BYTE* pData, int iSize, double dts, double pts);
-  int GetData(BYTE** dst, double &dts, double &pts);
+  int Decode(unsigned char* pData, int iSize, double dts, double pts);
+  int GetData(unsigned char** dst, double &dts, double &pts);
   void Reset();
   int GetChannels();
   void BuildChannelMap();
@@ -61,7 +61,7 @@ protected:
 
   AVFrame* m_pFrame1;
 
-  BYTE *m_pBufferOutput;
+  unsigned char *m_pBufferOutput;
   int   m_iBufferOutputUsed;
   int   m_iBufferOutputAlloced;
 

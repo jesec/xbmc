@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 #include "TimeUtils.h"
 #include "XBDateTime.h"
 #include "threads/SystemClock.h"
-#include "guilib/GraphicContext.h"
+#include "windowing/GraphicContext.h"
 
 #if   defined(TARGET_DARWIN)
 #include <mach/mach_time.h>
@@ -72,7 +72,7 @@ void CTimeUtils::UpdateFrameTime(bool flip)
   unsigned int last = frameTime;
   while (frameTime < currentTime)
   {
-    frameTime += (unsigned int)(1000 / g_graphicsContext.GetFPS());
+    frameTime += (unsigned int)(1000 / CServiceBroker::GetWinSystem()->GetGfxContext().GetFPS());
     // observe wrap around
     if (frameTime < last)
       break;

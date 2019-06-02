@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2010-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -26,8 +26,6 @@ using namespace ActiveAE;
 #include "ActiveAESound.h"
 #include "ActiveAEStream.h"
 #include "ServiceBroker.h"
-#include "cores/AudioEngine/Engines/ActiveAE/AudioDSPAddons/ActiveAEDSP.h"
-#include "cores/AudioEngine/Engines/ActiveAE/AudioDSPAddons/ActiveAEDSPProcess.h"
 #include "cores/AudioEngine/Utils/AEUtil.h"
 #include "cores/AudioEngine/Utils/AEStreamInfo.h"
 #include "cores/AudioEngine/AEResampleFactory.h"
@@ -52,7 +50,6 @@ void CEngineStats::Reset(unsigned int sampleRate, bool pcm)
   m_sinkSampleRate = sampleRate;
   m_bufferedSamples = 0;
   m_suspended = false;
-  m_hasDSP = false;
   m_pcmOutput = pcm;
 }
 
@@ -250,22 +247,10 @@ bool CEngineStats::IsSuspended()
   return m_suspended;
 }
 
-void CEngineStats::SetDSP(bool state)
-{
-  CSingleLock lock(m_lock);
-  m_hasDSP = state;
-}
-
 void CEngineStats::SetCurrentSinkFormat(const AEAudioFormat& SinkFormat)
 {
   CSingleLock lock(m_lock);
   m_sinkFormat = SinkFormat;
-}
-
-bool CEngineStats::HasDSP()
-{
-  CSingleLock lock(m_lock);
-  return m_hasDSP;
 }
 
 AEAudioFormat CEngineStats::GetCurrentSinkFormat()
@@ -310,7 +295,13 @@ CActiveAE::~CActiveAE()
 
 void CActiveAE::Dispose()
 {
-  CServiceBroker::GetWinSystem().Unregister(this);
+  if (m_isWinSysReg)
+  {
+    CWinSystemBase *winsystem = CServiceBroker::GetWinSystem();
+    if (winsystem)
+      winsystem->Unregister(this);
+    m_isWinSysReg = false;
+  }
 
   m_bStop = true;
   m_outMsgEvent.Set();
@@ -407,9 +398,9 @@ void CActiveAE::StateMachine(int signal, Protocol *port, Message *msg)
           }
           return;
         case CActiveAEDataProtocol::FREESTREAM:
-          CActiveAEStream *stream;
-          stream = *(CActiveAEStream**)msg->data;
-          DiscardStream(stream);
+          MsgStreamFree *msgStreamFree;
+          msgStreamFree = *(MsgStreamFree**)msg->data;
+          DiscardStream(msgStreamFree->stream);
           msg->Reply(CActiveAEDataProtocol::ACC);
           return;
         case CActiveAEDataProtocol::FREESOUND:
@@ -417,6 +408,7 @@ void CActiveAE::StateMachine(int signal, Protocol *port, Message *msg)
           DiscardSound(sound);
           return;
         case CActiveAEDataProtocol::DRAINSTREAM:
+          CActiveAEStream *stream;
           stream = *(CActiveAEStream**)msg->data;
           stream->m_drain = true;
           stream->m_processingBuffers->SetDrain(true);
@@ -456,7 +448,7 @@ void CActiveAE::StateMachine(int signal, Protocol *port, Message *msg)
         {
           case CActiveAEControlProtocol::INIT:
             LoadSettings();
-            if (!m_settings.device.empty())
+            if (!m_settings.device.empty() && CAESinkFactory::HasSinks())
             {
               m_state = AE_TOP_UNCONFIGURED;
               m_bStateMachineSelfTrigger = true;
@@ -465,6 +457,14 @@ void CActiveAE::StateMachine(int signal, Protocol *port, Message *msg)
             {
               // Application can't handle error case and work without an AE
               msg->Reply(CActiveAEControlProtocol::ACC);
+            }
+            return;
+
+          case CActiveAEControlProtocol::DEVICECHANGE:
+            LoadSettings();
+            if (!m_settings.device.empty() && CAESinkFactory::HasSinks())
+            {
+              m_controlPort.SendOutMessage(CActiveAEControlProtocol::INIT);
             }
             return;
 
@@ -485,7 +485,7 @@ void CActiveAE::StateMachine(int signal, Protocol *port, Message *msg)
           Configure();
           if (!m_extError)
           {
-            m_state = AE_TOP_CONFIGURED_IDLE;
+            m_state = AE_TOP_CONFIGURED_PLAY;
             m_extTimeout = 0;
           }
           else
@@ -510,6 +510,15 @@ void CActiveAE::StateMachine(int signal, Protocol *port, Message *msg)
           m_sink.EnumerateSinkList(false);
           LoadSettings();
           Configure();
+          if (!m_isWinSysReg)
+          {
+            CWinSystemBase *winsystem = CServiceBroker::GetWinSystem();
+            if (winsystem)
+            {
+              winsystem->Register(this);
+              m_isWinSysReg = true;
+            }
+          }
           msg->Reply(CActiveAEControlProtocol::ACC);
           if (!m_extError)
           {
@@ -721,11 +730,8 @@ void CActiveAE::StateMachine(int signal, Protocol *port, Message *msg)
           sound = *(CActiveAESound**)msg->data;
           if (sound)
           {
-            m_aeGUISoundForce = m_settings.dspaddonsenabled && sound->GetChannel() != AE_CH_NULL;
-
-            if ((m_settings.guisoundmode == AE_SOUND_OFF ||
-                (m_settings.guisoundmode == AE_SOUND_IDLE && !m_streams.empty())) &&
-                !m_aeGUISoundForce)
+            if (m_settings.guisoundmode == AE_SOUND_OFF ||
+               (m_settings.guisoundmode == AE_SOUND_IDLE && !m_streams.empty()))
               return;
 
             SoundState st = {sound, 0};
@@ -774,8 +780,9 @@ void CActiveAE::StateMachine(int signal, Protocol *port, Message *msg)
           m_state = AE_TOP_CONFIGURED_PLAY;
           return;
         case CActiveAEDataProtocol::FREESTREAM:
-          stream = *(CActiveAEStream**)msg->data;
-          DiscardStream(stream);
+          MsgStreamFree *msgStreamFree;
+          msgStreamFree = reinterpret_cast<MsgStreamFree*>(msg->data);
+          DiscardStream(msgStreamFree->stream);
           msg->Reply(CActiveAEDataProtocol::ACC);
           if (m_streams.empty())
           {
@@ -785,7 +792,10 @@ void CActiveAE::StateMachine(int signal, Protocol *port, Message *msg)
             {
               AEDelayStatus status;
               m_stats.GetDelay(status);
-              m_extDrainTimer.Set(status.GetDelay() * 1000);
+              if (msgStreamFree->finish)
+                m_extDrainTimer.Set(status.GetDelay() * 1000);
+              else
+                m_extDrainTimer.Set(status.GetDelay() * 1000 + 1000);
             }
             m_extDrain = true;
           }
@@ -1298,12 +1308,9 @@ void CActiveAE::Configure(AEAudioFormat *desiredFmt)
     }
     m_internalFormat = outputFormat;
 
-    bool isRaw;
     std::list<CActiveAEStream*>::iterator it;
     for(it=m_streams.begin(); it!=m_streams.end(); ++it)
     {
-      isRaw = ((*it)->m_format.m_dataFormat == AE_FMT_RAW);
-
       if (!(*it)->m_inputBuffers)
       {
         // align input buffers with period of sink or encoder
@@ -1327,17 +1334,10 @@ void CActiveAE::Configure(AEAudioFormat *desiredFmt)
       }
       if (!(*it)->m_processingBuffers)
       {
-        bool useDSP = !isRaw ? m_settings.dspaddonsenabled : false;
-
         (*it)->m_processingBuffers = new CActiveAEStreamBuffers((*it)->m_inputBuffers->m_format, outputFormat, m_settings.resampleQuality);
         (*it)->m_processingBuffers->ForceResampler((*it)->m_forceResampler);
-        (*it)->m_processingBuffers->SetDSPConfig(useDSP, (*it)->m_bypassDSP);
 
-        if (useDSP && !(*it)->m_bypassDSP)
-          (*it)->m_processingBuffers->SetExtraData((*it)->m_profile, (*it)->m_matrixEncoding, (*it)->m_audioServiceType);
-        (*it)->m_processingBuffers->Create(MAX_CACHE_LEVEL*1000, false, m_settings.stereoupmix, m_settings.normalizelevels, useDSP);
-
-        m_stats.SetDSP(useDSP);
+        (*it)->m_processingBuffers->Create(MAX_CACHE_LEVEL*1000, false, m_settings.stereoupmix, m_settings.normalizelevels);
       }
       if (m_mode == MODE_TRANSCODE || m_streams.size() > 1)
         (*it)->m_processingBuffers->FillBuffer();
@@ -1384,7 +1384,7 @@ void CActiveAE::Configure(AEAudioFormat *desiredFmt)
   }
 
   // resample buffers for sink
-  if (m_sinkBuffers && 
+  if (m_sinkBuffers &&
      (!CompareFormat(m_sinkBuffers->m_format,m_sinkFormat) ||
       !CompareFormat(m_sinkBuffers->m_inputFormat, sinkInputFormat) ||
       m_sinkBuffers->m_format.m_frames != m_sinkFormat.m_frames))
@@ -1459,11 +1459,6 @@ CActiveAEStream* CActiveAE::CreateStream(MsgStreamNew *streamMsg)
 
   if (streamMsg->options & AESTREAM_FORCE_RESAMPLE)
     stream->m_forceResampler = true;
-
-  if(streamMsg->options & AESTREAM_BYPASS_ADSP)
-  {
-    stream->m_bypassDSP = true;
-  }
 
   stream->m_pClock = streamMsg->clock;
 
@@ -1617,7 +1612,7 @@ void CActiveAE::ChangeResamplers()
   std::list<CActiveAEStream*>::iterator it;
   for(it=m_streams.begin(); it!=m_streams.end(); ++it)
   {
-    (*it)->m_processingBuffers->ConfigureResampler(m_settings.normalizelevels, m_settings.dspaddonsenabled, m_settings.stereoupmix, m_settings.resampleQuality);
+    (*it)->m_processingBuffers->ConfigureResampler(m_settings.normalizelevels, m_settings.stereoupmix, m_settings.resampleQuality);
   }
 }
 
@@ -2052,7 +2047,7 @@ bool CActiveAE::RunStages()
               fadingStep = delta / samples;
             }
 
-            // for stream amplification, 
+            // for stream amplification,
             // turned off downmix normalization,
             // or if sink format is float (in order to prevent from clipping)
             // we need to run on a per sample basis
@@ -2603,8 +2598,6 @@ void CActiveAE::LoadSettings()
   m_settings.channels = (m_sink.GetDeviceType(m_settings.device) == AE_DEVTYPE_IEC958) ? AE_CH_LAYOUT_2_0 : CServiceBroker::GetSettings().GetInt(CSettings::SETTING_AUDIOOUTPUT_CHANNELS);
   m_settings.samplerate = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_AUDIOOUTPUT_SAMPLERATE);
 
-  m_settings.dspaddonsenabled = IsSettingVisible(CSettings::SETTING_AUDIOOUTPUT_DSPADDONSENABLED) ? CServiceBroker::GetSettings().GetBool(CSettings::SETTING_AUDIOOUTPUT_DSPADDONSENABLED) : false;
-
   m_settings.stereoupmix = IsSettingVisible(CSettings::SETTING_AUDIOOUTPUT_STEREOUPMIX) ? CServiceBroker::GetSettings().GetBool(CSettings::SETTING_AUDIOOUTPUT_STEREOUPMIX) : false;
   m_settings.normalizelevels = !CServiceBroker::GetSettings().GetBool(CSettings::SETTING_AUDIOOUTPUT_MAINTAINORIGINALVOLUME);
   m_settings.guisoundmode = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_AUDIOOUTPUT_GUISOUNDMODE);
@@ -2625,7 +2618,7 @@ void CActiveAE::LoadSettings()
   m_settings.silenceTimeout = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_AUDIOOUTPUT_STREAMSILENCE) * 60000;
 }
 
-bool CActiveAE::Initialize()
+void CActiveAE::Start()
 {
   Create();
   Message *reply;
@@ -2638,22 +2631,14 @@ bool CActiveAE::Initialize()
     if (!success)
     {
       CLog::Log(LOGERROR, "ActiveAE::%s - returned error", __FUNCTION__);
-      Dispose();
-      return false;
     }
   }
   else
   {
     CLog::Log(LOGERROR, "ActiveAE::%s - failed to init", __FUNCTION__);
-    Dispose();
-    return false;
   }
 
-  // hook into windowing for receiving display reset events
-  CServiceBroker::GetWinSystem().Register(this);
-
   m_inMsgEvent.Reset();
-  return true;
 }
 
 void CActiveAE::EnumerateOutputDevices(AEDeviceList &devices, bool passthrough)
@@ -2710,9 +2695,7 @@ bool CActiveAE::HasStereoAudioChannelCount()
   std::string device = CServiceBroker::GetSettings().GetString(CSettings::SETTING_AUDIOOUTPUT_AUDIODEVICE);
   int numChannels = (m_sink.GetDeviceType(device) == AE_DEVTYPE_IEC958) ? AE_CH_LAYOUT_2_0 : CServiceBroker::GetSettings().GetInt(CSettings::SETTING_AUDIOOUTPUT_CHANNELS);
   bool passthrough = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_AUDIOOUTPUT_CONFIG) == AE_CONFIG_FIXED ? false : CServiceBroker::GetSettings().GetBool(CSettings::SETTING_AUDIOOUTPUT_PASSTHROUGH);
-  return numChannels == AE_CH_LAYOUT_2_0 && ! (passthrough &&
-    CServiceBroker::GetSettings().GetBool(CSettings::SETTING_AUDIOOUTPUT_AC3PASSTHROUGH) &&
-    CServiceBroker::GetSettings().GetBool(CSettings::SETTING_AUDIOOUTPUT_AC3TRANSCODE));
+  return numChannels == AE_CH_LAYOUT_2_0 && !passthrough;
 }
 
 bool CActiveAE::HasHDAudioChannelCount()
@@ -2805,25 +2788,6 @@ bool CActiveAE::IsSettingVisible(const std::string &settingId)
         (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_AUDIOOUTPUT_CHANNELS) <= AE_CH_LAYOUT_2_0 || m_sink.GetDeviceType(CServiceBroker::GetSettings().GetString(CSettings::SETTING_AUDIOOUTPUT_AUDIODEVICE)) == AE_DEVTYPE_IEC958))
       return true;
   }
-  else if (settingId == CSettings::SETTING_AUDIOOUTPUT_DSPADDONSENABLED)
-  {
-    if (m_sink.GetDeviceType(CServiceBroker::GetSettings().GetString(CSettings::SETTING_AUDIOOUTPUT_AUDIODEVICE)) != AE_DEVTYPE_IEC958)
-    {
-      return true;
-    }
-  }
-  else if (settingId == CSettings::SETTING_AUDIOOUTPUT_DSPSETTINGS)
-  {
-    if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_AUDIOOUTPUT_DSPADDONSENABLED) &&
-        m_sink.GetDeviceType(CServiceBroker::GetSettings().GetString(CSettings::SETTING_AUDIOOUTPUT_AUDIODEVICE)) != AE_DEVTYPE_IEC958)
-      return true;
-  }
-  else if (settingId == CSettings::SETTING_AUDIOOUTPUT_DSPRESETDB)
-  {
-    if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_AUDIOOUTPUT_DSPADDONSENABLED) &&
-        m_sink.GetDeviceType(CServiceBroker::GetSettings().GetString(CSettings::SETTING_AUDIOOUTPUT_AUDIODEVICE)) != AE_DEVTYPE_IEC958)
-      return true;
-  }
   return false;
 }
 
@@ -2899,11 +2863,6 @@ void CActiveAE::DeviceChange()
 {
   m_controlPort.SendOutMessage(CActiveAEControlProtocol::DEVICECHANGE);
 }
-
-bool CActiveAE::HasDSP()
-{
-  return m_stats.HasDSP();
-};
 
 bool CActiveAE::GetCurrentSinkFormat(AEAudioFormat &SinkFormat)
 {
@@ -3299,12 +3258,16 @@ IAEStream *CActiveAE::MakeStream(AEAudioFormat &audioFormat, unsigned int option
   return NULL;
 }
 
-bool CActiveAE::FreeStream(IAEStream *stream)
+bool CActiveAE::FreeStream(IAEStream *stream, bool finish)
 {
+  MsgStreamFree msg;
+  msg.stream = static_cast<CActiveAEStream*>(stream);
+  msg.finish = finish;
+
   Message *reply;
   if (m_dataPort.SendOutMessageSync(CActiveAEDataProtocol::FREESTREAM,
                                     &reply,1000,
-                                    &stream, sizeof(IAEStream*)))
+                                    &msg, sizeof(MsgStreamFree)))
   {
     bool success = reply->signal == CActiveAEControlProtocol::ACC;
     reply->Release();

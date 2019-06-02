@@ -38,8 +38,7 @@ CDSMediaPortal::CDSMediaPortal(const std::string& strBackendBaseAddress, const s
 
 CDSMediaPortal::~CDSMediaPortal(void)
 {
-  CLog::Log(LOGNOTICE, "%s", __FUNCTION__);
-  SAFE_DELETE(m_pCardsSettings);
+  // TODO
 }
 
 bool CDSMediaPortal::ConvertStreamURLToTimeShiftFilePath(const std::string& strUrl, std::string& strTimeShiftFile)

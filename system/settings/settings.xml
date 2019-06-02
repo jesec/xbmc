@@ -3,10 +3,23 @@
   <section id="player" label="14200" help="38100">
     <category id="videoplayer" label="14215" help="38103">
       <group id="1" label="14230">
-        <setting id="videoplayer.autoplaynextitem" type="boolean" label="13433" help="36152">
+        <setting id="videoplayer.autoplaynextitem" type="list[integer]" label="13433" help="36152">
+          <constraints>
+            <options>
+              <option label="20389">0</option> <!-- musicvideos -->
+              <option label="20343">1</option> <!-- tvshows -->
+              <option label="20360">2</option> <!-- episodes -->
+              <option label="20342">3</option> <!-- movies -->
+              <option label="21345">4</option> <!-- uncategorized -->
+            </options>
+            <delimiter>,</delimiter>
+          </constraints>
           <level>0</level>
-          <default>false</default>
-          <control type="toggle" />
+          <default></default>
+          <control type="list" format="string">
+            <multiselect>true</multiselect>
+            <hidevalue>false</hidevalue>
+          </control>
         </setting>
         <setting id="videoplayer.seeksteps" type="list[integer]" label="13556" help="37042">
           <level>1</level>
@@ -205,113 +218,6 @@
           <updates>
             <update type="change" />
           </updates>
-          <control type="toggle" />
-        </setting>
-        <setting id="videoplayer.usevdpau" type="boolean" label="13425" help="36155">
-          <requirement>HAVE_LIBVDPAU</requirement>
-          <level>2</level>
-          <default>true</default>
-          <control type="toggle" />
-        </setting>
-        <setting id="videoplayer.usevdpaumixer" type="boolean" label="13437" help="36421">
-          <requirement>HAVE_LIBVDPAU</requirement>
-          <level>2</level>
-          <default>true</default>
-          <dependencies>
-            <dependency type="enable">
-              <condition setting="videoplayer.usevdpau" operator="is">true</condition> <!-- USE VDPAU -->
-            </dependency>
-          </dependencies>
-          <control type="toggle" />
-        </setting>
-        <setting id="videoplayer.usevdpaumpeg2" type="boolean" parent="videoplayer.usevdpau" label="13441" help="13442">
-          <requirement>HAVE_LIBVDPAU</requirement>
-          <level>3</level>
-          <default>true</default>
-          <dependencies>
-            <dependency type="enable">
-              <condition setting="videoplayer.usevdpau" operator="is">true</condition> <!-- USE VDPAU -->
-            </dependency>
-            <dependency type="visible" on="property" name="codecoptionvisible" setting="videoplayer.usevdpaumpeg2" operator="is">true</dependency>
-          </dependencies>
-          <control type="toggle" />
-        </setting>
-        <setting id="videoplayer.usevdpaumpeg4" type="boolean" parent="videoplayer.usevdpau" label="13443" help="13444">
-          <requirement>HAVE_LIBVDPAU</requirement>
-          <level>3</level>
-          <default>false</default>
-          <dependencies>
-            <dependency type="enable">
-              <condition setting="videoplayer.usevdpau" operator="is">true</condition> <!-- USE VDPAU -->
-            </dependency>
-            <dependency type="visible" on="property" name="codecoptionvisible" setting="videoplayer.usevdpaumpeg4" operator="is">true</dependency>
-          </dependencies>
-          <control type="toggle" />
-        </setting>
-        <setting id="videoplayer.usevdpauvc1" type="boolean" parent="videoplayer.usevdpau" label="13445" help="13446">
-          <requirement>HAVE_LIBVDPAU</requirement>
-          <level>3</level>
-          <default>true</default>
-          <dependencies>
-            <dependency type="enable">
-              <condition setting="videoplayer.usevdpau" operator="is">true</condition> <!-- USE VDPAU -->
-            </dependency>
-            <dependency type="visible" on="property" name="codecoptionvisible" setting="videoplayer.usevdpauvc1" operator="is">true</dependency>
-          </dependencies>
-          <control type="toggle" />
-        </setting>
-        <setting id="videoplayer.usevaapi" type="boolean" label="13426" help="36156">
-          <requirement>HAVE_LIBVA</requirement>
-          <level>2</level>
-          <default>true</default>
-          <control type="toggle" />
-        </setting>
-        <setting id="videoplayer.usevaapimpeg2" type="boolean" parent="videoplayer.usevaapi" label="13447" help="13448">
-          <requirement>HAVE_LIBVA</requirement>
-          <dependencies>
-            <dependency type="enable">
-              <condition setting="videoplayer.usevaapi" operator="is">true</condition>
-            </dependency>
-            <dependency type="visible" on="property" name="codecoptionvisible" setting="videoplayer.usevaapimpeg2" operator="is">true</dependency>
-          </dependencies>
-          <level>3</level>
-          <default>true</default>
-          <control type="toggle" />
-        </setting>
-        <setting id="videoplayer.usevaapimpeg4" type="boolean" parent="videoplayer.usevaapi" label="13449" help="13450">
-          <requirement>HAVE_LIBVA</requirement>
-          <dependencies>
-            <dependency type="enable">
-              <condition setting="videoplayer.usevaapi" operator="is">true</condition>
-            </dependency>
-            <dependency type="visible" on="property" name="codecoptionvisible" setting="videoplayer.usevaapimpeg4" operator="is">true</dependency>
-          </dependencies>
-          <level>3</level>
-          <default>true</default>
-          <control type="toggle" />
-        </setting>
-        <setting id="videoplayer.usevaapivc1" type="boolean" parent="videoplayer.usevaapi" label="13451" help="13452">
-          <requirement>HAVE_LIBVA</requirement>
-          <dependencies>
-            <dependency type="enable">
-              <condition setting="videoplayer.usevaapi" operator="is">true</condition>
-            </dependency>
-            <dependency type="visible" on="property" name="codecoptionvisible" setting="videoplayer.usevaapivc1" operator="is">true</dependency>
-          </dependencies>
-          <level>3</level>
-          <default>true</default>
-          <control type="toggle" />
-        </setting>
-        <setting id="videoplayer.prefervaapirender" type="boolean" parent="videoplayer.usevaapi" label="13457" help="36433">
-          <requirement>HAVE_LIBVA</requirement>
-          <dependencies>
-            <dependency type="enable">
-              <condition setting="videoplayer.usevaapi" operator="is">true</condition>
-            </dependency>
-            <dependency type="visible" on="property" name="codecoptionvisible" setting="videoplayer.usevaapivc1" operator="is">true</dependency>
-          </dependencies>
-          <level>3</level>
-          <default>true</default>
           <control type="toggle" />
         </setting>
         <setting id="videoplayer.usedxva2" type="boolean" label="13427" help="36158">
@@ -631,7 +537,7 @@
       <group id="1" label="14221">
         <setting id="locale.audiolanguage" type="string" label="285" help="36119">
           <level>0</level>
-          <default>original</default>
+          <default>mediadefault</default>
           <constraints>
             <options>audiostreamlanguages</options>
           </constraints>
@@ -1170,98 +1076,6 @@
           <control type="spinner" format="integer" />
         </setting>
       </group>
-      <group id="6" label="631">
-        <setting id="dsplayer.osdintoactivearea" type="boolean" label="55091" help="">
-          <level>0</level>
-          <default>false</default>
-          <control type="toggle" />
-        </setting>
-        <setting id="dsplayer.definedsarea" type="boolean" label="55086" help="">
-          <level>0</level>
-          <default>false</default>
-          <control type="toggle" />
-        </setting>
-        <setting id="dsplayer.copyactiverect" type="boolean" parent="dsplayer.definedsarea" label="55093" help="">
-          <level>0</level>
-          <default>false</default>
-          <control type="toggle" />
-          <dependencies>
-            <dependency type="visible" setting="dsplayer.definedsarea" operator="is">true</dependency>
-            <dependency type="enable" setting="dsplayer.osdintoactivearea" operator="is">true</dependency>
-          </dependencies>
-        </setting>
-        <setting id="dsplayer.dsarealeft" type="integer" parent="dsplayer.definedsarea" label="55087" help="">
-          <level>0</level>
-          <default>0</default>
-          <constraints>
-            <minimum>0</minimum>
-            <step>1</step>
-            <maximum>300</maximum>
-          </constraints>
-          <dependencies>
-            <dependency type="visible" setting="dsplayer.definedsarea" operator="is">true</dependency>
-            <dependency type="enable" setting="dsplayer.copyactiverect" operator="is">false</dependency>
-          </dependencies>
-          <control type="spinner" format="string">
-            <formatlabel>55092</formatlabel>
-          </control>
-        </setting>
-        <setting id="dsplayer.dsareatop" type="integer" parent="dsplayer.definedsarea" label="55088" help="">
-          <level>0</level>
-          <default>0</default>
-          <constraints>
-            <minimum>0</minimum>
-            <step>1</step>
-            <maximum>300</maximum>
-          </constraints>
-          <dependencies>
-            <dependency type="visible" setting="dsplayer.definedsarea" operator="is">true</dependency>
-            <dependency type="enable" setting="dsplayer.copyactiverect" operator="is">false</dependency>
-          </dependencies>
-          <control type="spinner" format="string">
-            <formatlabel>55092</formatlabel>
-          </control>
-        </setting>
-        <setting id="dsplayer.dsarearight" type="integer" parent="dsplayer.definedsarea" label="55089" help="">
-          <level>0</level>
-          <default>0</default>
-          <constraints>
-            <minimum>0</minimum>
-            <step>1</step>
-            <maximum>300</maximum>
-          </constraints>
-          <dependencies>
-            <dependency type="visible" setting="dsplayer.definedsarea" operator="is">true</dependency>
-            <dependency type="enable" setting="dsplayer.copyactiverect" operator="is">false</dependency>
-          </dependencies>
-          <control type="spinner" format="string">
-            <formatlabel>55092</formatlabel>
-          </control>
-        </setting>
-        <setting id="dsplayer.dsareabottom" type="integer" parent="dsplayer.definedsarea" label="55090" help="">
-          <level>0</level>
-          <default>0</default>
-          <constraints>
-            <minimum>0</minimum>
-            <step>1</step>
-            <maximum>300</maximum>
-          </constraints>
-          <dependencies>
-            <dependency type="visible" setting="dsplayer.definedsarea" operator="is">true</dependency>
-            <dependency type="enable" setting="dsplayer.copyactiverect" operator="is">false</dependency>
-          </dependencies>
-          <control type="spinner" format="string">
-            <formatlabel>55092</formatlabel>
-          </control>
-        </setting>
-        <setting id="dsplayer.dsareareset" type="action" parent="dsplayer.definedsarea" label="55094" help="">
-          <level>0</level>
-          <dependencies>
-            <dependency type="visible" setting="dsplayer.definedsarea" operator="is">true</dependency>
-          </dependencies>
-          <control type="button" format="action" />
-        </setting>
-      </group>
     </category>
   </section>
   <section id="media" label="14211" help="38101">
@@ -1326,33 +1140,33 @@
         <!-- Hidden settings edited using CGUIDialogMusicExportSettings -->
         <setting id="musiclibrary.exportfiletype" type="integer" label="38304" help="">
           <level>4</level>
-          <default>0</default>		  
+          <default>0</default>
         </setting>
         <setting id="musiclibrary.exportfolder" type="string" label="38305" help="">
-          <level>4</level>		
+          <level>4</level>
           <default></default>
 		  <constraints>
             <allowempty>true</allowempty>
           </constraints>
         </setting>
         <setting id="musiclibrary.exportitems" type="integer" label="" help="">
-          <level>4</level>		
+          <level>4</level>
           <default>48</default> <!-- Albums + Album Artists -->
         </setting>
         <setting id="musiclibrary.exportunscraped" type="boolean" label="" help="">
-          <level>4</level>		
+          <level>4</level>
           <default>false</default>
         </setting>
         <setting id="musiclibrary.exportoverwrite" type="boolean" label="" help="">
-          <level>4</level>		
+          <level>4</level>
           <default>false</default>
         </setting>
         <setting id="musiclibrary.exportartwork" type="boolean" label="" help="">
-          <level>4</level>          
+          <level>4</level>
 		  <default>false</default>
-        </setting>		
+        </setting>
         <setting id="musiclibrary.exportskipnfo" type="boolean" label="" help="">
-          <level>4</level>          
+          <level>4</level>
 		  <default>false</default>
         </setting>
         <setting id="musiclibrary.import" type="action" label="14249" help="36263">
@@ -1623,7 +1437,12 @@
           <control type="button" format="path">
             <heading>657</heading>
           </control>
-        </setting>			
+        </setting>
+        <setting id="musiclibrary.preferonlinealbumart" type="boolean" label="20224" help="20225">
+          <level>1</level>
+          <default>false</default>
+          <control type="toggle" />
+        </setting>
         <setting id="musiclibrary.albumsscraper" type="addon" label="20193" help="36257">
           <level>1</level>
           <default>metadata.album.universal</default>
@@ -2528,113 +2347,6 @@
         </setting>
       </group>
     </category>
-    <category id="gameskeyboard" label="35150">
-      <group id="1" label="128">
-        <setting id="gameskeyboard.enablekeyboard" type="boolean" label="35152" help="35153">
-          <level>0</level>
-          <control type="toggle" />
-          <default>true</default>
-        </setting>
-      </group>
-      <group id="2" label="35151">
-        <setting id="gameskeyboard.keyboardplayers" type="integer" label="35154" help="35155">
-          <level>0</level>
-          <default>1</default>
-          <constraints>
-            <minimum>1</minimum>
-            <step>1</step>
-            <maximum>8</maximum>
-          </constraints>
-          <dependencies>
-            <dependency type="enable" setting="gameskeyboard.enablekeyboard">true</dependency>
-          </dependencies>
-          <control type="slider" format="integer">
-            <popup>true</popup>
-            <formatlabel>35156</formatlabel> <!-- TODO: Add a <formattype>integer</formattype> tag -->
-          </control>
-        </setting>
-        <setting id="gameskeyboard.keyboardplayerconfig1" type="action" label="35157" help="35155">
-          <level>0</level>
-          <control type="button" format="action" />
-          <dependencies>
-            <dependency type="visible">
-              <condition on="property" name="gte" setting="gameskeyboard.keyboardplayers">1</condition>
-            </dependency>
-            <dependency type="enable" setting="gameskeyboard.enablekeyboard">true</dependency>
-          </dependencies>
-        </setting>
-        <setting id="gameskeyboard.keyboardplayerconfig2" type="action" label="35158" help="35155">
-          <level>0</level>
-          <control type="button" format="action" />
-          <dependencies>
-            <dependency type="visible">
-              <condition on="property" name="gte" setting="gameskeyboard.keyboardplayers">2</condition>
-            </dependency>
-            <dependency type="enable" setting="gameskeyboard.enablekeyboard">true</dependency>
-          </dependencies>
-        </setting>
-        <setting id="gameskeyboard.keyboardplayerconfig3" type="action" label="35159" help="35155">
-          <level>0</level>
-          <control type="button" format="action" />
-          <dependencies>
-            <dependency type="visible">
-              <condition on="property" name="gte" setting="gameskeyboard.keyboardplayers">3</condition>
-            </dependency>
-            <dependency type="enable" setting="gameskeyboard.enablekeyboard">true</dependency>
-          </dependencies>
-        </setting>
-        <setting id="gameskeyboard.keyboardplayerconfig4" type="action" label="35160" help="35155">
-          <level>0</level>
-          <control type="button" format="action" />
-          <dependencies>
-            <dependency type="visible">
-              <condition on="property" name="gte" setting="gameskeyboard.keyboardplayers">4</condition>
-            </dependency>
-            <dependency type="enable" setting="gameskeyboard.enablekeyboard">true</dependency>
-          </dependencies>
-        </setting>
-        <setting id="gameskeyboard.keyboardplayerconfig5" type="action" label="35161" help="35155">
-          <level>0</level>
-          <control type="button" format="action" />
-          <dependencies>
-            <dependency type="visible">
-              <condition on="property" name="gte" setting="gameskeyboard.keyboardplayers">5</condition>
-            </dependency>
-            <dependency type="enable" setting="gameskeyboard.enablekeyboard">true</dependency>
-          </dependencies>
-        </setting>
-        <setting id="gameskeyboard.keyboardplayerconfig6" type="action" label="35162" help="35155">
-          <level>0</level>
-          <control type="button" format="action" />
-          <dependencies>
-            <dependency type="visible">
-              <condition on="property" name="gte" setting="gameskeyboard.keyboardplayers">6</condition>
-            </dependency>
-            <dependency type="enable" setting="gameskeyboard.enablekeyboard">true</dependency>
-          </dependencies>
-        </setting>
-        <setting id="gameskeyboard.keyboardplayerconfig7" type="action" label="35163" help="35155">
-          <level>0</level>
-          <control type="button" format="action" />
-          <dependencies>
-            <dependency type="visible">
-              <condition on="property" name="gte" setting="gameskeyboard.keyboardplayers">7</condition>
-            </dependency>
-            <dependency type="enable" setting="gameskeyboard.enablekeyboard">true</dependency>
-          </dependencies>
-        </setting>
-        <setting id="gameskeyboard.keyboardplayerconfig8" type="action" label="35164" help="35155">
-          <level>0</level>
-          <control type="button" format="action" />
-          <dependencies>
-            <dependency type="visible">
-              <condition on="property" name="gte" setting="gameskeyboard.keyboardplayers">8</condition>
-            </dependency>
-            <dependency type="enable" setting="gameskeyboard.enablekeyboard">true</dependency>
-          </dependencies>
-        </setting>
-      </group>
-    </category>
   </section>
   <section id="system" label="13000" help="36349">
     <category id="display" label="14220" help="36603">
@@ -2644,6 +2356,9 @@
             <or>
               <condition>HAVE_X11</condition>
               <condition>HAVE_WAYLAND</condition>
+              <condition>HAVE_OSX</condition>
+              <condition>HAS_DX</condition>
+              <condition>HAVE_IOS</condition>
             </or>
           </requirement>
           <level>0</level>
@@ -2663,6 +2378,18 @@
             <dependency type="update" setting="videoscreen.screenmode" />
           </dependencies>
           <control type="spinner" format="string" delayed="true" />
+        </setting>
+        <setting id="videoscreen.whitelist" type="list[string]" parent="videoscreen.screen" label="14085" help="36356">
+          <level>1</level>
+          <constraints>
+            <options>modes</options>
+            <default></default>
+            <delimiter>,</delimiter>
+            <minimumitems>0</minimumitems>
+          </constraints>
+          <control type="list" format="string">
+            <multiselect>true</multiselect>
+          </control>
         </setting>
         <setting id="videoscreen.resolution" type="integer" parent="videoscreen.screen" label="169" help="36352">
           <level>0</level>
@@ -2718,20 +2445,6 @@
             <options>refreshchangedelays</options>
           </constraints>
           <control type="spinner" format="string" />
-        </setting>
-        <setting id="videoscreen.limitedrange" type="boolean" label="36042" help="36359">
-          <requirement>
-            <or>
-              <condition>HAS_GL</condition>
-              <condition>HAS_DX</condition>
-            </or>
-          </requirement>
-          <level>3</level>
-          <default>false</default>
-          <updates>
-            <update type="rename">videoplayer.vdpaustudiolevel</update>
-          </updates>
-          <control type="toggle" />
         </setting>
         <setting id="videoscreen.dither" type="boolean" label="36099" help="36598">
           <requirement>
@@ -3055,11 +2768,6 @@
             <dependency type="visible" on="property" name="aesettingvisible" setting="audiooutput.channels">audiooutput.stereoupmix</dependency>
           </dependencies>
           <control type="toggle" />
-        </setting>
-        <setting id="audiooutput.dspaddonsenabled" type="boolean">
-          <visible>false</visible>
-          <default>false</default>
-          <control type="toggle"/>
         </setting>
         <setting id="audiooutput.processquality" type="integer" label="13505" help="36169">
           <requirement>HAS_AE_QUALITY_LEVELS</requirement>
@@ -3511,12 +3219,12 @@
         </setting>
         <setting id="debug.extralogging" type="boolean" label="666" help="36394">
           <level>1</level>
-          <default>true</default>
+          <default>false</default>
           <control type="toggle" />
         </setting>
         <setting id="debug.setextraloglevel" type="list[integer]" parent="debug.extralogging" label="668" help="36534">
           <level>1</level>
-          <default>32768</default>
+          <default></default>
           <constraints>
             <options>loggingcomponents</options>
             <delimiter>,</delimiter>
@@ -3785,7 +3493,6 @@
           </constraints>
           <dependencies>
             <dependency type="update" setting="lookandfeel.skin" />
-            <dependency type="enable" setting="dsplayer.definedsarea" operator="is">false</dependency>
           </dependencies>
           <control type="spinner" format="string">
             <formatlabel>14047</formatlabel>

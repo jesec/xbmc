@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,10 +18,10 @@
  *
  */
 
+#pragma once
+
 #include "video/VideoInfoTag.h"
 #include "AddonClass.h"
-
-#pragma once
 
 namespace XBMCAddon
 {
@@ -63,8 +63,7 @@ namespace XBMCAddon
       explicit InfoTagVideo(const CVideoInfoTag& tag);
 #endif
       InfoTagVideo();
-      //! @todo Switch to 'override' usage once 14.04 (Trusty) hits EOL. swig <3.0 doesn't understand C++11
-      virtual ~InfoTagVideo();
+      ~InfoTagVideo() override;
 
 #ifdef DOXYGEN_SHOULD_USE_THIS
       ///

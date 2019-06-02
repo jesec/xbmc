@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -547,7 +547,7 @@ std::string CMime::GetMimeType(const CFileItem &item)
 
 std::string CMime::GetMimeType(const CURL &url, bool lookup)
 {
-  
+
   std::string strMimeType;
 
   if( url.IsProtocol("shout") || url.IsProtocol("http") || url.IsProtocol("https"))

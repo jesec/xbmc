@@ -19,22 +19,21 @@ DEPLOYED_BINARY_ADDONS="-e /addons"
 #$XBMC_PLATFORM_DIR matches the platform subdirs!
 case $XBMC_PLATFORM_DIR in
   ios)
-    DEFAULT_SDK_VERSION=9.2
+    DEFAULT_SDK_VERSION=11.0
     DEFAULT_XBMC_DEPENDS_ROOT=$WORKSPACE/tools/depends/xbmc-depends
     DEFAULT_CONFIGURATION="Debug"
     DEFAULT_DARWIN_ARM_CPU="armv7"
-    DEFAULT_XCODE_APP="Xcode.app"
+    DEFAULT_XCODE_APP="Xcode9.0.app"
     ;;
 
   osx64)
-    DEFAULT_SDK_VERSION=10.10
+    DEFAULT_SDK_VERSION=10.13
     DEFAULT_XBMC_DEPENDS_ROOT=$WORKSPACE/tools/depends/xbmc-depends
     DEFAULT_CONFIGURATION="Debug"
-    DEFAULT_XCODE_APP="Xcode6.1.1.app"
+    DEFAULT_XCODE_APP="Xcode9.0.app"
     ;;
 
   android)
-    DEFAULT_SDK_VERSION="24"
     DEFAULT_NDK_VERSION="16"
     DEFAULT_NDK_API="21"
     DEFAULT_XBMC_DEPENDS_ROOT=$WORKSPACE/tools/depends/xbmc-depends
@@ -51,6 +50,10 @@ case $XBMC_PLATFORM_DIR in
     DEFAULT_XBMC_DEPENDS_ROOT=$WORKSPACE/tools/depends/xbmc-depends
     DEFAULT_CONFIGURATION="Debug"
   ;;
+
+  freebsd)
+    DEFAULT_CONFIGURATION="Debug"
+  ;;
 esac
 
 if [ "$SDK_VERSION" == "Default" ]
@@ -61,12 +64,12 @@ fi
 if [ "$NDK_VERSION" == "Default" ]
 then
   NDK_VERSION=$DEFAULT_NDK_VERSION
-fi 
+fi
 
 if [ "$NDK_API" == "Default" ]
 then
   NDK_API=$DEFAULT_NDK_API
-fi 
+fi
 
 if [ "$XBMC_DEPENDS_ROOT" == "Default" ]
 then
@@ -75,7 +78,7 @@ fi
 
 if [ "$DARWIN_ARM_CPU" == "Default" ]
 then
-  DARWIN_ARM_CPU=$DEFAULT_DARWIN_ARM_CPU  
+  DARWIN_ARM_CPU=$DEFAULT_DARWIN_ARM_CPU
 fi
 
 if [ "$XCODE_APP" == "Default" ]
@@ -133,7 +136,7 @@ function pathChanged ()
   else
     ret="1"
   fi
-  
+
   echo $ret
 }
 

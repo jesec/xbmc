@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -29,6 +29,9 @@
 #include "utils/log.h"
 #include "utils/StringUtils.h"
 #include "utils/XBMCTinyXML.h"
+
+const uint32_t CSettingsManager::Version = 2;
+const uint32_t CSettingsManager::MinimumSupportedVersion = 0;
 
 bool ParseSettingIdentifier(const std::string& settingId, std::string& categoryTag, std::string& settingTag)
 {
@@ -128,7 +131,7 @@ bool CSettingsManager::Initialize(const TiXmlElement *root)
         CLog::Log(LOGWARNING, "CSettingsManager: unable to read section \"%s\"", sectionId.c_str());
       }
     }
-      
+
     sectionNode = sectionNode->NextSibling(SETTING_XML_ELM_SECTION);
   }
 
@@ -418,7 +421,7 @@ void CSettingsManager::RegisterSettingType(const std::string &settingType, ISett
 
   auto creatorIt = m_settingCreators.find(settingType);
   if (creatorIt == m_settingCreators.end())
-    m_settingCreators.insert(make_pair(settingType, settingCreator));
+    m_settingCreators.insert(std::make_pair(settingType, settingCreator));
 }
 
 void CSettingsManager::RegisterSettingControl(const std::string &controlType, ISettingControlCreator *settingControlCreator)
@@ -429,7 +432,7 @@ void CSettingsManager::RegisterSettingControl(const std::string &controlType, IS
   CExclusiveLock lock(m_critical);
   auto creatorIt = m_settingControlCreators.find(controlType);
   if (creatorIt == m_settingControlCreators.end())
-    m_settingControlCreators.insert(make_pair(controlType, settingControlCreator));
+    m_settingControlCreators.insert(std::make_pair(controlType, settingControlCreator));
 }
 
 void CSettingsManager::RegisterSettingsHandler(ISettingsHandler *settingsHandler)
@@ -527,7 +530,7 @@ void* CSettingsManager::GetSettingOptionsFiller(SettingConstPtr setting)
 
       break;
     }
-    
+
     case SettingOptionsFillerType::String:
     {
       if (setting->GetType() != SettingType::String)
@@ -711,6 +714,20 @@ bool CSettingsManager::SetList(const std::string &id, const std::vector< std::sh
   return std::static_pointer_cast<CSettingList>(setting)->SetValue(value);
 }
 
+bool CSettingsManager::FindIntInList(const std::string &id, int value) const
+{
+  CSharedLock lock(m_settingsCritical);
+  SettingPtr setting = GetSetting(id);
+  if (setting == nullptr || setting->GetType() != SettingType::List)
+    return false;
+
+  for (const auto item : std::static_pointer_cast<CSettingList>(setting)->GetValue())
+    if (item->GetType() == SettingType::Integer && std::static_pointer_cast<CSettingInt>(item)->GetValue() == value)
+      return true;
+
+  return false;
+}
+
 bool CSettingsManager::SetDefault(const std::string &id)
 {
   CSharedLock lock(m_settingsCritical);
@@ -746,7 +763,7 @@ void CSettingsManager::AddCondition(const std::string &identifier, SettingCondit
 
   m_conditions.AddCondition(identifier, condition, data);
 }
-  
+
 bool CSettingsManager::Serialize(TiXmlNode *parent) const
 {
   if (parent == nullptr)
@@ -779,7 +796,7 @@ bool CSettingsManager::Serialize(TiXmlNode *parent) const
 
   return true;
 }
-  
+
 bool CSettingsManager::Deserialize(const TiXmlNode *node, bool &updated, std::map<std::string, SettingPtr> *loadedSettings /* = nullptr */)
 {
   updated = false;
@@ -830,13 +847,13 @@ bool CSettingsManager::OnSettingChanging(std::shared_ptr<const CSetting> setting
 
   return true;
 }
-  
+
 void CSettingsManager::OnSettingChanged(std::shared_ptr<const CSetting> setting)
 {
   CSharedLock lock(m_settingsCritical);
   if (!m_loaded || setting == nullptr)
     return;
-    
+
   auto settingIt = FindSetting(setting->GetId());
   if (settingIt == m_settings.end())
     return;
@@ -1072,7 +1089,7 @@ bool CSettingsManager::LoadSetting(const TiXmlNode *node, SettingPtr setting, bo
 
       settingElement = settingElement->NextSiblingElement(SETTING_XML_ELM_SETTING);
     }
-  } 
+  }
 
   if (settingElement == nullptr)
     return false;

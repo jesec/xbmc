@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2011-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -36,13 +36,13 @@ bool CUPnPFile::Open(const CURL& url)
   if (CUPnPDirectory::GetResource(url, item_new))
   {
     //CLog::Log(LOGDEBUG,"FileUPnP - file redirect to %s.", item_new.GetPath().c_str());
-    IFile *pNewImp = CFileFactory::CreateLoader(item_new.GetPath());    
-    CURL *pNewUrl = new CURL(item_new.GetPath());    
+    IFile *pNewImp = CFileFactory::CreateLoader(item_new.GetPath());
+    CURL *pNewUrl = new CURL(item_new.GetPath());
     if (pNewImp)
     {
       throw new CRedirectException(pNewImp, pNewUrl);
     }
-    delete pNewUrl;    
+    delete pNewUrl;
   }
   return false;
 }

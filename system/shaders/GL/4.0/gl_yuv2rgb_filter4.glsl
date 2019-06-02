@@ -13,6 +13,11 @@ uniform mat4 m_yuvmat;
 uniform float m_stretch;
 uniform float m_alpha;
 uniform sampler1D m_kernelTex;
+uniform mat3 m_primMat;
+uniform float m_gammaDstInv;
+uniform float m_gammaSrc;
+uniform float m_toneP1;
+uniform vec3 m_coefsDst;
 in vec2 m_cordY;
 in vec2 m_cordU;
 in vec2 m_cordV;
@@ -62,7 +67,7 @@ float filter_0(sampler2D sampler, vec2 coord)
   vec4 linetaps = texture(m_kernelTex, 1.0 - f.x);
   vec4 coltaps = texture(m_kernelTex, 1.0 - f.y);
   linetaps /= linetaps.r + linetaps.g + linetaps.b + linetaps.a;
-  columntaps /= columntaps.r + columntaps.g + columntaps.b + columntaps.a;
+  coltaps /= coltaps.r + coltaps.g + coltaps.b + coltaps.a;
   mat4 conv;
   conv[0] = linetaps * coltaps.x;
   conv[1] = linetaps * coltaps.y;
@@ -85,23 +90,36 @@ float filter_0(sampler2D sampler, vec2 coord)
 vec4 process()
 {
   vec4 rgb;
+  vec4 yuv;
+
 #if defined(XBMC_YV12)
 
-  vec4 yuv = vec4(filter_0(m_sampY, stretch(m_cordY)),
-                  texture(m_sampU, stretch(m_cordU)).r,
-                  texture(m_sampV, stretch(m_cordV)).r,
-                  1.0);
-
-  rgb = m_yuvmat * yuv;
-  rgb.a = m_alpha;
+  yuv = vec4(filter_0(m_sampY, stretch(m_cordY)),
+             texture(m_sampU, stretch(m_cordU)).r,
+             texture(m_sampV, stretch(m_cordV)).r,
+             1.0);
 
 #elif defined(XBMC_NV12)
 
-  vec4 yuv = vec4(filter_0(m_sampY, stretch(m_cordY)),
-                  texture(m_sampU, stretch(m_cordU)).rg,
-                  1.0);
+  yuv = vec4(filter_0(m_sampY, stretch(m_cordY)),
+             texture(m_sampU, stretch(m_cordU)).rg,
+             1.0);
+
+#endif
+
   rgb = m_yuvmat * yuv;
   rgb.a = m_alpha;
+
+#if defined(XBMC_COL_CONVERSION)
+  rgb.rgb = pow(max(vec3(0), rgb.rgb), vec3(m_gammaSrc));
+  rgb.rgb = max(vec3(0), m_primMat * rgb.rgb);
+  rgb.rgb = pow(rgb.rgb, vec3(m_gammaDstInv));
+
+#if defined(XBMC_TONE_MAPPING)
+  float luma = dot(rgb.rgb, m_coefsDst);
+  rgb.rgb *= tonemap(luma) / luma;
+#endif
+
 #endif
 
   return rgb;

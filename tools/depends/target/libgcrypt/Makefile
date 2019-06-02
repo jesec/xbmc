@@ -1,5 +1,5 @@
 include ../../Makefile.include
-DEPS= ../../Makefile.include 01-gcrypt-android-select.patch 02-fix-armv7-neon.patch 03-remove-cipher-gcm-armv8.patch 04-fix-o-flag-munging.patch Makefile
+DEPS= ../../Makefile.include Makefile 01-gcrypt-android-select.patch 02-fix-armv7-neon.patch 03-remove-cipher-gcm-armv8.patch 04-fix-o-flag-munging.patch
 
 # lib name, version
 LIBNAME=libgcrypt
@@ -23,8 +23,6 @@ CONFIGURE=cp -f $(CONFIG_SUB) $(CONFIG_GUESS) .; \
 	  $(CONFIGURE_FLAGS)
 
 LIBDYLIB=$(PLATFORM)/src/.libs/$(LIBNAME).a
-
-CLEAN_FILES=$(ARCHIVE) $(PLATFORM)
 
 all: .installed-$(PLATFORM)
 

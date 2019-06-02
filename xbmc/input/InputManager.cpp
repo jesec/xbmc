@@ -1,6 +1,6 @@
 /*
 *      Copyright (C) 2005-2014 Team XBMC
-*      http://xbmc.org
+*      http://kodi.tv
 *
 *  This Program is free software; you can redistribute it and/or modify
 *  it under the terms of the GNU General Public License as published by
@@ -28,29 +28,20 @@
 #include "JoystickMapper.h"
 #include "KeymapEnvironment.h"
 #include "TouchTranslator.h"
-#include "input/keyboard/interfaces/IKeyboardHandler.h"
-#include "input/mouse/generic/MouseInputHandling.h"
-#include "input/mouse/interfaces/IMouseDriverHandler.h"
-#include "input/mouse/MouseWindowingButtonMap.h"
+#include "input/keyboard/interfaces/IKeyboardDriverHandler.h"
 #include "input/keyboard/KeyboardEasterEgg.h"
+#include "input/mouse/interfaces/IMouseDriverHandler.h"
+#include "input/mouse/MouseTranslator.h"
 #include "input/Key.h"
+#include "input/WindowTranslator.h"
 #include "messaging/ApplicationMessenger.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIAudioManager.h"
 #include "guilib/GUIControl.h"
 #include "guilib/GUIWindow.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/GUIMessage.h"
-
 #include "network/EventServer.h"
-
-#ifdef HAS_LIRC
-#include "platform/linux/input/LIRC.h"
-#endif
-
-#ifdef HAS_IRSERVERSUITE
-#include "input/windows/IRServerSuite.h"
-#endif
-
 #include "ButtonTranslator.h"
 #include "peripherals/Peripherals.h"
 #include "peripherals/devices/PeripheralImon.h"
@@ -60,7 +51,9 @@
 #include "utils/StringUtils.h"
 #include "Util.h"
 #include "settings/Settings.h"
+#include "settings/lib/Setting.h"
 #include "AppParamParser.h"
+#include "AppInboundProtocol.h"
 
 #include <algorithm>
 
@@ -72,24 +65,16 @@ using namespace MESSAGING;
 CInputManager::CInputManager(const CAppParamParser &params) :
   m_keymapEnvironment(new CKeymapEnvironment),
   m_buttonTranslator(new CButtonTranslator),
-  m_irTranslator(new CIRTranslator),
   m_customControllerTranslator(new CCustomControllerTranslator),
   m_touchTranslator(new CTouchTranslator),
   m_joystickTranslator(new CJoystickMapper),
-  m_mouseButtonMap(new MOUSE::CMouseWindowingButtonMap),
   m_keyboardEasterEgg(new KEYBOARD::CKeyboardEasterEgg)
 {
   m_buttonTranslator->RegisterMapper("touch", m_touchTranslator.get());
   m_buttonTranslator->RegisterMapper("customcontroller", m_customControllerTranslator.get());
   m_buttonTranslator->RegisterMapper("joystick", m_joystickTranslator.get());
 
-  RegisterKeyboardHandler(m_keyboardEasterEgg.get());
-
-  if (!params.RemoteControlName().empty())
-    SetRemoteControlName(params.RemoteControlName());
-
-  if (!params.RemoteControlEnabled())
-    DisableRemoteControl();
+  RegisterKeyboardDriverHandler(m_keyboardEasterEgg.get());
 
   // Register settings
   std::set<std::string> settingSet;
@@ -104,7 +89,7 @@ CInputManager::~CInputManager()
   // Unregister settings
   CServiceBroker::GetSettings().UnregisterCallback(this);
 
-  UnregisterKeyboardHandler(m_keyboardEasterEgg.get());
+  UnregisterKeyboardDriverHandler(m_keyboardEasterEgg.get());
 
   m_buttonTranslator->UnregisterMapper(m_touchTranslator.get());
   m_buttonTranslator->UnregisterMapper(m_customControllerTranslator.get());
@@ -113,10 +98,6 @@ CInputManager::~CInputManager()
 
 void CInputManager::InitializeInputs()
 {
-#if defined(HAS_LIRC) || defined(HAS_IRSERVERSUITE)
-  m_RemoteControl.Initialize();
-#endif
-
   m_Keyboard.Initialize();
 
   m_Mouse.Initialize();
@@ -125,22 +106,6 @@ void CInputManager::InitializeInputs()
 
 void CInputManager::Deinitialize()
 {
-#if defined(HAS_LIRC) || defined(HAS_IRSERVERSUITE)
-  m_RemoteControl.Disconnect();
-#endif
-}
-
-bool CInputManager::ProcessRemote(int windowId)
-{
-#if defined(HAS_LIRC) || defined(HAS_IRSERVERSUITE)
-  if (m_RemoteControl.GetButton())
-  {
-    CKey key(m_RemoteControl.GetButton(), m_RemoteControl.GetHoldTime());
-    m_RemoteControl.Reset();
-    return OnKey(key);
-  }
-#endif
-  return false;
 }
 
 bool CInputManager::ProcessPeripherals(float frameTime)
@@ -252,20 +217,20 @@ bool CInputManager::ProcessEventServer(int windowId, float frameTime)
       {
         int actionID;
         std::string actionName;
-        
+
         // Translate using custom controller translator.
         if (m_customControllerTranslator->TranslateCustomControllerString(windowId, strMapName, wKeyID, actionID, actionName))
         {
           // break screensaver
           g_application.ResetSystemIdleTimer();
           g_application.ResetScreenSaver();
-          
+
           // in case we wokeup the screensaver or screen - eat that action...
           if (g_application.WakeUpScreenSaverAndDPMS())
             return true;
-          
+
           m_Mouse.SetActive(false);
-          
+
           return ExecuteInputAction(CAction(actionID, fAmount, 0.0f, actionName));
         }
         else
@@ -279,14 +244,14 @@ bool CInputManager::ProcessEventServer(int windowId, float frameTime)
       CKey key;
       if (wKeyID & ES_FLAG_UNICODE)
       {
-        key = CKey((uint8_t)0, wKeyID & ~ES_FLAG_UNICODE, 0, 0, 0);
+        key = CKey(0u, 0u, static_cast<wchar_t>(wKeyID & ~ES_FLAG_UNICODE), 0, 0, 0, 0);
         return OnKey(key);
       }
 
       if (wKeyID == KEY_BUTTON_LEFT_ANALOG_TRIGGER)
-        key = CKey(wKeyID, (BYTE)(255 * fAmount), 0, 0.0, 0.0, 0.0, 0.0, frameTime);
+        key = CKey(wKeyID, static_cast<uint8_t>(255 * fAmount), 0, 0.0, 0.0, 0.0, 0.0, frameTime);
       else if (wKeyID == KEY_BUTTON_RIGHT_ANALOG_TRIGGER)
-        key = CKey(wKeyID, 0, (BYTE)(255 * fAmount), 0.0, 0.0, 0.0, 0.0, frameTime);
+        key = CKey(wKeyID, 0, static_cast<uint8_t>(255 * fAmount), 0.0, 0.0, 0.0, 0.0, frameTime);
       else if (wKeyID == KEY_BUTTON_LEFT_THUMB_STICK_LEFT)
         key = CKey(wKeyID, 0, 0, -fAmount, 0.0, 0.0, 0.0, frameTime);
       else if (wKeyID == KEY_BUTTON_LEFT_THUMB_STICK_RIGHT)
@@ -318,7 +283,7 @@ bool CInputManager::ProcessEventServer(int windowId, float frameTime)
       newEvent.type = XBMC_MOUSEMOTION;
       newEvent.motion.x = (uint16_t)pos.x;
       newEvent.motion.y = (uint16_t)pos.y;
-      g_application.OnEvent(newEvent);  // had to call this to update g_Mouse position
+      CServiceBroker::GetAppPort()->OnEvent(newEvent);  // had to call this to update g_Mouse position
       return g_application.OnAction(CAction(ACTION_MOUSE_MOVE, pos.x, pos.y));
     }
   }
@@ -357,13 +322,7 @@ void CInputManager::QueueAction(const CAction& action)
 
 bool CInputManager::Process(int windowId, float frameTime)
 {
-#if defined(HAS_LIRC) || defined(HAS_IRSERVERSUITE)
-  // Read the input from a remote
-  m_RemoteControl.Update();
-#endif
-
   // process input actions
-  ProcessRemote(windowId);
   ProcessEventServer(windowId, frameTime);
   ProcessPeripherals(frameTime);
   ProcessQueuedActions();
@@ -395,24 +354,35 @@ bool CInputManager::OnEvent(XBMC_Event& newEvent)
   {
     bool handled = false;
 
-    for (auto it = m_mouseHandlers.begin(); it != m_mouseHandlers.end(); ++it)
+    for (auto driverHandler : m_mouseHandlers)
     {
-      if (newEvent.type == XBMC_MOUSEMOTION)
+      switch (newEvent.type)
       {
-        if (it->driverHandler->OnPosition(newEvent.motion.x, newEvent.motion.y))
+      case XBMC_MOUSEMOTION:
+      {
+        if (driverHandler->OnPosition(newEvent.motion.x, newEvent.motion.y))
           handled = true;
+        break;
       }
-      else
+      case XBMC_MOUSEBUTTONDOWN:
       {
-        if (newEvent.type == XBMC_MOUSEBUTTONDOWN)
+        MOUSE::BUTTON_ID buttonId;
+        if (CMouseTranslator::TranslateEventID(newEvent.button.button, buttonId))
         {
-          if (it->driverHandler->OnButtonPress(newEvent.button.button))
+          if (driverHandler->OnButtonPress(buttonId))
             handled = true;
         }
-        else if (newEvent.type == XBMC_MOUSEBUTTONUP)
-        {
-          it->driverHandler->OnButtonRelease(newEvent.button.button);
-        }
+        break;
+      }
+      case XBMC_MOUSEBUTTONUP:
+      {
+        MOUSE::BUTTON_ID buttonId;
+        if (CMouseTranslator::TranslateEventID(newEvent.button.button, buttonId))
+          driverHandler->OnButtonRelease(buttonId);
+        break;
+      }
+      default:
+        break;
       }
 
       if (handled)
@@ -422,7 +392,7 @@ bool CInputManager::OnEvent(XBMC_Event& newEvent)
     if (!handled)
     {
       m_Mouse.HandleEvent(newEvent);
-      ProcessMouse(g_windowManager.GetActiveWindowID());
+      ProcessMouse(CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindowOrDialog());
     }
     break;
   }
@@ -438,7 +408,7 @@ bool CInputManager::OnEvent(XBMC_Event& newEvent)
       actionId = newEvent.touch.action;
     else
     {
-      int iWin = g_windowManager.GetActiveWindowID();
+      int iWin = CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindowOrDialog();
       m_touchTranslator->TranslateTouchAction(iWin, newEvent.touch.action, newEvent.touch.pointers, actionId, actionString);
     }
 
@@ -467,6 +437,12 @@ bool CInputManager::OnEvent(XBMC_Event& newEvent)
     }
     break;
   } //case
+  case XBMC_BUTTON:
+  {
+    CKey key(newEvent.keybutton.button, newEvent.keybutton.holdtime);
+    OnKey(key);
+    break;
+  }
   }//switch
 
   return true;
@@ -481,9 +457,9 @@ bool CInputManager::OnKey(const CKey& key)
 {
   bool bHandled = false;
 
-  for (std::vector<KEYBOARD::IKeyboardHandler*>::iterator it = m_keyboardHandlers.begin(); it != m_keyboardHandlers.end(); ++it)
+  for (auto handler : m_keyboardHandlers)
   {
-    if ((*it)->OnKeyPress(key))
+    if (handler->OnKeyPress(key))
     {
       bHandled = true;
       break;
@@ -502,7 +478,7 @@ bool CInputManager::OnKey(const CKey& key)
     }
     else
     {
-      if (!m_buttonTranslator->HasLongpressMapping(g_windowManager.GetActiveWindowID(), key))
+      if (!m_buttonTranslator->HasLongpressMapping(CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindowOrDialog(), key))
       {
         m_LastKey.Reset();
         bHandled = HandleKey(key);
@@ -529,7 +505,7 @@ bool CInputManager::HandleKey(const CKey& key)
   m_Mouse.SetActive(false);
 
   // get the current active window
-  int iWin = g_windowManager.GetActiveWindowID();
+  int iWin = CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindowOrDialog();
 
   // this will be checked for certain keycodes that need
   // special handling if the screensaver is active
@@ -576,7 +552,7 @@ bool CInputManager::HandleKey(const CKey& key)
 
     // first determine if we should use keyboard input directly
     bool useKeyboard = key.FromKeyboard() && (iWin == WINDOW_DIALOG_KEYBOARD || iWin == WINDOW_DIALOG_NUMERIC);
-    CGUIWindow *window = g_windowManager.GetWindow(iWin);
+    CGUIWindow *window = CServiceBroker::GetGUI()->GetWindowManager().GetWindow(iWin);
     if (window)
     {
       CGUIControl *control = window->GetFocusedControl();
@@ -589,7 +565,7 @@ bool CInputManager::HandleKey(const CKey& key)
 
         // If the key pressed is shift-A to shift-Z set usekeyboard to true.
         // This causes the keypress to be used for list navigation.
-        if (control->IsContainer() && (key.GetModifiers() & CKey::MODIFIER_SHIFT) && key.GetVKey() >= XBMCVK_A && key.GetVKey() <= XBMCVK_Z)
+        if (control->IsContainer() && key.GetModifiers() == CKey::MODIFIER_SHIFT && key.GetVKey() >= XBMCVK_A && key.GetVKey() <= XBMCVK_Z)
           useKeyboard = true;
       }
     }
@@ -628,13 +604,13 @@ bool CInputManager::HandleKey(const CKey& key)
           // Check for paste keypress
 #ifdef TARGET_WINDOWS
           // In Windows paste is ctrl-V
-          if (key.GetVKey() == XBMCVK_V && (key.GetModifiers() & CKey::MODIFIER_CTRL))
+          if (key.GetVKey() == XBMCVK_V && key.GetModifiers() == CKey::MODIFIER_CTRL)
 #elif defined(TARGET_LINUX)
           // In Linux paste is ctrl-V
-          if (key.GetVKey() == XBMCVK_V && (key.GetModifiers() & CKey::MODIFIER_CTRL))
+          if (key.GetVKey() == XBMCVK_V && key.GetModifiers() == CKey::MODIFIER_CTRL)
 #elif defined(TARGET_DARWIN_OSX)
           // In OSX paste is cmd-V
-          if (key.GetVKey() == XBMCVK_V && (key.GetModifiers() & CKey::MODIFIER_META))
+          if (key.GetVKey() == XBMCVK_V && key.GetModifiers() == CKey::MODIFIER_META)
 #else
           // Placeholder for other operating systems
           if (false)
@@ -671,8 +647,8 @@ bool CInputManager::HandleKey(const CKey& key)
 
 void CInputManager::OnKeyUp(const CKey& key)
 {
-  for (std::vector<KEYBOARD::IKeyboardHandler*>::iterator it = m_keyboardHandlers.begin(); it != m_keyboardHandlers.end(); ++it)
-    (*it)->OnKeyRelease(key);
+  for (auto handler : m_keyboardHandlers)
+    handler->OnKeyRelease(key);
 
   if (m_LastKey.GetButtonCode() != KEY_INVALID && !(m_LastKey.GetButtonCode() & CKey::MODIFIER_LONG))
   {
@@ -733,42 +709,11 @@ bool CInputManager::ExecuteInputAction(const CAction &action)
 
 bool CInputManager::HasBuiltin(const std::string& command)
 {
-#if defined(HAS_LIRC) || defined(HAS_IRSERVERSUITE)
-  return command == "lirc.stop"  ||
-         command ==" lirc.start" ||
-         command == "lirc.send";
-#endif
-
   return false;
 }
 
 int CInputManager::ExecuteBuiltin(const std::string& execute, const std::vector<std::string>& params)
 {
-#if defined(HAS_LIRC) || defined(HAS_IRSERVERSUITE)
-  if (execute == "lirc.stop")
-  {
-    m_RemoteControl.Disconnect();
-    m_RemoteControl.SetEnabled(false);
-  }
-  else if (execute == "lirc.start")
-  {
-    m_RemoteControl.SetEnabled(true);
-    m_RemoteControl.Initialize();
-  }
-  else if (execute == "lirc.send")
-  {
-    std::string command;
-    for (int i = 0; i < (int)params.size(); i++)
-    {
-      command += params[i];
-      if (i < (int)params.size() - 1)
-        command += ' ';
-    }
-    m_RemoteControl.AddSendCommand(command);
-  }
-  else
-    return -1;
-#endif
   return 0;
 }
 
@@ -805,58 +750,6 @@ void CInputManager::SetMouseResolution(int maxX, int maxY, float speedX, float s
 void CInputManager::SetMouseState(MOUSE_STATE mouseState)
 {
   m_Mouse.SetState(mouseState);
-}
-
-bool CInputManager::IsRemoteControlEnabled()
-{
-#if defined(HAS_LIRC) || defined(HAS_IRSERVERSUITE)
-  return m_RemoteControl.IsInUse();
-#else
-  return false;
-#endif
-}
-
-bool CInputManager::IsRemoteControlInitialized()
-{
-#if defined(HAS_LIRC) || defined(HAS_IRSERVERSUITE)
-  return m_RemoteControl.IsInitialized();
-#else
-  return false;
-#endif
-}
-
-void CInputManager::EnableRemoteControl()
-{
-#if defined(HAS_LIRC) || defined(HAS_IRSERVERSUITE)
-  m_RemoteControl.SetEnabled(true);
-  if (!m_RemoteControl.IsInitialized())
-  {
-    m_RemoteControl.Initialize();
-  }
-#endif
-}
-
-void CInputManager::DisableRemoteControl()
-{
-#if defined(HAS_LIRC) || defined(HAS_IRSERVERSUITE)
-  m_RemoteControl.Disconnect();
-  m_RemoteControl.SetEnabled(false);
-#endif
-}
-
-void CInputManager::InitializeRemoteControl()
-{
-#if defined(HAS_LIRC) || defined(HAS_IRSERVERSUITE)
-  if (!m_RemoteControl.IsInitialized())
-    m_RemoteControl.Initialize();
-#endif
-}
-
-void CInputManager::SetRemoteControlName(const std::string& name)
-{
-#if defined(HAS_LIRC) || defined(HAS_IRSERVERSUITE)
-  m_RemoteControl.SetDeviceName(name);
-#endif
 }
 
 void CInputManager::OnSettingChanged(std::shared_ptr<const CSetting> setting)
@@ -921,7 +814,6 @@ bool CInputManager::LoadKeymaps()
 
   if (m_buttonTranslator->Load())
   {
-    m_irTranslator->Load();
     bSuccess = true;
   }
 
@@ -939,7 +831,6 @@ bool CInputManager::ReloadKeymaps()
 void CInputManager::ClearKeymaps()
 {
   m_buttonTranslator->Clear();
-  m_irTranslator->Clear();
 
   SetChanged();
   NotifyObservers(ObservableMessageButtonMapsChanged);
@@ -968,11 +859,6 @@ CAction CInputManager::GetAction(int window, const CKey &key, bool fallback /* =
   return m_buttonTranslator->GetAction(window, key, fallback);
 }
 
-CAction CInputManager::GetGlobalAction(const CKey &key)
-{
-  return m_buttonTranslator->GetGlobalAction(key);
-}
-
 bool CInputManager::TranslateCustomControllerString(int windowId, const std::string& controllerName, int buttonId, int& action, std::string& strAction)
 {
   return m_customControllerTranslator->TranslateCustomControllerString(windowId, controllerName, buttonId, action, strAction);
@@ -988,45 +874,24 @@ std::vector<std::shared_ptr<const IWindowKeymap>> CInputManager::GetJoystickKeym
   return m_joystickTranslator->GetJoystickKeymaps();
 }
 
-int CInputManager::TranslateLircRemoteString(const std::string &szDevice, const std::string &szButton)
-{
-  return m_irTranslator->TranslateButton(szDevice, szButton);
-}
-
-void CInputManager::RegisterKeyboardHandler(KEYBOARD::IKeyboardHandler* handler)
+void CInputManager::RegisterKeyboardDriverHandler(KEYBOARD::IKeyboardDriverHandler* handler)
 {
   if (std::find(m_keyboardHandlers.begin(), m_keyboardHandlers.end(), handler) == m_keyboardHandlers.end())
     m_keyboardHandlers.insert(m_keyboardHandlers.begin(), handler);
 }
 
-void CInputManager::UnregisterKeyboardHandler(KEYBOARD::IKeyboardHandler* handler)
+void CInputManager::UnregisterKeyboardDriverHandler(KEYBOARD::IKeyboardDriverHandler* handler)
 {
   m_keyboardHandlers.erase(std::remove(m_keyboardHandlers.begin(), m_keyboardHandlers.end(), handler), m_keyboardHandlers.end());
 }
 
-std::string CInputManager::RegisterMouseHandler(MOUSE::IMouseInputHandler* handler)
+void CInputManager::RegisterMouseDriverHandler(MOUSE::IMouseDriverHandler* handler)
 {
-  auto it = std::find_if(m_mouseHandlers.begin(), m_mouseHandlers.end(),
-    [handler](const MouseHandlerHandle& element)
-    {
-      return element.inputHandler == handler;
-    });
-
-  if (it == m_mouseHandlers.end())
-  {
-    std::unique_ptr<MOUSE::IMouseDriverHandler> driverHandler(new MOUSE::CMouseInputHandling(handler, m_mouseButtonMap.get()));
-    MouseHandlerHandle handle = { handler, std::move(driverHandler) };
-    m_mouseHandlers.insert(m_mouseHandlers.begin(), std::move(handle));
-  }
-
-  return m_mouseButtonMap->ControllerID();
+  if (std::find(m_mouseHandlers.begin(), m_mouseHandlers.end(), handler) == m_mouseHandlers.end())
+    m_mouseHandlers.insert(m_mouseHandlers.begin(), handler);
 }
 
-void CInputManager::UnregisterMouseHandler(MOUSE::IMouseInputHandler* handler)
+void CInputManager::UnregisterMouseDriverHandler(MOUSE::IMouseDriverHandler* handler)
 {
-  m_mouseHandlers.erase(std::remove_if(m_mouseHandlers.begin(), m_mouseHandlers.end(),
-    [handler](const MouseHandlerHandle& handle)
-    {
-      return handle.inputHandler == handler;
-    }), m_mouseHandlers.end());
+  m_mouseHandlers.erase(std::remove(m_mouseHandlers.begin(), m_mouseHandlers.end(), handler), m_mouseHandlers.end());
 }

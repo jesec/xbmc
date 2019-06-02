@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2010-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -31,7 +31,6 @@
 #include "utils/TimeUtils.h"
 
 #include <algorithm>
-#include <collection.h>
 #include <ksmedia.h>
 #include <mfapi.h>
 #include <mmdeviceapi.h>
@@ -44,8 +43,17 @@ using namespace Microsoft::WRL;
 extern const char *WASAPIErrToStr(HRESULT err);
 
 #define EXIT_ON_FAILURE(hr, reason, ...) if(FAILED(hr)) {CLog::Log(LOGERROR, reason " - %s", __VA_ARGS__, WASAPIErrToStr(hr)); goto failed;}
-#define SAFE_DESTROY_VOICE(x) do { if(x) { x->DestroyVoice(); x = nullptr; } }while(0);
 #define XAUDIO_BUFFERS_IN_QUEUE 2
+
+template <class TVoice>
+inline void SafeDestroyVoice(TVoice **ppVoice)
+{
+  if (*ppVoice)
+  {
+    (*ppVoice)->DestroyVoice();
+    *ppVoice = nullptr;
+  }
+}
 
 ///  ----------------- CAESinkXAudio ------------------------
 
@@ -60,6 +68,8 @@ CAESinkXAudio::CAESinkXAudio() :
   m_dwChunkSize(0),
   m_dwFrameSize(0),
   m_dwBufferLen(0),
+  m_sinkFrames(0),
+  m_framesInBuffers(0),
   m_running(false),
   m_initialized(false),
   m_isSuspended(false),
@@ -157,6 +167,8 @@ void CAESinkXAudio::Deinitialize()
     {
       m_sourceVoice->Stop();
       m_sourceVoice->FlushSourceBuffers();
+      m_sinkFrames = 0;
+      m_framesInBuffers = 0;
     }
     catch (...)
     {
@@ -165,8 +177,8 @@ void CAESinkXAudio::Deinitialize()
   }
   m_running = false;
 
-  SAFE_DESTROY_VOICE(m_sourceVoice);
-  SAFE_DESTROY_VOICE(m_masterVoice);
+  SafeDestroyVoice(&m_sourceVoice);
+  SafeDestroyVoice(&m_masterVoice);
 
   m_initialized = false;
 }
@@ -189,10 +201,10 @@ void CAESinkXAudio::GetDelay(AEDelayStatus& status)
     goto failed;
 
   XAUDIO2_VOICE_STATE state;
-  m_sourceVoice->GetState(&state, XAUDIO2_VOICE_NOSAMPLESPLAYED);
-  
-  uint64_t framesInQueue = state.BuffersQueued * m_format.m_frames;
-  status.SetDelay(framesInQueue / (double)m_format.m_sampleRate);
+  m_sourceVoice->GetState(&state, 0);
+
+  double delay = (double)(m_sinkFrames - state.SamplesPlayed) / m_format.m_sampleRate;
+  status.SetDelay(delay);
   return;
 
 failed:
@@ -232,31 +244,38 @@ unsigned int CAESinkXAudio::AddPackets(uint8_t **data, unsigned int frames, unsi
   LARGE_INTEGER timerFreq;
 #endif
   size_t dataLenght = frames * m_format.m_frameSize;
-  uint8_t* buff = new uint8_t[dataLenght];
-  memcpy(buff, data[0] + offset * m_format.m_frameSize, dataLenght);
+
+  struct buffer_ctx *ctx = new buffer_ctx;
+  ctx->data = new uint8_t[dataLenght];
+  ctx->frames = frames;
+  ctx->sink = this;
+  memcpy(ctx->data, data[0] + offset * m_format.m_frameSize, dataLenght);
 
   XAUDIO2_BUFFER xbuffer = { 0 };
   xbuffer.AudioBytes = dataLenght;
-  xbuffer.pAudioData = buff;
-  xbuffer.pContext = buff;
+  xbuffer.pAudioData = ctx->data;
+  xbuffer.pContext = ctx;
 
   if (!m_running) //first time called, pre-fill buffer then start voice
   {
+    m_sourceVoice->Stop();
     hr = m_sourceVoice->SubmitSourceBuffer(&xbuffer);
     if (FAILED(hr))
     {
-      CLog::Log(LOGERROR, __FUNCTION__ " SourceVoice submit buffer failed due to %s", WASAPIErrToStr(hr));
-      delete[] buff;
+      CLog::LogF(LOGERROR, "voice submit buffer failed due to %s", WASAPIErrToStr(hr));
+      delete ctx;
       return 0;
     }
     hr = m_sourceVoice->Start(0, XAUDIO2_COMMIT_NOW);
     if (FAILED(hr))
     {
-      CLog::Log(LOGERROR, __FUNCTION__ " SourceVoice start failed due to %s", WASAPIErrToStr(hr));
+      CLog::LogF(LOGERROR, "voice start failed due to %s", WASAPIErrToStr(hr));
       m_isDirty = true; //flag new device or re-init needed
-      delete[] buff;
+      delete ctx;
       return INT_MAX;
     }
+    m_sinkFrames += frames;
+    m_framesInBuffers += frames;
     m_running = true; //signal that we're processing frames
     return frames;
   }
@@ -268,15 +287,16 @@ unsigned int CAESinkXAudio::AddPackets(uint8_t **data, unsigned int frames, unsi
 #endif
 
   /* Wait for Audio Driver to tell us it's got a buffer available */
-  XAUDIO2_VOICE_STATE state;
-  while (m_sourceVoice->GetState(&state), state.BuffersQueued >= XAUDIO_BUFFERS_IN_QUEUE)
+  //XAUDIO2_VOICE_STATE state;
+  //while (m_sourceVoice->GetState(&state), state.BuffersQueued >= XAUDIO_BUFFERS_IN_QUEUE)
+  while (m_format.m_frames * XAUDIO_BUFFERS_IN_QUEUE <= m_framesInBuffers.load())
   {
     DWORD eventAudioCallback;
     eventAudioCallback = WaitForSingleObjectEx(m_voiceCallback.mBufferEnd.get(), 1100, TRUE);
     if (eventAudioCallback != WAIT_OBJECT_0)
     {
-      CLog::Log(LOGERROR, __FUNCTION__": Endpoint Buffer timed out");
-      delete[] buff;
+      CLog::LogF(LOGERROR, "voice buffer timed out");
+      delete ctx;
       return INT_MAX;
     }
   }
@@ -292,7 +312,7 @@ unsigned int CAESinkXAudio::AddPackets(uint8_t **data, unsigned int frames, unsi
 
   if (m_avgTimeWaiting < 3.0)
   {
-    CLog::Log(LOGDEBUG, __FUNCTION__": Possible AQ Loss: Avg. Time Waiting for Audio Driver callback : %dmsec", (int)m_avgTimeWaiting);
+    CLog::LogF(LOGDEBUG, "Possible AQ Loss: Avg. Time Waiting for Audio Driver callback : %dmsec", (int)m_avgTimeWaiting);
   }
 #endif
 
@@ -300,10 +320,14 @@ unsigned int CAESinkXAudio::AddPackets(uint8_t **data, unsigned int frames, unsi
   if (FAILED(hr))
   {
     #ifdef _DEBUG
-      CLog::Log(LOGERROR, __FUNCTION__": SubmitSourceBuffer failed due to %s", WASAPIErrToStr(hr));
+      CLog::LogF(LOGERROR, "submiting buffer failed due to %s", WASAPIErrToStr(hr));
     #endif
+    delete ctx;
     return INT_MAX;
   }
+
+  m_sinkFrames += frames;
+  m_framesInBuffers += frames;
 
   return frames;
 }
@@ -361,7 +385,7 @@ void CAESinkXAudio::EnumerateDevicesEx(AEDeviceInfoList &deviceInfoList, bool fo
       deviceInfo.m_streamTypes.push_back(CAEStreamInfo::STREAM_TYPE_DTSHD);
       add192 = true;
     }
-    SAFE_DESTROY_VOICE(mSourceVoice);
+    SafeDestroyVoice(&mSourceVoice);
 
     /* Test format Dolby TrueHD */
     wfxex.SubFormat = KSDATAFORMAT_SUBTYPE_IEC61937_DOLBY_MLP;
@@ -371,7 +395,7 @@ void CAESinkXAudio::EnumerateDevicesEx(AEDeviceInfoList &deviceInfoList, bool fo
     {
       CLog::Log(LOGNOTICE, __FUNCTION__": stream type \"%s\" on device \"%s\" seems to be not supported.", CAEUtil::StreamTypeToStr(CAEStreamInfo::STREAM_TYPE_TRUEHD), details.strDescription.c_str());
     }
-    else 
+    else
     {
       deviceInfo.m_streamTypes.push_back(CAEStreamInfo::STREAM_TYPE_TRUEHD);
       add192 = true;
@@ -383,8 +407,8 @@ void CAESinkXAudio::EnumerateDevicesEx(AEDeviceInfoList &deviceInfoList, bool fo
     wfxex.Format.nBlockAlign = wfxex.Format.nChannels * (wfxex.Format.wBitsPerSample >> 3);
     wfxex.Format.nAvgBytesPerSec = wfxex.Format.nSamplesPerSec * wfxex.Format.nBlockAlign;
 
-    SAFE_DESTROY_VOICE(mSourceVoice);
-    SAFE_DESTROY_VOICE(mMasterVoice);
+    SafeDestroyVoice(&mSourceVoice);
+    SafeDestroyVoice(&mMasterVoice);
     hr2 = xaudio2->CreateMasteringVoice(&mMasterVoice, wfxex.Format.nChannels, wfxex.Format.nSamplesPerSec,
                                         0, deviceId.c_str(), nullptr, AudioCategory_Media);
     hr = xaudio2->CreateSourceVoice(&mSourceVoice, &wfxex.Format);
@@ -393,7 +417,7 @@ void CAESinkXAudio::EnumerateDevicesEx(AEDeviceInfoList &deviceInfoList, bool fo
     {
       CLog::Log(LOGNOTICE, __FUNCTION__": stream type \"%s\" on device \"%s\" seems to be not supported.", CAEUtil::StreamTypeToStr(CAEStreamInfo::STREAM_TYPE_EAC3), details.strDescription.c_str());
     }
-    else 
+    else
     {
       deviceInfo.m_streamTypes.push_back(CAEStreamInfo::STREAM_TYPE_EAC3);
       add192 = true;
@@ -406,8 +430,8 @@ void CAESinkXAudio::EnumerateDevicesEx(AEDeviceInfoList &deviceInfoList, bool fo
     wfxex.Format.nBlockAlign = wfxex.Format.nChannels * (wfxex.Format.wBitsPerSample >> 3);
     wfxex.Format.nAvgBytesPerSec = wfxex.Format.nSamplesPerSec * wfxex.Format.nBlockAlign;
 
-    SAFE_DESTROY_VOICE(mSourceVoice);
-    SAFE_DESTROY_VOICE(mMasterVoice);
+    SafeDestroyVoice(&mSourceVoice);
+    SafeDestroyVoice(&mMasterVoice);
     hr2 = xaudio2->CreateMasteringVoice(&mMasterVoice, wfxex.Format.nChannels, wfxex.Format.nSamplesPerSec,
                                         0, deviceId.c_str(), nullptr, AudioCategory_Media);
     hr = xaudio2->CreateSourceVoice(&mSourceVoice, &wfxex.Format);
@@ -422,7 +446,7 @@ void CAESinkXAudio::EnumerateDevicesEx(AEDeviceInfoList &deviceInfoList, bool fo
       deviceInfo.m_streamTypes.push_back(CAEStreamInfo::STREAM_TYPE_DTS_1024);
       deviceInfo.m_streamTypes.push_back(CAEStreamInfo::STREAM_TYPE_DTS_512);
     }
-    SAFE_DESTROY_VOICE(mSourceVoice);
+    SafeDestroyVoice(&mSourceVoice);
 
     /* Test format Dolby AC3 */
     wfxex.SubFormat = KSDATAFORMAT_SUBTYPE_IEC61937_DOLBY_DIGITAL;
@@ -464,7 +488,7 @@ void CAESinkXAudio::EnumerateDevicesEx(AEDeviceInfoList &deviceInfoList, bool fo
         wfxex.Samples.wValidBitsPerSample = wfxex.Format.wBitsPerSample;
       }
 
-      SAFE_DESTROY_VOICE(mSourceVoice);
+      SafeDestroyVoice(&mSourceVoice);
       hr = xaudio2->CreateSourceVoice(&mSourceVoice, &wfxex.Format);
 
       if (SUCCEEDED(hr))
@@ -484,8 +508,8 @@ void CAESinkXAudio::EnumerateDevicesEx(AEDeviceInfoList &deviceInfoList, bool fo
 
     for (int j = 0; j < WASAPISampleRateCount; j++)
     {
-      SAFE_DESTROY_VOICE(mSourceVoice);
-      SAFE_DESTROY_VOICE(mMasterVoice);
+      SafeDestroyVoice(&mSourceVoice);
+      SafeDestroyVoice(&mMasterVoice);
 
       wfxex.Format.nSamplesPerSec = WASAPISampleRates[j];
       wfxex.Format.nAvgBytesPerSec = wfxex.Format.nSamplesPerSec * wfxex.Format.nBlockAlign;
@@ -501,8 +525,8 @@ void CAESinkXAudio::EnumerateDevicesEx(AEDeviceInfoList &deviceInfoList, bool fo
         CLog::Log(LOGNOTICE, __FUNCTION__": sample rate 192khz on device \"%s\" seems to be not supported.", details.strDescription.c_str());
       }
     }
-    SAFE_DESTROY_VOICE(mSourceVoice);
-    SAFE_DESTROY_VOICE(mMasterVoice);
+    SafeDestroyVoice(&mSourceVoice);
+    SafeDestroyVoice(&mMasterVoice);
 
     deviceInfo.m_deviceName = details.strDeviceId;
     deviceInfo.m_displayName = details.strWinDevType.append(details.strDescription);
@@ -584,7 +608,12 @@ bool CAESinkXAudio::InitializeInternal(std::string deviceId, AEAudioFormat &form
   if (!pMasterVoice)
   {
     if (!bdefault)
-      CLog::Log(LOGINFO, __FUNCTION__": Could not locate the device named \"%s\" in the list of Xaudio endpoint devices. Trying the default device...", device.c_str());
+    {
+      CLog::Log(LOGINFO,
+                __FUNCTION__ ": Could not locate the device named \"%s\" in the list of Xaudio "
+                             "endpoint devices. Trying the default device...",
+                KODI::PLATFORM::WINDOWS::FromW(device));
+    }
 
     // smartphone issue: providing device ID (even default ID) causes E_NOINTERFACE result
     // workaround: device = nullptr will initialize default audio endpoint
@@ -745,10 +774,10 @@ initialize:
     return false;
   }
 
-  m_uiBufferLen = (int)(format.m_sampleRate * 0.015);
+  m_uiBufferLen = (int)(format.m_sampleRate * 0.02);
   m_dwFrameSize = wfxex.Format.nBlockAlign;
   m_dwChunkSize = m_dwFrameSize * m_uiBufferLen;
-  m_dwBufferLen = m_dwChunkSize * 4; 
+  m_dwBufferLen = m_dwChunkSize * 4;
   m_AvgBytesPerSec = wfxex.Format.nAvgBytesPerSec;
 
   CLog::Log(LOGINFO, __FUNCTION__": XAudio Sink Initialized using: %s, %d, %d",
@@ -776,6 +805,9 @@ void CAESinkXAudio::Drain()
     try
     {
       m_sourceVoice->Stop();
+      m_sourceVoice->FlushSourceBuffers();
+      m_sinkFrames = 0;
+      m_framesInBuffers = 0;
     }
     catch (...)
     {
@@ -787,7 +819,7 @@ void CAESinkXAudio::Drain()
 
 bool CAESinkXAudio::IsUSBDevice()
 {
-#if 0 // TODO 
+#if 0 // TODO
   IPropertyStore *pProperty = nullptr;
   PROPVARIANT varName;
   PropVariantInit(&varName);

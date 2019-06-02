@@ -1,8 +1,6 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <atomic>
 #include <memory>
@@ -37,7 +37,6 @@
 #include "VideoPlayerRadioRDS.h"
 #include "Edl.h"
 #include "FileItem.h"
-#include "system.h"
 #include "threads/SystemClock.h"
 #include "threads/Thread.h"
 #include "utils/StreamDetails.h"
@@ -111,6 +110,7 @@ struct SPlayerState
     cache_delay = 0.0;
     cache_offset = 0.0;
     lastSeek = 0;
+    streamsReady = false;
   }
 
   double timestamp;         // last time of update
@@ -126,6 +126,7 @@ struct SPlayerState
   std::string player_state; // full player state
   bool isInMenu;
   bool hasMenu;
+  bool streamsReady;
 
   int chapter;              // current chapter
   std::vector<std::pair<std::string, int64_t>> chapters; // name and position for chapters
@@ -391,6 +392,8 @@ public:
   CVideoSettings GetVideoSettings() override;
   void SetVideoSettings(CVideoSettings& settings) override;
 
+  void SetUpdateStreamDetails();
+
 protected:
   friend class CSelectionStreams;
 
@@ -487,6 +490,8 @@ protected:
   void UpdateContent();
   void UpdateContentState();
 
+  void UpdateFileItemStreamDetails(CFileItem& item);
+
   bool m_players_created;
 
   CFileItem m_item;
@@ -521,12 +526,13 @@ protected:
 
   int m_playSpeed;
   int m_streamPlayerSpeed;
+  int m_demuxerSpeed = DVD_PLAYSPEED_NORMAL;
   struct SSpeedState
   {
-    double  lastpts;  // holds last display pts during ff/rw operations
+    double lastpts;  // holds last display pts during ff/rw operations
     int64_t lasttime;
     double lastseekpts;
-    double  lastabstime;
+    double lastabstime;
   } m_SpeedState;
   std::atomic_bool m_canTempo;
 
@@ -583,6 +589,8 @@ protected:
 
   bool m_HasVideo;
   bool m_HasAudio;
+
+  bool m_UpdateStreamDetails;
 
   std::atomic<bool> m_displayLost;
 

@@ -18,12 +18,11 @@
  *
  */
 
-#if defined(TARGET_ANDROID)
-
 #include "RendererMediaCodecSurface.h"
 
 #include "../RenderCapture.h"
-#include "guilib/GraphicContext.h"
+#include "../RenderFlags.h"
+#include "windowing/GraphicContext.h"
 #include "rendering/RenderSystem.h"
 #include "settings/MediaSettings.h"
 #include "platform/android/activity/XBMCApp.h"
@@ -58,7 +57,7 @@ bool CRendererMediaCodecSurface::Register()
   return true;
 }
 
-bool CRendererMediaCodecSurface::Configure(const VideoPicture &picture, float fps, unsigned flags, unsigned int orientation)
+bool CRendererMediaCodecSurface::Configure(const VideoPicture &picture, float fps, unsigned int orientation)
 {
   CLog::Log(LOGNOTICE, "CRendererMediaCodecSurface::Configure");
 
@@ -66,8 +65,10 @@ bool CRendererMediaCodecSurface::Configure(const VideoPicture &picture, float fp
   m_sourceHeight = picture.iHeight;
   m_renderOrientation = orientation;
 
-  // Save the flags.
-  m_iFlags = flags;
+  m_iFlags = GetFlagsChromaPosition(picture.chroma_position) |
+             GetFlagsColorMatrix(picture.color_space, picture.iWidth, picture.iHeight) |
+             GetFlagsColorPrimaries(picture.color_primaries) |
+             GetFlagsStereoMode(picture.stereoMode);
 
   // Calculate the input frame aspect ratio.
   CalculateFrameAspectRatio(picture.iDisplayWidth, picture.iDisplayHeight);
@@ -118,37 +119,39 @@ bool CRendererMediaCodecSurface::Supports(ERENDERFEATURE feature)
 void CRendererMediaCodecSurface::RenderUpdate(int index, int index2, bool clear, unsigned int flags, unsigned int alpha)
 {
   CXBMCApp::get()->WaitVSync(100);
-  ManageRenderArea();
   m_bConfigured = true;
+
+  // this hack is needed to get the 2D mode of a 3D movie going
+  RENDER_STEREO_MODE stereo_mode = CServiceBroker::GetWinSystem()->GetGfxContext().GetStereoMode();
+  if (stereo_mode)
+    CServiceBroker::GetWinSystem()->GetGfxContext().SetStereoView(RENDER_STEREO_VIEW_LEFT);
+
+  ManageRenderArea();
+
+  if (stereo_mode)
+    CServiceBroker::GetWinSystem()->GetGfxContext().SetStereoView(RENDER_STEREO_VIEW_OFF);
+
+  m_surfDestRect = m_destRect;
+  switch (stereo_mode)
+  {
+    case RENDER_STEREO_MODE_SPLIT_HORIZONTAL:
+      m_surfDestRect.y2 *= 2.0;
+      break;
+    case RENDER_STEREO_MODE_SPLIT_VERTICAL:
+      m_surfDestRect.x2 *= 2.0;
+      break;
+    case RENDER_STEREO_MODE_MONO:
+      m_surfDestRect.y2 = m_surfDestRect.y2 * (m_surfDestRect.y2 / m_sourceRect.y2);
+      m_surfDestRect.x2 = m_surfDestRect.x2 * (m_surfDestRect.x2 / m_sourceRect.x2);
+      break;
+    default:
+      break;
+  }
 }
 
 void CRendererMediaCodecSurface::ReorderDrawPoints()
 {
   CBaseRenderer::ReorderDrawPoints();
-
-  // this hack is needed to get the 2D mode of a 3D movie going
-  RENDER_STEREO_MODE stereo_mode = g_graphicsContext.GetStereoMode();
-  if (stereo_mode)
-    g_graphicsContext.SetStereoView(RENDER_STEREO_VIEW_LEFT);
-
-  if (stereo_mode)
-    g_graphicsContext.SetStereoView(RENDER_STEREO_VIEW_OFF);
-
-  m_surfDestRect = m_destRect;
-  CRect srcRect(m_sourceRect);
-  switch (stereo_mode)
-  {
-    case RENDER_STEREO_MODE_SPLIT_HORIZONTAL:
-      m_surfDestRect.y2 *= 2.0;
-      srcRect.y2 *= 2.0;
-      break;
-    case RENDER_STEREO_MODE_SPLIT_VERTICAL:
-      m_surfDestRect.x2 *= 2.0;
-      srcRect.x2 *= 2.0;
-      break;
-    default:
-      break;
-  }
 
   // Handle orientation
   switch (m_renderOrientation)
@@ -164,5 +167,3 @@ void CRendererMediaCodecSurface::ReorderDrawPoints()
       break;
   }
 }
-
-#endif

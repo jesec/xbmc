@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <string>
 #include <vector>
@@ -539,7 +540,7 @@ public:
 
     return m_cb->Control_Spin_GetValue(m_Handle->addonData, m_controlHandle);
   }
-  
+
   void SetValue(int iValue)
   {
     if (m_controlHandle)
@@ -730,7 +731,7 @@ public:
   {
     m_controlHandle = m_cb->Window_GetControl_SettingsSlider(m_Handle->addonData, m_Window->GetControlHandle(), controlId);
   }
-  
+
   ~CAddonGUISettingsSliderControl(void) override = default;
 
   void SetVisible(bool yesNo)
@@ -906,7 +907,7 @@ inline bool CAddonGUIRenderingControl::OnDirtyCB(GUIHANDLE cbhdl)
 {
   return static_cast<CAddonGUIRenderingControl*>(cbhdl)->Dirty();
 }
-  
+
 class CHelper_libKODI_guilib
 {
 public:
@@ -931,7 +932,7 @@ public:
       m_Callbacks = (KodiAPI::GUI::CB_GUILib*)m_Handle->GUILib_RegisterMe(m_Handle->addonData);
     if (!m_Callbacks)
       fprintf(stderr, "libKODI_guilib-ERROR: GUILib_RegisterMe can't get callback table from Kodi !!!\n");
-  
+
     return m_Callbacks != nullptr;
   }
 

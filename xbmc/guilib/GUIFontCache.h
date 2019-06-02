@@ -1,15 +1,6 @@
-/*!
-\file GUIFontCache.h
-\brief
-*/
-
-#ifndef CGUILIB_GUIFONTCACHE_H
-#define CGUILIB_GUIFONTCACHE_H
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,6 +18,13 @@
  *
  */
 
+#pragma once
+
+/*!
+\file GUIFontCache.h
+\brief
+*/
+
 #include <cstddef>
 #include <cstring>
 #include <stdint.h>
@@ -36,8 +34,8 @@
 #include <memory>
 #include <cassert>
 
-#include "TransformMatrix.h"
-#include "system.h"
+#include "utils/Color.h"
+#include "utils/TransformMatrix.h"
 
 #define FONT_CACHE_TIME_LIMIT (1000)
 #define FONT_CACHE_DIST_LIMIT (0.01f)
@@ -52,7 +50,7 @@ template<class Position>
 struct CGUIFontCacheKey
 {
   Position m_pos;
-  vecColors &m_colors;
+  std::vector<UTILS::Color> &m_colors;
   vecText &m_text;
   uint32_t m_alignment;
   float m_maxPixelWidth;
@@ -62,7 +60,7 @@ struct CGUIFontCacheKey
   float m_scaleY;
 
   CGUIFontCacheKey(Position pos,
-                   vecColors &colors, vecText &text,
+                   std::vector<UTILS::Color> &colors, vecText &text,
                    uint32_t alignment, float maxPixelWidth,
                    bool scrolling, const TransformMatrix &matrix,
                    float scaleX, float scaleY) :
@@ -86,7 +84,7 @@ struct CGUIFontCacheEntry
   CGUIFontCacheEntry(const CGUIFontCache<Position, Value> &cache, const CGUIFontCacheKey<Position> &key, unsigned int nowMillis) :
     m_cache(cache),
     m_key(key.m_pos,
-          *new vecColors, *new vecText,
+          *new std::vector<UTILS::Color>, *new vecText,
           key.m_alignment, key.m_maxPixelWidth,
           key.m_scrolling, m_matrix,
           key.m_scaleX, key.m_scaleY),
@@ -149,9 +147,9 @@ public:
   explicit CGUIFontCache(CGUIFontTTFBase &font);
 
   ~CGUIFontCache();
- 
+
   Value &Lookup(Position &pos,
-                const vecColors &colors, const vecText &text,
+                const std::vector<UTILS::Color> &colors, const vecText &text,
                 uint32_t alignment, float maxPixelWidth,
                 bool scrolling,
                 unsigned int nowMillis, bool &dirtyCache);
@@ -264,4 +262,3 @@ inline float MatrixHashContribution(const CGUIFontCacheKey<CGUIFontCacheDynamicP
   return 0;
 }
 
-#endif

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 
 #pragma once
 
-#include "GLContextEGL.h"
+#include "utils/EGLUtils.h"
 #include "rendering/gles/RenderSystemGLES.h"
 #include "WinSystemRpi.h"
 
@@ -30,6 +30,8 @@ public:
   CWinSystemRpiGLESContext() = default;
   virtual ~CWinSystemRpiGLESContext() = default;
 
+  // Implementation of CWinSystemBase via CWinSystemRpi
+  CRenderSystemBase *GetRenderSystem() override { return this; }
   bool InitWindowSystem() override;
   bool CreateNewWindow(const std::string& name,
                        bool fullScreen,
@@ -49,6 +51,6 @@ protected:
   void PresentRenderImpl(bool rendered) override;
 
 private:
-  CGLContextEGL m_pGLContext;
+  CEGLContextUtils m_pGLContext;
 
 };

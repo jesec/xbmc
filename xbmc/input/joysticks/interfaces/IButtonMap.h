@@ -17,6 +17,7 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
 #include "input/joysticks/DriverPrimitive.h"
@@ -83,7 +84,7 @@ namespace JOYSTICK
      * Multiple primitives can be mapped to the same feature. For example,
      * analog sticks use one primitive for each direction.
      *
-     * \param primitive    The driver primitive (a button, hat direction or semi-axis)
+     * \param primitive    The driver primitive
      * \param feature      The name of the resolved joystick feature, or
      *                     invalid if false is returned
      *
@@ -182,7 +183,7 @@ namespace JOYSTICK
      */
     virtual bool GetRelativePointer(
       const FeatureName& feature,
-      ANALOG_STICK_DIRECTION direction,
+      RELATIVE_POINTER_DIRECTION direction,
       CDriverPrimitive& primitive
     ) = 0;
 
@@ -197,7 +198,7 @@ namespace JOYSTICK
      */
     virtual void AddRelativePointer(
       const FeatureName& feature,
-      ANALOG_STICK_DIRECTION direction,
+      RELATIVE_POINTER_DIRECTION direction,
       const CDriverPrimitive& primitive
     ) = 0;
 
@@ -294,6 +295,34 @@ namespace JOYSTICK
     virtual void AddThrottle(
       const FeatureName& feature,
       THROTTLE_DIRECTION direction,
+      const CDriverPrimitive& primitive
+    ) = 0;
+
+    /*!
+     * \brief Get the driver primitive for a keyboard key
+     *
+     * \param feature        Must be a key
+     * \param primitive      The resolved driver primitive
+     *
+     * \return True if the feature resolved to a driver primitive, false if the
+     *         feature didn't resolve or isn't a scalar feature
+     */
+    virtual bool GetKey(
+      const FeatureName& feature,
+      CDriverPrimitive& primitive
+    ) = 0;
+
+    /*!
+     * \brief Add or update a key
+     *
+     * \param feature        Must be a key
+     * \param primitive      The feature's driver primitive
+     *
+     * \return True if the feature was updated, false if the feature is
+     *         unchanged or failure occurs
+     */
+    virtual void AddKey(
+      const FeatureName& feature,
       const CDriverPrimitive& primitive
     ) = 0;
 

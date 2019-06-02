@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,6 @@
  *
  */
 
-#include "system.h"
 #include "MusicInfoTagLoaderFactory.h"
 #include "TagLoaderTagLib.h"
 #include "MusicInfoTagLoaderCDDA.h"
@@ -76,9 +75,9 @@ IMusicInfoTagLoader* CMusicInfoTagLoaderFactory::CreateLoader(const CFileItem& i
 
   if (strExtension == "aac" ||
       strExtension == "ape" || strExtension == "mac" ||
-      strExtension == "mp3" || 
-      strExtension == "wma" || 
-      strExtension == "flac" || 
+      strExtension == "mp3" ||
+      strExtension == "wma" ||
+      strExtension == "flac" ||
       strExtension == "m4a" || strExtension == "mp4" || strExtension == "m4b" ||
       strExtension == "m4v" ||
       strExtension == "mpc" || strExtension == "mpp" || strExtension == "mp+" ||

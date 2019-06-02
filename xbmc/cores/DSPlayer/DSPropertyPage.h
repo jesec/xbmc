@@ -28,6 +28,7 @@
 #error DSPlayer's header file included without HAS_DS_PLAYER defined
 #endif
 
+#include <prsht.h>
 #include "streams.h"
 #include "threads/Thread.h"
 #include "DSUtil/SmartPtr.h"

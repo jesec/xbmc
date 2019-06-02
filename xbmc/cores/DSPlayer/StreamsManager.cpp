@@ -40,8 +40,10 @@
 #include "settings/MediaSettings.h"
 #include "Filters/RendererSettings.h"
 #include "Utils/URIUtils.h"
+#include "utils/Color.h"
 #include "utils/StringUtils.h"
 #include "utils/DSFileUtils.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/LocalizeStrings.h"
 #include "LangInfo.h"
 #include "DSPlayerDatabase.h"
@@ -452,11 +454,6 @@ void CStreamsManager::LoadIAMStreamSelectStreamsInternal()
         infos = new CDSStreamDetailSubtitle();
       break;
     }
-    case CStreamDetail::EDITION:
-      m_mkveditions = true;
-    case CStreamDetail::BD_TITLE:
-      infos = new CDSStreamDetailEdition();	
-      break;
     default: continue;
     }
 
@@ -490,16 +487,6 @@ void CStreamsManager::LoadIAMStreamSelectStreamsInternal()
       else
         SubtitleManager->GetSubtitles().push_back(static_cast<CDSStreamDetailSubtitle *>(infos));
       CLog::Log(LOGNOTICE, "%s Subtitle stream found : %s - index: %i", __FUNCTION__, pS.displayname.c_str(), pS.IAMStreamSelect_Index);
-    }
-    else if (group == CStreamDetail::EDITION || group == CStreamDetail::BD_TITLE)
-    {
-      CDSStreamDetailEdition * pEdition = static_cast<CDSStreamDetailEdition *>(infos);
-      if (Com::SmartQIPtr<IBdStreamSelect> pBDSS = m_pSplitter)
-      {
-        pBDSS->GetTitleInfo(m_editionStreams.size(), NULL, &pEdition->m_rtDuration);
-      }
-      m_editionStreams.push_back(pEdition);
-      CLog::Log(LOGNOTICE, "%s Editions stream found : %s - index : %i", __FUNCTION__, pS.displayname.c_str(), pS.IAMStreamSelect_Index);
     }
 
     DeleteMediaType(mediaType);
@@ -1330,7 +1317,7 @@ void CStreamsManager::MediaTypeToStreamDetail(AM_MEDIA_TYPE *pMediaType, CStream
       infos.m_strStereoMode = fileItem.GetVideoInfoTag()->m_streamDetails.GetStereoMode();
     }
     if (infos.m_strStereoMode.empty())
-      infos.m_strStereoMode = CStereoscopicsManager::GetInstance().DetectStereoModeByString(g_application.CurrentFileItem().GetPath());
+      infos.m_strStereoMode = CServiceBroker::GetGUI()->GetStereoscopicsManager().DetectStereoModeByString(g_application.CurrentFileItem().GetPath());
 
     if (pMediaType->formattype == FORMAT_VideoInfo)
     {
@@ -1571,7 +1558,7 @@ CSubtitleManager::~CSubtitleManager()
 #define FONT_STYLE_ITALICS      2
 #define FONT_STYLE_BOLD_ITALICS 3
 
-static color_t color[8] = { 0x0000FFFF, 0x00FFFFFF, 0x00FF9900, 0x0000FF00, 0x00FFCC, 0x00FFFF00, 0x00E5E5E5, 0x00C0C0C0 };
+static UTILS::Color color[8] = { 0x0000FFFF, 0x00FFFFFF, 0x00FF9900, 0x0000FF00, 0x00FFCC, 0x00FFFF00, 0x00E5E5E5, 0x00C0C0C0 };
 
 void CSubtitleManager::Initialize()
 {
@@ -1605,7 +1592,7 @@ void CSubtitleManager::Initialize()
   style.colors[0] = color[CServiceBroker::GetSettings().GetInt(CSettings::SETTING_SUBTITLES_COLOR)];
   style.alpha[0] = CServiceBroker::GetSettings().GetInt("subtitles.alpha");
 
-  g_graphicsContext.SetScalingResolution(RES_PAL_4x3, true);
+  CServiceBroker::GetWinSystem()->GetGfxContext().SetScalingResolution(RES_PAL_4x3, true);
   style.fontSize = (float)(CServiceBroker::GetSettings().GetInt(CSettings::SETTING_SUBTITLES_HEIGHT)) * 50.0 / 72.0;
 
   int fontStyle = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_SUBTITLES_STYLE);

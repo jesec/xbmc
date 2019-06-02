@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2011-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -33,9 +33,8 @@
 
 #include "AndroidUtils.h"
 
-#include "guilib/gui3d.h"
+#include "windowing/GraphicContext.h"
 #include "utils/log.h"
-#include "system.h"
 #include "settings/Settings.h"
 #include "ServiceBroker.h"
 #include "utils/StringUtils.h"

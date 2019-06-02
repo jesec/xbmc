@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,6 @@
  *
  */
 
-#include "system.h"
 #include "utils/log.h"
 
 #include "DVDFactoryCodec.h"
@@ -186,6 +185,12 @@ CDVDAudioCodec* CDVDFactoryCodec::CreateAudioCodec(CDVDStreamInfo &hint, CProces
   std::unique_ptr<CDVDAudioCodec> pCodec;
   CDVDCodecOptions options;
 
+  if (allowpassthrough && ptStreamType != CAEStreamInfo::STREAM_TYPE_NULL)
+    options.m_keys.push_back(CDVDCodecOption("ptstreamtype", StringUtils::SizeToString(ptStreamType)));
+
+  if (!allowdtshddecode)
+    options.m_keys.push_back(CDVDCodecOption("allowdtshddecode", "0"));
+
   // platform specifig audio decoders
   for (auto &codec : m_hwAudioCodecs)
   {
@@ -195,9 +200,6 @@ CDVDAudioCodec* CDVDFactoryCodec::CreateAudioCodec(CDVDStreamInfo &hint, CProces
       return pCodec.release();
     }
   }
-
-  if (!allowdtshddecode)
-    options.m_keys.push_back(CDVDCodecOption("allowdtshddecode", "0"));
 
   // we don't use passthrough if "sync playback to display" is enabled
   if (allowpassthrough && ptStreamType != CAEStreamInfo::STREAM_TYPE_NULL)

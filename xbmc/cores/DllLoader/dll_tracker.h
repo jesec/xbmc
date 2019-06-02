@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2015 Team Kodi
  *      http://kodi.tv
@@ -20,13 +18,14 @@
  *
  */
 
+#pragma once
+
 #include "threads/CriticalSection.h"
 #include "PlatformDefs.h"
 #ifdef TARGET_WINDOWS
 #if defined(TARGET_WINDOWS_STORE)
 #include <WinSock2.h>
 #endif
-#include "system.h" // for SOCKET
 #endif
 
 #include <list>

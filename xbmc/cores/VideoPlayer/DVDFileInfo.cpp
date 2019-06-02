@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -98,14 +98,15 @@ int DegreeToOrientation(int degrees)
   }
 }
 
-bool CDVDFileInfo::ExtractThumb(const std::string &strPath,
+bool CDVDFileInfo::ExtractThumb(const CFileItem& fileItem,
                                 CTextureDetails &details,
-                                CStreamDetails *pStreamDetails, int pos)
+                                CStreamDetails *pStreamDetails,
+                                int64_t pos)
 {
-  std::string redactPath = CURL::GetRedacted(strPath);
+  const std::string redactPath = CURL::GetRedacted(fileItem.GetPath());
   unsigned int nTime = XbmcThreads::SystemClockMillis();
-  CFileItem item(strPath, false);
 
+  CFileItem item(fileItem);
   item.SetMimeTypeForInternetFile();
   auto pInputStream = CDVDFactoryInputStream::CreateInputStream(NULL, item);
   if (!pInputStream)
@@ -143,6 +144,7 @@ bool CDVDFileInfo::ExtractThumb(const std::string &strPath,
   if (pStreamDetails)
   {
 
+    const std::string strPath = item.GetPath();
     DemuxerToStreamDetails(pInputStream, pDemuxer, *pStreamDetails, strPath);
 
     //extern subtitles
@@ -210,15 +212,13 @@ bool CDVDFileInfo::ExtractThumb(const std::string &strPath,
     if (pVideoCodec)
     {
       int nTotalLen = pDemuxer->GetStreamLength();
-      int nSeekTo = (pos==-1) ? nTotalLen / 3 : pos;
+      int nSeekTo = (pos == -1) ? nTotalLen / 3 : pos;
 
       CLog::Log(LOGDEBUG,"%s - seeking to pos %dms (total: %dms) in %s", __FUNCTION__, nSeekTo, nTotalLen, redactPath.c_str());
       if (pDemuxer->SeekTime(nSeekTo, true))
       {
         CDVDVideoCodec::VCReturn iDecoderState = CDVDVideoCodec::VC_NONE;
-        VideoPicture picture;
-
-        memset(&picture, 0, sizeof(picture));
+        VideoPicture picture = {};
 
         // num streams * 160 frames, should get a valid frame, if not abort.
         int abort_index = pDemuxer->GetNrOfStreams() * 160;
@@ -242,7 +242,6 @@ bool CDVDFileInfo::ExtractThumb(const std::string &strPath,
           iDecoderState = CDVDVideoCodec::VC_NONE;
           while (iDecoderState == CDVDVideoCodec::VC_NONE)
           {
-            memset(&picture, 0, sizeof(VideoPicture));
             iDecoderState = pVideoCodec->GetPicture(&picture);
           }
 
@@ -257,11 +256,11 @@ bool CDVDFileInfo::ExtractThumb(const std::string &strPath,
         if (iDecoderState == CDVDVideoCodec::VC_PICTURE && !(picture.iFlags & DVP_FLAG_DROPPED))
         {
           {
-            unsigned int nWidth = g_advancedSettings.m_imageRes;
+            unsigned int nWidth = std::min(picture.iDisplayWidth, g_advancedSettings.m_imageRes);
             double aspect = (double)picture.iDisplayWidth / (double)picture.iDisplayHeight;
             if(hint.forced_aspect && hint.aspect != 0)
               aspect = hint.aspect;
-            unsigned int nHeight = (unsigned int)((double)g_advancedSettings.m_imageRes / aspect);
+            unsigned int nHeight = (unsigned int)((double)nWidth / aspect);
 
             uint8_t *pOutBuf = (uint8_t*)av_malloc(nWidth * nHeight * 4);
             struct SwsContext *context = sws_getContext(picture.iWidth, picture.iHeight,

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,9 +18,7 @@
  *
  */
 
-#include "system.h"
 #include "ServiceBroker.h"
-#include "cores/VideoPlayer/VideoRenderers/RenderFlags.h"
 #include "windowing/WinSystem.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
@@ -32,14 +30,12 @@
 #include "DVDDemuxers/DVDDemux.h"
 #include "cores/VideoPlayer/Interface/Addon/DemuxPacket.h"
 #include "cores/VideoPlayer/Interface/Addon/TimingConstants.h"
-#include "guilib/GraphicContext.h"
+#include "windowing/GraphicContext.h"
 #include <sstream>
 #include <iomanip>
 #include <numeric>
 #include <iterator>
 #include "utils/log.h"
-
-using namespace RenderManager;
 
 class CDVDMsgVideoCodecChange : public CDVDMsg
 {
@@ -93,7 +89,6 @@ CVideoPlayerVideo::CVideoPlayerVideo(CDVDClock* pClock
   m_iFrameRateErr = 0;
   m_iFrameRateLength = 0;
   m_bFpsInvalid = false;
-  m_bAllowFullscreen = false;
 }
 
 CVideoPlayerVideo::~CVideoPlayerVideo()
@@ -234,6 +229,7 @@ void CVideoPlayerVideo::OpenStream(CDVDStreamInfo &hint, CDVDVideoCodec* codec)
   m_rewindStalled = false;
   m_packets.clear();
   m_syncState = IDVDStreamPlayer::SYNC_STARTING;
+  m_renderManager.ShowVideo(false);
 }
 
 void CVideoPlayerVideo::CloseStream(bool bWaitForBuffers)
@@ -313,8 +309,6 @@ inline MsgQueueReturnCode CVideoPlayerVideo::GetMessage(CDVDMsg** pMsg, unsigned
 void CVideoPlayerVideo::Process()
 {
   CLog::Log(LOGNOTICE, "running thread: video_thread");
-
-  memset(&m_picture, 0, sizeof(VideoPicture));
 
   double pts = 0;
   double frametime = (double)DVD_TIME_BASE / m_fFrameRate;
@@ -428,6 +422,7 @@ void CVideoPlayerVideo::Process()
       m_syncState = IDVDStreamPlayer::SYNC_INSYNC;
       m_droppingStats.Reset();
       m_rewindStalled = false;
+      m_renderManager.ShowVideo(true);
 
       CLog::Log(LOGDEBUG, "CVideoPlayerVideo - CDVDMsg::GENERAL_RESYNC(%f)", pts);
     }
@@ -448,6 +443,7 @@ void CVideoPlayerVideo::Process()
       m_packets.clear();
       m_droppingStats.Reset();
       m_syncState = IDVDStreamPlayer::SYNC_STARTING;
+      m_renderManager.ShowVideo(false);
       m_rewindStalled = false;
     }
     else if (pMsg->IsType(CDVDMsg::GENERAL_FLUSH)) // private message sent by (CVideoPlayerVideo::Flush())
@@ -472,7 +468,10 @@ void CVideoPlayerVideo::Process()
 
       m_stalled = true;
       if (sync)
+      {
         m_syncState = IDVDStreamPlayer::SYNC_STARTING;
+        m_renderManager.ShowVideo(false);
+      }
 
       m_renderManager.DiscardBuffer();
     }
@@ -682,8 +681,34 @@ bool CVideoPlayerVideo::ProcessDecoderOutput(double &frametime, double &pts)
       m_picture.pts = m_picture.dts;
 
     // use forced aspect if any
-    if( m_fForcedAspectRatio != 0.0f )
+    if (m_fForcedAspectRatio != 0.0f)
       m_picture.iDisplayWidth = (int) (m_picture.iDisplayHeight * m_fForcedAspectRatio);
+
+    // set stereo mode if not set by decoder
+    if (m_picture.stereoMode.empty())
+    {
+      std::string stereoMode;
+      switch(m_processInfo.GetVideoSettings().m_StereoMode)
+      {
+        case RENDER_STEREO_MODE_SPLIT_VERTICAL:
+          stereoMode = "left_right";
+          if (m_processInfo.GetVideoSettings().m_StereoInvert)
+            stereoMode = "right_left";
+          break;
+        case RENDER_STEREO_MODE_SPLIT_HORIZONTAL:
+          stereoMode = "top_bottom";
+          if (m_processInfo.GetVideoSettings().m_StereoInvert)
+            stereoMode = "bottom_top";
+          break;
+        default:
+          stereoMode = m_hints.stereo_mode;
+          break;
+      }
+      if (!stereoMode.empty() && stereoMode != "mono")
+      {
+        m_picture.stereoMode = stereoMode;
+      }
+    }
 
     // if frame has a pts (usually originiating from demux packet), use that
     if (m_picture.pts != DVD_NOPTS_VALUE)
@@ -803,69 +828,28 @@ void CVideoPlayerVideo::ProcessOverlays(const VideoPicture* pSource, double pts)
   }
 }
 
-std::string CVideoPlayerVideo::GetStereoMode()
-{
-  std::string  stereoMode;
-
-  switch(m_processInfo.GetVideoSettings().m_StereoMode)
-  {
-    case RENDER_STEREO_MODE_SPLIT_VERTICAL:
-      stereoMode = "left_right";
-      break;
-    case RENDER_STEREO_MODE_SPLIT_HORIZONTAL:
-      stereoMode = "top_bottom";
-      break;
-    default:
-      stereoMode = m_processInfo.GetVideoStereoMode();
-      break;
-  }
-
-  if (m_processInfo.GetVideoSettings().m_StereoInvert)
-    stereoMode = GetStereoModeInvert(stereoMode);
-
-  return stereoMode;
-}
-
 CVideoPlayerVideo::EOutputState CVideoPlayerVideo::OutputPicture(const VideoPicture* pPicture)
 {
   m_bAbortOutput = false;
 
-  if (m_syncState == ESyncState::SYNC_STARTING)
-    m_processInfo.SetVideoStereoMode(m_hints.stereo_mode);
-  // grab stereo mode from image if available
-  if (pPicture->stereo_mode[0] && m_processInfo.GetVideoStereoMode().compare(pPicture->stereo_mode) != 0)
+  if (m_processInfo.GetVideoStereoMode() != pPicture->stereoMode)
   {
-    m_processInfo.SetVideoStereoMode(pPicture->stereo_mode);
+    m_processInfo.SetVideoStereoMode(pPicture->stereoMode);
     // signal about changes in video parameters
     m_messageParent.Put(new CDVDMsg(CDVDMsg::PLAYER_AVCHANGE));
   }
 
-  /* figure out steremode expected based on user settings and hints */
-  unsigned int stereo_flags = GetStereoModeFlags(GetStereoMode());
-
   double config_framerate = m_bFpsInvalid ? 0.0 : m_fFrameRate;
-
-  unsigned flags = 0;
-  if (pPicture->color_range == 1)
-    flags |= CONF_FLAGS_YUV_FULLRANGE;
-
-  flags |= GetFlagsChromaPosition(pPicture->chroma_position)
-              |  GetFlagsColorMatrix(pPicture->color_matrix, pPicture->iWidth, pPicture->iHeight)
-              |  GetFlagsColorPrimaries(pPicture->color_primaries)
-              |  GetFlagsColorTransfer(pPicture->color_transfer);
-
-
-  if(m_bAllowFullscreen)
+  if (m_processInfo.GetVideoInterlaced())
   {
-    flags |= CONF_FLAGS_FULLSCREEN;
-    m_bAllowFullscreen = false; // only allow on first configure
+    if (MathUtils::FloatEquals(config_framerate, 25.0, 0.02))
+      config_framerate = 50.0;
+    else if (MathUtils::FloatEquals(config_framerate, 29.97, 0.02))
+      config_framerate = 59.94;
   }
-
-  flags |= stereo_flags;
 
   if (!m_renderManager.Configure(*pPicture,
                                 static_cast<float>(config_framerate),
-                                flags,
                                 m_hints.orientation,
                                 m_pVideoCodec->GetAllowedReferences()))
   {
@@ -905,24 +889,6 @@ CVideoPlayerVideo::EOutputState CVideoPlayerVideo::OutputPicture(const VideoPict
     }
     else if (pPicture->pts < iPlayingClock)
     {
-      return OUTPUT_DROPPED;
-    }
-  }
-  else if (m_speed > DVD_PLAYSPEED_NORMAL)
-  {
-    double renderPts;
-    int lateframes;
-    int bufferLevel, queued, discard;
-    m_renderManager.GetStats(lateframes, renderPts, queued, discard);
-    bufferLevel = queued + discard;
-
-    // estimate the time it will take for the next frame to get rendered
-    // drop the frame if it's late in regard to this estimation
-    double diff = pPicture->pts - renderPts;
-    double mindiff = DVD_SEC_TO_TIME(1/m_fFrameRate) * (bufferLevel + 1);
-    if (diff < mindiff)
-    {
-      m_droppingStats.AddOutputDropGain(pPicture->pts, 1);
       return OUTPUT_DROPPED;
     }
   }

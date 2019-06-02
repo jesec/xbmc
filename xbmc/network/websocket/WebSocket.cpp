@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2011-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -197,7 +197,7 @@ CWebSocketFrame::CWebSocketFrame(WebSocketFrameOpcode opcode, const char* data /
   {
     dataByte |= 127 & MASK_LENGTH;
     buffer.push_back(dataByte);
-    
+
     uint64_t dataLength = Endian_SwapBE64(m_length);
     buffer.append((const char*)&dataLength, 8);
   }
@@ -336,7 +336,7 @@ const CWebSocketMessage* CWebSocket::Handle(const char* &buffer, size_t &length,
               if (msg != NULL)
                 msg->AddFrame(Pong(frame->GetApplicationData()));
               break;
-            
+
             case WebSocketConnectionClose:
               CLog::Log(LOGINFO, "WebSocket: connection closed by client");
 

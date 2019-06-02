@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -17,10 +17,6 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
-
-#ifdef TARGET_WINDOWS
-#include "system.h"
-#endif
 
 #include "DllDvdNav.h"
 #include "utils/XBMCTinyXML.h"
@@ -50,7 +46,7 @@ bool CDVDStateSerializer::DVDToXMLState( std::string &xmlstate, const dvd_state_
   TiXmlElement eRoot("navstate");
   eRoot.SetAttribute("version", 1);
 
-	
+
   { TiXmlElement eRegisters("registers");
 
     for( int i = 0; i < 24; i++ )

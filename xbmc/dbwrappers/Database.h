@@ -1,8 +1,6 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,6 +18,8 @@
  *
  */
 
+#pragma once
+
 namespace dbiplus {
   class Database;
   class Dataset;
@@ -31,6 +31,7 @@ namespace dbiplus {
 
 class DatabaseSettings; // forward
 class CDbUrl;
+class CProfilesManager;
 struct SortDescription;
 
 class CDatabase
@@ -42,7 +43,7 @@ public:
     Filter() : fields("*") {};
     explicit Filter(const char *w) : fields("*"), where(w) {};
     explicit Filter(const std::string &w) : fields("*"), where(w) {};
-    
+
     void AppendField(const std::string &strField);
     void AppendJoin(const std::string &strJoin);
     void AppendWhere(const std::string &strWhere, bool combineWithAnd = true);
@@ -65,7 +66,7 @@ public:
     void AppendJoin(const std::string &strJoin);
     void AppendWhere(const std::string &strWhere, bool combineWithAnd = true);
     bool BuildSQL(std::string &strSQL);
-    
+
     std::string tablename;
     std::string param;
     std::string join;
@@ -73,7 +74,7 @@ public:
   };
 
 
-  CDatabase(void);
+  CDatabase();
   virtual ~CDatabase(void);
   bool IsOpen();
   virtual void Close();
@@ -221,6 +222,10 @@ protected:
   std::unique_ptr<dbiplus::Database> m_pDB;
   std::unique_ptr<dbiplus::Dataset> m_pDS;
   std::unique_ptr<dbiplus::Dataset> m_pDS2;
+
+protected:
+  // Construction parameters
+  const CProfilesManager &m_profileManager;
 
 private:
   void InitSettings(DatabaseSettings &dbSettings);

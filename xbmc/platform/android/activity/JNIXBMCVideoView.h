@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2016 Christian Browet
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <androidjni/JNIBase.h>
 
@@ -36,7 +37,7 @@ public:
   ~CJNIXBMCVideoView();
 
   static void RegisterNatives(JNIEnv* env);
-  
+
   static CJNIXBMCVideoView* createVideoView(CJNISurfaceHolderCallback* callback);
 
   // CJNISurfaceHolderCallback interface

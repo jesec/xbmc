@@ -1,7 +1,7 @@
 /*
  *      Copyright (c) 2007 d4rk
  *      Copyright (C) 2007-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,8 +18,6 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
-
-#include "system.h"
 
 #include <string>
 #include <math.h>
@@ -72,7 +70,7 @@ ConvolutionFilterShader::ConvolutionFilterShader(ESCALINGMETHOD method, bool str
   std::string shadername;
   std::string defines;
 
-  m_floattex = CServiceBroker::GetRenderSystem().IsExtSupported("GL_ARB_texture_float");
+  m_floattex = CServiceBroker::GetRenderSystem()->IsExtSupported("GL_ARB_texture_float");
 
   if (m_method == VS_SCALINGMETHOD_CUBIC ||
       m_method == VS_SCALINGMETHOD_LANCZOS2 ||
@@ -86,7 +84,7 @@ ConvolutionFilterShader::ConvolutionFilterShader(ESCALINGMETHOD method, bool str
     else
       m_internalformat = GL_RGBA;
   }
-  else if (m_method == VS_SCALINGMETHOD_SPLINE36 || 
+  else if (m_method == VS_SCALINGMETHOD_SPLINE36 ||
            m_method == VS_SCALINGMETHOD_LANCZOS3)
   {
     shadername = "gl_convolution-6x6.glsl";

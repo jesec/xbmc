@@ -6,7 +6,7 @@
  *      Copyright 2008 University Heidelberg. All rights reserved.
  *
  *      Copyright (C) 2008-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -30,6 +30,7 @@
  *  Copyright (C) 2007-2008 Eric Steil III
  *
  */
+
 #define DEBUG
 #ifdef DEBUG
 #define LOG(s, ...)  NSLog(@"[DEBUG] " s, ##__VA_ARGS__)
@@ -37,7 +38,7 @@
 #define ELOG(s, ...) NSLog(@"[ERROR] " s, ##__VA_ARGS__)
 #define DLOG(s, ...) LOG(s, ##__VA_ARGS__)
 #else
-#define LOG(s, ...) 
+#define LOG(s, ...)
 #define ILOG(s, ...) NSLog(@"[INFO]  " s, ##__VA_ARGS__)
 #define ELOG(s, ...) NSLog(@"[ERROR] " s, ##__VA_ARGS__)
 #define DLOG(s, ...) LOG(s, ##__VA_ARGS__)

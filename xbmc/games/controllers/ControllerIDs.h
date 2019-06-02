@@ -17,8 +17,11 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
 // Default controller IDs
 #define DEFAULT_CONTROLLER_ID    "game.controller.default"
+#define DEFAULT_KEYBOARD_ID      "game.controller.keyboard"
+#define DEFAULT_MOUSE_ID         "game.controller.mouse"
 #define DEFAULT_REMOTE_ID        "game.controller.remote"

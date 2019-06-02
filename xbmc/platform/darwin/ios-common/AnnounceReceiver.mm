@@ -20,8 +20,6 @@
 
 #import <UIKit/UIKit.h>
 
-#import "system.h"
-
 #import "Application.h"
 #import "FileItem.h"
 #import "music/tags/MusicInfoTag.h"
@@ -96,7 +94,7 @@ void AnnounceBridge(ANNOUNCEMENT::AnnouncementFlag flag, const char *sender, con
   const std::string msg(message);
 
   // handle data which only has a database id and not the metadata inside
-  if (msg == "OnPlay")
+  if (msg == "OnPlay" || msg == "OnResume")
   {
     if (!nonConstData["item"].isNull())
     {
@@ -136,7 +134,7 @@ void AnnounceBridge(ANNOUNCEMENT::AnnouncementFlag flag, const char *sender, con
   //LOG(@"AnnounceBridge: [%s], [%s], [%s]", ANNOUNCEMENT::AnnouncementFlagToString(flag), sender, message);
   NSDictionary *dict = dictionaryFromVariantMap(nonConstData);
   //LOG(@"data: %@", dict.description);
-  if (msg == "OnPlay")
+  if (msg == "OnPlay" || msg == "OnResume")
   {
     NSDictionary *item = [dict valueForKey:@"item"];
     NSDictionary *player = [dict valueForKey:@"player"];

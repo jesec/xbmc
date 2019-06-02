@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,6 @@
  *
  */
 
-#include "system.h"
 #include "FileItem.h"
 #include "messaging/ApplicationMessenger.h"
 #include "PlayListPlayer.h"
@@ -30,11 +29,6 @@
 #include "platform/linux/XTimeUtils.h"
 #endif
 #include "AppParamParser.h"
-
-// Put this here for easy enable and disable
-#ifndef _DEBUG
-#define XBMC_TRACK_EXCEPTIONS
-#endif
 
 CXBApplicationEx::CXBApplicationEx()
 {
@@ -48,7 +42,7 @@ CXBApplicationEx::CXBApplicationEx()
 CXBApplicationEx::~CXBApplicationEx() = default;
 
 /* Destroy the app */
-VOID CXBApplicationEx::Destroy()
+void CXBApplicationEx::Destroy()
 {
   CLog::Log(LOGNOTICE, "destroy");
   // Perform app-specific cleanup
@@ -56,7 +50,7 @@ VOID CXBApplicationEx::Destroy()
 }
 
 /* Function that runs the application */
-INT CXBApplicationEx::Run(const CAppParamParser &params)
+int CXBApplicationEx::Run(const CAppParamParser &params)
 {
   CLog::Log(LOGNOTICE, "Running the application..." );
 
@@ -77,81 +71,27 @@ INT CXBApplicationEx::Run(const CAppParamParser &params)
     //-----------------------------------------
     // Animate and render a frame
     //-----------------------------------------
-#ifdef XBMC_TRACK_EXCEPTIONS
-    try
-    {
-#endif
-      lastFrameTime = XbmcThreads::SystemClockMillis();
-      Process();
-      //reset exception count
-#ifdef XBMC_TRACK_EXCEPTIONS
 
-    }
-    catch (const XbmcCommons::UncheckedException &e)
-    {
-      e.LogThrowMessage("CApplication::Process()");
-      throw;
-    }
-    catch (...)
-    {
-      CLog::Log(LOGERROR, "exception in CApplication::Process()");
-      throw;
-    }
-#endif
-    // Frame move the scene
-#ifdef XBMC_TRACK_EXCEPTIONS
-    try
-    {
-#endif
-      if (!m_bStop)
-      {
-        FrameMove(true, m_renderGUI);
-      }
+    lastFrameTime = XbmcThreads::SystemClockMillis();
+    Process();
 
-      //reset exception count
-#ifdef XBMC_TRACK_EXCEPTIONS
-    }
-    catch (const XbmcCommons::UncheckedException &e)
+    if (!m_bStop)
     {
-      e.LogThrowMessage("CApplication::FrameMove()");
-      throw;
+      FrameMove(true, m_renderGUI);
     }
-    catch (...)
-    {
-      CLog::Log(LOGERROR, "exception in CApplication::FrameMove()");
-      throw;
-    }
-#endif
 
-    // Render the scene
-#ifdef XBMC_TRACK_EXCEPTIONS
-    try
+    if (m_renderGUI && !m_bStop)
     {
-#endif
-      if (m_renderGUI && !m_bStop)
-      {
-        Render();
-      }
-      else if (!m_renderGUI)
-      {
-        frameTime = XbmcThreads::SystemClockMillis() - lastFrameTime;
-        if(frameTime < noRenderFrameTime)
-          Sleep(noRenderFrameTime - frameTime);
-      }
-#ifdef XBMC_TRACK_EXCEPTIONS
+      Render();
     }
-    catch (const XbmcCommons::UncheckedException &e)
+    else if (!m_renderGUI)
     {
-      e.LogThrowMessage("CApplication::Render()");
-      throw;
+      frameTime = XbmcThreads::SystemClockMillis() - lastFrameTime;
+      if(frameTime < noRenderFrameTime)
+        Sleep(noRenderFrameTime - frameTime);
     }
-    catch (...)
-    {
-      CLog::Log(LOGERROR, "exception in CApplication::Render()");
-      throw;
-    }
-#endif
-  } // while (!m_bStop)
+
+  }
   Destroy();
 
   CLog::Log(LOGNOTICE, "application stopped..." );

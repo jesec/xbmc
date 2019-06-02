@@ -2,7 +2,7 @@
  * Socket classes
  *      Copyright (c) 2008 d4rk
  *      Copyright (C) 2008-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,8 +19,6 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
-
-#include "system.h"
 
 #include "Socket.h"
 #include "utils/log.h"
@@ -104,7 +102,7 @@ bool CPosixUDPSocket::Bind(bool localOnly, int port, int range)
     }
 #else
     CLog::Log(LOGERROR, "UDP: Could not create socket");
-#endif    
+#endif
     CLog::Log(LOGERROR, "UDP: %s", strerror(errno));
     return false;
   }

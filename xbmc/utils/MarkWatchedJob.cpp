@@ -136,7 +136,7 @@ void CMarkWatchedQueue::OnJobComplete(unsigned int jobID, bool success, CJob *jo
     {
       CUtil::DeleteVideoDatabaseDirectoryCache();
       CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UPDATE);
-      g_windowManager.SendThreadMessage(msg);
+      CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg);
     }
     return CJobQueue::OnJobComplete(jobID, success, job);
   }

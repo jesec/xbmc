@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
 #include <vector>
@@ -24,6 +25,8 @@
 #include "DVDCodecs/Video/DXVA.h"
 #include "guilib/D3DResource.h"
 #include "utils/Geometry.h"
+
+#include <wrl/client.h>
 
 class CRenderBuffer;
 
@@ -84,10 +87,10 @@ protected:
     D3D11_VIDEO_PROCESSOR_FILTER_RANGE Range;
   };
   ProcAmpInfo m_Filters[NUM_FILTERS];
-  ID3D11VideoDevice *m_pVideoDevice;
-  ID3D11VideoContext *m_pVideoContext;
-  ID3D11VideoProcessorEnumerator *m_pEnumerator;
-  ID3D11VideoProcessor *m_pVideoProcessor;
+  Microsoft::WRL::ComPtr<ID3D11VideoDevice> m_pVideoDevice;
+  Microsoft::WRL::ComPtr<ID3D11VideoContext> m_pVideoContext;
+  Microsoft::WRL::ComPtr<ID3D11VideoProcessorEnumerator> m_pEnumerator;
+  Microsoft::WRL::ComPtr<ID3D11VideoProcessor> m_pVideoProcessor;
 };
 
 };

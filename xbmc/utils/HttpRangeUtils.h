@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2015 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,12 +18,12 @@
  *
  */
 
+#pragma once
+
 #include <stdint.h>
 
 #include <string>
 #include <vector>
-
-#include "system.h"
 
 class CHttpRange
 {
@@ -79,12 +78,11 @@ protected:
 
 typedef std::vector<CHttpResponseRange> HttpResponseRanges;
 
-class CHttpRanges
+class CHttpRanges final
 {
 public:
   CHttpRanges();
   explicit CHttpRanges(const HttpRanges& httpRanges);
-  virtual ~CHttpRanges() = default;
 
   const HttpRanges& Get() const { return m_ranges; }
   bool Get(size_t index, CHttpRange& range) const;

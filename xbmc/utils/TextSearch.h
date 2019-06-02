@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include <string>
 #include <vector>
 
@@ -29,11 +30,10 @@ typedef enum TextSearchDefault
   SEARCH_DEFAULT_NOT
 } TextSearchDefault;
 
-class CTextSearch
+class CTextSearch final
 {
 public:
   CTextSearch(const std::string &strSearchTerms, bool bCaseSensitive = false, TextSearchDefault defaultSearchMode = SEARCH_DEFAULT_OR);
-  virtual ~CTextSearch(void);
 
   bool Search(const std::string &strHaystack) const;
   bool IsValid(void) const;

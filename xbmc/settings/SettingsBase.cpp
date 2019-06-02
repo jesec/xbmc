@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2016 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -64,7 +64,7 @@ bool CSettingsBase::Initialize()
 
   m_settingsManager->SetInitialized();
 
-  InitializeISettingsHandlers();  
+  InitializeISettingsHandlers();
   InitializeISubSettings();
   InitializeISettingCallbacks();
 
@@ -147,6 +147,10 @@ void CSettingsBase::Uninitialize()
 
   // unregister setting option fillers
   UninitializeOptionFillers();
+
+  // unregister setting conditions
+  UninitializeConditions();
+
   // unregister ISettingCallback implementations
   UninitializeISettingCallbacks();
 
@@ -169,6 +173,14 @@ void CSettingsBase::RegisterCallback(ISettingCallback* callback, const std::set<
 void CSettingsBase::UnregisterCallback(ISettingCallback* callback)
 {
   m_settingsManager->UnregisterCallback(callback);
+}
+
+bool CSettingsBase::FindIntInList(const std::string &id, int value) const
+{
+  if (id.empty())
+    return false;
+
+  return m_settingsManager->FindIntInList(id, value);
 }
 
 SettingPtr CSettingsBase::GetSetting(const std::string& id) const

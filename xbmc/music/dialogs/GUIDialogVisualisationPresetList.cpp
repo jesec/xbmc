@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,6 +19,8 @@
  */
 
 #include "GUIDialogVisualisationPresetList.h"
+#include "ServiceBroker.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/GUIVisualisationControl.h"
 #include "GUIUserMessages.h"
@@ -78,7 +80,7 @@ void CGUIDialogVisualisationPresetList::SetVisualisation(CGUIVisualisationContro
 void CGUIDialogVisualisationPresetList::OnInitWindow()
 {
   CGUIMessage msg(GUI_MSG_GET_VISUALISATION, 0, 0);
-  g_windowManager.SendMessage(msg);
+  CServiceBroker::GetGUI()->GetWindowManager().SendMessage(msg);
   if (msg.GetPointer())
     SetVisualisation(static_cast<CGUIVisualisationControl*>(msg.GetPointer()));
   CGUIDialogSelect::OnInitWindow();

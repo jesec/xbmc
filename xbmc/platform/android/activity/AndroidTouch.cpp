@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -51,7 +51,7 @@ bool CAndroidTouch::onTouchEvent(AInputEvent* event)
   int32_t eventAction = AMotionEvent_getAction(event);
   int8_t touchAction = eventAction & AMOTION_EVENT_ACTION_MASK;
   size_t touchPointer = eventAction >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
-  
+
   TouchInput touchEvent = TouchInputAbort;
   switch (touchAction)
   {

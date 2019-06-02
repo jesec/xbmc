@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2010-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -404,7 +404,7 @@ unsigned int CAEStreamParser::SyncAC3(uint8_t *data, unsigned int size)
       /* if we have enough data, validate the entire packet, else try to validate crc2 (5/8 of the packet) */
       if (framesize <= size - skip)
         crc_size = framesize - 1;
-      else 
+      else
         crc_size = (framesize >> 1) + (framesize >> 3) - 1;
 
       if (crc_size <= size - skip)

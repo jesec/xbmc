@@ -22,6 +22,7 @@
 #ifdef HAS_DS_PLAYER
 
 #include "ExternalPixelShader.h"
+#include "ServiceBroker.h"
 #include "PixelShaderCompiler.h"
 #include "FileSystem\File.h"
 #include "utils/XMLUtils.h"
@@ -70,7 +71,7 @@ CExternalPixelShader::CExternalPixelShader(TiXmlElement* xml)
   if (!XFILE::CFile::Exists(m_SourceFile))
   {
     std::string originalFile = m_SourceFile;
-    m_SourceFile = CProfilesManager::GetInstance().GetUserDataItem("dsplayer/shaders/" + originalFile);
+    m_SourceFile = CServiceBroker::GetProfileManager().GetUserDataItem("dsplayer/shaders/" + originalFile);
     if (!XFILE::CFile::Exists(m_SourceFile))
     {
       m_SourceFile = "special://xbmc/system/players/dsplayer/shaders/" + originalFile;
@@ -102,7 +103,7 @@ CExternalPixelShader::CExternalPixelShader(std::string strFile, std::string strP
   if (!XFILE::CFile::Exists(m_SourceFile))
   {
     std::string originalFile = m_SourceFile;
-    m_SourceFile = CProfilesManager::GetInstance().GetUserDataItem("dsplayer/shaders/" + originalFile);
+    m_SourceFile = CServiceBroker::GetProfileManager().GetUserDataItem("dsplayer/shaders/" + originalFile);
     if (!XFILE::CFile::Exists(m_SourceFile))
     {
       m_SourceFile = "special://xbmc/system/players/dsplayer/shaders/" + originalFile;

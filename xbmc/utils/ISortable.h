@@ -1,7 +1,6 @@
-#pragma once
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,13 +18,18 @@
  *
  */
 
+#pragma once
+
 #include <map>
 
 #include "SortUtils.h"
 
 class ISortable
 {
+protected:
+  /* make sure nobody deletes a pointer to this class */
+  ~ISortable() = default;
+
 public:
-  virtual ~ISortable() = default;
   virtual void ToSortable(SortItem& sortable, Field field) const = 0;
 };

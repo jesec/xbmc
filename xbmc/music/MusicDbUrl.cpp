@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -102,6 +102,10 @@ bool CMusicDbUrl::parse()
       m_type = "genres";
       break;
 
+    case NODE_TYPE_SOURCE:
+      m_type = "sources";
+      break;
+
     case NODE_TYPE_ROLE:
       m_type = "roles";
       break;
@@ -157,7 +161,7 @@ bool CMusicDbUrl::validateOption(const std::string &key, const CVariant &value)
 {
   if (!CDbUrl::validateOption(key, value))
     return false;
-  
+
   // if the value is empty it will remove the option which is ok
   // otherwise we only care about the "filter" option here
   if (value.empty() || !StringUtils::EqualsNoCase(key, "filter"))

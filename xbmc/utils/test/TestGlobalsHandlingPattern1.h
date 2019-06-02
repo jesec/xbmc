@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -37,10 +37,10 @@ namespace xbmcutil
       int somethingToAccess;
 
       TestGlobalPattern1() : somethingToAccess(0) { ctorCalled = true; }
-      ~TestGlobalPattern1() 
-      { 
+      ~TestGlobalPattern1()
+      {
         std::cout << "Clean shutdown of TestGlobalPattern1" << std::endl << std::flush;
-        dtorCalled = true; 
+        dtorCalled = true;
       }
 
       void beHappy() { if (somethingToAccess) throw somethingToAccess; }

@@ -1,6 +1,6 @@
 /*
-*      Copyright (C) 2007-2013 Team XBMC
- *      http://xbmc.org
+*      Copyright (C) 2007-2018 Team XBMC
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,58 +20,26 @@
 
 #pragma once
 
-#include <string>
-#include <atomic>
-
-#include "system.h"
 #include "threads/Thread.h"
-#include "threads/Event.h"
+#include "threads/CriticalSection.h"
+#include "input/IRTranslator.h"
+#include <string>
 
-class CRemoteControl :  CThread
+class CLirc : CThread
 {
 public:
-  CRemoteControl();
-  ~CRemoteControl() override;
-  void Initialize();
-  void Disconnect();
-  void Reset();
-  void Update();
-  WORD GetButton();
-  /*! \brief retrieve the time in milliseconds that the button has been held
-   \return time in milliseconds the button has been down
-   */
-  unsigned int GetHoldTime() const;
-  void SetDeviceName(const std::string& value);
-  void SetEnabled(bool value);
-  bool IsInUse() const { return m_used; }
-  bool IsInitialized() const { return m_bInitialized; }
-  void AddSendCommand(const std::string& command);
+  CLirc();
+  ~CLirc() override;
+  void Start();
 
 protected:
   void Process() override;
+  void ProcessCode(char *buf);
+  bool CheckDaemon();
 
-  bool Connect(struct sockaddr_un addr, bool logMessages);
-
-private:
-  int     m_fd;
-#ifdef HAVE_INOTIFY
-  int     m_inotify_fd;
-  int     m_inotify_wd;
-#endif
-  FILE*   m_file;
-  unsigned int m_holdTime;
-  int32_t m_button;
-
-  std::atomic<bool> m_bInitialized;
-  std::atomic<bool> m_inReply;
-  std::atomic<int>  m_nrSending;
-
-  bool    m_used;
-  uint32_t    m_firstClickTime;
-  std::string  m_deviceName;
-  bool        CheckDevice();
-  std::string  m_sendData;
-  CEvent      m_event;
-  CCriticalSection m_CS;
-
+  int m_fd = -1;
+  uint32_t m_firstClickTime = 0;
+  CCriticalSection m_critSection;
+  CIRTranslator m_irTranslator;
+  int m_profileId;
 };

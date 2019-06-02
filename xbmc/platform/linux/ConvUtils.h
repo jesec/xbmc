@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2015 Team Kodi
  *      http://kodi.tv
@@ -20,8 +18,10 @@
  *
  */
 
-#include "PlatformDefs.h" // UINT DWORD LPCSTR LPSTR LPBOOL ...
+#pragma once
+
+#include "PlatformDefs.h" // DWORD ...
 
 DWORD GetLastError();
-VOID  SetLastError(DWORD dwErrCode);
+void  SetLastError(DWORD dwErrCode);
 
