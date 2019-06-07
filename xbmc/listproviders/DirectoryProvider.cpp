@@ -190,6 +190,7 @@ bool CDirectoryProvider::Update(bool forceRefresh)
   fireJob |= UpdateURL();
   fireJob |= UpdateSort();
   fireJob |= UpdateLimit();
+  fireJob &= !m_currentUrl.empty();
 
   CSingleLock lock(m_section);
   if (m_updateState == INVALIDATED)
@@ -255,7 +256,8 @@ void CDirectoryProvider::Announce(ANNOUNCEMENT::AnnouncementFlag flag, const cha
       if (strcmp(message, "OnScanFinished") == 0 ||
           strcmp(message, "OnCleanFinished") == 0 ||
           strcmp(message, "OnUpdate") == 0 ||
-          strcmp(message, "OnRemove") == 0)
+          strcmp(message, "OnRemove") == 0 ||
+          strcmp(message, "OnRefresh") == 0)
         m_updateState = INVALIDATED;
     }
   }

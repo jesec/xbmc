@@ -25,6 +25,7 @@
 #include "windowing/GraphicContext.h"
 #include "windowing/WinSystem.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "settings/AdvancedSettings.h"
 #include "Application.h"
 #include "mvrInterfaces.h"

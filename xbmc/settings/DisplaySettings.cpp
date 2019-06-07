@@ -329,10 +329,16 @@ bool CDisplaySettings::OnSettingChanging(std::shared_ptr<const CSetting> setting
 
     return true;
   }
-#if defined(HAVE_X11)
+#if defined(HAVE_X11) || defined(TARGET_WINDOWS_DESKTOP)
   else if (settingId == CSettings::SETTING_VIDEOSCREEN_BLANKDISPLAYS)
   {
-    CServiceBroker::GetWinSystem()->UpdateResolutions();
+    auto winSystem = CServiceBroker::GetWinSystem();
+#if defined(HAVE_X11)
+    winSystem->UpdateResolutions();
+#elif defined(TARGET_WINDOWS_DESKTOP)
+    CGraphicContext& gfxContext = winSystem->GetGfxContext();
+    gfxContext.SetVideoResolution(gfxContext.GetVideoResolution(), true);
+#endif
   }
 #endif
 
@@ -547,16 +553,19 @@ void CDisplaySettings::UpdateCalibrations()
 {
   CSingleLock lock(m_critical);
 
+  if (m_resolutions.size() <= RES_DESKTOP)
+    return;
+
   // Add new (unique) resolutions
-  for (ResolutionInfos::const_iterator res(m_resolutions.cbegin() + RES_DESKTOP + 1); res != m_resolutions.cend(); ++res)
+  for (ResolutionInfos::const_iterator res(m_resolutions.cbegin() + RES_CUSTOM); res != m_resolutions.cend(); ++res)
     if (std::find_if(m_calibrations.cbegin(), m_calibrations.cend(),
       [&](const RESOLUTION_INFO& info) { return StringUtils::EqualsNoCase(res->strMode, info.strMode); }) == m_calibrations.cend())
         m_calibrations.push_back(*res);
 
   for (auto &cal : m_calibrations)
   {
-    ResolutionInfos::const_iterator res(std::find_if(m_resolutions.cbegin()+ RES_DESKTOP, m_resolutions.cend(),
-      [&](const RESOLUTION_INFO& info) { return StringUtils::EqualsNoCase(cal.strMode, info.strMode); }));
+    ResolutionInfos::const_iterator res(std::find_if(m_resolutions.cbegin() + RES_DESKTOP, m_resolutions.cend(),
+    [&](const RESOLUTION_INFO& info) { return StringUtils::EqualsNoCase(cal.strMode, info.strMode); }));
 
     if (res != m_resolutions.cend())
     {
@@ -564,6 +573,12 @@ void CDisplaySettings::UpdateCalibrations()
       cal = *res;
     }
   }
+}
+
+void CDisplaySettings::ClearCalibrations()
+{
+  CSingleLock lock(m_critical);
+  m_calibrations.clear();
 }
 
 DisplayMode CDisplaySettings::GetCurrentDisplayMode() const
@@ -726,7 +741,7 @@ void CDisplaySettings::SettingOptionsRefreshRatesFiller(SettingConstPtr setting,
     std::string screenmode = GetStringFromResolution((RESOLUTION)refreshrate->ResInfo_Index, refreshrate->RefreshRate);
     if (!match && StringUtils::EqualsNoCase(std::static_pointer_cast<const CSettingString>(setting)->GetValue(), screenmode))
       match = true;
-    list.push_back(std::make_pair(StringUtils::Format("%.02f", refreshrate->RefreshRate), screenmode));
+    list.push_back(std::make_pair(StringUtils::Format("%.2f", refreshrate->RefreshRate), screenmode));
   }
 
   if (!match)

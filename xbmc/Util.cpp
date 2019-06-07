@@ -557,7 +557,7 @@ bool CUtil::ExcludeFileOrFolder(const std::string& strFileOrFolder, const std::v
     }
     if (regExExcludes.RegFind(strFileOrFolder) > -1)
     {
-      CLog::Log(LOGDEBUG, "%s: File '%s' excluded. (Matches exclude rule RegExp:'%s')", __FUNCTION__, strFileOrFolder.c_str(), regexp.c_str());
+      CLog::LogF(LOGDEBUG, "File '{}' excluded. (Matches exclude rule RegExp: '{}')", CURL::GetRedacted(strFileOrFolder), regexp);
       return true;
     }
   }
@@ -1013,7 +1013,7 @@ std::string CUtil::ValidatePath(const std::string &path, bool bFixDoubleSlashes 
       for (size_t x = 1; x < result.size() - 1; x++)
       {
         if (result[x] == '\\' && result[x+1] == '\\')
-          result.erase(x);
+          result.erase(x, 1);
       }
     }
   }
@@ -1031,7 +1031,7 @@ std::string CUtil::ValidatePath(const std::string &path, bool bFixDoubleSlashes 
       for (size_t x = 2; x < result.size() - 1; x++)
       {
         if ( result[x] == '/' && result[x + 1] == '/' && !(result[x - 1] == ':' || (result[x - 1] == '/' && result[x - 2] == ':')) )
-          result.erase(x);
+          result.erase(x, 1);
       }
     }
   }

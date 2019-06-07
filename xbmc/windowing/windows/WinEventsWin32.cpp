@@ -45,8 +45,6 @@
 #include "DSPlayer.h"
 #endif
 
-#ifdef TARGET_WINDOWS
-
 using namespace KODI::MESSAGING;
 
 HWND g_hWnd = nullptr;
@@ -573,9 +571,10 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
     // the new DPI.
     {
       // get the suggested size of the window on the new display with a different DPI
-      unsigned short  dpi = LOWORD(wParam);
-      RECT resizeRect = *reinterpret_cast<RECT*>(lParam);
-      DX::Windowing()->DPIChanged(dpi, resizeRect);
+      uint16_t  dpi = HIWORD(wParam);
+      RECT rc = *reinterpret_cast<RECT*>(lParam);
+      CLog::LogFC(LOGDEBUG, LOGWINDOWING, "dpi changed event -> %d (%d, %d, %d, %d)", dpi, rc.left, rc.top, rc.right, rc.bottom);
+      DX::Windowing()->DPIChanged(dpi, rc);
       return(0);
     }
     case WM_DISPLAYCHANGE:
@@ -607,7 +606,7 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
       }
       return(0);
 #else
-      CLog::LogF(LOGDEBUG, "display change event");
+      CLog::LogFC(LOGDEBUG, LOGWINDOWING, "display change event");
       if (g_application.GetRenderGUI() && !DX::Windowing()->IsAlteringWindow() && GET_X_LPARAM(lParam) > 0 && GET_Y_LPARAM(lParam) > 0)
       {
         DX::Windowing()->UpdateResolutions();
@@ -1053,5 +1052,3 @@ void CWinEventsWin32::OnGesture(HWND hWnd, LPARAM lParam)
   if(DX::Windowing()->PtrCloseGestureInfoHandle)
     DX::Windowing()->PtrCloseGestureInfoHandle(reinterpret_cast<HGESTUREINFO>(lParam));
 }
-
-#endif

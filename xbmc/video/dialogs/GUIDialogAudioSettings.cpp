@@ -36,6 +36,7 @@
 
 #ifdef HAS_DS_PLAYER
 #include "guilib/GUIWindowManager.h"
+#include "guilib/GUIComponent.h"
 #include "dialogs/GUIDialogSelect.h"
 #include "dialogs/GUIDialogKaiToast.h"
 #include "GUIInfoManager.h"

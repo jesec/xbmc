@@ -258,7 +258,7 @@ void CGUIWindowVideoNav::OnInitWindow()
 
 int CGUIWindowVideoNav::GetSettingSelecTvShow()
 {
-  int iValue = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_LASTTVSHOWSELECT);
+  int iValue = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_DSPLAYER_LASTTVSHOWSELECT);
   
   if (m_vecItems->IsVideoDb() && iValue > -1)
   {

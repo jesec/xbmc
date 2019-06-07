@@ -142,6 +142,8 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
 
     bool  m_omxDecodeStartWithValidFrame;
 
+    bool  m_omlSync = false;
+
     float m_videoSubsDelayRange;
     float m_videoAudioDelayRange;
     bool m_videoUseTimeSeeking;
@@ -189,7 +191,6 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
     bool m_DXVACheckCompatibility;
     bool m_DXVACheckCompatibilityPresent;
     bool m_DXVAForceProcessorRenderer;
-    bool m_DXVAAllowHqScaling;
     int  m_videoFpsDetect;
     bool m_mediacodecForceSoftwareRendering;
     float m_maxTempo;

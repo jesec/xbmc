@@ -29,8 +29,9 @@
 #include "filesystem/file.h"
 #include "utils/log.h"
 #include "util.h"
-#include "profiles/ProfilesManager.h"
+#include "profiles/ProfileManager.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "utils/XMLUtils.h"
 #include "utils/SystemInfo.h"
 #include "PixelShaderList.h"
@@ -54,7 +55,7 @@ CDSSettings::CDSSettings(void)
 void CDSSettings::Initialize()
 {
   std::string videoRender;
-  videoRender = CServiceBroker::GetSettings().GetString(CSettings::SETTING_DSPLAYER_VIDEORENDERER);
+  videoRender = CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_DSPLAYER_VIDEORENDERER);
 
   // Create the pixel shader list
   pixelShaderList.reset(new CPixelShaderList());

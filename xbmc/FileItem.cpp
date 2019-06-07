@@ -32,6 +32,8 @@
 #include "CueDocument.h"
 #include "video/VideoDatabase.h"
 #include "music/MusicDatabase.h"
+#include "pvr/PVRManager.h"
+#include "pvr/channels/PVRChannelGroupsContainer.h"
 #include "pvr/channels/PVRChannel.h"
 #include "pvr/epg/Epg.h"
 #include "pvr/recordings/PVRRecording.h"
@@ -112,6 +114,20 @@ CFileItem::CFileItem(const CVideoInfoTag& movie)
   SetFromVideoInfoTag(movie);
 }
 
+namespace
+{
+  std::string GetEpgTagTitle(const std::shared_ptr<CPVREpgInfoTag>& epgTag)
+  {
+    if (CServiceBroker::GetPVRManager().IsParentalLocked(epgTag))
+      return g_localizeStrings.Get(19266); // Parental locked
+    else if (epgTag->Title().empty() &&
+             !CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_EPG_HIDENOINFOAVAILABLE))
+      return g_localizeStrings.Get(19055); // no information available
+    else
+      return epgTag->Title();
+  }
+} // unnamed namespace
+
 void CFileItem::FillMusicInfoTag(const CPVRChannelPtr& channel, const CPVREpgInfoTagPtr& tag)
 {
   if (channel && channel->IsRadio() && !HasMusicInfoTag())
@@ -120,7 +136,7 @@ void CFileItem::FillMusicInfoTag(const CPVRChannelPtr& channel, const CPVREpgInf
 
     if (tag)
     {
-      musictag->SetTitle(tag->Title());
+      musictag->SetTitle(GetEpgTagTitle(tag));
       musictag->SetGenre(tag->Genre());
       musictag->SetDuration(tag->GetDuration());
     }
@@ -144,15 +160,23 @@ CFileItem::CFileItem(const CPVREpgInfoTagPtr& tag)
   m_bIsFolder = false;
   m_epgInfoTag = tag;
   m_strPath = tag->Path();
-  SetLabel(tag->Title());
+  SetLabel(GetEpgTagTitle(tag));
   m_dateTime = tag->StartAsLocalTime();
 
   if (!tag->Icon().empty())
     SetIconImage(tag->Icon());
-  else if (tag->HasChannel() && !tag->Channel()->IconPath().empty())
-    SetIconImage(tag->Channel()->IconPath());
+  else
+  {
+    const std::shared_ptr<CPVRChannel> channel = CServiceBroker::GetPVRManager().ChannelGroups()->GetChannelForEpgTag(tag);
+    if (channel)
+    {
+      if (!channel->IconPath().empty())
+        SetIconImage(channel->IconPath());
 
-  FillMusicInfoTag(tag->Channel(), tag);
+      FillMusicInfoTag(channel, tag);
+    }
+  }
+
   FillInMimeType(false);
 }
 
@@ -1454,13 +1478,13 @@ void CFileItem::FillInMimeType(bool lookup /*= true*/)
       if (!lookup)
         return;
 
-      CCurlFile::GetMimeType(GetURL(), m_mimetype);
+      CCurlFile::GetMimeType(GetDynURL(), m_mimetype);
 
       // try to get mime-type again but with an NSPlayer User-Agent
       // in order for server to provide correct mime-type.  Allows us
       // to properly detect an MMS stream
       if (StringUtils::StartsWithNoCase(m_mimetype, "video/x-ms-"))
-        CCurlFile::GetMimeType(GetURL(), m_mimetype, "NSPlayer/11.00.6001.7000");
+        CCurlFile::GetMimeType(GetDynURL(), m_mimetype, "NSPlayer/11.00.6001.7000");
 
       // make sure there are no options set in mime-type
       // mime-type can look like "video/x-ms-asf ; charset=utf8"
@@ -1599,6 +1623,7 @@ void CFileItem::UpdateInfo(const CFileItem &item, bool replaceLabels /*=true*/)
     *GetGameInfoTag() = *item.GetGameInfoTag();
     SetInvalid();
   }
+  SetDynPath(item.GetDynPath());
   if (replaceLabels && !item.GetLabel().empty())
     SetLabel(item.GetLabel());
   if (replaceLabels && !item.GetLabel2().empty())
@@ -3168,10 +3193,11 @@ std::string CFileItem::GetMovieName(bool bUseFolderNames /* = false */) const
       return title;
   }
 
-  std::string strMovieName = GetBaseMoviePath(bUseFolderNames);
-
-  if (URIUtils::IsStack(strMovieName))
-    strMovieName = CStackDirectory::GetStackedTitlePath(strMovieName);
+  std::string strMovieName;
+  if (URIUtils::IsStack(m_strPath))
+    strMovieName = CStackDirectory::GetStackedTitlePath(m_strPath);
+  else
+    strMovieName = GetBaseMoviePath(bUseFolderNames);
 
   URIUtils::RemoveSlashAtEnd(strMovieName);
 
@@ -3596,7 +3622,7 @@ CFileItem CFileItem::GetItemToPlay() const
 {
   if (HasEPGInfoTag())
   {
-    const CPVRChannelPtr channel(GetEPGInfoTag()->Channel());
+    const std::shared_ptr<CPVRChannel> channel = CServiceBroker::GetPVRManager().ChannelGroups()->GetChannelForEpgTag(GetEPGInfoTag());
     if (channel)
       return CFileItem(channel);
   }

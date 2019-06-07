@@ -27,6 +27,7 @@
 #include "GraphFilters.h"
 #include "ServiceBroker.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "settings/MediaSettings.h"
 #include "Filters/LavSettings.h"
 #include "Filters/LAVAudioSettings.h"
@@ -71,7 +72,7 @@ CGraphFilters::~CGraphFilters()
 {
   if (m_isKodiRealFS)
   {
-    CServiceBroker::GetSettings().SetBool(CSettings::SETTING_VIDEOSCREEN_FAKEFULLSCREEN, false);
+    CServiceBroker::GetSettingsComponent()->GetSettings()->SetBool(CSettings::SETTING_VIDEOSCREEN_FAKEFULLSCREEN, false);
     m_isKodiRealFS = false;
   }
 }
@@ -88,17 +89,17 @@ void CGraphFilters::SetSanearSettings()
       return;
 
   std::wstring adeviceW;
-  std::string adevice = CServiceBroker::GetSettings().GetString(CSettings::SETTING_DSPLAYER_SANEARDEVICES);  
+  std::string adevice = CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_DSPLAYER_SANEARDEVICES);  
   if (adevice == "System Default")
     adevice = "";
   g_charsetConverter.utf8ToW(adevice, adeviceW, false);
 
-  bool bSanearExclusive = CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_SANEAREXCLUSIVE);
-  bool bSanearAllowbitstream = CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_SANEARALLOWBITSTREAM);
-  bool bSanearStereoCrossfeed = CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_SANEARSTEREOCROSSFEED);
-  bool bSanearIgnoreSystemChannelMixer = CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_SANEARIGNORESYSTEMCHANNELMIXER);
-  int iSanearCutoff = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_SANEARCUTOFF);
-  int iSanearLevel = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_SANEARLEVEL);
+  bool bSanearExclusive = CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_DSPLAYER_SANEAREXCLUSIVE);
+  bool bSanearAllowbitstream = CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_DSPLAYER_SANEARALLOWBITSTREAM);
+  bool bSanearStereoCrossfeed = CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_DSPLAYER_SANEARSTEREOCROSSFEED);
+  bool bSanearIgnoreSystemChannelMixer = CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_DSPLAYER_SANEARIGNORESYSTEMCHANNELMIXER);
+  int iSanearCutoff = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_DSPLAYER_SANEARCUTOFF);
+  int iSanearLevel = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_DSPLAYER_SANEARLEVEL);
 
   UINT32 buffer;
   sanear->GetOuputDevice(nullptr, nullptr, &buffer);

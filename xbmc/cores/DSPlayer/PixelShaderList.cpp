@@ -23,9 +23,10 @@
 
 #include "PixelShaderList.h"
 #include "ServiceBroker.h"
-#include "profiles/ProfilesManager.h"
+#include "profiles/ProfileManager.h"
 #include "FileSystem\File.h"
 #include "FileSystem\Directory.h"
+#include "settings/SettingsComponent.h"
 #include "utils/XMLUtils.h"
 #include "threads/SingleLock.h"
 #include "Util.h"
@@ -48,7 +49,7 @@ CPixelShaderList::~CPixelShaderList()
 
 void CPixelShaderList::SaveXML()
 {
-  std::string userDataDSPlayer = URIUtils::AddFileToFolder(CServiceBroker::GetProfileManager().GetUserDataFolder(), "dsplayer");
+  std::string userDataDSPlayer = URIUtils::AddFileToFolder(CServiceBroker::GetSettingsComponent()->GetProfileManager()->GetUserDataFolder(), "dsplayer");
   if (!XFILE::CDirectory::Exists(userDataDSPlayer))
   {
     if (!XFILE::CDirectory::Create(userDataDSPlayer))
@@ -78,7 +79,7 @@ void CPixelShaderList::SaveXML()
 
 void CPixelShaderList::Load()
 {
-  LoadXMLFile(CServiceBroker::GetProfileManager().GetUserDataItem("dsplayer/shaders.xml"));
+  LoadXMLFile(CServiceBroker::GetSettingsComponent()->GetProfileManager()->GetUserDataItem("dsplayer/shaders.xml"));
   LoadXMLFile("special://xbmc/system/players/dsplayer/shaders/shaders.xml");
 }
 

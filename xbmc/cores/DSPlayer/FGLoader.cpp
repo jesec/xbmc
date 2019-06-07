@@ -39,8 +39,9 @@
 #include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "filtercorefactory/filtercorefactory.h"
-#include "profiles/ProfilesManager.h"
+#include "profiles/ProfileManager.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "utils/SystemInfo.h"
 
 #include "filters/XBMCFileSource.h"
@@ -350,7 +351,7 @@ HRESULT CFGLoader::InsertAudioRenderer(const std::string& filterName)
   END_PERFORMANCE_COUNTER("Loaded audio renderer list");
 
   //see if there a config first 
-  const std::string renderer = CServiceBroker::GetSettings().GetString(CSettings::SETTING_DSPLAYER_AUDIORENDERER);
+  const std::string renderer = CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_DSPLAYER_AUDIORENDERER);
 
   if (renderer == CGraphFilters::INTERNAL_SANEAR)
   {
@@ -433,7 +434,7 @@ HRESULT CFGLoader::InsertVideoRenderer()
   HRESULT hr = S_OK;
 
   std::string videoRender;
-  videoRender = CServiceBroker::GetSettings().GetString(CSettings::SETTING_DSPLAYER_VIDEORENDERER);
+  videoRender = CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_DSPLAYER_VIDEORENDERER);
 
   m_pFGF = new CFGFilterVideoRenderer(CLSID_madVRAllocatorPresenter, "Kodi madVR");
 
@@ -494,7 +495,7 @@ HRESULT CFGLoader::LoadFilterRules(const CFileItem& _pFileItem)
   // We *need* those informations for filter loading. If the user wants it, be sure it's loaded
   // before using it.
   bool hasStreamDetails = false;
-  if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_MYVIDEOS_EXTRACTFLAGS) &&
+  if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_MYVIDEOS_EXTRACTFLAGS) &&
     pFileItem.HasVideoInfoTag() && !pFileItem.GetVideoInfoTag()->HasStreamDetails())
   {
     CLog::Log(LOGDEBUG, "%s - trying to extract filestream details from video file %s", __FUNCTION__, CURL::GetRedacted(pFileItem.GetPath()).c_str());
@@ -549,7 +550,7 @@ HRESULT CFGLoader::LoadFilterRules(const CFileItem& _pFileItem)
       // We will use our own stream detail
       // We need to make a copy of our streams details because
       // Reset() delete the streams
-      if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_MYVIDEOS_EXTRACTFLAGS)) // Only warn user if the option is enabled
+      if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_MYVIDEOS_EXTRACTFLAGS)) // Only warn user if the option is enabled
         CLog::Log(LOGWARNING, __FUNCTION__" VideoPlayer failed to fetch streams details. Using DirectShow ones");
 
       pFileItem.GetVideoInfoTag()->m_streamDetails.AddStream(
@@ -578,14 +579,14 @@ HRESULT CFGLoader::LoadFilterRules(const CFileItem& _pFileItem)
       if (SUCCEEDED(InsertFilter(extras[i], f)))
         CGraphFilters::Get()->Extras.push_back(f);
     }
-    if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_FILTERSMANAGEMENT) == INTERNALFILTERS)
+    if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_DSPLAYER_FILTERSMANAGEMENT) == INTERNALFILTERS)
     {
       for (unsigned int i = 0; i < 3; i++)
       {
         std::string filter;
         std::string setting;
         setting = StringUtils::Format("dsplayer.extrafilter%i", i);
-        filter = CServiceBroker::GetSettings().GetString(setting);
+        filter = CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(setting);
         if (filter != "[null]")
         {
           SFilterInfos f;
@@ -662,22 +663,24 @@ HRESULT CFGLoader::LoadConfig(FILTERSMAN_TYPE filterManager)
   }
   // Two steps
   if (filterManager == NOFILTERMAN)
-    filterManager = (FILTERSMAN_TYPE)CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_FILTERSMANAGEMENT);
+    filterManager = (FILTERSMAN_TYPE)CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_DSPLAYER_FILTERSMANAGEMENT);
+
+  const std::shared_ptr<CProfileManager> profileManager = CServiceBroker::GetSettingsComponent()->GetProfileManager();
 
   if (filterManager == MEDIARULES)
   {
     // First, filters
-    LoadFilterCoreFactorySettings(CServiceBroker::GetProfileManager().GetUserDataItem("dsplayer/filtersconfig.xml"), FILTERS, true);
+    LoadFilterCoreFactorySettings(profileManager->GetUserDataItem("dsplayer/filtersconfig.xml"), FILTERS, true);
     LoadFilterCoreFactorySettings("special://xbmc/system/players/dsplayer/filtersconfig.xml", FILTERS, false);
 
     // Second, medias rules
-    LoadFilterCoreFactorySettings(CServiceBroker::GetProfileManager().GetUserDataItem("dsplayer/mediasconfig.xml"), MEDIAS, false);
+    LoadFilterCoreFactorySettings(profileManager->GetUserDataItem("dsplayer/mediasconfig.xml"), MEDIAS, false);
     LoadFilterCoreFactorySettings("special://xbmc/system/players/dsplayer/mediasconfig.xml", MEDIAS, false, 100);
   }
   else if (filterManager == INTERNALFILTERS)
   {
     LoadFilterCoreFactorySettings("special://xbmc/system/players/dsplayer/filtersconfig_internal.xml", FILTERS, true);
-    LoadFilterCoreFactorySettings(CServiceBroker::GetProfileManager().GetUserDataItem("dsplayer/filtersconfig.xml"), FILTERS, false);
+    LoadFilterCoreFactorySettings(profileManager->GetUserDataItem("dsplayer/filtersconfig.xml"), FILTERS, false);
     LoadFilterCoreFactorySettings("special://xbmc/system/players/dsplayer/filtersconfig.xml", FILTERS, false);
     LoadFilterCoreFactorySettings("special://xbmc/system/players/dsplayer/mediasconfig_internal.xml", MEDIAS, false);
   }

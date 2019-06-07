@@ -742,6 +742,8 @@ bool CVideoPlayer::CloseFile(bool reopen)
   if(m_pInputStream)
     m_pInputStream->Abort();
 
+  m_renderManager.UnInit();
+
   CLog::Log(LOGNOTICE, "VideoPlayer: waiting for threads to exit");
 
   // wait for the main thread to finish up
@@ -758,7 +760,6 @@ bool CVideoPlayer::CloseFile(bool reopen)
   m_HasAudio = false;
 
   CLog::Log(LOGNOTICE, "VideoPlayer: finished waiting");
-  m_renderManager.UnInit();
   return true;
 }
 
@@ -813,7 +814,7 @@ bool CVideoPlayer::OpenInputStream()
   {
     // find any available external subtitles
     std::vector<std::string> filenames;
-    CUtil::ScanForExternalSubtitles(m_item.GetPath(), filenames);
+    CUtil::ScanForExternalSubtitles(m_item.GetDynPath(), filenames);
 
     // load any subtitles from file item
     std::string key("subtitle:1");
@@ -1459,11 +1460,14 @@ void CVideoPlayer::Process()
       continue;
     }
 
-    if (m_demuxerSpeed == DVD_PLAYSPEED_PAUSE)
+    // adjust demuxer speed; some rtsp servers wants to know for i.e. ff
+    // delay pause until queue is full
+    if (m_playSpeed != DVD_PLAYSPEED_PAUSE &&
+        m_demuxerSpeed != m_playSpeed)
     {
       if (m_pDemuxer)
-        m_pDemuxer->SetSpeed(DVD_PLAYSPEED_NORMAL);
-      m_demuxerSpeed = DVD_PLAYSPEED_NORMAL;
+        m_pDemuxer->SetSpeed(m_playSpeed);
+      m_demuxerSpeed = m_playSpeed;
     }
 
     // always yield to players if they have data levels > 50 percent
@@ -4444,6 +4448,8 @@ bool CVideoPlayer::OnAction(const CAction &action)
     }
   }
 
+  pMenus.reset();
+
   switch (action.GetID())
   {
     case ACTION_NEXT_ITEM:
@@ -4617,7 +4623,7 @@ int CVideoPlayer::AddSubtitleFile(const std::string& filename, const std::string
       return -1;
     m_SelectionStreams.Update(NULL, v.get(), vobsubfile);
 
-    ExternalStreamInfo info = CUtil::GetExternalStreamDetailsFromFilename(m_item.GetPath(), vobsubfile);
+    ExternalStreamInfo info = CUtil::GetExternalStreamDetailsFromFilename(m_item.GetDynPath(), vobsubfile);
 
     for (auto sub : v->GetStreams())
     {
@@ -4656,7 +4662,7 @@ int CVideoPlayer::AddSubtitleFile(const std::string& filename, const std::string
   s.type     = STREAM_SUBTITLE;
   s.id       = 0;
   s.filename = filename;
-  ExternalStreamInfo info = CUtil::GetExternalStreamDetailsFromFilename(m_item.GetPath(), filename);
+  ExternalStreamInfo info = CUtil::GetExternalStreamDetailsFromFilename(m_item.GetDynPath(), filename);
   s.name = info.name;
   s.language = info.language;
   if (static_cast<StreamFlags>(info.flag) != StreamFlags::FLAG_NONE)

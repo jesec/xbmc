@@ -104,6 +104,7 @@ public:
 
   std::shared_ptr<CMediaCodec> GetMediaCodec();
   void ResetMediaCodec();
+  void ReleaseMediaCodecBuffers();
 
 private:
   CCriticalSection m_criticalSection;;
@@ -136,6 +137,8 @@ public:
 protected:
   void            Dispose();
   void            FlushInternal(void);
+  void            SignalEndOfStream();
+  void            InjectExtraData(AMediaFormat* mediaformat);
   bool            ConfigureMediaCodec(void);
   int             GetOutputPicture(void);
   void            ConfigureOutputFormat(AMediaFormat* mediaformat);
@@ -171,6 +174,7 @@ protected:
 
   uint32_t m_OutputDuration, m_fpsDuration;
   int64_t m_lastPTS;
+  int64_t m_invalidPTSValue = 0;
   double m_dtsShift;
 
   static std::atomic<bool> m_InstanceGuard;
@@ -183,6 +187,7 @@ protected:
   mpeg2_sequence  *m_mpeg2_sequence;
   int             m_src_offset[4];
   int             m_src_stride[4];
+  bool            m_useDTSforPTS;
 
   // CJNISurfaceHolderCallback interface
 public:

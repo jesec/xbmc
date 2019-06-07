@@ -17,14 +17,17 @@
 #include "dialogs/GUIDialogFileBrowser.h"
 #include "settings/dialogs/GUIDialogLibExportSettings.h"
 #include "guilib/LocalizeStrings.h"
+#include "interfaces/AnnouncementManager.h"
 #include "interfaces/builtins/Builtins.h"
-#include "music/MusicDatabase.h"
 #include "music/MusicLibraryQueue.h"
 #include "messaging/helpers/DialogHelper.h"
+#include "ServiceBroker.h"
 #include "settings/lib/Setting.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "storage/MediaManager.h"
 #include "threads/SingleLock.h"
+#include "utils/log.h"
 #include "utils/StringUtils.h"
 #include "utils/XBMCTinyXML.h"
 #include "utils/XMLUtils.h"
@@ -289,27 +292,6 @@ bool CMediaSettings::Save(TiXmlNode *settings) const
   return true;
 }
 
-#ifdef HAS_DS_PLAYER
-void CMediaSettings::OnSettingChanged(std::shared_ptr<const CSetting> setting)
-{
-  if (setting == NULL)
-    return;
-
-  const std::string &settingId = setting->GetId();
-
-  if (settingId == CSettings::SETTING_DSPLAYER_SANEARDEVICES
-    || settingId == CSettings::SETTING_DSPLAYER_SANEAREXCLUSIVE
-    || settingId == CSettings::SETTING_DSPLAYER_SANEARALLOWBITSTREAM
-    || settingId == CSettings::SETTING_DSPLAYER_SANEARSTEREOCROSSFEED
-    || settingId == CSettings::SETTING_DSPLAYER_SANEARIGNORESYSTEMCHANNELMIXER
-    || settingId == CSettings::SETTING_DSPLAYER_SANEARCUTOFF
-    || settingId == CSettings::SETTING_DSPLAYER_SANEARLEVEL
-    )
-    CGraphFilters::Get()->SetSanearSettings();
-
-}
-#endif
-
 void CMediaSettings::OnSettingAction(std::shared_ptr<const CSetting> setting)
 {
   if (setting == NULL)
@@ -340,10 +322,8 @@ void CMediaSettings::OnSettingAction(std::shared_ptr<const CSetting> setting)
 
     if (CGUIDialogFileBrowser::ShowAndGetFile(shares, "musicdb.xml", g_localizeStrings.Get(651) , path))
     {
-      CMusicDatabase musicdatabase;
-      musicdatabase.Open();
-      musicdatabase.ImportFromXML(path);
-      musicdatabase.Close();
+      // Import data to music library showing progress dialog
+      CMusicLibraryQueue::GetInstance().ImportLibrary(path, true);
     }
   }
   else if (settingId == CSettings::SETTING_VIDEOLIBRARY_CLEANUP)
@@ -370,13 +350,13 @@ void CMediaSettings::OnSettingAction(std::shared_ptr<const CSetting> setting)
     CGraphFilters::Get()->ShowInternalPPage(CGraphFilters::INTERNAL_XYSUBFILTER, true);
   else if (settingId == CSettings::SETTING_DSPLAYER_SANEARCMOY)
   {
-    CServiceBroker::GetSettings().SetInt(CSettings::SETTING_DSPLAYER_SANEARCUTOFF, SaneAudioRenderer::ISettings::CROSSFEED_CUTOFF_FREQ_CMOY);
-    CServiceBroker::GetSettings().SetInt(CSettings::SETTING_DSPLAYER_SANEARLEVEL, SaneAudioRenderer::ISettings::CROSSFEED_LEVEL_CMOY);
+    CServiceBroker::GetSettingsComponent()->GetSettings()->SetInt(CSettings::SETTING_DSPLAYER_SANEARCUTOFF, SaneAudioRenderer::ISettings::CROSSFEED_CUTOFF_FREQ_CMOY);
+    CServiceBroker::GetSettingsComponent()->GetSettings()->SetInt(CSettings::SETTING_DSPLAYER_SANEARLEVEL, SaneAudioRenderer::ISettings::CROSSFEED_LEVEL_CMOY);
   }
   else if (settingId == CSettings::SETTING_DSPLAYER_SANEARJMEIER)
   {
-    CServiceBroker::GetSettings().SetInt(CSettings::SETTING_DSPLAYER_SANEARCUTOFF, SaneAudioRenderer::ISettings::CROSSFEED_CUTOFF_FREQ_JMEIER);
-    CServiceBroker::GetSettings().SetInt(CSettings::SETTING_DSPLAYER_SANEARLEVEL, SaneAudioRenderer::ISettings::CROSSFEED_LEVEL_JMEIER);
+    CServiceBroker::GetSettingsComponent()->GetSettings()->SetInt(CSettings::SETTING_DSPLAYER_SANEARCUTOFF, SaneAudioRenderer::ISettings::CROSSFEED_CUTOFF_FREQ_JMEIER);
+    CServiceBroker::GetSettingsComponent()->GetSettings()->SetInt(CSettings::SETTING_DSPLAYER_SANEARLEVEL, SaneAudioRenderer::ISettings::CROSSFEED_LEVEL_JMEIER);
   }
 #endif
   else if (settingId == CSettings::SETTING_VIDEOLIBRARY_IMPORT)
@@ -395,6 +375,26 @@ void CMediaSettings::OnSettingAction(std::shared_ptr<const CSetting> setting)
       videodatabase.Close();
     }
   }
+}
+
+void CMediaSettings::OnSettingChanged(std::shared_ptr<const CSetting> setting)
+{
+  if (setting == nullptr)
+    return;
+
+  if (setting->GetId() == CSettings::SETTING_VIDEOLIBRARY_SHOWUNWATCHEDPLOTS)
+    CServiceBroker::GetAnnouncementManager()->Announce(ANNOUNCEMENT::VideoLibrary, "xbmc", "OnRefresh");
+
+#ifdef HAS_DS_PLAYER
+  if (setting->GetId() == CSettings::SETTING_DSPLAYER_SANEARDEVICES ||
+      setting->GetId() == CSettings::SETTING_DSPLAYER_SANEAREXCLUSIVE ||
+      setting->GetId() == CSettings::SETTING_DSPLAYER_SANEARALLOWBITSTREAM ||
+      setting->GetId() == CSettings::SETTING_DSPLAYER_SANEARSTEREOCROSSFEED ||
+      setting->GetId() == CSettings::SETTING_DSPLAYER_SANEARIGNORESYSTEMCHANNELMIXER ||
+      setting->GetId() == CSettings::SETTING_DSPLAYER_SANEARCUTOFF ||
+      setting->GetId() == CSettings::SETTING_DSPLAYER_SANEARLEVEL)
+    CGraphFilters::Get()->SetSanearSettings();
+#endif
 }
 
 int CMediaSettings::GetWatchedMode(const std::string &content) const

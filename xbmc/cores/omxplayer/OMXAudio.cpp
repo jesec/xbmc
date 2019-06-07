@@ -30,10 +30,10 @@
 #include <cassert>
 
 extern "C" {
-#include "libavutil/crc.h"
-#include "libavutil/channel_layout.h"
-#include "libavutil/opt.h"
-#include "libswresample/swresample.h"
+#include <libavutil/crc.h>
+#include <libavutil/channel_layout.h>
+#include <libavutil/opt.h>
+#include <libswresample/swresample.h>
 }
 
 // the size of the audio_render output port buffers
@@ -1312,7 +1312,7 @@ float COMXAudio::GetCacheTotal()
 }
 
 //***********************************************************************************************
-unsigned int COMXAudio::GetChunkLen()
+unsigned int COMXAudio::GetChunkLen() const
 {
   return m_ChunkLen;
 }

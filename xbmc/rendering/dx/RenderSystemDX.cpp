@@ -36,7 +36,7 @@
 #endif
 
 extern "C" {
-#include "libavutil/pixfmt.h"
+#include <libavutil/pixfmt.h>
 }
 
 using namespace KODI;

@@ -41,10 +41,8 @@ public:
   bool Load(const TiXmlNode *settings) override;
   bool Save(TiXmlNode *settings) const override;
 
-#ifdef HAS_DS_PLAYER
-  void OnSettingChanged(std::shared_ptr<const CSetting> setting) override;
-#endif
   void OnSettingAction(std::shared_ptr<const CSetting> setting) override;
+  void OnSettingChanged(std::shared_ptr<const CSetting> setting) override;
   void OnSettingsLoaded() override;
 
   const CVideoSettings& GetDefaultVideoSettings() const { return m_defaultVideoSettings; }

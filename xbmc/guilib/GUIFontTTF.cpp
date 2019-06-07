@@ -37,14 +37,6 @@
 #include FT_OUTLINE_H
 #include FT_STROKER_H
 
-#ifdef TARGET_WINDOWS
-#ifdef NDEBUG
-#pragma comment(lib, "freetype.lib")
-#else
-#pragma comment(lib, "freetyped.lib")
-#endif
-#endif
-
 #define CHARS_PER_TEXTURE_LINE 20 // number of characters to cache per texture line
 #define CHAR_CHUNK    64      // 64 chars allocated at a time (1024 bytes)
 #define GLYPH_STRENGTH_BOLD 24
@@ -352,6 +344,11 @@ void CGUIFontTTFBase::End()
 
 void CGUIFontTTFBase::DrawTextInternal(float x, float y, const std::vector<UTILS::Color> &colors, const vecText &text, uint32_t alignment, float maxPixelWidth, bool scrolling)
 {
+  if (text.empty())
+  {
+    return;
+  }
+
   Begin();
 
   uint32_t rawAlignment = alignment;

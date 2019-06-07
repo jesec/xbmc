@@ -161,6 +161,7 @@ public:
   static const std::string SETTING_PVRMANAGER_CHANNELSCAN;
   static const std::string SETTING_PVRMANAGER_RESETDB;
   static const std::string SETTING_PVRMENU_DISPLAYCHANNELINFO;
+  static const std::string SETTING_PVRMENU_CLOSECHANNELOSDONSWITCH;
   static const std::string SETTING_PVRMENU_ICONPATH;
   static const std::string SETTING_PVRMENU_SEARCHICONS;
   static const std::string SETTING_EPG_PAST_DAYSTODISPLAY;
@@ -376,6 +377,7 @@ public:
   // values for SETTING_VIDEOLIBRARY_SHOWUNWATCHEDPLOTS
   static const int VIDEOLIBRARY_PLOTS_SHOW_UNWATCHED_MOVIES = 0;
   static const int VIDEOLIBRARY_PLOTS_SHOW_UNWATCHED_TVSHOWEPISODES = 1;
+  static const int VIDEOLIBRARY_THUMB_SHOW_UNWATCHED_EPISODE = 2;
 
 #ifdef HAS_DS_PLAYER
   static const std::string CSettings::SETTING_DSPLAYER_RULES;

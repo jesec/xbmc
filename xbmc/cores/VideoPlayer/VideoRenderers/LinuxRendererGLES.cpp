@@ -39,6 +39,23 @@ CLinuxRendererGLES::CLinuxRendererGLES()
   m_fullRange = !CServiceBroker::GetWinSystem()->UseLimitedColor();
 
   m_renderSystem = dynamic_cast<CRenderSystemGLES*>(CServiceBroker::GetRenderSystem());
+
+#if HAS_GLES >= 3
+  unsigned int verMajor, verMinor;
+  m_renderSystem->GetRenderVersion(verMajor, verMinor);
+
+  if (verMajor >= 3)
+  {
+    m_pixelStoreKey = GL_UNPACK_ROW_LENGTH;
+  }
+#endif
+
+#if defined (GL_UNPACK_ROW_LENGTH_EXT)
+  if (m_renderSystem->IsExtSupported("GL_EXT_unpack_subimage"))
+  {
+    m_pixelStoreKey = GL_UNPACK_ROW_LENGTH_EXT;
+  }
+#endif
 }
 
 CLinuxRendererGLES::~CLinuxRendererGLES()
@@ -46,6 +63,9 @@ CLinuxRendererGLES::~CLinuxRendererGLES()
   UnInit();
 
   ReleaseShaders();
+
+  free(m_planeBuffer);
+  m_planeBuffer = nullptr;
 }
 
 CBaseRenderer* CLinuxRendererGLES::Create(CVideoBuffer *buffer)
@@ -259,19 +279,29 @@ void CLinuxRendererGLES::LoadPlane(CYuvPlane& plane, int type,
 
   glBindTexture(m_textureTarget, plane.id);
 
-  // OpenGL ES does not support strided texture input.
+  bool pixelStoreChanged = false;
   if (stride != static_cast<int>(width * bps))
   {
-    unsigned char* src = static_cast<unsigned char*>(data);
-    for (unsigned int y = 0; y < height; ++y, src += stride)
+    if (m_pixelStoreKey > 0)
     {
-      glTexSubImage2D(m_textureTarget, 0, 0, y, width, 1, type, GL_UNSIGNED_BYTE, src);
+      pixelStoreChanged = true;
+      glPixelStorei(m_pixelStoreKey, stride);
+    }
+    else
+    {
+      unsigned char *src(static_cast<unsigned char*>(data)),
+                    *dst(m_planeBuffer);
+
+      for (unsigned int y = 0; y < height; ++y, src += stride, dst += width * bpp)
+        memcpy(dst, src, width * bpp);
+
+      pixelData = m_planeBuffer;
     }
   }
-  else
-  {
-    glTexSubImage2D(m_textureTarget, 0, 0, 0, width, height, type, GL_UNSIGNED_BYTE, pixelData);
-  }
+  glTexSubImage2D(m_textureTarget, 0, 0, 0, width, height, type, GL_UNSIGNED_BYTE, pixelData);
+
+  if (m_pixelStoreKey > 0 && pixelStoreChanged)
+    glPixelStorei(m_pixelStoreKey, 0);
 
   // check if we need to load any border pixels
   if (height < plane.texheight)
@@ -1261,6 +1291,8 @@ bool CLinuxRendererGLES::CreateYV12Texture(int index)
   im.planesize[0] = im.stride[0] * im.height;
   im.planesize[1] = im.stride[1] * (im.height >> im.cshift_y);
   im.planesize[2] = im.stride[2] * (im.height >> im.cshift_y);
+
+  m_planeBuffer = static_cast<unsigned char*>(realloc(m_planeBuffer, m_sourceHeight * m_sourceWidth * im.bpp));
 
   for (int i = 0; i < 3; i++)
   {

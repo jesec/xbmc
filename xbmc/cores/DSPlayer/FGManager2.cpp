@@ -28,6 +28,7 @@
 #include "DVDFileInfo.h"
 #include "utils/XMLUtils.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "filtercorefactory/filtercorefactory.h"
 #include "Filters/RendererSettings.h"
 #include "video/VideoInfoTag.h"
@@ -38,7 +39,7 @@ HRESULT CFGManager2::RenderFileXbmc(const CFileItem& pFileItem)
 {
 
   CFileItem FileItem = pFileItem;
-  bool bIsAutoRender = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DSPLAYER_FILTERSMANAGEMENT) == DSMERITS;
+  bool bIsAutoRender = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_DSPLAYER_FILTERSMANAGEMENT) == DSMERITS;
 
   if (FileItem.IsDVDFile() || !bIsAutoRender)
     return __super::RenderFileXbmc(FileItem);
@@ -50,7 +51,7 @@ HRESULT CFGManager2::RenderFileXbmc(const CFileItem& pFileItem)
   // We *need* those informations for filter loading. If the user wants it, be sure it's loaded
   // before using it.
   bool hasStreamDetails = false;
-  if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_MYVIDEOS_EXTRACTFLAGS) && FileItem.HasVideoInfoTag() && !FileItem.GetVideoInfoTag()->HasStreamDetails())
+  if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_MYVIDEOS_EXTRACTFLAGS) && FileItem.HasVideoInfoTag() && !FileItem.GetVideoInfoTag()->HasStreamDetails())
   {
     CLog::Log(LOGDEBUG, "%s - trying to extract filestream details from video file %s", __FUNCTION__, CURL::GetRedacted(FileItem.GetPath()).c_str());
     hasStreamDetails = CDVDFileInfo::GetFileStreamDetails(&FileItem);
@@ -141,7 +142,7 @@ HRESULT CFGManager2::RenderFileXbmc(const CFileItem& pFileItem)
   END_PERFORMANCE_COUNTER("Loading streams informations");
 
   if (!hasStreamDetails) {
-    if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_MYVIDEOS_EXTRACTFLAGS)) // Only warn user if the option is enabled
+    if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_MYVIDEOS_EXTRACTFLAGS)) // Only warn user if the option is enabled
       CLog::Log(LOGWARNING, __FUNCTION__" VideoPlayer failed to fetch streams details. Using DirectShow ones");
 
     FileItem.GetVideoInfoTag()->m_streamDetails.AddStream(new CDSStreamDetailVideo((const CDSStreamDetailVideo &)(*CStreamsManager::Get()->GetVideoStreamDetail())));

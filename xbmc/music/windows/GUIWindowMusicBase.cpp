@@ -62,6 +62,8 @@
 #include "platform/linux/XTimeUtils.h"
 #endif
 
+#include <algorithm>
+
 using namespace XFILE;
 using namespace MUSICDATABASEDIRECTORY;
 using namespace PLAYLIST;
@@ -474,7 +476,7 @@ void CGUIWindowMusicBase::AddItemToPlayList(const CFileItemPtr &pItem, CFileItem
         return;
       }
     }
-    else if(pItem->IsInternetStream())
+    else if(pItem->IsInternetStream() && !pItem->IsMusicDb())
     { // just queue the internet stream, it will be expanded on play
       queuedItems.Add(pItem);
     }
@@ -548,12 +550,6 @@ void CGUIWindowMusicBase::GetContextButtons(int itemNumber, CContextButtons &but
         if (item->IsSmartPlayList())
         {
             buttons.Add(CONTEXT_BUTTON_PLAY_PARTYMODE, 15216); // Play in Partymode
-        }
-        if (item->IsAudioBook())
-        {
-          int bookmark;
-          if (m_musicdatabase.GetResumeBookmarkForAudioBook(item->GetPath(), bookmark) && bookmark > 0)
-            buttons.Add(CONTEXT_BUTTON_RESUME_ITEM, 39016);
         }
 
         if (item->IsSmartPlayList() || m_vecItems->IsSmartPlayList())
@@ -684,19 +680,6 @@ bool CGUIWindowMusicBase::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
     if (m_musicdatabase.LookupCDDBInfo(true))
       Refresh();
     return true;
-
-  case CONTEXT_BUTTON_RESUME_ITEM: //audiobooks
-    {
-      Update(item->GetPath());
-      int bookmark;
-      m_musicdatabase.GetResumeBookmarkForAudioBook(item->GetPath(), bookmark);
-      int i=0;
-      while (i < m_vecItems->Size() && bookmark > m_vecItems->Get(i)->m_lEndOffset)
-        ++i;
-      CFileItem resItem(*m_vecItems->Get(i));
-      resItem.SetProperty("StartPercent", ((double)bookmark-resItem.m_lStartOffset)/(resItem.m_lEndOffset-resItem.m_lStartOffset)*100);
-      g_application.PlayFile(resItem, "", false);
-    }
 
   default:
     break;
@@ -846,7 +829,7 @@ bool CGUIWindowMusicBase::OnPlayMedia(int iItem, const std::string &player)
   {
     CPlayList playlistTemp;
     playlistTemp.Add(pItem);
-    g_partyModeManager.AddUserSongs(playlistTemp, true);
+    g_partyModeManager.AddUserSongs(playlistTemp, !CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_MUSICPLAYER_QUEUEBYDEFAULT));
     return true;
   }
   else if (!pItem->IsPlayList() && !pItem->IsInternetStream())
@@ -1018,6 +1001,45 @@ bool CGUIWindowMusicBase::CheckFilterAdvanced(CFileItemList &items) const
 bool CGUIWindowMusicBase::CanContainFilter(const std::string &strDirectory) const
 {
   return URIUtils::IsProtocol(strDirectory, "musicdb");
+}
+
+bool CGUIWindowMusicBase::OnSelect(int iItem)
+{
+  auto item = m_vecItems->Get(iItem);
+  if (item->IsAudioBook())
+  {
+    int bookmark;
+    if (m_musicdatabase.GetResumeBookmarkForAudioBook(*item, bookmark) && bookmark > 0)
+    {
+      // find which chapter the bookmark belongs to
+      auto itemIt = std::find_if(
+        m_vecItems->cbegin(),
+        m_vecItems->cend(),
+        [&](const CFileItemPtr& item) { return bookmark < item->m_lEndOffset; }
+      );
+
+      if (itemIt != m_vecItems->cend())
+      {
+        // ask the user if they want to play or resume
+        CContextButtons choices;
+        choices.Add(MUSIC_SELECT_ACTION_PLAY, 208); // 208 = Play
+        choices.Add(MUSIC_SELECT_ACTION_RESUME, StringUtils::Format(g_localizeStrings.Get(12022), // 12022 = Resume from ...
+          (*itemIt)->GetMusicInfoTag()->GetTitle().c_str()
+        ));
+
+        auto choice = CGUIDialogContextMenu::Show(choices);
+        if (choice == MUSIC_SELECT_ACTION_RESUME)
+        {
+          (*itemIt)->SetProperty("audiobook_bookmark", bookmark);
+          return CGUIMediaWindow::OnSelect(itemIt - m_vecItems->cbegin());
+        }
+        else if (choice < 0)
+          return true;
+      }
+    }
+  }
+
+  return CGUIMediaWindow::OnSelect(iItem);
 }
 
 void CGUIWindowMusicBase::OnInitWindow()

@@ -39,7 +39,7 @@
 #include "windowing/GraphicContext.h"
 #include "Application.h"
 
-#include "DVDCodecs/DVDCodecUtils.h"
+#include "DVDCodecs/Video/DVDVideoCodec.h"
 
 CWinDsRenderer::CWinDsRenderer(): 
   m_bConfigured(false)
@@ -139,12 +139,14 @@ void CWinDsRenderer::RenderUpdate(int index, int index2, bool clear, unsigned in
   Render(flags);
 }
 
-void CWinDsRenderer::Flush()
+bool CWinDsRenderer::Flush(bool saveBuffers)
 {
   SetViewMode(g_application.GetAppPlayer().GetVideoSettings().m_ViewMode);
   ManageRenderArea();
 
   m_bConfigured = true;
+
+  return false;
 }
 
 void CWinDsRenderer::UnInit()

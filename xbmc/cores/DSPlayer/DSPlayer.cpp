@@ -55,6 +55,7 @@
 #include "pvr/windows/GUIWindowPVRBase.h"
 #include "pvr/channels/PVRChannel.h"
 #include "settings/AdvancedSettings.h"
+#include "settings/SettingsComponent.h"
 #include "Application.h"
 #include "AppInboundProtocol.h"
 #include "GUIUserMessages.h"
@@ -97,7 +98,7 @@ CDSPlayer::CDSPlayer(IPlayerCallback& callback)
   m_canTempo = false;
   m_HasVideo = false;
   m_HasAudio = false;
-  m_isMadvr = (CServiceBroker::GetSettings().GetString(CSettings::SETTING_DSPLAYER_VIDEORENDERER) == "madVR");
+  m_isMadvr = (CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_DSPLAYER_VIDEORENDERER) == "madVR");
 
   if (InitWindow(m_hWnd))
     CLog::Log(LOGDEBUG, "%s : Create DSPlayer window - hWnd: %i", __FUNCTION__, static_cast<void*>(m_hWnd));
@@ -250,10 +251,10 @@ bool CDSPlayer::OpenFile(const CFileItem& file, const CPlayerOptions &options)
     return false;
   }
 
-  if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOSCREEN_FAKEFULLSCREEN))
+  if (!CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_VIDEOSCREEN_FAKEFULLSCREEN))
   {
     CGraphFilters::Get()->SetKodiRealFS(true);
-    CServiceBroker::GetSettings().SetBool(CSettings::SETTING_VIDEOSCREEN_FAKEFULLSCREEN, true);
+    CServiceBroker::GetSettingsComponent()->GetSettings()->SetBool(CSettings::SETTING_VIDEOSCREEN_FAKEFULLSCREEN, true);
   }
 
   CGraphFilters::Get()->SetAuxAudioDelay();
@@ -372,7 +373,7 @@ void CDSPlayer::GetAudioStreamInfo(int index, AudioStreamInfo &info)
   info.samplerate = (CStreamsManager::Get()) ? CStreamsManager::Get()->GetSampleRate(index) : 0;
   codecname = (CStreamsManager::Get()) ? CStreamsManager::Get()->GetAudioCodecDisplayName(index) : "";
 
-  if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_SHOWSPLITTERDETAIL) ||
+  if (!CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_DSPLAYER_SHOWSPLITTERDETAIL) ||
       CGraphFilters::Get()->UsingMediaPortalTsReader())
   { 
     label = StringUtils::Format("%s - (%s, %d Hz, %i Channels)", strStreamName.c_str(), codecname.c_str(), info.samplerate, info.channels);
@@ -594,7 +595,7 @@ void CDSPlayer::Process()
   CLog::Log(LOGNOTICE, "%s - Creating DS Graph", __FUNCTION__);
 
   // Set the selected video renderer
-  SetCurrentVideoRenderer(CServiceBroker::GetSettings().GetString(CSettings::SETTING_DSPLAYER_VIDEORENDERER));
+  SetCurrentVideoRenderer(CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_DSPLAYER_VIDEORENDERER));
 
   // Create DirectShow Graph
   hr = g_dsGraph->SetFile(m_currentFileItem, m_PlayerOptions);
@@ -1021,7 +1022,7 @@ void CDSPlayer::UpdateChannelSwitchSettings()
 
 bool CDSPlayer::SelectChannel(bool bNext)
 {
-  bool bShowPreview = false;/*(CServiceBroker::GetSettings().GetInt("pvrplayback.channelentrytimeout") > 0);*/ // TODO
+  bool bShowPreview = false;/*(CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt("pvrplayback.channelentrytimeout") > 0);*/ // TODO
 
   if (!bShowPreview)
   {

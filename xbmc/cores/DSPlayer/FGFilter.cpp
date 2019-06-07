@@ -36,10 +36,11 @@
 #include "utils/charsetconverter.h"
 #include "utils/XMLUtils.h"
 #include "filesystem/File.h"
-#include "profiles/ProfilesManager.h"
+#include "profiles/ProfileManager.h"
 #include "Dmodshow.h"
 #include "Dmoreg.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "../../filesystem/SpecialProtocol.h "
 #include "cores/DSPlayer/DSPlayer.h"
 #include "Utils/DSFileUtils.h"
@@ -353,7 +354,7 @@ CFGFilterFile::CFGFilterFile(TiXmlElement *pFilter)
     if (!XFILE::CFile::Exists(m_path))
     {
       std::string path(m_path);
-      m_path = CServiceBroker::GetProfileManager().GetUserDataItem("dsplayer/" + path);
+      m_path = CServiceBroker::GetSettingsComponent()->GetProfileManager()->GetUserDataItem("dsplayer/" + path);
       if (!XFILE::CFile::Exists(m_path))
       {
         m_path = StringUtils::Format("special://xbmc/system/players/dsplayer/%s", path.c_str());

@@ -34,6 +34,7 @@
 #include "settings/DisplaySettings.h"
 #include "settings/MediaSettings.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "windowing/GraphicContext.h"
 #include "cores/DataCacheCore.h"
 #include "GraphFilters.h"
@@ -45,7 +46,7 @@
 
 #include "windowing/WinSystem.h"
 
-#include "DVDCodecs/DVDCodecUtils.h"
+#include "DVDCodecs/Video/DVDVideoCodec.h"
 
 using namespace KODI::MESSAGING;
 
@@ -273,7 +274,7 @@ bool CRenderDSManager::Flush()
 
     if (m_pRenderer)
     {
-      m_pRenderer->Flush();
+      m_pRenderer->Flush(false);
       m_debugRenderer.Flush();
       m_flushEvent.Set();
     }
@@ -331,8 +332,8 @@ RESOLUTION CRenderDSManager::GetResolution()
   if (m_renderState == STATE_UNCONFIGURED)
     return res;
 
-  if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) != ADJUST_REFRESHRATE_OFF)
-    res = CResolutionUtils::ChooseBestResolution(m_fps, m_width, CONF_FLAGS_STEREO_MODE_MASK(m_flags));
+  if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) != ADJUST_REFRESHRATE_OFF)
+    res = CResolutionUtils::ChooseBestResolution(m_fps, m_width, CONF_FLAGS_STEREO_MODE_MASK(m_flags), false);
 
   return res;
 }
@@ -449,10 +450,10 @@ void CRenderDSManager::UpdateResolution()
   {
     if (CServiceBroker::GetWinSystem()->GetGfxContext().IsFullScreenVideo() && CServiceBroker::GetWinSystem()->GetGfxContext().IsFullScreenRoot())
     {
-      if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) != ADJUST_REFRESHRATE_OFF && m_fps > 0.0f)
+      if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) != ADJUST_REFRESHRATE_OFF && m_fps > 0.0f)
       {
         if (m_Resolution == RES_INVALID)
-          m_Resolution = CResolutionUtils::ChooseBestResolution(m_fps, m_width, CONF_FLAGS_STEREO_MODE_MASK(m_flags) != 0);
+          m_Resolution = CResolutionUtils::ChooseBestResolution(m_fps, m_width, CONF_FLAGS_STEREO_MODE_MASK(m_flags) != 0, false);
 
         CServiceBroker::GetWinSystem()->GetGfxContext().SetVideoResolution(m_Resolution, false);
         UpdateDisplayLatency();
@@ -487,7 +488,7 @@ void CRenderDSManager::DisplayChange(bool bExternalChange)
     refreshRate = static_cast<float>(iRefreshRate);
 
   // Convert Current Resolution to Kodi Res
-  std::string sRes = StringUtils::Format("%1i%05i%05i%09.5f%s", CServiceBroker::GetWinSystem()->GetCurrentScreen(), width, height, refreshRate, bInterlaced ? "istd" : "pstd");
+  std::string sRes = StringUtils::Format("%05i%05i%09.5f%s", width, height, refreshRate, bInterlaced ? "istd" : "pstd");
   RESOLUTION res = CDisplaySettings::GetResolutionFromString(sRes);
   RESOLUTION_INFO res_info = CDisplaySettings::GetInstance().GetResolutionInfo(res);
 

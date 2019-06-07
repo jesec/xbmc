@@ -25,6 +25,7 @@
 #include "RendererSettings.h"
 #include "guilib/GUIWindowManager.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "settings/DisplaySettings.h"
 #include "settings/AdvancedSettings.h"
 #include "PixelShaderList.h"
@@ -116,9 +117,9 @@ void CmadVRAllocatorPresenter::SetResolution()
 
   SIZE nativeVideoSize = GetVideoSize(false);
 
-  if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) != ADJUST_REFRESHRATE_OFF && CServiceBroker::GetWinSystem()->GetGfxContext().IsFullScreenRoot())
+  if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) != ADJUST_REFRESHRATE_OFF && CServiceBroker::GetWinSystem()->GetGfxContext().IsFullScreenRoot())
   {
-    RESOLUTION res = CResolutionUtils::ChooseBestResolution(fps, nativeVideoSize.cx, false);   
+    RESOLUTION res = CResolutionUtils::ChooseBestResolution(fps, nativeVideoSize.cx, false, false);   
     CServiceBroker::GetWinSystem()->GetGfxContext().SetVideoResolution(res, false);
   }
 }

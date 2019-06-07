@@ -20,12 +20,14 @@
  */
 #ifdef HAS_DS_PLAYER
 #include "DSPlayerDatabase.h"
+#include "ServiceBroker.h"
 #include "utils/log.h"
 #include "utils/URIUtils.h"
 #include "dbwrappers/dataset.h"
 #include "filesystem/StackDirectory.h"
 #include "video/VideoInfoTag.h "
 #include "settings/AdvancedSettings.h"
+#include "settings/SettingsComponent.h"
 #include "utils/StringUtils.h"
 #include "Filters/LAVAudioSettings.h"
 #include "Filters/LAVVideoSettings.h"

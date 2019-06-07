@@ -37,6 +37,7 @@
 #include "DSUtil/SmartPtr.h"
 #include "windowing/WinSystem.h"
 #include "LangInfo.h"
+#include "settings/SettingsComponent.h"
 #include "settings/MediaSettings.h"
 #include "Filters/RendererSettings.h"
 #include "Utils/URIUtils.h"
@@ -1029,7 +1030,7 @@ void CStreamsManager::SubInterface(SelectSubType action)
 
 void CStreamsManager::SelectBestAudio()
 {
-  std::string sPrefCodec = CServiceBroker::GetSettings().GetString(CSettings::SETTING_DSPLAYER_PREFAUDIOCODEC);
+  std::string sPrefCodec = CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_DSPLAYER_PREFAUDIOCODEC);
   int iLibrary = g_application.GetAppPlayer().GetVideoSettings().m_AudioStream;
   if ((iLibrary < GetAudioStreamCount()) && !(iLibrary < 0))
   {
@@ -1116,17 +1117,17 @@ void CStreamsManager::SelectBestSubtitle(const std::string &fileName /* ="" */)
         if (selectFirst == -1)
           selectFirst = i;
 
-        if (CServiceBroker::GetSettings().GetString(CSettings::SETTING_DSPLAYER_EXSUBTITLELANGUAGE) != "original")
+        if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_DSPLAYER_EXSUBTITLELANGUAGE) != "original")
         {
 
           std::string sPref;
-          if (CServiceBroker::GetSettings().GetString(CSettings::SETTING_DSPLAYER_EXSUBTITLELANGUAGE) == "default")
+          if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_DSPLAYER_EXSUBTITLELANGUAGE) == "default")
           {
             sPref = g_langInfo.GetLocale().GetLanguageCode();
             sPref = ProbeLangForLanguage(sPref.c_str());
           }
           else
-            sPref = CServiceBroker::GetSettings().GetString(CSettings::SETTING_DSPLAYER_EXSUBTITLELANGUAGE);
+            sPref = CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_DSPLAYER_EXSUBTITLELANGUAGE);
 
           std::string sName = ProbeLangForLanguage((*it)->isolang.c_str());
           if (StringUtils::EqualsNoCase(sName, sPref))
@@ -1389,7 +1390,7 @@ void CStreamsManager::MediaTypeToStreamDetail(AM_MEDIA_TYPE *pMediaType, CStream
     infos.subtype = pMediaType->subtype;
   }
 
-  if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_SHOWSPLITTERDETAIL) ||
+  if (!CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_DSPLAYER_SHOWSPLITTERDETAIL) ||
       CGraphFilters::Get()->UsingMediaPortalTsReader())
     FormatStreamName(s);
   else
@@ -1589,13 +1590,13 @@ void CSubtitleManager::Initialize()
   SSubStyle style; //auto default on constructor
 
   // Build style based on XBMC settings
-  style.colors[0] = color[CServiceBroker::GetSettings().GetInt(CSettings::SETTING_SUBTITLES_COLOR)];
-  style.alpha[0] = CServiceBroker::GetSettings().GetInt("subtitles.alpha");
+  style.colors[0] = color[CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_SUBTITLES_COLOR)];
+  style.alpha[0] = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt("subtitles.alpha");
 
-  CServiceBroker::GetWinSystem()->GetGfxContext().SetScalingResolution(RES_PAL_4x3, true);
-  style.fontSize = (float)(CServiceBroker::GetSettings().GetInt(CSettings::SETTING_SUBTITLES_HEIGHT)) * 50.0 / 72.0;
+  CServiceBroker::GetWinSystem()->GetGfxContext().SetScalingResolution(10, true);
+  style.fontSize = (float)(CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_SUBTITLES_HEIGHT)) * 50.0 / 72.0;
 
-  int fontStyle = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_SUBTITLES_STYLE);
+  int fontStyle = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_SUBTITLES_STYLE);
   switch (fontStyle)
   {
   case FONT_STYLE_NORMAL:
@@ -1619,17 +1620,17 @@ void CSubtitleManager::Initialize()
 
   style.charSet = CDSCharsetConverter::getCharsetIdByName(g_langInfo.GetSubtitleCharSet());
 
-  style.borderStyle = CServiceBroker::GetSettings().GetInt("subtitles.border");
-  style.shadowDepthX = style.shadowDepthY = CServiceBroker::GetSettings().GetInt("subtitles.shadowdepth");
-  style.outlineWidthX = style.outlineWidthY = CServiceBroker::GetSettings().GetInt("subtitles.outlinewidth");
+  style.borderStyle = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt("subtitles.border");
+  style.shadowDepthX = style.shadowDepthY = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt("subtitles.shadowdepth");
+  style.outlineWidthX = style.outlineWidthY = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt("subtitles.outlinewidth");
 
   std::wstring fontName;
-  g_charsetConverter.utf8ToW(CServiceBroker::GetSettings().GetString("subtitles.dsfont"), fontName);
+  g_charsetConverter.utf8ToW(CServiceBroker::GetSettingsComponent()->GetSettings()->GetString("subtitles.dsfont"), fontName);
   style.fontName = (wchar_t *)CoTaskMemAlloc(fontName.length() * sizeof(wchar_t) + 2);
   if (style.fontName)
     wcscpy_s(style.fontName, fontName.length() + 1, fontName.c_str());
 
-  bool override = CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SUBTITLES_OVERRIDEASSFONTS);
+  bool override = CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_SUBTITLES_OVERRIDEASSFONTS);
   m_pManager->SetStyle(&style, override);
 
   if (FAILED(m_pManager->InsertPassThruFilter(g_dsGraph->pFilterGraph)))

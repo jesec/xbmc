@@ -91,7 +91,7 @@ protected:
 
   CDebugRenderer m_debugRenderer;
   CBaseRenderer *m_pRenderer = nullptr;
-  CCriticalSection m_statelock;
+  mutable CCriticalSection m_statelock;
   CCriticalSection m_datalock;
   bool m_bTriggerUpdateResolution;
   bool m_bTriggerDisplayChange;

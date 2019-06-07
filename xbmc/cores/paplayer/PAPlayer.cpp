@@ -230,9 +230,11 @@ bool PAPlayer::OpenFile(const CFileItem& file, const CPlayerOptions &options)
     CSingleLock lock(m_streamsLock);
     m_jobCounter++;
   }
-  CJobManager::GetInstance().Submit([this, file]() {
-    QueueNextFileEx(file, false);
-  }, this, CJob::PRIORITY_NORMAL);
+  CJobManager::GetInstance().Submit(
+    [=]() { QueueNextFileEx(file, false); },
+    this,
+    CJob::PRIORITY_NORMAL
+  );
 
   CSingleLock lock(m_streamsLock);
   if (m_streams.size() == 2)
@@ -256,12 +258,6 @@ bool PAPlayer::OpenFile(const CFileItem& file, const CPlayerOptions &options)
 
   m_callback.OnPlayBackStarted(file);
   m_signalStarted = false;
-
-  if (options.startpercent > 0.0)
-  {
-    Sleep(50);
-    SeekPercentage(options.startpercent);
-  }
 
   return true;
 }
@@ -373,7 +369,10 @@ bool PAPlayer::QueueNextFileEx(const CFileItem &file, bool fadeIn)
   si->m_finishing = false;
   si->m_framesSent = 0;
   si->m_seekNextAtFrame = 0;
-  si->m_seekFrame = -1;
+  if (si->m_fileItem.HasProperty("audiobook_bookmark"))
+    si->m_seekFrame = si->m_audioFormat.m_sampleRate * CUtil::ConvertMilliSecsToSecs(si->m_fileItem.GetProperty("audiobook_bookmark").asInteger());
+  else
+    si->m_seekFrame = -1;
   si->m_stream = NULL;
   si->m_volume = (fadeIn && m_upcomingCrossfadeMS) ? 0.0f : 1.0f;
   si->m_fadeOutTriggered = false;
@@ -562,14 +561,18 @@ void PAPlayer::Process()
 
     if (m_newForcedPlayerTime != -1)
     {
-      SetTimeInternal(m_newForcedPlayerTime);
-      m_newForcedPlayerTime = -1;
+      if (SetTimeInternal(m_newForcedPlayerTime))
+      {
+        m_newForcedPlayerTime = -1;
+      }
     }
 
     if (m_newForcedTotalTime != -1)
     {
-      SetTotalTimeInternal(m_newForcedTotalTime);
-      m_newForcedTotalTime = -1;
+      if (SetTotalTimeInternal(m_newForcedTotalTime))
+      {
+        m_newForcedTotalTime = -1;
+      }
     }
 
     GetTimeInternal(); //update for GUI
@@ -956,26 +959,32 @@ int64_t PAPlayer::GetTimeInternal()
   return (int64_t)time;
 }
 
-void PAPlayer::SetTotalTimeInternal(int64_t time)
+bool PAPlayer::SetTotalTimeInternal(int64_t time)
 {
   CSingleLock lock(m_streamsLock);
   if (!m_currentStream)
-    return;
+  {
+    return false;
+  }
 
   m_currentStream->m_decoder.SetTotalTime(time);
   UpdateGUIData(m_currentStream);
+  
+  return true;
 }
 
-void PAPlayer::SetTimeInternal(int64_t time)
+bool PAPlayer::SetTimeInternal(int64_t time)
 {
   CSingleLock lock(m_streamsLock);
   if (!m_currentStream)
-    return;
+    return false;
 
   m_currentStream->m_framesSent = time / 1000 * m_currentStream->m_audioFormat.m_sampleRate;
 
   if (m_currentStream->m_stream)
     m_currentStream->m_framesSent += m_currentStream->m_stream->GetDelay() * m_currentStream->m_audioFormat.m_sampleRate;
+  
+  return true;
 }
 
 void PAPlayer::SetTime(int64_t time)

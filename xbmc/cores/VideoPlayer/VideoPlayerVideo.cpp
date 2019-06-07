@@ -462,6 +462,7 @@ void CVideoPlayerVideo::Process()
       }
 
       m_renderManager.DiscardBuffer();
+      FlushMessages();
     }
     else if (pMsg->IsType(CDVDMsg::PLAYER_SETSPEED))
     {
@@ -670,7 +671,14 @@ bool CVideoPlayerVideo::ProcessDecoderOutput(double &frametime, double &pts)
 
     // use forced aspect if any
     if (m_fForcedAspectRatio != 0.0f)
+    {
       m_picture.iDisplayWidth = (int) (m_picture.iDisplayHeight * m_fForcedAspectRatio);
+      if (m_picture.iDisplayWidth > m_picture.iWidth)
+      {
+        m_picture.iDisplayWidth =  m_picture.iWidth;
+        m_picture.iDisplayHeight = (int) (m_picture.iDisplayWidth / m_fForcedAspectRatio);
+      }
+    }
 
     // set stereo mode if not set by decoder
     if (m_picture.stereoMode.empty())
@@ -769,7 +777,6 @@ void CVideoPlayerVideo::Flush(bool sync)
   /* flush using message as this get's called from VideoPlayer thread */
   /* and any demux packet that has been taken out of queue need to */
   /* be disposed of before we flush */
-  FlushMessages();
   SendMessage(new CDVDMsgBool(CDVDMsg::GENERAL_FLUSH, sync), 1);
   m_bAbortOutput = true;
 }

@@ -121,7 +121,7 @@ void CPlayerCoreFactory::GetPlayers(const CFileItem& item, std::vector<std::stri
   if (item.IsVideo() || (!item.IsAudio() && !item.IsGame()))
   {
 #ifdef HAS_DS_PLAYER
-    if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DSPLAYER_DEFAULTVIDEOPLAYER))
+    if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_DSPLAYER_DEFAULTVIDEOPLAYER))
     {
       players.push_back("DSPlayer");
     }

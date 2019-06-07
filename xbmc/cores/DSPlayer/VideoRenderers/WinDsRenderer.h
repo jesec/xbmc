@@ -51,12 +51,12 @@ public:
 
   // Player functions
   virtual bool         Configure(const VideoPicture &picture, float fps, unsigned int orientation);
-  virtual void         AddVideoPicture(const VideoPicture &picture, int index, double currentClock) {};
+  virtual void         AddVideoPicture(const VideoPicture &picture, int index) {};
   virtual void         FlipPage(int source) {};
   virtual void         UnInit();
   virtual void         Reset() {};
   virtual bool         IsConfigured() { return m_bConfigured; }
-  virtual void         Flush();
+  virtual bool         Flush(bool saveBuffers);
 
   // Feature support
   virtual bool         SupportsMultiPassRendering() { return false; }
