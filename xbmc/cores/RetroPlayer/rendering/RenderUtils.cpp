@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2018 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this Program; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "RenderUtils.h"
@@ -26,13 +14,20 @@
 using namespace KODI;
 using namespace RETRO;
 
-void CRenderUtils::CalculateViewMode(VIEWMODE viewMode, unsigned int rotationDegCCW, unsigned int sourceWidth, unsigned int sourceHeight, float screenWidth, float screenHeight, float &pixelRatio, float &zoomAmount)
+void CRenderUtils::CalculateStretchMode(STRETCHMODE stretchMode,
+                                        unsigned int rotationDegCCW,
+                                        unsigned int sourceWidth,
+                                        unsigned int sourceHeight,
+                                        float screenWidth,
+                                        float screenHeight,
+                                        float &pixelRatio,
+                                        float &zoomAmount)
 {
   const float sourceFrameRatio = static_cast<float>(sourceWidth) / static_cast<float>(sourceHeight);
 
-  switch (viewMode)
+  switch (stretchMode)
   {
-  case VIEWMODE::Normal:
+  case STRETCHMODE::Normal:
   {
     switch (rotationDegCCW)
     {
@@ -50,7 +45,7 @@ void CRenderUtils::CalculateViewMode(VIEWMODE viewMode, unsigned int rotationDeg
 
     break;
   }
-  case VIEWMODE::Stretch4x3:
+  case STRETCHMODE::Stretch4x3:
   {
     // Stretch to 4:3 ratio
     pixelRatio = (4.0f / 3.0f) / sourceFrameRatio;
@@ -58,7 +53,7 @@ void CRenderUtils::CalculateViewMode(VIEWMODE viewMode, unsigned int rotationDeg
 
     break;
   }
-  case VIEWMODE::Fullscreen:
+  case STRETCHMODE::Fullscreen:
   {
     // Stretch to the limits of the screen
     pixelRatio = (screenWidth / screenHeight) / sourceFrameRatio;
@@ -66,7 +61,7 @@ void CRenderUtils::CalculateViewMode(VIEWMODE viewMode, unsigned int rotationDeg
 
     break;
   }
-  case VIEWMODE::Original:
+  case STRETCHMODE::Original:
   {
     switch (rotationDegCCW)
     {
@@ -112,7 +107,10 @@ void CRenderUtils::CalculateViewMode(VIEWMODE viewMode, unsigned int rotationDeg
   }
 }
 
-void CRenderUtils::CalcNormalRenderRect(const CRect &viewRect, float outputFrameRatio, float zoomAmount, CRect &destRect)
+void CRenderUtils::CalcNormalRenderRect(const CRect &viewRect,
+                                        float outputFrameRatio,
+                                        float zoomAmount,
+                                        CRect &destRect)
 {
   const float offsetX = viewRect.x1;
   const float offsetY = viewRect.y1;
@@ -156,7 +154,9 @@ void CRenderUtils::CalcNormalRenderRect(const CRect &viewRect, float outputFrame
   destRect.y2 = destRect.y1 + MathUtils::round_int(newHeight);
 }
 
-void CRenderUtils::ClipRect(const CRect &viewRect, CRect &sourceRect, CRect &destRect)
+void CRenderUtils::ClipRect(const CRect &viewRect,
+                            CRect &sourceRect,
+                            CRect &destRect)
 {
   const float offsetX = viewRect.x1;
   const float offsetY = viewRect.y1;
@@ -176,7 +176,8 @@ void CRenderUtils::ClipRect(const CRect &viewRect, CRect &sourceRect, CRect &des
   }
 }
 
-std::array<CPoint, 4> CRenderUtils::ReorderDrawPoints(const CRect &destRect, unsigned int orientationDegCCW, float aspectRatio)
+std::array<CPoint, 4> CRenderUtils::ReorderDrawPoints(const CRect &destRect,
+                                                      unsigned int orientationDegCCW)
 {
   std::array<CPoint, 4> rotatedDestCoords{};
 

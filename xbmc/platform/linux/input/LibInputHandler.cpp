@@ -1,26 +1,15 @@
 /*
- *      Copyright (C) 2005-2017 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "LibInputHandler.h"
 #include "LibInputKeyboard.h"
 #include "LibInputPointer.h"
+#include "LibInputSettings.h"
 #include "LibInputTouch.h"
 
 #include "utils/log.h"
@@ -29,6 +18,7 @@
 #include <fcntl.h>
 #include <linux/input.h>
 #include <string.h>
+#include <sys/epoll.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 
@@ -101,6 +91,7 @@ CLibInputHandler::CLibInputHandler() : CThread("libinput")
   m_keyboard.reset(new CLibInputKeyboard());
   m_pointer.reset(new CLibInputPointer());
   m_touch.reset(new CLibInputTouch());
+  m_settings.reset(new CLibInputSettings(this));
 }
 
 CLibInputHandler::~CLibInputHandler()
@@ -111,6 +102,11 @@ CLibInputHandler::~CLibInputHandler()
   udev_unref(m_udev);
 }
 
+bool CLibInputHandler::SetKeymap(const std::string& layout)
+{
+  return m_keyboard->SetKeymap(layout);
+}
+
 void CLibInputHandler::Start()
 {
   Create();
@@ -119,12 +115,34 @@ void CLibInputHandler::Start()
 
 void CLibInputHandler::Process()
 {
+  int epollFd = epoll_create1(0);
+  if (epollFd < 0)
+  {
+    CLog::Log(LOGERROR, "CLibInputHandler::%s - failed to create epoll file descriptor: %s", __FUNCTION__, strerror(-errno));
+    return;
+  }
+
+  epoll_event event;
+  event.events = EPOLLIN;
+  event.data.fd = m_liFd;
+
+  auto ret = epoll_ctl(epollFd, EPOLL_CTL_ADD, m_liFd, &event);
+  if (ret < 0)
+  {
+    CLog::Log(LOGERROR, "CLibInputHandler::%s - failed to add file descriptor to epoll: %s", __FUNCTION__, strerror(-errno));
+    close(epollFd);
+    return;
+  }
+
   while (!m_bStop)
   {
-    auto ret = libinput_dispatch(m_li);
+    epoll_wait(epollFd, &event, 1, 200);
+
+    ret = libinput_dispatch(m_li);
     if (ret < 0)
     {
       CLog::Log(LOGERROR, "CLibInputHandler::%s - libinput_dispatch failed: %s", __FUNCTION__, strerror(-errno));
+      close(epollFd);
       return;
     }
 
@@ -134,8 +152,13 @@ void CLibInputHandler::Process()
       ProcessEvent(ev);
       libinput_event_destroy(ev);
     }
+  }
 
-    Sleep(10);
+  ret = close(epollFd);
+  if (ret < 0)
+  {
+    CLog::Log(LOGERROR, "CLibInputHandler::%s - failed to close epoll file descriptor: %s", __FUNCTION__, strerror(-errno));
+    return;
   }
 }
 

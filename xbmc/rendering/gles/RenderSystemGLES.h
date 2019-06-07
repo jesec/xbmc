@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -24,6 +12,8 @@
 #include "rendering/RenderSystem.h"
 #include "utils/Color.h"
 #include "GLESShader.h"
+
+#include <array>
 
 enum ESHADERMETHOD
 {
@@ -101,15 +91,13 @@ protected:
   virtual void PresentRenderImpl(bool rendered) = 0;
   void CalculateMaxTexturesize();
 
-  int        m_iVSyncMode;
-  int        m_iVSyncErrors;
-  bool       m_bVsyncInit;
-  int        m_width;
-  int        m_height;
+  bool m_bVsyncInit{false};
+  int m_width;
+  int m_height;
 
   std::string m_RenderExtensions;
 
-  std::unique_ptr<CGLESShader*[]> m_pShader;
+  std::array<std::unique_ptr<CGLESShader>, SM_MAX> m_pShader;
   ESHADERMETHOD m_method = SM_DEFAULT;
 
   GLint      m_viewPort[4];

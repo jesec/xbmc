@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2007-2015 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2007-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "RendererMediaCodec.h"
@@ -69,7 +57,7 @@ bool CRendererMediaCodec::Register()
   return true;
 }
 
-void CRendererMediaCodec::AddVideoPicture(const VideoPicture &picture, int index, double currentClock)
+void CRendererMediaCodec::AddVideoPicture(const VideoPicture &picture, int index)
 {
   CPictureBuffer &buf = m_buffers[index];
   CMediaCodecVideoBuffer *videoBuffer;
@@ -122,8 +110,8 @@ bool CRendererMediaCodec::LoadShadersHook()
 
 bool CRendererMediaCodec::RenderHook(int index)
 {
-  YUVPLANE &plane = m_buffers[index].fields[0][0];
-  YUVPLANE &planef = m_buffers[index].fields[m_currentField][0];
+  CYuvPlane &plane = m_buffers[index].fields[0][0];
+  CYuvPlane &planef = m_buffers[index].fields[m_currentField][0];
 
   glDisable(GL_DEPTH_TEST);
 
@@ -231,7 +219,7 @@ bool CRendererMediaCodec::CreateTexture(int index)
 
   for (int f=0; f<3; ++f)
   {
-    YUVPLANE  &plane  = buf.fields[f][0];
+    CYuvPlane  &plane  = buf.fields[f][0];
 
     plane.texwidth  = m_sourceWidth;
     plane.texheight = m_sourceHeight;

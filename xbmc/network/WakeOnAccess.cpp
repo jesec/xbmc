@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2013-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include <limits.h>
@@ -35,6 +23,7 @@
 #include "guilib/LocalizeStrings.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "settings/MediaSourceSettings.h"
 #include "settings/lib/Setting.h"
 #include "utils/JobManager.h"
@@ -696,22 +685,23 @@ void CWakeOnAccess::QueueMACDiscoveryForAllRemotes()
   AddHostsFromVecSource(ms.GetSources("pictures"), hosts);
   AddHostsFromVecSource(ms.GetSources("programs"), hosts);
 
+  const std::shared_ptr<CAdvancedSettings> advancedSettings = CServiceBroker::GetSettingsComponent()->GetAdvancedSettings();
+
   // add mysql servers
-  AddHostFromDatabase(g_advancedSettings.m_databaseVideo, hosts);
-  AddHostFromDatabase(g_advancedSettings.m_databaseMusic, hosts);
-  AddHostFromDatabase(g_advancedSettings.m_databaseEpg, hosts);
-  AddHostFromDatabase(g_advancedSettings.m_databaseTV, hosts);
+  AddHostFromDatabase(advancedSettings->m_databaseVideo, hosts);
+  AddHostFromDatabase(advancedSettings->m_databaseMusic, hosts);
+  AddHostFromDatabase(advancedSettings->m_databaseEpg, hosts);
+  AddHostFromDatabase(advancedSettings->m_databaseTV, hosts);
 
   // add from path substitutions ..
-  for (CAdvancedSettings::StringMapping::iterator i = g_advancedSettings.m_pathSubstitutions.begin(); i != g_advancedSettings.m_pathSubstitutions.end(); ++i)
+  for (const auto& pathPair : advancedSettings->m_pathSubstitutions)
   {
-    CURL url(i->second);
-
+    CURL url(pathPair.second);
     AddHost (url.GetHostName(), hosts);
   }
 
-  for (std::vector<std::string>::const_iterator it = hosts.begin(); it != hosts.end(); ++it)
-    QueueMACDiscoveryForHost(*it);
+  for (const std::string& host : hosts)
+    QueueMACDiscoveryForHost(host);
 }
 
 void CWakeOnAccess::SaveMACDiscoveryResult(const std::string& host, const std::string& mac)
@@ -806,7 +796,7 @@ void CWakeOnAccess::SetEnabled(bool enabled)
 
 void CWakeOnAccess::LoadFromXML()
 {
-  bool enabled = CServiceBroker::GetSettings().GetBool(CSettings::SETTING_POWERMANAGEMENT_WAKEONACCESS);
+  bool enabled = CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_POWERMANAGEMENT_WAKEONACCESS);
 
   CXBMCTinyXML xmlDoc;
   if (!xmlDoc.LoadFile(GetSettingFile()))

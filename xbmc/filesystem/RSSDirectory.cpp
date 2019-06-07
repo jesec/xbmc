@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "RSSDirectory.h"
@@ -28,6 +16,7 @@
 #include "ServiceBroker.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "threads/SingleLock.h"
 #include "URL.h"
 #include "utils/FileExtensionProvider.h"
@@ -192,7 +181,7 @@ static void ParseItemMRSS(CFileItem* item, SResources& resources, TiXmlElement* 
     else if(scheme == "urn:boxee:source")
       item->SetProperty("boxee:provider_source", text);
     else
-      vtag->m_genre = StringUtils::Split(text, g_advancedSettings.m_videoItemSeparator);
+      vtag->m_genre = StringUtils::Split(text, CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_videoItemSeparator);
   }
   else if(name == "rating")
   {
@@ -218,7 +207,7 @@ static void ParseItemMRSS(CFileItem* item, SResources& resources, TiXmlElement* 
     }
   }
   else if(name == "copyright")
-    vtag->m_studio = StringUtils::Split(text, g_advancedSettings.m_videoItemSeparator);
+    vtag->m_studio = StringUtils::Split(text, CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_videoItemSeparator);
   else if(name == "keywords")
     item->SetProperty("keywords", text);
 
@@ -458,7 +447,7 @@ static void ParseItem(CFileItem* item, TiXmlElement* root, const std::string& pa
   else if(FindMime(resources, "image/"))
     mime = "image/";
 
-  int maxrate = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_NETWORK_BANDWIDTH);
+  int maxrate = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_NETWORK_BANDWIDTH);
   if(maxrate == 0)
     maxrate = INT_MAX;
 

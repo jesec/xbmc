@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include <netdb.h>
@@ -28,9 +16,9 @@
 #include "messaging/ApplicationMessenger.h"
 #include "network/NetworkServices.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "utils/log.h"
 #ifdef TARGET_WINDOWS
-#include "utils/SystemInfo.h"
 #include "platform/win32/WIN32Util.h"
 #include "utils/CharsetConverter.h"
 #endif
@@ -137,8 +125,8 @@ int NetworkAccessPoint::FreqToChannel(float frequency)
   return 0; // unknown
 }
 
-CNetworkBase::CNetworkBase(CSettings &settings) :
-  m_services(new CNetworkServices(settings))
+CNetworkBase::CNetworkBase() :
+  m_services(new CNetworkServices())
 {
   CApplicationMessenger::GetInstance().PostMsg(TMSG_NETWORKMESSAGE, SERVICES_UP, 0);
 }
@@ -525,7 +513,7 @@ std::vector<SOCKET> CreateTCPServerSocket(const int port, const bool bindLocal, 
 
 void CNetworkBase::WaitForNet()
 {
-  const int timeout = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_POWERMANAGEMENT_WAITFORNETWORK);
+  const int timeout = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_POWERMANAGEMENT_WAITFORNETWORK);
   if (timeout <= 0)
     return; // wait for network is disabled
 
@@ -551,4 +539,38 @@ void CNetworkBase::WaitForNet()
   }
 
   CLog::Log(LOGNOTICE, "%s: No network interface did come up within %d s... Giving up...", __FUNCTION__, timeout);
+}
+
+std::string CNetworkBase::GetIpStr(const struct sockaddr* sa)
+{
+  std::string result;
+  if (!sa)
+    return result;
+
+  char buffer[INET6_ADDRSTRLEN] = { 0 };
+  switch (sa->sa_family)
+  {
+  case AF_INET:
+    inet_ntop(AF_INET, &reinterpret_cast<const struct sockaddr_in *>(sa)->sin_addr, buffer, INET_ADDRSTRLEN);
+    break;
+  case AF_INET6:
+    inet_ntop(AF_INET6, &reinterpret_cast<const struct sockaddr_in6 *>(sa)->sin6_addr, buffer, INET6_ADDRSTRLEN);
+    break;
+  default:
+    return result;
+  }
+
+  result = buffer;
+  return result;
+}
+
+std::string CNetworkBase::GetMaskByPrefixLength(uint8_t prefixLength)
+{
+  if (prefixLength > 32)
+    return "";
+
+  struct sockaddr_in sa;
+  sa.sin_family = AF_INET;
+  sa.sin_addr.s_addr = htonl(~((1 << (32u - prefixLength)) - 1));;
+  return CNetworkBase::GetIpStr(reinterpret_cast<struct sockaddr*>(&sa));
 }

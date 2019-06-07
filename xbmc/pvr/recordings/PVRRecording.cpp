@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "PVRRecording.h"
@@ -25,6 +13,7 @@
 #include "guilib/LocalizeStrings.h"
 #include "messaging/helpers/DialogOKHelper.h"
 #include "settings/AdvancedSettings.h"
+#include "settings/SettingsComponent.h"
 #include "utils/StringUtils.h"
 #include "utils/Variant.h"
 #include "utils/log.h"
@@ -88,7 +77,7 @@ CPVRRecording::CPVRRecording(const PVR_RECORDING &recording, unsigned int iClien
   if (recording.iYear > 0)
     SetYear(recording.iYear);
   m_iClientId                      = iClientId;
-  m_recordingTime                  = recording.recordingTime + g_advancedSettings.m_iPVRTimeCorrection;
+  m_recordingTime                  = recording.recordingTime + CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_iPVRTimeCorrection;
   m_iPriority                      = recording.iPriority;
   m_iLifetime                      = recording.iLifetime;
   // Deleted recording is placed at the root of the deleted view
@@ -105,7 +94,7 @@ CPVRRecording::CPVRRecording(const PVR_RECORDING &recording, unsigned int iClien
 
   SetGenre(recording.iGenreType, recording.iGenreSubType, recording.strGenreDescription);
   CVideoInfoTag::SetPlayCount(recording.iPlayCount);
-  CVideoInfoTag::SetResumePoint(recording.iLastPlayedPosition, recording.iDuration);
+  CVideoInfoTag::SetResumePoint(recording.iLastPlayedPosition, recording.iDuration, "");
   SetDuration(recording.iDuration);
 
   //  As the channel a recording was done on (probably long time ago) might no longer be
@@ -164,7 +153,10 @@ bool CPVRRecording::operator ==(const CPVRRecording& right) const
        m_bIsDeleted         == right.m_bIsDeleted &&
        m_iEpgEventId        == right.m_iEpgEventId &&
        m_iChannelUid        == right.m_iChannelUid &&
-       m_bRadio             == right.m_bRadio);
+       m_bRadio             == right.m_bRadio &&
+       m_genre              == right.m_genre &&
+       m_iGenreType         == right.m_iGenreType &&
+       m_iGenreSubType      == right.m_iGenreSubType);
 }
 
 bool CPVRRecording::operator !=(const CPVRRecording& right) const
@@ -187,6 +179,7 @@ void CPVRRecording::Serialize(CVariant& value) const
   value["epgeventid"] = m_iEpgEventId;
   value["channeluid"] = m_iChannelUid;
   value["radio"] = m_bRadio;
+  value["genre"] = m_genre;
 
   if (!value.isMember("art"))
     value["art"] = CVariant(CVariant::VariantTypeObject);
@@ -309,8 +302,12 @@ bool CPVRRecording::SetResumePoint(double timeInSeconds, double totalTimeInSecon
 CBookmark CPVRRecording::GetResumePoint() const
 {
   const CPVRClientPtr client = CServiceBroker::GetPVRManager().GetClient(m_iClientId);
-  if (client && client->GetClientCapabilities().SupportsRecordingsLastPlayedPosition())
+  if (client && client->GetClientCapabilities().SupportsRecordingsLastPlayedPosition() &&
+      m_resumePointRefetchTimeout.IsTimePast())
   {
+    // @todo: root cause should be fixed. details: https://github.com/xbmc/xbmc/pull/14961
+    m_resumePointRefetchTimeout.Set(10000); // update resume point from backend at most every 10 secs
+
     int pos = -1;
     client->GetRecordingLastPlayedPosition(*this, pos);
 
@@ -384,6 +381,17 @@ void CPVRRecording::Update(const CPVRRecording &tag)
   CVideoInfoTag::SetPlayCount(tag.GetLocalPlayCount());
   CVideoInfoTag::SetResumePoint(tag.GetLocalResumePoint());
   SetDuration(tag.GetDuration());
+
+  if (m_iGenreType == EPG_GENRE_USE_STRING)
+  {
+    /* No type/subtype. Use the provided description */
+    m_genre = tag.m_genre;
+  }
+  else
+  {
+    /* Determine genre description by type/subtype */
+    m_genre = StringUtils::Split(CPVREpg::ConvertGenreIdToString(tag.m_iGenreType, tag.m_iGenreSubType), CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_videoItemSeparator);
+  }
 
   //Old Method of identifying TV show title and subtitle using m_strDirectory and strPlotOutline (deprecated)
   std::string strShow = StringUtils::Format("%s - ", g_localizeStrings.Get(20364).c_str());
@@ -486,14 +494,22 @@ bool CPVRRecording::IsInProgress() const
 
 void CPVRRecording::SetGenre(int iGenreType, int iGenreSubType, const std::string &strGenre)
 {
+  m_iGenreType = iGenreType;
+  m_iGenreSubType = iGenreSubType;
+
   if ((iGenreType == EPG_GENRE_USE_STRING) && !strGenre.empty())
   {
     /* Type and sub type are not given. Use the provided genre description if available. */
-    m_genre = StringUtils::Split(strGenre, g_advancedSettings.m_videoItemSeparator);
+    m_genre = StringUtils::Split(strGenre, CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_videoItemSeparator);
   }
   else
   {
     /* Determine the genre description from the type and subtype IDs */
-    m_genre = StringUtils::Split(CPVREpg::ConvertGenreIdToString(iGenreType, iGenreSubType), g_advancedSettings.m_videoItemSeparator);
+    m_genre = StringUtils::Split(CPVREpg::ConvertGenreIdToString(iGenreType, iGenreSubType), CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_videoItemSeparator);
   }
+}
+
+const std::string CPVRRecording::GetGenresLabel() const
+{
+  return StringUtils::Join(m_genre, CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_videoItemSeparator);
 }

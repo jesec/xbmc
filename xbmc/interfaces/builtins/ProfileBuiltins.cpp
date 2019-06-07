@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2015 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "ProfileBuiltins.h"
@@ -28,8 +16,9 @@
 #include "guilib/GUIWindowManager.h"
 #include "GUIPassword.h"
 #include "GUIUserMessages.h"
-#include "profiles/ProfilesManager.h"
+#include "profiles/ProfileManager.h"
 #include "ServiceBroker.h"
+#include "settings/SettingsComponent.h"
 #include "Util.h"
 #include "utils/StringUtils.h"
 
@@ -42,13 +31,13 @@ using namespace KODI::MESSAGING;
  */
 static int LoadProfile(const std::vector<std::string>& params)
 {
-  const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+  const std::shared_ptr<CProfileManager> profileManager = CServiceBroker::GetSettingsComponent()->GetProfileManager();
 
-  int index = profileManager.GetProfileIndex(params[0]);
+  int index = profileManager->GetProfileIndex(params[0]);
   bool prompt = (params.size() == 2 && StringUtils::EqualsNoCase(params[1], "prompt"));
   bool bCanceled;
   if (index >= 0
-      && (profileManager.GetMasterProfile().getLockMode() == LOCK_MODE_EVERYONE
+      && (profileManager->GetMasterProfile().getLockMode() == LOCK_MODE_EVERYONE
         || g_passwordManager.IsProfileLockUnlocked(index,bCanceled,prompt)))
   {
     CApplicationMessenger::GetInstance().PostMsg(TMSG_LOADPROFILE, index);
@@ -62,8 +51,8 @@ static int LoadProfile(const std::vector<std::string>& params)
  */
 static int LogOff(const std::vector<std::string>& params)
 {
-  CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
-  profileManager.LogOff();
+  const std::shared_ptr<CProfileManager> profileManager = CServiceBroker::GetSettingsComponent()->GetProfileManager();
+  profileManager->LogOff();
 
   return 0;
 }

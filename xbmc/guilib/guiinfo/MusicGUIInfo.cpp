@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "guilib/guiinfo/MusicGUIInfo.h"
@@ -32,6 +20,7 @@
 #include "music/tags/MusicInfoTag.h"
 #include "playlists/PlayList.h"
 #include "settings/AdvancedSettings.h"
+#include "settings/SettingsComponent.h"
 #include "utils/URIUtils.h"
 #include "utils/log.h"
 
@@ -98,7 +87,17 @@ bool CMusicGUIInfo::GetLabel(std::string& value, const CFileItem *item, int cont
       /////////////////////////////////////////////////////////////////////////////////////////////
       // PLAYER_* / MUSICPLAYER_* / LISTITEM_*
       /////////////////////////////////////////////////////////////////////////////////////////////
+      case PLAYER_PATH:
+      case PLAYER_FILENAME:
+      case PLAYER_FILEPATH:
+        value = tag->GetURL();
+        if (value.empty())
+          value = item->GetPath();
+        value = GUIINFO::GetFileInfoLabelValueFromPath(info.m_info, value);
+        return true;
       case PLAYER_TITLE:
+        value = tag->GetTitle();
+        return !value.empty();
       case MUSICPLAYER_TITLE:
         value = tag->GetTitle();
         if (value.empty())
@@ -108,7 +107,7 @@ bool CMusicGUIInfo::GetLabel(std::string& value, const CFileItem *item, int cont
         return true;
       case LISTITEM_TITLE:
         value = tag->GetTitle();
-        return !value.empty();
+        return true;
       case MUSICPLAYER_PLAYCOUNT:
       case LISTITEM_PLAYCOUNT:
         if (tag->GetPlayCount() > 0)
@@ -178,7 +177,7 @@ bool CMusicGUIInfo::GetLabel(std::string& value, const CFileItem *item, int cont
         return true;
       case MUSICPLAYER_GENRE:
       case LISTITEM_GENRE:
-        value =  StringUtils::Join(tag->GetGenre(), g_advancedSettings.m_musicItemSeparator);
+        value =  StringUtils::Join(tag->GetGenre(), CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_musicItemSeparator);
         return true;
       case MUSICPLAYER_LYRICS:
         value = tag->GetLyrics();
@@ -277,6 +276,8 @@ bool CMusicGUIInfo::GetLabel(std::string& value, const CFileItem *item, int cont
       case LISTITEM_FILE_EXTENSION:
         if (item->IsMusicDb())
           value = URIUtils::GetFileName(tag->GetURL());
+        else if (item->HasVideoInfoTag()) // special handling for music videos, which have both a videotag and a musictag
+          break;
         else
           value = URIUtils::GetFileName(item->GetPath());
 
@@ -290,6 +291,8 @@ bool CMusicGUIInfo::GetLabel(std::string& value, const CFileItem *item, int cont
       case LISTITEM_PATH:
         if (item->IsMusicDb())
           value = URIUtils::GetDirectory(tag->GetURL());
+        else if (item->HasVideoInfoTag()) // special handling for music videos, which have both a videotag and a musictag
+          break;
         else
           URIUtils::GetParentPath(item->GetPath(), value);
 
@@ -304,6 +307,8 @@ bool CMusicGUIInfo::GetLabel(std::string& value, const CFileItem *item, int cont
       case LISTITEM_FILENAME_AND_PATH:
         if (item->IsMusicDb())
           value = tag->GetURL();
+        else if (item->HasVideoInfoTag()) // special handling for music videos, which have both a videotag and a musictag
+          break;
         else
           value = item->GetPath();
 
@@ -314,29 +319,6 @@ bool CMusicGUIInfo::GetLabel(std::string& value, const CFileItem *item, int cont
 
   switch (info.m_info)
   {
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-    // PLAYER_*
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-    case PLAYER_PATH:
-    case PLAYER_FILENAME:
-    case PLAYER_FILEPATH:
-      if (tag)
-        value = tag->GetURL();
-      if (value.empty())
-        value = item->GetPath();
-
-      if (info.m_info == PLAYER_PATH)
-      {
-        // do this twice since we want the path outside the archive if this
-        // is to be of use.
-        if (URIUtils::IsInArchive(value))
-          value = URIUtils::GetParentPath(value);
-        value = URIUtils::GetParentPath(value);
-      }
-      else if (info.m_info == PLAYER_FILENAME)
-        value = URIUtils::GetFileName(value);
-      return true;
-
     ///////////////////////////////////////////////////////////////////////////////////////////////
     // MUSICPLAYER_*
     ///////////////////////////////////////////////////////////////////////////////////////////////

@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2010-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2010-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "DVDAudioCodecPassthrough.h"
@@ -24,8 +12,6 @@
 #include "utils/log.h"
 
 #include <algorithm>
-#include "ServiceBroker.h"
-#include "cores/AudioEngine/Interfaces/AE.h"
 
 extern "C" {
 #include "libavcodec/avcodec.h"
@@ -123,15 +109,17 @@ bool CDVDAudioCodecPassthrough::AddData(const DemuxPacket &packet)
       if (m_nextPts != DVD_NOPTS_VALUE)
       {
         m_currentPts = m_nextPts;
-        m_nextPts = DVD_NOPTS_VALUE;
+        m_nextPts = packet.pts;
       }
       else if (packet.pts != DVD_NOPTS_VALUE)
       {
         m_currentPts = packet.pts;
       }
     }
-
-    m_nextPts = packet.pts;
+    else
+    {
+      m_nextPts = packet.pts;
+    }
   }
 
   if (pData && !m_backlogSize)

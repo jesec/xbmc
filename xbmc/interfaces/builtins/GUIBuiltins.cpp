@@ -1,22 +1,10 @@
 /*
-   *      Copyright (C) 2005-2015 Team XBMC
-   *      http://kodi.tv
-   *
-   *  This Program is free software; you can redistribute it and/or modify
-   *  it under the terms of the GNU General Public License as published by
-   *  the Free Software Foundation; either version 2, or (at your option)
-   *  any later version.
-   *
-   *  This Program is distributed in the hope that it will be useful,
-   *  but WITHOUT ANY WARRANTY; without even the implied warranty of
-   *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-   *  GNU General Public License for more details.
-   *
-   *  You should have received a copy of the GNU General Public License
-   *  along with XBMC; see the file COPYING.  If not, see
-   *  <http://www.gnu.org/licenses/>.
-   *
-   */
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
+ *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
+ */
 
 #include "GUIBuiltins.h"
 
@@ -26,8 +14,7 @@
 #include "dialogs/GUIDialogKaiToast.h"
 #include "dialogs/GUIDialogNumeric.h"
 #include "filesystem/Directory.h"
-#include "input/ActionTranslator.h"
-#include "input/Key.h"
+#include "input/actions/ActionTranslator.h"
 #include "input/WindowTranslator.h"
 #include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
@@ -35,7 +22,7 @@
 #include "guilib/StereoscopicsManager.h"
 #include "input/ButtonTranslator.h"
 #include "settings/AdvancedSettings.h"
-#include "settings/DisplaySettings.h"
+#include "settings/SettingsComponent.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
 #include "Util.h"
@@ -345,34 +332,6 @@ static int SetLanguage(const std::vector<std::string>& params)
   return 0;
 }
 
-/*! \brief Set GUI resolution.
- *  \param params The parameters.
- *  \details params[0] = A resolution identifier.
- */
-static int SetResolution(const std::vector<std::string>& params)
-{
-  RESOLUTION res = RES_PAL_4x3;
-  std::string paramlow(params[0]);
-  StringUtils::ToLower(paramlow);
-  if (paramlow == "pal") res = RES_PAL_4x3;
-  else if (paramlow == "pal16x9") res = RES_PAL_16x9;
-  else if (paramlow == "ntsc") res = RES_NTSC_4x3;
-  else if (paramlow == "ntsc16x9") res = RES_NTSC_16x9;
-  else if (paramlow == "720p") res = RES_HDTV_720p;
-  else if (paramlow == "720psbs") res = RES_HDTV_720pSBS;
-  else if (paramlow == "720ptb") res = RES_HDTV_720pTB;
-  else if (paramlow == "1080psbs") res = RES_HDTV_1080pSBS;
-  else if (paramlow == "1080ptb") res = RES_HDTV_1080pTB;
-  else if (paramlow == "1080i") res = RES_HDTV_1080i;
-  if (CServiceBroker::GetWinSystem()->GetGfxContext().IsValidResolution(res))
-  {
-    CDisplaySettings::GetInstance().SetCurrentResolution(res, true);
-    g_application.ReloadSkin();
-  }
-
-  return 0;
-}
-
 /*! \brief Set a property in a window.
  *  \param params The parameters.
  *  \details params[0] = The property to set.
@@ -411,7 +370,7 @@ static int SetStereoMode(const std::vector<std::string>& params)
  */
 static int ToggleDirty(const std::vector<std::string>&)
 {
-  g_advancedSettings.ToggleDirtyRegionVisualization();
+  CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->ToggleDirtyRegionVisualization();
 
   return 0;
 }
@@ -601,7 +560,6 @@ CBuiltins::CommandMap CGUIBuiltins::GetOperations() const
            {"refreshrss",                     {"Reload RSS feeds from RSSFeeds.xml", 0, RefreshRSS}},
            {"replacewindow",                  {"Replaces the current window with the new one", 1, ActivateWindow<true>}},
            {"replacewindowandfocus",          {"Replaces the current window with the new one and sets focus to the specified id", 1, ActivateAndFocus<true>}},
-           {"resolution",                     {"Change Kodi's Resolution", 1, SetResolution}},
            {"setguilanguage",                 {"Set GUI Language", 1, SetLanguage}},
            {"setproperty",                    {"Sets a window property for the current focused window/dialog (key,value)", 2, SetProperty}},
            {"setstereomode",                  {"Changes the stereo mode of the GUI. Params can be: toggle, next, previous, select, tomono or any of the supported stereomodes (off, split_vertical, split_horizontal, row_interleaved, hardware_based, anaglyph_cyan_red, anaglyph_green_magenta, anaglyph_yellow_blue, monoscopic)", 1, SetStereoMode}},

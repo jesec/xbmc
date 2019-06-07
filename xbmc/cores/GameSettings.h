@@ -1,22 +1,11 @@
 /*
- *      Copyright (C) 2017-2018 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2017-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this Program; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
+
 #pragma once
 
 namespace KODI
@@ -33,15 +22,38 @@ enum class SCALINGMETHOD
   MAX = LINEAR
 };
 
-// NOTE: Only append
-enum class VIEWMODE
+/*!
+ * \ingroup games
+ * \brief Methods for stretching the game to the viewing area
+ */
+enum class STRETCHMODE
 {
-  Normal = 0,
-  Stretch4x3 = 1,
-  Fullscreen = 2,
-  Original = 3,
-  Max = Original
+  /*!
+   * \brief Show the game at its normal aspect ratio
+   */
+  Normal,
+
+  /*!
+   * \brief Stretch the game to maintain a 4:3 aspect ratio
+   */
+  Stretch4x3,
+
+  /*!
+   * \brief Stretch the game to fill the viewing area
+   */
+  Fullscreen,
+
+  /*!
+   * \brief Show the game at its original size (humorous for old consoles
+   *        on 4K TVs)
+   */
+  Original,
 };
+
+constexpr const char* STRETCHMODE_NORMAL_ID = "normal";
+constexpr const char* STRETCHMODE_STRETCH_4_3_ID = "4:3";
+constexpr const char* STRETCHMODE_FULLSCREEN_ID = "fullscreen";
+constexpr const char* STRETCHMODE_ORIGINAL_ID = "original";
 
 enum class RENDERFEATURE
 {

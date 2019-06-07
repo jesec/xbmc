@@ -421,10 +421,11 @@ void CRenderDSManager::UpdateDisplayLatency()
   float refresh = CServiceBroker::GetWinSystem()->GetGfxContext().GetFPS();
   if (CServiceBroker::GetWinSystem()->GetGfxContext().GetVideoResolution() == RES_WINDOW)
     refresh = 0; // No idea about refresh rate when windowed, just get the default latency
-  m_displayLatency = g_advancedSettings.GetLatencyTweak(refresh);
+  const std::shared_ptr<CAdvancedSettings> advancedSettings = CServiceBroker::GetSettingsComponent()->GetAdvancedSettings();
+  m_displayLatency = advancedSettings->GetLatencyTweak(refresh);
 
   if (CGraphFilters::Get()->GetAuxAudioDelay())
-    m_displayLatency += (double)g_advancedSettings.GetDisplayAuxDelay(refresh);
+    m_displayLatency += (double)advancedSettings->GetDisplayAuxDelay(refresh);
 
   g_application.GetAppPlayer().SetAVDelay(g_application.GetAppPlayer().GetVideoSettings().m_AudioDelay);
 

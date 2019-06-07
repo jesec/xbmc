@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "WebServer.h"
@@ -34,11 +22,11 @@
 #include "network/httprequesthandler/IHTTPRequestHandler.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "ServiceBroker.h"
 #include "threads/SingleLock.h"
-#include "URL.h"
 #include "Util.h"
-#include "utils/Base64.h"
+#include "utils/FileUtils.h"
 #include "utils/log.h"
 #include "utils/Mime.h"
 #include "utils/StringUtils.h"
@@ -745,6 +733,10 @@ int CWebServer::CreateFileDownloadResponse(const std::shared_ptr<IHTTPRequestHan
   std::shared_ptr<XFILE::CFile> file = std::make_shared<XFILE::CFile>();
   std::string filePath = handler->GetResponseFile();
 
+  // access check
+  if (!CFileUtils::CheckFileAccessAllowed(filePath))
+    return SendErrorResponse(request, MHD_HTTP_NOT_FOUND, request.method);
+
   if (!file->Open(filePath, XFILE::READ_NO_CACHE))
   {
     CLog::Log(LOGERROR, "CWebServer[%hu]: Failed to open %s", m_port, filePath.c_str());
@@ -1122,7 +1114,7 @@ struct MHD_Daemon* CWebServer::StartMHD(unsigned int flags, int port)
 
   MHD_set_panic_func(&panicHandlerForMHD, nullptr);
 
-  if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SERVICES_WEBSERVERSSL) &&
+  if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_SERVICES_WEBSERVERSSL) &&
       MHD_is_feature_supported(MHD_FEATURE_SSL) == MHD_YES &&
       LoadCert(m_key, m_cert))
     // SSL enabled
@@ -1265,7 +1257,7 @@ void CWebServer::UnregisterRequestHandler(IHTTPRequestHandler *handler)
 
 void CWebServer::LogRequest(const HTTPRequest& request) const
 {
-  if (!g_advancedSettings.CanLogComponent(LOGWEBSERVER))
+  if (!CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->CanLogComponent(LOGWEBSERVER))
     return;
 
   std::multimap<std::string, std::string> headerValues;
@@ -1290,7 +1282,7 @@ void CWebServer::LogRequest(const HTTPRequest& request) const
 
 void CWebServer::LogResponse(const HTTPRequest& request, int responseStatus) const
 {
-  if (!g_advancedSettings.CanLogComponent(LOGWEBSERVER))
+  if (!CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->CanLogComponent(LOGWEBSERVER))
     return;
 
   std::multimap<std::string, std::string> headerValues;

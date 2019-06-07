@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GraphicContext.h"
@@ -27,6 +15,7 @@
 #include "settings/DisplaySettings.h"
 #include "settings/lib/Setting.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "utils/log.h"
 #include "rendering/RenderSystem.h"
 #include "input/InputManager.h"
@@ -338,7 +327,7 @@ void CGraphicContext::SetFullScreenVideo(bool bOnOff)
       bTriggerUpdateRes = true;
     else
     {
-      bool allowDesktopRes = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) == ADJUST_REFRESHRATE_ALWAYS;
+      bool allowDesktopRes = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) == ADJUST_REFRESHRATE_ALWAYS;
       if (!allowDesktopRes)
       {
         if (g_application.GetAppPlayer().IsPlayingVideo())
@@ -401,25 +390,25 @@ void CGraphicContext::SetVideoResolutionInternal(RESOLUTION res, bool forceUpdat
   RESOLUTION lastRes = m_Resolution;
 
   // If the user asked us to guess, go with desktop
-  if (res == RES_AUTORES || !IsValidResolution(res))
+  if (!IsValidResolution(res))
   {
     res = RES_DESKTOP;
   }
 
   // If we are switching to the same resolution and same window/full-screen, no need to do anything
-  if (!forceUpdate && res == lastRes && m_bFullScreenRoot == g_advancedSettings.m_fullScreen)
+  if (!forceUpdate && res == lastRes && m_bFullScreenRoot == CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_fullScreen)
   {
     return;
   }
 
   if (res >= RES_DESKTOP)
   {
-    g_advancedSettings.m_fullScreen = true;
+    CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_fullScreen = true;
     m_bFullScreenRoot = true;
   }
   else
   {
-    g_advancedSettings.m_fullScreen = false;
+    CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_fullScreen = false;
     m_bFullScreenRoot = false;
   }
 
@@ -439,10 +428,10 @@ void CGraphicContext::SetVideoResolutionInternal(RESOLUTION res, bool forceUpdat
   RESOLUTION_INFO info_org  = CDisplaySettings::GetInstance().GetResolutionInfo(res);
 
   bool switched = false;
-  if (g_advancedSettings.m_fullScreen)
+  if (CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_fullScreen)
   {
 #if defined (TARGET_DARWIN) || defined (TARGET_WINDOWS)
-    bool blankOtherDisplays = CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOSCREEN_BLANKDISPLAYS);
+    bool blankOtherDisplays = CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_VIDEOSCREEN_BLANKDISPLAYS);
     switched = CServiceBroker::GetWinSystem()->SetFullScreen(true,  info_org, blankOtherDisplays);
 #else
     switched = CServiceBroker::GetWinSystem()->SetFullScreen(true,  info_org, false);
@@ -499,12 +488,12 @@ void CGraphicContext::ApplyVideoResolution(RESOLUTION res)
 
   if (res >= RES_DESKTOP)
   {
-    g_advancedSettings.m_fullScreen = true;
+    CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_fullScreen = true;
     m_bFullScreenRoot = true;
   }
   else
   {
-    g_advancedSettings.m_fullScreen = false;
+    CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_fullScreen = false;
     m_bFullScreenRoot = false;
   }
 
@@ -563,174 +552,18 @@ void CGraphicContext::ResetOverscan(RESOLUTION res, OVERSCAN &overscan)
 {
   overscan.left = 0;
   overscan.top = 0;
-  switch (res)
-  {
-  case RES_HDTV_1080i:
-    overscan.right = 1920;
-    overscan.bottom = 1080;
-    break;
-  case RES_HDTV_720pSBS:
-    overscan.right = 640;
-    overscan.bottom = 720;
-    break;
-  case RES_HDTV_720pTB:
-    overscan.right = 1280;
-    overscan.bottom = 360;
-    break;
-  case RES_HDTV_1080pSBS:
-    overscan.right = 960;
-    overscan.bottom = 1080;
-    break;
-  case RES_HDTV_1080pTB:
-    overscan.right = 1920;
-    overscan.bottom = 540;
-    break;
-  case RES_HDTV_720p:
-    overscan.right = 1280;
-    overscan.bottom = 720;
-    break;
-  case RES_HDTV_480p_16x9:
-  case RES_HDTV_480p_4x3:
-  case RES_NTSC_16x9:
-  case RES_NTSC_4x3:
-  case RES_PAL60_16x9:
-  case RES_PAL60_4x3:
-    overscan.right = 720;
-    overscan.bottom = 480;
-    break;
-  case RES_PAL_16x9:
-  case RES_PAL_4x3:
-    overscan.right = 720;
-    overscan.bottom = 576;
-    break;
-  default:
-    RESOLUTION_INFO info = GetResInfo(res);
-    overscan.right  = info.iWidth;
-    overscan.bottom = info.iHeight;
-    break;
-  }
+
+  RESOLUTION_INFO info = GetResInfo(res);
+  overscan.right  = info.iWidth;
+  overscan.bottom = info.iHeight;
 }
 
 void CGraphicContext::ResetScreenParameters(RESOLUTION res)
 {
-  // For now these are all on the first screen.
   RESOLUTION_INFO& info = CDisplaySettings::GetInstance().GetResolutionInfo(res);
 
-  // 1080i
   switch (res)
   {
-  case RES_HDTV_1080i:
-    info.iSubtitles = (int)(0.965 * 1080);
-    info.iWidth = 1920;
-    info.iHeight = 1080;
-    info.dwFlags = D3DPRESENTFLAG_INTERLACED | D3DPRESENTFLAG_WIDESCREEN;
-    info.fPixelRatio = 1.0f;
-    info.strMode ="1080i 16:9";
-    break;
-  case RES_HDTV_720pSBS:
-    info.iSubtitles = (int)(0.965 * 720);
-    info.iWidth = 640;
-    info.iHeight = 720;
-    info.dwFlags = D3DPRESENTFLAG_PROGRESSIVE | D3DPRESENTFLAG_WIDESCREEN | D3DPRESENTFLAG_MODE3DSBS;
-    info.fPixelRatio = 2.0f;
-    info.strMode = "720pSBS 16:9";
-    break;
-  case RES_HDTV_720pTB:
-    info.iSubtitles = (int)(0.965 * 720);
-    info.iWidth = 1280;
-    info.iHeight = 720;
-    info.dwFlags = D3DPRESENTFLAG_PROGRESSIVE | D3DPRESENTFLAG_WIDESCREEN | D3DPRESENTFLAG_MODE3DTB;
-    info.fPixelRatio = 0.5f;
-    info.strMode = "720pTB 16:9";
-    break;
-  case RES_HDTV_1080pSBS:
-    info.iSubtitles = (int)(0.965 * 1080);
-    info.iWidth = 1920;
-    info.iHeight = 1080;
-    info.dwFlags = D3DPRESENTFLAG_PROGRESSIVE | D3DPRESENTFLAG_WIDESCREEN | D3DPRESENTFLAG_MODE3DSBS;
-    info.fPixelRatio = 2.0f;
-    info.strMode = "1080pSBS 16:9";
-    break;
-  case RES_HDTV_1080pTB:
-    info.iSubtitles = (int)(0.965 * 1080);
-    info.iWidth = 1920;
-    info.iHeight = 1080;
-    info.dwFlags = D3DPRESENTFLAG_PROGRESSIVE | D3DPRESENTFLAG_WIDESCREEN | D3DPRESENTFLAG_MODE3DTB;
-    info.fPixelRatio = 0.5f;
-    info.strMode = "1080pTB 16:9";
-    break;
-  case RES_HDTV_720p:
-    info.iSubtitles = (int)(0.965 * 720);
-    info.iWidth = 1280;
-    info.iHeight = 720;
-    info.dwFlags = D3DPRESENTFLAG_PROGRESSIVE | D3DPRESENTFLAG_WIDESCREEN;
-    info.fPixelRatio = 1.0f;
-    info.strMode = "720p 16:9";
-    break;
-  case RES_HDTV_480p_4x3:
-    info.iSubtitles = (int)(0.9 * 480);
-    info.iWidth = 720;
-    info.iHeight = 480;
-    info.dwFlags = D3DPRESENTFLAG_PROGRESSIVE;
-    info.fPixelRatio = 4320.0f / 4739.0f;
-    info.strMode = "480p 4:3";
-    break;
-  case RES_HDTV_480p_16x9:
-    info.iSubtitles = (int)(0.965 * 480);
-    info.iWidth = 720;
-    info.iHeight = 480;
-    info.dwFlags = D3DPRESENTFLAG_PROGRESSIVE | D3DPRESENTFLAG_WIDESCREEN;
-    info.fPixelRatio = 4320.0f / 4739.0f*4.0f / 3.0f;
-    info.strMode = "480p 16:9";
-    break;
-  case RES_NTSC_4x3:
-    info.iSubtitles = (int)(0.9 * 480);
-    info.iWidth = 720;
-    info.iHeight = 480;
-    info.dwFlags = D3DPRESENTFLAG_INTERLACED;
-    info.fPixelRatio = 4320.0f / 4739.0f;
-    info.strMode = "NTSC 4:3";
-    break;
-  case RES_NTSC_16x9:
-    info.iSubtitles = (int)(0.965 * 480);
-    info.iWidth = 720;
-    info.iHeight = 480;
-    info.dwFlags = D3DPRESENTFLAG_INTERLACED | D3DPRESENTFLAG_WIDESCREEN;
-    info.fPixelRatio = 4320.0f / 4739.0f*4.0f / 3.0f;
-    info.strMode = "NTSC 16:9";
-    break;
-  case RES_PAL_4x3:
-    info.iSubtitles = (int)(0.9 * 576);
-    info.iWidth = 720;
-    info.iHeight = 576;
-    info.dwFlags = D3DPRESENTFLAG_INTERLACED;
-    info.fPixelRatio = 128.0f / 117.0f;
-    info.strMode = "PAL 4:3";
-    break;
-  case RES_PAL_16x9:
-    info.iSubtitles = (int)(0.965 * 576);
-    info.iWidth = 720;
-    info.iHeight = 576;
-    info.dwFlags = D3DPRESENTFLAG_INTERLACED | D3DPRESENTFLAG_WIDESCREEN;
-    info.fPixelRatio = 128.0f / 117.0f*4.0f / 3.0f;
-    info.strMode = "PAL 16:9";
-    break;
-  case RES_PAL60_4x3:
-    info.iSubtitles = (int)(0.9 * 480);
-    info.iWidth = 720;
-    info.iHeight = 480;
-    info.dwFlags = D3DPRESENTFLAG_INTERLACED;
-    info.fPixelRatio = 4320.0f / 4739.0f;
-    info.strMode = "PAL60 4:3";
-    break;
-  case RES_PAL60_16x9:
-    info.iSubtitles = (int)(0.965 * 480);
-    info.iWidth = 720;
-    info.iHeight = 480;
-    info.dwFlags = D3DPRESENTFLAG_INTERLACED | D3DPRESENTFLAG_WIDESCREEN;
-    info.fPixelRatio = 4320.0f / 4739.0f*4.0f / 3.0f;
-    info.strMode = "PAL60 16:9";
-    break;
   case RES_WINDOW:
     info.iSubtitles = (int)(0.965 * info.iHeight);
     info.fPixelRatio = 1.0;
@@ -738,6 +571,7 @@ void CGraphicContext::ResetScreenParameters(RESOLUTION res)
   default:
     break;
   }
+
   info.iScreenWidth  = info.iWidth;
   info.iScreenHeight = info.iHeight;
   ResetOverscan(res, info.Overscan);
@@ -842,7 +676,7 @@ void CGraphicContext::GetGUIScaling(const RESOLUTION_INFO &res, float &scaleX, f
     float fToWidth    = (float)info.Overscan.right  - fToPosX;
     float fToHeight   = (float)info.Overscan.bottom - fToPosY;
 
-    float fZoom = (100 + CServiceBroker::GetSettings().GetInt(CSettings::SETTING_LOOKANDFEEL_SKINZOOM)) * 0.01f;
+    float fZoom = (100 + CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_LOOKANDFEEL_SKINZOOM)) * 0.01f;
 
     fZoom -= 1.0f;
     fToPosX -= fToWidth * fZoom * 0.5f;
@@ -1040,7 +874,7 @@ void CGraphicContext::UpdateCameraPosition(const CPoint &camera, const float &fa
     RESOLUTION_INFO res = GetResInfo();
     RESOLUTION_INFO desktop = GetResInfo(RES_DESKTOP);
     float scaleRes = (static_cast<float>(res.iWidth) / static_cast<float>(desktop.iWidth));
-    float scaleX = static_cast<float>(CServiceBroker::GetSettings().GetInt(CSettings::SETTING_LOOKANDFEEL_STEREOSTRENGTH)) * scaleRes;
+    float scaleX = static_cast<float>(CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_LOOKANDFEEL_STEREOSTRENGTH)) * scaleRes;
     stereoFactor = factor * (m_stereoView == RENDER_STEREO_VIEW_LEFT ? scaleX : -scaleX);
   }
   CServiceBroker::GetRenderSystem()->SetCameraPosition(camera, m_iScreenWidth, m_iScreenHeight, stereoFactor);
@@ -1093,10 +927,6 @@ float CGraphicContext::GetFPS() const
     RESOLUTION_INFO info = GetResInfo();
     if (info.fRefreshRate > 0)
       return info.fRefreshRate;
-    if (m_Resolution == RES_PAL_4x3 || m_Resolution == RES_PAL_16x9)
-      return 50.0f;
-    if (m_Resolution == RES_HDTV_1080i)
-      return 30.0f;
   }
   return 60.0f;
 }

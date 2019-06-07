@@ -1,22 +1,10 @@
 /*
-*      Copyright (C) 2005-2015 Team XBMC
-*      http://kodi.tv
-*
-*  This Program is free software; you can redistribute it and/or modify
-*  it under the terms of the GNU General Public License as published by
-*  the Free Software Foundation; either version 2, or (at your option)
-*  any later version.
-*
-*  This Program is distributed in the hope that it will be useful,
-*  but WITHOUT ANY WARRANTY; without even the implied warranty of
-*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-*  GNU General Public License for more details.
-*
-*  You should have received a copy of the GNU General Public License
-*  along with XBMC; see the file COPYING.  If not, see
-*  <http://www.gnu.org/licenses/>.
-*
-*/
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
+ *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
+ */
 
 #pragma once
 
@@ -47,7 +35,7 @@
 #define PLAYER_TIME                  27
 #define PLAYER_TIME_REMAINING        28
 #define PLAYER_DURATION              29
-#define PLAYER_SHOWCODEC             30
+// unused 30
 #define PLAYER_SHOWINFO              31
 #define PLAYER_VOLUME                32
 #define PLAYER_MUTED                 33
@@ -81,6 +69,8 @@
 #define PLAYER_HAS_GAME              62
 #define PLAYER_HAS_PROGRAMS          63
 #define PLAYER_HAS_RESOLUTIONS       64
+#define PLAYER_FRAMEADVANCE          65
+#define PLAYER_ICON                  66
 
 #define WEATHER_CONDITIONS_TEXT     100
 #define WEATHER_TEMPERATURE         101
@@ -276,7 +266,9 @@
 #define VIDEOPLAYER_USER_RATING       319
 #define VIDEOPLAYER_DBID              320
 
-#define RETROPLAYER_VIEWMODE          330
+#define RETROPLAYER_VIDEO_FILTER      330
+#define RETROPLAYER_STRETCH_MODE      331
+#define RETROPLAYER_VIDEO_ROTATION    332
 
 #define CONTAINER_HAS_PARENT_ITEM    341
 #define CONTAINER_CAN_FILTER         342
@@ -595,7 +587,16 @@
 #define PVR_EPG_EVENT_FINISH_TIME         (PVR_STRINGS_START + 61)
 #define PVR_TIMESHIFT_OFFSET              (PVR_STRINGS_START + 62)
 #define PVR_EPG_EVENT_SEEK_TIME           (PVR_STRINGS_START + 63)
-#define PVR_STRINGS_END                   PVR_EPG_EVENT_SEEK_TIME
+#define PVR_TIMESHIFT_PROGRESS_PLAY_POS   (PVR_STRINGS_START + 64)
+#define PVR_TIMESHIFT_PROGRESS_DURATION   (PVR_STRINGS_START + 65)
+#define PVR_TIMESHIFT_PROGRESS_EPG_START  (PVR_STRINGS_START + 66)
+#define PVR_TIMESHIFT_PROGRESS_EPG_END    (PVR_STRINGS_START + 67)
+#define PVR_TIMESHIFT_PROGRESS_BUFFER_START (PVR_STRINGS_START + 68)
+#define PVR_TIMESHIFT_PROGRESS_BUFFER_END (PVR_STRINGS_START + 69)
+#define PVR_TIMESHIFT_PROGRESS_START_TIME (PVR_STRINGS_START + 70)
+#define PVR_TIMESHIFT_PROGRESS_END_TIME   (PVR_STRINGS_START + 71)
+#define PVR_EPG_EVENT_ICON                (PVR_STRINGS_START + 72)
+#define PVR_STRINGS_END                   PVR_EPG_EVENT_ICON
 
 #define RDS_DATA_START              1400
 #define RDS_HAS_RDS                 (RDS_DATA_START)
@@ -864,6 +865,7 @@
 #define LISTITEM_EXPIRATION_DATE    (LISTITEM_START + 180)
 #define LISTITEM_EXPIRATION_TIME    (LISTITEM_START + 181)
 #define LISTITEM_PROPERTY           (LISTITEM_START + 182)
+#define LISTITEM_EPG_EVENT_ICON     (LISTITEM_START + 183)
 
 #define LISTITEM_END                (LISTITEM_START + 2500)
 

@@ -1,30 +1,20 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "EpgDatabase.h"
 
 #include <cstdlib>
 
+#include "ServiceBroker.h"
 #include "addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h"
 #include "dbwrappers/dataset.h"
 #include "settings/AdvancedSettings.h"
+#include "settings/SettingsComponent.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
 
@@ -36,7 +26,7 @@ using namespace PVR;
 bool CPVREpgDatabase::Open()
 {
   CSingleLock lock(m_critSection);
-  return CDatabase::Open(g_advancedSettings.m_databaseEpg);
+  return CDatabase::Open(CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_databaseEpg);
 }
 
 void CPVREpgDatabase::Close()
@@ -100,7 +90,8 @@ void CPVREpgDatabase::CreateTables(void)
         "iEpisodeId      integer, "
         "iEpisodePart    integer, "
         "sEpisodeName    varchar(128), "
-        "iFlags          integer"
+        "iFlags          integer, "
+        "sSeriesLink     varchar(255)"
       ")"
   );
 
@@ -143,6 +134,11 @@ void CPVREpgDatabase::UpdateTables(int iVersion)
   if (iVersion < 11)
   {
     m_pDS->exec("ALTER TABLE epgtags ADD iFlags integer;");
+  }
+
+  if (iVersion < 12)
+  {
+    m_pDS->exec("ALTER TABLE epgtags ADD sSeriesLink varchar(255);");
   }
 }
 
@@ -191,13 +187,13 @@ bool CPVREpgDatabase::DeleteEpgEntries(const CDateTime &maxEndTime)
 bool CPVREpgDatabase::Delete(const CPVREpgInfoTag &tag)
 {
   /* tag without a database ID was not persisted */
-  if (tag.BroadcastId() <= 0)
+  if (tag.DatabaseID() <= 0)
     return false;
 
   Filter filter;
 
   CSingleLock lock(m_critSection);
-  filter.AppendWhere(PrepareSQL("idBroadcast = %u", tag.BroadcastId()));
+  filter.AppendWhere(PrepareSQL("idBroadcast = %u", tag.DatabaseID()));
   return DeleteValues("epgtags", filter);
 }
 
@@ -262,7 +258,7 @@ std::vector<CPVREpgInfoTagPtr> CPVREpgDatabase::Get(const CPVREpg &epg)
         // Compat: null value for broadcast uid changed from numerical -1 to 0 with PVR Addon API v4.0.0
         newTag->m_iUniqueBroadcastID = iBroadcastUID == -1 ? EPG_TAG_INVALID_UID : iBroadcastUID;
 
-        newTag->m_iBroadcastId       = m_pDS->fv("idBroadcast").get_asInt();
+        newTag->m_iDatabaseID        = m_pDS->fv("idBroadcast").get_asInt();
         newTag->m_strTitle           = m_pDS->fv("sTitle").get_asString().c_str();
         newTag->m_strPlotOutline     = m_pDS->fv("sPlotOutline").get_asString().c_str();
         newTag->m_strPlot            = m_pDS->fv("sPlot").get_asString().c_str();
@@ -284,6 +280,7 @@ std::vector<CPVREpgInfoTagPtr> CPVREpgDatabase::Get(const CPVREpg &epg)
         newTag->m_iSeriesNumber      = m_pDS->fv("iSeriesId").get_asInt();
         newTag->m_strIconPath        = m_pDS->fv("sIconPath").get_asString().c_str();
         newTag->m_iFlags             = m_pDS->fv("iFlags").get_asInt();
+        newTag->m_strSeriesLink      = m_pDS->fv("sSeriesLink").get_asString().c_str();
 
         result.emplace_back(newTag);
 
@@ -371,7 +368,7 @@ int CPVREpgDatabase::Persist(const CPVREpgInfoTag &tag, bool bSingleUpdate /* = 
   tag.EndAsUTC().GetAsTime(iEndTime);
   tag.FirstAiredAsUTC().GetAsTime(iFirstAired);
 
-  int iBroadcastId = tag.BroadcastId();
+  int iBroadcastId = tag.DatabaseID();
   std::string strQuery;
 
   /* Only store the genre string when needed */
@@ -384,15 +381,15 @@ int CPVREpgDatabase::Persist(const CPVREpgInfoTag &tag, bool bSingleUpdate /* = 
     strQuery = PrepareSQL("REPLACE INTO epgtags (idEpg, iStartTime, "
         "iEndTime, sTitle, sPlotOutline, sPlot, sOriginalTitle, sCast, sDirector, sWriter, iYear, sIMDBNumber, "
         "sIconPath, iGenreType, iGenreSubType, sGenre, iFirstAired, iParentalRating, iStarRating, bNotify, iSeriesId, "
-        "iEpisodeId, iEpisodePart, sEpisodeName, iFlags, iBroadcastUid) "
-        "VALUES (%u, %u, %u, '%s', '%s', '%s', '%s', '%s', '%s', '%s', %i, '%s', '%s', %i, %i, '%s', %u, %i, %i, %i, %i, %i, %i, '%s', %i, %i);",
+        "iEpisodeId, iEpisodePart, sEpisodeName, iFlags, sSeriesLink, iBroadcastUid) "
+        "VALUES (%u, %u, %u, '%s', '%s', '%s', '%s', '%s', '%s', '%s', %i, '%s', '%s', %i, %i, '%s', %u, %i, %i, %i, %i, %i, %i, '%s', %i, '%s', %i);",
         tag.EpgID(), static_cast<unsigned int>(iStartTime), static_cast<unsigned int>(iEndTime),
         tag.Title(true).c_str(), tag.PlotOutline(true).c_str(), tag.Plot(true).c_str(),
         tag.OriginalTitle(true).c_str(), tag.DeTokenize(tag.Cast()).c_str(), tag.DeTokenize(tag.Directors()).c_str(),
         tag.DeTokenize(tag.Writers()).c_str(), tag.Year(), tag.IMDBNumber().c_str(),
         tag.Icon().c_str(), tag.GenreType(), tag.GenreSubType(), strGenre.c_str(),
         static_cast<unsigned int>(iFirstAired), tag.ParentalRating(), tag.StarRating(), tag.Notify(),
-        tag.SeriesNumber(), tag.EpisodeNumber(), tag.EpisodePart(), tag.EpisodeName(true).c_str(), tag.Flags(),
+        tag.SeriesNumber(), tag.EpisodeNumber(), tag.EpisodePart(), tag.EpisodeName(true).c_str(), tag.Flags(), tag.SeriesLink().c_str(),
         tag.UniqueBroadcastID());
   }
   else
@@ -400,15 +397,15 @@ int CPVREpgDatabase::Persist(const CPVREpgInfoTag &tag, bool bSingleUpdate /* = 
     strQuery = PrepareSQL("REPLACE INTO epgtags (idEpg, iStartTime, "
         "iEndTime, sTitle, sPlotOutline, sPlot, sOriginalTitle, sCast, sDirector, sWriter, iYear, sIMDBNumber, "
         "sIconPath, iGenreType, iGenreSubType, sGenre, iFirstAired, iParentalRating, iStarRating, bNotify, iSeriesId, "
-        "iEpisodeId, iEpisodePart, sEpisodeName, iFlags, iBroadcastUid, idBroadcast) "
-        "VALUES (%u, %u, %u, '%s', '%s', '%s', '%s', '%s', '%s', '%s', %i, '%s', '%s', %i, %i, '%s', %u, %i, %i, %i, %i, %i, %i, '%s', %i, %i, %i);",
+        "iEpisodeId, iEpisodePart, sEpisodeName, iFlags, sSeriesLink, iBroadcastUid, idBroadcast) "
+        "VALUES (%u, %u, %u, '%s', '%s', '%s', '%s', '%s', '%s', '%s', %i, '%s', '%s', %i, %i, '%s', %u, %i, %i, %i, %i, %i, %i, '%s', %i, '%s', %i, %i);",
         tag.EpgID(), static_cast<unsigned int>(iStartTime), static_cast<unsigned int>(iEndTime),
         tag.Title(true).c_str(), tag.PlotOutline(true).c_str(), tag.Plot(true).c_str(),
         tag.OriginalTitle(true).c_str(), tag.DeTokenize(tag.Cast()).c_str(), tag.DeTokenize(tag.Directors()).c_str(),
         tag.DeTokenize(tag.Writers()).c_str(), tag.Year(), tag.IMDBNumber().c_str(),
         tag.Icon().c_str(), tag.GenreType(), tag.GenreSubType(), strGenre.c_str(),
         static_cast<unsigned int>(iFirstAired), tag.ParentalRating(), tag.StarRating(), tag.Notify(),
-        tag.SeriesNumber(), tag.EpisodeNumber(), tag.EpisodePart(), tag.EpisodeName(true).c_str(), tag.Flags(),
+        tag.SeriesNumber(), tag.EpisodeNumber(), tag.EpisodePart(), tag.EpisodeName(true).c_str(), tag.Flags(), tag.SeriesLink().c_str(),
         tag.UniqueBroadcastID(), iBroadcastId);
   }
 

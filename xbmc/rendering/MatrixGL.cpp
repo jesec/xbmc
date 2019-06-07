@@ -1,28 +1,17 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "MatrixGL.h"
 #include "utils/TransformMatrix.h"
 
-#if defined(HAS_NEON)
+#if defined(HAS_NEON) && !defined(__LP64__)
 #include "utils/CPUInfo.h"
+void Matrix4Mul(float* src_mat_1, const float* src_mat_2);
 #endif
 
 #include <cmath>
@@ -140,47 +129,6 @@ void CMatrixGL::Rotatef(GLfloat angle, GLfloat x, GLfloat y, GLfloat z)
   MultMatrixf(matrix);
 }
 
-#if defined(HAS_NEON) && !defined(__LP64__)
-
-static inline void Matrix4Mul(float* src_mat_1, const float* src_mat_2)
-{
-  asm volatile (
-    // Store A & B leaving room at top of registers for result (q0-q3)
-    "vldmia %0, { q4-q7 }  \n\t"
-    "vldmia %1, { q8-q11 } \n\t"
-
-    // result = first column of B x first row of A
-    "vmul.f32 q0, q8, d8[0]\n\t"
-    "vmul.f32 q1, q8, d10[0]\n\t"
-    "vmul.f32 q2, q8, d12[0]\n\t"
-    "vmul.f32 q3, q8, d14[0]\n\t"
-
-    // result += second column of B x second row of A
-    "vmla.f32 q0, q9, d8[1]\n\t"
-    "vmla.f32 q1, q9, d10[1]\n\t"
-    "vmla.f32 q2, q9, d12[1]\n\t"
-    "vmla.f32 q3, q9, d14[1]\n\t"
-
-    // result += third column of B x third row of A
-    "vmla.f32 q0, q10, d9[0]\n\t"
-    "vmla.f32 q1, q10, d11[0]\n\t"
-    "vmla.f32 q2, q10, d13[0]\n\t"
-    "vmla.f32 q3, q10, d15[0]\n\t"
-
-    // result += last column of B x last row of A
-    "vmla.f32 q0, q11, d9[1]\n\t"
-    "vmla.f32 q1, q11, d11[1]\n\t"
-    "vmla.f32 q2, q11, d13[1]\n\t"
-    "vmla.f32 q3, q11, d15[1]\n\t"
-
-    // output = result registers
-    "vstmia %1, { q0-q3 }"
-    : //no output
-    : "r" (src_mat_2), "r" (src_mat_1)       // input - note *value* of pointer doesn't change
-    : "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11" //clobber
-    );
-}
-#endif
 void CMatrixGL::MultMatrixf(const CMatrixGL &matrix) noexcept
 {
 #if defined(HAS_NEON) && !defined(__LP64__)

@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2016 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2016-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -318,11 +306,10 @@ namespace PVR
     bool IsRunningChannelScan() const { return m_bChannelScanRunning; }
 
     /*!
-     * @brief Open selection and progress PVR actions.
-     * @param item The selected file item for which the hook was called.
+     * @brief Select and invoke client-specific settings actions
      * @return true on success, false otherwise.
      */
-    bool ProcessMenuHooks(const CFileItemPtr &item);
+    bool ProcessSettingsMenuHooks();
 
     /*!
      * @brief Reset the TV database to it's initial state and delete all the data.
@@ -371,6 +358,20 @@ namespace PVR
     void SetSelectedItemPath(bool bRadio, const std::string &path);
 
     /*!
+     * @brief Seek to the start of the next epg event in timeshift buffer, relative to the currently playing event.
+     *        If there is no next event, seek to the end of the currently playing event (to the 'live' position).
+     */
+    void SeekForward();
+
+    /*!
+     * @brief Seek to the start of the previous epg event in timeshift buffer, relative to the currently playing event
+     *        or if there is no previous event or if playback time is greater than given threshold, seek to the start
+     *        of the playing event.
+     * @param iThreshold the value in seconds to trigger seek to start of current event instead of start of previous event.
+     */
+    void SeekBackward(unsigned int iThreshold);
+
+    /*!
      * @brief Get the currently active channel number input handler.
      * @return the handler.
      */
@@ -389,7 +390,7 @@ namespace PVR
     void OnPlaybackStarted(const CFileItemPtr &item);
 
     /*!
-     * @brief Inform GUI actions manager that playback of an item was stopped due to user interaction.
+     * @brief Inform GUI actions that playback of an item was stopped due to user interaction.
      * @param item The item that stopped to play.
      */
     void OnPlaybackStopped(const CFileItemPtr &item);

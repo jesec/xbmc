@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2015 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "network/Network.h"
@@ -58,11 +46,10 @@
 #ifdef HAS_UPNP
 #include "filesystem/UPnPDirectory.h"
 #endif
-#include "profiles/ProfilesManager.h"
+#include "profiles/ProfileManager.h"
 #include "utils/RegExp.h"
 #include "windowing/GraphicContext.h"
 #include "guilib/TextureManager.h"
-#include "utils/fstrcmp.h"
 #include "storage/MediaManager.h"
 #ifdef TARGET_WINDOWS
 #include "utils/CharsetConverter.h"
@@ -77,8 +64,7 @@
 #include "settings/Settings.h"
 #include "utils/StringUtils.h"
 #include "settings/AdvancedSettings.h"
-#ifdef HAS_IRSERVERSUITE
-#endif
+#include "settings/SettingsComponent.h"
 #include "guilib/LocalizeStrings.h"
 #include "utils/Digest.h"
 #include "utils/FileExtensionProvider.h"
@@ -97,6 +83,8 @@
 #endif
 
 #include "cores/VideoPlayer/DVDDemuxers/DVDDemux.h"
+
+#include <fstrcmp.h>
 
 #ifdef HAS_DVD_DRIVE
 using namespace MEDIA_DETECT;
@@ -378,7 +366,7 @@ std::string CUtil::GetTitleFromPath(const CURL& url, bool bIsFolder /* = false *
     strFilename = URIUtils::GetFileName(url.GetHostName());
 
   // now remove the extension if needed
-  if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_FILELISTS_SHOWEXTENSIONS) && !bIsFolder)
+  if (!CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_FILELISTS_SHOWEXTENSIONS) && !bIsFolder)
   {
     URIUtils::RemoveExtension(strFilename);
     return strFilename;
@@ -401,14 +389,15 @@ void CUtil::CleanString(const std::string& strFileName,
   if (strFileName == "..")
    return;
 
-  const std::vector<std::string> &regexps = g_advancedSettings.m_videoCleanStringRegExps;
+  const std::shared_ptr<CAdvancedSettings> advancedSettings = CServiceBroker::GetSettingsComponent()->GetAdvancedSettings();
+  const std::vector<std::string> &regexps = advancedSettings->m_videoCleanStringRegExps;
 
   CRegExp reTags(true, CRegExp::autoUtf8);
   CRegExp reYear(false, CRegExp::autoUtf8);
 
-  if (!reYear.RegComp(g_advancedSettings.m_videoCleanDateTimeRegExp))
+  if (!reYear.RegComp(advancedSettings->m_videoCleanDateTimeRegExp))
   {
-    CLog::Log(LOGERROR, "%s: Invalid datetime clean RegExp:'%s'", __FUNCTION__, g_advancedSettings.m_videoCleanDateTimeRegExp.c_str());
+    CLog::Log(LOGERROR, "%s: Invalid datetime clean RegExp:'%s'", __FUNCTION__, advancedSettings->m_videoCleanDateTimeRegExp.c_str());
   }
   else
   {
@@ -631,10 +620,18 @@ bool CUtil::GetDirectoryName(const std::string& strFileName, std::string& strDes
 
 void CUtil::GetDVDDriveIcon(const std::string& strPath, std::string& strIcon)
 {
-  if ( !g_mediaManager.IsDiscInDrive() )
+  if (!g_mediaManager.IsDiscInDrive(strPath))
   {
     strIcon = "DefaultDVDEmpty.png";
     return ;
+  }
+
+  CFileItem item = CFileItem(strPath, false);
+
+  if (item.IsBluray())
+  {
+    strIcon = "DefaultBluray.png";
+    return;
   }
 
   if ( URIUtils::IsDVD(strPath) )
@@ -666,9 +663,9 @@ void CUtil::GetDVDDriveIcon(const std::string& strPath, std::string& strIcon)
 
 void CUtil::RemoveTempFiles()
 {
-  const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+  const std::shared_ptr<CProfileManager> profileManager = CServiceBroker::GetSettingsComponent()->GetProfileManager();
 
-  std::string searchPath = profileManager.GetDatabaseFolder();
+  std::string searchPath = profileManager->GetDatabaseFolder();
   CFileItemList items;
   if (!XFILE::CDirectory::GetDirectory(searchPath, items, ".tmp", DIR_FLAG_NO_FILE_DIRS))
     return;
@@ -1043,7 +1040,7 @@ std::string CUtil::ValidatePath(const std::string &path, bool bFixDoubleSlashes 
 
 bool CUtil::IsUsingTTFSubtitles()
 {
-  return URIUtils::HasExtension(CServiceBroker::GetSettings().GetString(CSettings::SETTING_SUBTITLES_FONT), ".ttf");
+  return URIUtils::HasExtension(CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_SUBTITLES_FONT), ".ttf");
 }
 
 void CUtil::SplitExecFunction(const std::string &execString, std::string &function, std::vector<std::string> &parameters)
@@ -1332,24 +1329,26 @@ std::string CUtil::TranslateSpecialSource(const std::string &strSpecial)
       return URIUtils::AddFileToFolder("special://cdrips/", strSpecial.substr(7));
     // this one will be removed post 2.0
     else if (StringUtils::StartsWithNoCase(strSpecial, "$playlists"))
-      return URIUtils::AddFileToFolder(CServiceBroker::GetSettings().GetString(CSettings::SETTING_SYSTEM_PLAYLISTSPATH), strSpecial.substr(10));
+      return URIUtils::AddFileToFolder(CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_SYSTEM_PLAYLISTSPATH), strSpecial.substr(10));
   }
   return strSpecial;
 }
 
 std::string CUtil::MusicPlaylistsLocation()
 {
+  const std::string path = CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_SYSTEM_PLAYLISTSPATH);
   std::vector<std::string> vec;
-  vec.push_back(URIUtils::AddFileToFolder(CServiceBroker::GetSettings().GetString(CSettings::SETTING_SYSTEM_PLAYLISTSPATH), "music"));
-  vec.push_back(URIUtils::AddFileToFolder(CServiceBroker::GetSettings().GetString(CSettings::SETTING_SYSTEM_PLAYLISTSPATH), "mixed"));
+  vec.push_back(URIUtils::AddFileToFolder(path, "music"));
+  vec.push_back(URIUtils::AddFileToFolder(path, "mixed"));
   return XFILE::CMultiPathDirectory::ConstructMultiPath(vec);
 }
 
 std::string CUtil::VideoPlaylistsLocation()
 {
+  const std::string path = CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_SYSTEM_PLAYLISTSPATH);
   std::vector<std::string> vec;
-  vec.push_back(URIUtils::AddFileToFolder(CServiceBroker::GetSettings().GetString(CSettings::SETTING_SYSTEM_PLAYLISTSPATH), "video"));
-  vec.push_back(URIUtils::AddFileToFolder(CServiceBroker::GetSettings().GetString(CSettings::SETTING_SYSTEM_PLAYLISTSPATH), "mixed"));
+  vec.push_back(URIUtils::AddFileToFolder(path, "video"));
+  vec.push_back(URIUtils::AddFileToFolder(path, "mixed"));
   return XFILE::CMultiPathDirectory::ConstructMultiPath(vec);
 }
 
@@ -1429,7 +1428,7 @@ double CUtil::AlbumRelevance(const std::string& strAlbumTemp1, const std::string
   StringUtils::ToLower(strAlbumTemp);
   std::string strAlbum = strAlbum1;
   StringUtils::ToLower(strAlbum);
-  double fAlbumPercentage = fstrcmp(strAlbumTemp.c_str(), strAlbum.c_str(), 0.0f);
+  double fAlbumPercentage = fstrcmp(strAlbumTemp.c_str(), strAlbum.c_str());
   double fArtistPercentage = 0.0f;
   if (!strArtist1.empty())
   {
@@ -1437,7 +1436,7 @@ double CUtil::AlbumRelevance(const std::string& strAlbumTemp1, const std::string
     StringUtils::ToLower(strArtistTemp);
     std::string strArtist = strArtist1;
     StringUtils::ToLower(strArtist);
-    fArtistPercentage = fstrcmp(strArtistTemp.c_str(), strArtist.c_str(), 0.0f);
+    fArtistPercentage = fstrcmp(strArtistTemp.c_str(), strArtist.c_str());
   }
   double fRelevance = fAlbumPercentage * 0.5f + fArtistPercentage * 0.5f;
   return fRelevance;
@@ -2010,16 +2009,19 @@ void CUtil::ScanForExternalSubtitles(const std::string& strMovie, std::vector<st
 
   CFileItemList items;
   const std::vector<std::string> common_sub_dirs = { "subs", "subtitles", "vobsubs", "sub", "vobsub", "subtitle" };
-  GetItemsToScan(strBasePath, CServiceBroker::GetFileExtensionProvider().GetSubtitleExtensions(), common_sub_dirs, items);
+  const std::string subtitleExtensions = CServiceBroker::GetFileExtensionProvider().GetSubtitleExtensions();
+  GetItemsToScan(strBasePath, subtitleExtensions, common_sub_dirs, items);
 
-  if (!CMediaSettings::GetInstance().GetAdditionalSubtitleDirectoryChecked() && !CServiceBroker::GetSettings().GetString(CSettings::SETTING_SUBTITLES_CUSTOMPATH).empty()) // to avoid checking non-existent directories (network) every time..
+  const std::string customPath = CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_SUBTITLES_CUSTOMPATH);
+
+  if (!CMediaSettings::GetInstance().GetAdditionalSubtitleDirectoryChecked() && !customPath.empty()) // to avoid checking non-existent directories (network) every time..
   {
-    if (!CServiceBroker::GetNetwork().IsAvailable() && !URIUtils::IsHD(CServiceBroker::GetSettings().GetString(CSettings::SETTING_SUBTITLES_CUSTOMPATH)))
+    if (!CServiceBroker::GetNetwork().IsAvailable() && !URIUtils::IsHD(customPath))
     {
       CLog::Log(LOGINFO, "CUtil::CacheSubtitles: disabling alternate subtitle directory for this session, it's inaccessible");
       CMediaSettings::GetInstance().SetAdditionalSubtitleDirectoryChecked(-1); // disabled
     }
-    else if (!CDirectory::Exists(CServiceBroker::GetSettings().GetString(CSettings::SETTING_SUBTITLES_CUSTOMPATH)))
+    else if (!CDirectory::Exists(customPath))
     {
       CLog::Log(LOGINFO, "CUtil::CacheSubtitles: disabling alternate subtitle directory for this session, it's nonexistent");
       CMediaSettings::GetInstance().SetAdditionalSubtitleDirectoryChecked(-1); // disabled
@@ -2032,20 +2034,20 @@ void CUtil::ScanForExternalSubtitles(const std::string& strMovie, std::vector<st
   // this is last because we dont want to check any common subdirs or cd-dirs in the alternate <subtitles> dir.
   if (CMediaSettings::GetInstance().GetAdditionalSubtitleDirectoryChecked() == 1)
   {
-    std::string strPath2 = CServiceBroker::GetSettings().GetString(CSettings::SETTING_SUBTITLES_CUSTOMPATH);
+    std::string strPath2 = customPath;
     URIUtils::AddSlashAtEnd(strPath2);
     strLookInPaths.push_back(strPath2);
   }
 
   int flags = DIR_FLAG_NO_FILE_DIRS | DIR_FLAG_NO_FILE_INFO;
-  for (std::vector<std::string>::const_iterator it = strLookInPaths.begin(); it != strLookInPaths.end(); ++it)
+  for (const std::string& path : strLookInPaths)
   {
     CFileItemList moreItems;
-    CDirectory::GetDirectory(*it, moreItems, CServiceBroker::GetFileExtensionProvider().GetSubtitleExtensions(), flags);
+    CDirectory::GetDirectory(path, moreItems, subtitleExtensions, flags);
     items.Append(moreItems);
   }
 
-  std::vector<std::string> exts = StringUtils::Split(CServiceBroker::GetFileExtensionProvider().GetSubtitleExtensions(), '|');
+  std::vector<std::string> exts = StringUtils::Split(subtitleExtensions, '|');
   exts.erase(std::remove(exts.begin(), exts.end(), ".zip"), exts.end());
   exts.erase(std::remove(exts.begin(), exts.end(), ".rar"), exts.end());
 
@@ -2232,10 +2234,10 @@ std::string CUtil::GetVobSubSubFromIdx(const std::string& vobSubIdx)
   // look inside a .rar or .zip in the same directory
   const std::string archTypes[] = { "rar", "zip" };
   std::string vobSubFilename = URIUtils::GetFileName(vobSub);
-  for (unsigned int i = 0; i < ARRAY_SIZE(archTypes); i++)
+  for (const std::string& archType : archTypes)
   {
-    vobSub = URIUtils::CreateArchivePath(archTypes[i],
-                                         CURL(URIUtils::ReplaceExtension(vobSubIdx, std::string(".") + archTypes[i])),
+    vobSub = URIUtils::CreateArchivePath(archType,
+                                         CURL(URIUtils::ReplaceExtension(vobSubIdx, std::string(".") + archType)),
                                          vobSubFilename).Get();
     if (CFile::Exists(vobSub))
       return vobSub;

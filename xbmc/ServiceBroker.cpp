@@ -1,28 +1,33 @@
 /*
- *      Copyright (C) 2005-2016 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "ServiceBroker.h"
 #include "Application.h"
+#include "profiles/ProfileManager.h"
+#include "settings/SettingsComponent.h"
 #include "windowing/WinSystem.h"
 
 using namespace KODI;
+
+// announcement
+std::shared_ptr<ANNOUNCEMENT::CAnnouncementManager> CServiceBroker::m_pAnnouncementManager;
+std::shared_ptr<ANNOUNCEMENT::CAnnouncementManager> CServiceBroker::GetAnnouncementManager()
+{
+  return m_pAnnouncementManager;
+}
+void CServiceBroker::RegisterAnnouncementManager(std::shared_ptr<ANNOUNCEMENT::CAnnouncementManager> port)
+{
+  m_pAnnouncementManager = port;
+}
+void CServiceBroker::UnregisterAnnouncementManager()
+{
+  m_pAnnouncementManager.reset();
+}
 
 ADDON::CAddonMgr &CServiceBroker::GetAddonMgr()
 {
@@ -42,11 +47,6 @@ ADDON::CBinaryAddonCache &CServiceBroker::GetBinaryAddonCache()
 ADDON::CVFSAddonCache &CServiceBroker::GetVFSAddonCache()
 {
   return g_application.m_ServiceManager->GetVFSAddonCache();
-}
-
-ANNOUNCEMENT::CAnnouncementManager &CServiceBroker::GetAnnouncementManager()
-{
-  return g_application.m_ServiceManager->GetAnnouncementManager();
 }
 
 #ifdef HAS_PYTHON
@@ -76,9 +76,21 @@ PLAYLIST::CPlayListPlayer &CServiceBroker::GetPlaylistPlayer()
   return g_application.m_ServiceManager->GetPlaylistPlayer();
 }
 
-CSettings& CServiceBroker::GetSettings()
+CSettingsComponent* CServiceBroker::m_pSettingsComponent = nullptr;
+
+void CServiceBroker::RegisterSettingsComponent(CSettingsComponent *settings)
 {
-  return g_application.m_ServiceManager->GetSettings();
+  m_pSettingsComponent = settings;
+}
+
+void CServiceBroker::UnregisterSettingsComponent()
+{
+  m_pSettingsComponent = nullptr;
+}
+
+CSettingsComponent* CServiceBroker::GetSettingsComponent()
+{
+  return m_pSettingsComponent;
 }
 
 GAME::CControllerManager& CServiceBroker::GetGameControllerManager()
@@ -133,12 +145,14 @@ CNetworkBase& CServiceBroker::GetNetwork()
 
 bool CServiceBroker::IsBinaryAddonCacheUp()
 {
-  return g_application.m_ServiceManager->init_level > 1;
+  return g_application.m_ServiceManager &&
+         g_application.m_ServiceManager->init_level > 1;
 }
 
 bool CServiceBroker::IsServiceManagerUp()
 {
-  return g_application.m_ServiceManager->init_level == 3;
+  return g_application.m_ServiceManager &&
+         g_application.m_ServiceManager->init_level == 3;
 }
 
 CWinSystemBase* CServiceBroker::m_pWinSystem = nullptr;
@@ -186,14 +200,9 @@ CDatabaseManager& CServiceBroker::GetDatabaseManager()
   return g_application.m_ServiceManager->GetDatabaseManager();
 }
 
-CProfilesManager& CServiceBroker::GetProfileManager()
-{
-  return g_application.m_ServiceManager->GetProfileManager();
-}
-
 CEventLog& CServiceBroker::GetEventLog()
 {
-  return g_application.m_ServiceManager->GetEventLog();
+  return m_pSettingsComponent->GetProfileManager()->GetEventLog();
 }
 
 CGUIComponent* CServiceBroker::m_pGUI = nullptr;

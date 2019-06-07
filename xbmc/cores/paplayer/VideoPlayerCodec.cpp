@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "VideoPlayerCodec.h"
@@ -261,20 +249,26 @@ bool VideoPlayerCodec::Init(const CFileItem &file, unsigned int filecache)
   {
     m_needConvert = true;
     m_pResampler = ActiveAE::CAEResampleFactory::Create();
-    m_pResampler->Init(CAEUtil::GetAVChannelLayout(m_srcFormat.m_channelLayout),
-                       m_channels,
-                       m_srcFormat.m_sampleRate,
-                       CAEUtil::GetAVSampleFormat(AE_FMT_FLOAT),
-                       CAEUtil::DataFormatToUsedBits(AE_FMT_FLOAT),
-                       CAEUtil::DataFormatToDitherBits(AE_FMT_FLOAT),
-                       CAEUtil::GetAVChannelLayout(m_srcFormat.m_channelLayout),
-                       m_channels,
-                       m_srcFormat.m_sampleRate,
-                       CAEUtil::GetAVSampleFormat(m_srcFormat.m_dataFormat),
-                       CAEUtil::DataFormatToUsedBits(m_srcFormat.m_dataFormat),
-                       CAEUtil::DataFormatToDitherBits(m_srcFormat.m_dataFormat),
+
+    SampleConfig dstConfig, srcConfig;
+    dstConfig.channel_layout = CAEUtil::GetAVChannelLayout(m_srcFormat.m_channelLayout);
+    dstConfig.channels = m_channels;
+    dstConfig.sample_rate = m_srcFormat.m_sampleRate;
+    dstConfig.fmt = CAEUtil::GetAVSampleFormat(AE_FMT_FLOAT);
+    dstConfig.bits_per_sample = CAEUtil::DataFormatToUsedBits(AE_FMT_FLOAT);
+    dstConfig.dither_bits = CAEUtil::DataFormatToDitherBits(AE_FMT_FLOAT);
+
+    srcConfig.channel_layout = CAEUtil::GetAVChannelLayout(m_srcFormat.m_channelLayout);
+    srcConfig.channels = m_channels;
+    srcConfig.sample_rate = m_srcFormat.m_sampleRate;
+    srcConfig.fmt = CAEUtil::GetAVSampleFormat(m_srcFormat.m_dataFormat);
+    srcConfig.bits_per_sample = CAEUtil::DataFormatToUsedBits(m_srcFormat.m_dataFormat);
+    srcConfig.dither_bits = CAEUtil::DataFormatToDitherBits(m_srcFormat.m_dataFormat);
+
+    m_pResampler->Init(dstConfig, srcConfig,
                        false,
                        false,
+                       M_SQRT1_2,
                        NULL,
                        AE_QUALITY_UNKNOWN,
                        false);

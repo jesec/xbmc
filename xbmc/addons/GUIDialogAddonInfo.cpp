@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GUIDialogAddonInfo.h"
@@ -33,7 +21,6 @@
 #include "dialogs/GUIDialogYesNo.h"
 #include "games/GameUtils.h"
 #include "guilib/LocalizeStrings.h"
-#include "GUIUserMessages.h"
 #include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "input/Key.h"
@@ -41,11 +28,10 @@
 #include "messaging/helpers/DialogOKHelper.h"
 #include "pictures/GUIWindowSlideShow.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "utils/Digest.h"
 #include "utils/JobManager.h"
-#include "utils/FileOperationJob.h"
 #include "utils/StringUtils.h"
-#include "utils/URIUtils.h"
 #include "utils/log.h"
 #include "utils/Variant.h"
 #include "GUIPassword.h"
@@ -175,7 +161,7 @@ void CGUIDialogAddonInfo::UpdateControls()
   bool isInstalled = NULL != m_localAddon.get();
   m_addonEnabled = m_localAddon && !CServiceBroker::GetAddonMgr().IsAddonDisabled(m_localAddon->ID());
   bool canDisable = isInstalled && CServiceBroker::GetAddonMgr().CanAddonBeDisabled(m_localAddon->ID());
-  bool canInstall = !isInstalled && m_item->GetAddonInfo()->Broken().empty();
+  bool canInstall = !isInstalled && !m_item->GetAddonInfo()->IsBroken();
   bool canUninstall = m_localAddon && CServiceBroker::GetAddonMgr().CanUninstall(m_localAddon);
 
   CONTROL_ENABLE_ON_CONDITION(CONTROL_BTN_INSTALL, canInstall || canUninstall);
@@ -194,7 +180,7 @@ void CGUIDialogAddonInfo::UpdateControls()
 
   CONTROL_ENABLE_ON_CONDITION(CONTROL_BTN_UPDATE, isInstalled);
 
-  bool autoUpdatesOn = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_ADDONS_AUTOUPDATES) == AUTO_UPDATES_ON;
+  bool autoUpdatesOn = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_ADDONS_AUTOUPDATES) == AUTO_UPDATES_ON;
   CONTROL_ENABLE_ON_CONDITION(CONTROL_BTN_AUTOUPDATE, isInstalled && autoUpdatesOn);
   SET_CONTROL_SELECTED(GetID(), CONTROL_BTN_AUTOUPDATE, isInstalled && autoUpdatesOn &&
       !CServiceBroker::GetAddonMgr().IsBlacklisted(m_localAddon->ID()));

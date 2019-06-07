@@ -27,6 +27,7 @@
     !defined(__SH4__) && \
     !defined(__sparc__) && \
     !defined(__arc__) && \
+    !defined(__or1k__) && \
     !defined(__xtensa__)
 
 #include "ldt_keeper.h"
@@ -48,15 +49,10 @@
 #ifdef  __cplusplus
 extern "C" {
 #endif
-/* declare modify_ldt with the _syscall3 macro for older glibcs */
-#if defined(__GLIBC__) &&  (__GLIBC__ < 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ == 0))
-_syscall3( int, modify_ldt, int, func, void *, ptr, unsigned long, bytecount );
-#else
 #if defined(TARGET_ANDROID) && defined(__i386__) && !defined(modify_ldt)
 #define modify_ldt(a,b,c) syscall( __NR_modify_ldt,  a, b, c);
 #else
 int modify_ldt(int func, void *ptr, unsigned long bytecount);
-#endif
 #endif
 #ifdef  __cplusplus
 }

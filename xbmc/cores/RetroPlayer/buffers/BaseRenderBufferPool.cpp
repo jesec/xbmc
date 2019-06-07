@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2017 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2017-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this Program; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "BaseRenderBufferPool.h"
@@ -82,28 +70,20 @@ IRenderBuffer *CBaseRenderBufferPool::GetBuffer(unsigned int width, unsigned int
   {
     CSingleLock lock(m_bufferMutex);
 
-    while (!m_free.empty())
+    for (auto it = m_free.begin(); it != m_free.end(); ++it)
     {
-      renderBuffer = m_free.front().release();
-      m_free.pop_front();
+      std::unique_ptr<IRenderBuffer> &buffer = *it;
 
       // Only return buffers of the same dimensions
-      const unsigned int bufferWidth = renderBuffer->GetWidth();
-      const unsigned int bufferHeight = renderBuffer->GetHeight();
+      const unsigned int bufferWidth = buffer->GetWidth();
+      const unsigned int bufferHeight = buffer->GetHeight();
 
       if (bufferWidth == width && bufferHeight == height)
       {
+        renderBuffer = buffer.release();
         renderBuffer->SetHeader(header);
+        m_free.erase(it);
         break;
-      }
-      else
-      {
-        CLog::Log(LOGDEBUG, "RetroPlayer[RENDER]: Discarding render buffer of size %ux%u",
-                  bufferWidth,
-                  bufferHeight);
-
-        std::unique_ptr<IRenderBuffer> bufferPtr(renderBuffer);
-        renderBuffer = nullptr;
       }
     }
 

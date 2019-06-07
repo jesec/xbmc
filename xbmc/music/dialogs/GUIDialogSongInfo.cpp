@@ -1,27 +1,14 @@
 /*
- *      Copyright (C) 2005-2018 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GUIDialogSongInfo.h"
 #include "dialogs/GUIDialogBusy.h"
 #include "dialogs/GUIDialogFileBrowser.h"
-#include "dialogs/GUIDialogSelect.h"
 #include "filesystem/File.h"
 #include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
@@ -30,14 +17,14 @@
 #include "GUIUserMessages.h"
 #include "GUIPassword.h"
 #include "input/Key.h"
-#include "music/Album.h"
 #include "music/MusicDatabase.h"
 #include "music/MusicUtils.h"
 #include "music/tags/MusicInfoTag.h"
 #include "music/windows/GUIWindowMusicBase.h"
-#include "profiles/ProfilesManager.h"
+#include "profiles/ProfileManager.h"
 #include "ServiceBroker.h"
 #include "settings/MediaSourceSettings.h"
+#include "settings/SettingsComponent.h"
 #include "storage/MediaManager.h"
 #include "TextureCache.h"
 #include "Util.h"
@@ -251,9 +238,9 @@ void CGUIDialogSongInfo::OnInitWindow()
     CONTROL_ENABLE(CONTROL_USERRATING);
 
   // Disable the Choose Art button if the user isn't allowed it
-  const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+  const std::shared_ptr<CProfileManager> profileManager = CServiceBroker::GetSettingsComponent()->GetProfileManager();
   CONTROL_ENABLE_ON_CONDITION(CONTROL_BTN_GET_THUMB,
-    profileManager.GetCurrentProfile().canWriteDatabases() || g_passwordManager.bMasterUser);
+    profileManager->GetCurrentProfile().canWriteDatabases() || g_passwordManager.bMasterUser);
 
   SET_CONTROL_HIDDEN(CONTROL_BTN_REFRESH);
   SET_CONTROL_LABEL(CONTROL_USERRATING, 38023);
@@ -270,7 +257,7 @@ void CGUIDialogSongInfo::Update()
   {
     auto item = std::make_shared<CFileItem>(contributor.GetRoleDesc());
     item->SetLabel2(contributor.GetArtist());
-    item->GetMusicInfoTag()->SetDatabaseId(contributor.GetArtistId(), "artist");
+    item->GetMusicInfoTag()->SetDatabaseId(contributor.GetArtistId(), MediaTypeArtist);
     items.Add(std::move(item));
   }
   CGUIMessage message(GUI_MSG_LABEL_BIND, GetID(), CONTROL_LIST, 0, 0, &items);

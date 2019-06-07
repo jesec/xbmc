@@ -1,26 +1,13 @@
 /*
- *      Copyright (C) 2017 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2017-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this Program; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "DialogGameVolume.h"
 #include "dialogs/GUIDialogVolumeBar.h"
-#include "guilib/GUIComponent.h"
 #include "guilib/GUIComponent.h"
 #include "guilib/GUIDialog.h"
 #include "guilib/GUIMessage.h"
@@ -29,7 +16,6 @@
 #include "guilib/LocalizeStrings.h"
 #include "guilib/WindowIDs.h"
 #include "interfaces/AnnouncementManager.h"
-#include "utils/log.h"
 #include "utils/Variant.h"
 #include "Application.h"
 #include "ServiceBroker.h"
@@ -86,12 +72,12 @@ void CDialogGameVolume::OnInitWindow()
   if (dialogVolumeBar != nullptr)
     dialogVolumeBar->RegisterCallback(this);
 
-  ANNOUNCEMENT::CAnnouncementManager::GetInstance().AddAnnouncer(this);
+  CServiceBroker::GetAnnouncementManager()->AddAnnouncer(this);
 }
 
 void CDialogGameVolume::OnDeinitWindow(int nextWindowID)
 {
-  ANNOUNCEMENT::CAnnouncementManager::GetInstance().RemoveAnnouncer(this);
+  CServiceBroker::GetAnnouncementManager()->RemoveAnnouncer(this);
 
   CGUIDialogVolumeBar *dialogVolumeBar = dynamic_cast<CGUIDialogVolumeBar*>(CServiceBroker::GetGUI()->GetWindowManager().GetWindow(WINDOW_DIALOG_VOLUME_BAR));
   if (dialogVolumeBar != nullptr)

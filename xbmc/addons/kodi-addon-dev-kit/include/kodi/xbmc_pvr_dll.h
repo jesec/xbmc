@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2015 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -328,7 +316,7 @@ extern "C"
   /*!
    * Set the last watched position of a recording on the backend.
    * @param recording The recording.
-   * @param position The last watched position in seconds
+   * @param lastplayedposition The last watched position in seconds
    * @return PVR_ERROR_NO_ERROR if the position has been stored successfully.
    * @remarks Required if bSupportsLastPlayedPosition is set to true.
    *          Return PVR_ERROR_NOT_IMPLEMENTED if this add-on won't provide this function.
@@ -495,7 +483,7 @@ extern "C"
 
   /*!
    * Get the stream properties for a recording from the backend.
-   * @param[in] channel The recording to get the stream properties for.
+   * @param[in] recording The recording to get the stream properties for.
    * @param[inout] properties in: an array for the properties to return, out: the properties required to play the stream.
    * @param[inout] iPropertiesCount in: the size of the properties array, out: the number of properties returned.
    * @return PVR_ERROR_NO_ERROR if the stream is available.
@@ -688,7 +676,9 @@ extern "C"
   void OnPowerSavingDeactivated();
 
   /*!
-   * Get stream times. Intermediate, will be moved to inputstream
+   * Get stream times.
+   * @param times A pointer to the data to be filled by the implementation.
+   * @return PVR_ERROR_NO_ERROR on success.
    */
   PVR_ERROR GetStreamTimes(PVR_STREAM_TIMES *times);
 

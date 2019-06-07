@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "guilib/guiinfo/GUIControlsGUIInfo.h"
@@ -38,6 +26,7 @@
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "video/VideoInfoTag.h"
 #include "video/dialogs/GUIDialogVideoInfo.h"
 #include "view/GUIViewState.h"
@@ -195,6 +184,7 @@ bool CGUIControlsGUIInfo::GetLabel(std::string& value, const CFileItem *item, in
         value = window->CurrentDirectory().GetProperty("showtitle").asString();
         return true;
       }
+      break;
     }
     case CONTAINER_PLUGINCATEGORY:
     {
@@ -327,7 +317,7 @@ bool CGUIControlsGUIInfo::GetLabel(std::string& value, const CFileItem *item, in
       value = g_localizeStrings.Get(CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindowOrDialog());
       return true;
     case SYSTEM_STARTUP_WINDOW:
-      value = StringUtils::Format("%i", CServiceBroker::GetSettings().GetInt(CSettings::SETTING_LOOKANDFEEL_STARTUPWINDOW));
+      value = StringUtils::Format("%i", CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_LOOKANDFEEL_STARTUPWINDOW));
       return true;
     case SYSTEM_CURRENT_CONTROL:
     case SYSTEM_CURRENT_CONTROL_ID:

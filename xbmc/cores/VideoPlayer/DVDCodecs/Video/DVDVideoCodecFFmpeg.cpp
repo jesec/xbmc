@@ -1,39 +1,25 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "system.h"
 #include "DVDVideoCodecFFmpeg.h"
-#include "DVDDemuxers/DVDDemux.h"
 #include "DVDStreamInfo.h"
 #include "cores/VideoPlayer/Interface/Addon/TimingConstants.h"
 #include "DVDCodecs/DVDCodecs.h"
-#include "DVDCodecs/DVDCodecUtils.h"
 #include "DVDCodecs/DVDFactoryCodec.h"
 #include "ServiceBroker.h"
 #include "utils/CPUInfo.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "cores/VideoSettings.h"
 #include "utils/log.h"
 #include "cores/VideoPlayer/VideoRenderers/RenderManager.h"
-#include "cores/VideoPlayer/VideoRenderers/RenderInfo.h"
 #include "utils/StringUtils.h"
 #include <memory>
 
@@ -346,6 +332,7 @@ bool CDVDVideoCodecFFmpeg::Open(CDVDStreamInfo &hints, CDVDCodecOptions &options
   m_formats = m_processInfo.GetPixFormats();
   m_formats.push_back(AV_PIX_FMT_NONE); /* always add none to get a terminated list in ffmpeg world */
   m_processInfo.SetSwDeinterlacingMethods();
+  m_processInfo.SetVideoInterlaced(false);
 
   pCodec = avcodec_find_decoder(hints.codec);
 
@@ -402,9 +389,10 @@ bool CDVDVideoCodecFFmpeg::Open(CDVDStreamInfo &hints, CDVDCodecOptions &options
 
   // advanced setting override for skip loop filter (see avcodec.h for valid options)
   //! @todo allow per video setting?
-  if (g_advancedSettings.m_iSkipLoopFilter != 0)
+  int iSkipLoopFilter = CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_iSkipLoopFilter;
+  if (iSkipLoopFilter != 0)
   {
-    m_pCodecContext->skip_loop_filter = (AVDiscard)g_advancedSettings.m_iSkipLoopFilter;
+    m_pCodecContext->skip_loop_filter = static_cast<AVDiscard>(iSkipLoopFilter);
   }
 
   // set any special options
@@ -757,7 +745,8 @@ CDVDVideoCodec::VCReturn CDVDVideoCodecFFmpeg::GetPicture(VideoPicture* pVideoPi
   else
     m_interlaced = false;
 
-  m_processInfo.SetVideoInterlaced(m_interlaced);
+  if (!m_processInfo.GetVideoInterlaced() && m_interlaced)
+    m_processInfo.SetVideoInterlaced(m_interlaced);
 
   if (!m_started)
   {
@@ -872,7 +861,7 @@ bool CDVDVideoCodecFFmpeg::SetPictureParams(VideoPicture* pVideoPicture)
 
   if (m_processInfo.GetVideoSettings().m_PostProcess)
   {
-    m_postProc.SetType(g_advancedSettings.m_videoPPFFmpegPostProc, false);
+    m_postProc.SetType(CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_videoPPFFmpegPostProc, false);
     m_postProc.Process(pVideoPicture);
   }
 
@@ -1158,7 +1147,7 @@ int CDVDVideoCodecFFmpeg::FilterOpen(const std::string& filters, bool scale)
     return result;
   }
 
-  if (g_advancedSettings.CanLogComponent(LOGVIDEO))
+  if (CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->CanLogComponent(LOGVIDEO))
   {
     char* graphDump = avfilter_graph_dump(m_pFilterGraph, nullptr);
     if (graphDump)

@@ -1,23 +1,10 @@
 /*
- *      Copyright (C) 2012 Denis Yantarev
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012 Denis Yantarev
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "LogindUPowerSyscall.h"
@@ -38,7 +25,6 @@
 
 CLogindUPowerSyscall::CLogindUPowerSyscall()
 {
-  m_delayLockFd = -1;
   m_lowBattery = false;
 
   CLog::Log(LOGINFO, "Selected Logind/UPower as PowerSyscall");
@@ -55,7 +41,7 @@ CLogindUPowerSyscall::CLogindUPowerSyscall()
   m_canHibernate = LogindCheckCapability("CanHibernate");
   m_canSuspend   = LogindCheckCapability("CanSuspend");
 
-  InhibitDelayLock();
+  InhibitDelayLockSleep();
 
   m_batteryLevel = 0;
   if (m_hasUPower)
@@ -84,11 +70,14 @@ CLogindUPowerSyscall::CLogindUPowerSyscall()
 
 CLogindUPowerSyscall::~CLogindUPowerSyscall()
 {
-  ReleaseDelayLock();
+  ReleaseDelayLockSleep();
+  ReleaseDelayLockShutdown();
 }
 
 bool CLogindUPowerSyscall::Powerdown()
 {
+  // delay shutdown so that the app can close properly
+  InhibitDelayLockShutdown();
   return LogindSetPowerState("PowerOff");
 }
 
@@ -132,7 +121,37 @@ bool CLogindUPowerSyscall::HasLogind()
   // recommended method by systemd devs. The seats directory
   // doesn't exist unless logind created it and therefore is running.
   // see also https://mail.gnome.org/archives/desktop-devel-list/2013-March/msg00092.html
-  return (access("/run/systemd/seats/", F_OK) >= 0);
+  if (access("/run/systemd/seats/", F_OK) >= 0)
+    return true;
+
+  // on some environments "/run/systemd/seats/" doesn't exist, e.g. on flatpak. Try DBUS instead.
+  CDBusMessage message(LOGIND_DEST, LOGIND_PATH, LOGIND_IFACE, "ListSeats");
+  DBusMessage *reply = message.SendSystem();
+  if (!reply)
+    return false;
+
+  DBusMessageIter arrIter;
+  if (dbus_message_iter_init(reply, &arrIter) && dbus_message_iter_get_arg_type(&arrIter) == DBUS_TYPE_ARRAY)
+  {
+    DBusMessageIter structIter;
+    dbus_message_iter_recurse(&arrIter, &structIter);
+    if (dbus_message_iter_get_arg_type(&structIter) == DBUS_TYPE_STRUCT)
+    {
+      DBusMessageIter strIter;
+      dbus_message_iter_recurse(&structIter, &strIter);
+      if (dbus_message_iter_get_arg_type(&strIter) == DBUS_TYPE_STRING)
+      {
+        char *seat;
+        dbus_message_iter_get_basic(&strIter, &seat);
+        if (StringUtils::StartsWith(seat, "seat"))
+        {
+            CLog::Log(LOGDEBUG, "LogindUPowerSyscall::HasLogind - found seat: {}", seat);
+            return true;
+        }
+      }
+    }
+  }
+  return false;
 }
 
 bool CLogindUPowerSyscall::LogindSetPowerState(const char *state)
@@ -207,7 +226,7 @@ void CLogindUPowerSyscall::UpdateBatteryLevel()
 bool CLogindUPowerSyscall::PumpPowerEvents(IPowerEventsCallback *callback)
 {
   bool result = false;
-  bool releaseLock = false;
+  bool releaseLockSleep = false;
 
   if (m_connection)
   {
@@ -225,12 +244,12 @@ bool CLogindUPowerSyscall::PumpPowerEvents(IPowerEventsCallback *callback)
         if (arg)
         {
           callback->OnSleep();
-          releaseLock = true;
+          releaseLockSleep = true;
         }
         else
         {
           callback->OnWake();
-          InhibitDelayLock();
+          InhibitDelayLockSleep();
         }
 
         result = true;
@@ -249,17 +268,27 @@ bool CLogindUPowerSyscall::PumpPowerEvents(IPowerEventsCallback *callback)
     }
   }
 
-  if (releaseLock)
-    ReleaseDelayLock();
+  if (releaseLockSleep)
+    ReleaseDelayLockSleep();
 
   return result;
 }
 
-void CLogindUPowerSyscall::InhibitDelayLock()
+void CLogindUPowerSyscall::InhibitDelayLockSleep()
+{
+  m_delayLockSleepFd = InhibitDelayLock("sleep");
+}
+
+void CLogindUPowerSyscall::InhibitDelayLockShutdown()
+{
+  m_delayLockShutdownFd = InhibitDelayLock("shutdown");
+}
+
+int CLogindUPowerSyscall::InhibitDelayLock(const char *what)
 {
 #ifdef DBUS_TYPE_UNIX_FD
   CDBusMessage message("org.freedesktop.login1", "/org/freedesktop/login1", "org.freedesktop.login1.Manager", "Inhibit");
-  message.AppendArgument("sleep"); // what to inhibit
+  message.AppendArgument(what); // what to inhibit
   message.AppendArgument("XBMC"); // who
   message.AppendArgument(""); // reason
   message.AppendArgument("delay"); // mode
@@ -268,30 +297,42 @@ void CLogindUPowerSyscall::InhibitDelayLock()
 
   if (!reply)
   {
-    CLog::Log(LOGWARNING, "LogindUPowerSyscall - failed to inhibit sleep delay lock");
-    m_delayLockFd = -1;
-    return;
+    CLog::Log(LOGWARNING, "LogindUPowerSyscall - failed to inhibit %s delay lock", what);
+    return -1;
   }
 
-  if (!dbus_message_get_args(reply, NULL, DBUS_TYPE_UNIX_FD, &m_delayLockFd, DBUS_TYPE_INVALID))
+  int delayLockFd;
+  if (!dbus_message_get_args(reply, NULL, DBUS_TYPE_UNIX_FD, &delayLockFd, DBUS_TYPE_INVALID))
   {
     CLog::Log(LOGWARNING, "LogindUPowerSyscall - failed to get inhibit file descriptor");
-    m_delayLockFd = -1;
-    return;
+    return -1;
   }
 
-    CLog::Log(LOGDEBUG, "LogindUPowerSyscall - inhibit lock taken, fd %i", m_delayLockFd);
+  CLog::Log(LOGDEBUG, "LogindUPowerSyscall - inhibit lock taken, fd %i", delayLockFd);
+  return delayLockFd;
 #else
-    CLog::Log(LOGWARNING, "LogindUPowerSyscall - inhibit lock support not compiled in");
+  CLog::Log(LOGWARNING, "LogindUPowerSyscall - inhibit lock support not compiled in");
+  return -1;
 #endif
 }
 
-void CLogindUPowerSyscall::ReleaseDelayLock()
+void CLogindUPowerSyscall::ReleaseDelayLockSleep()
 {
-  if (m_delayLockFd != -1)
+  ReleaseDelayLock(m_delayLockSleepFd, "sleep");
+  m_delayLockSleepFd = -1;
+}
+
+void CLogindUPowerSyscall::ReleaseDelayLockShutdown()
+{
+  ReleaseDelayLock(m_delayLockShutdownFd, "shutdown");
+  m_delayLockShutdownFd = -1;
+}
+
+void CLogindUPowerSyscall::ReleaseDelayLock(int lockFd, const char *what)
+{
+  if (lockFd != -1)
   {
-    close(m_delayLockFd);
-    m_delayLockFd = -1;
-    CLog::Log(LOGDEBUG, "LogindUPowerSyscall - delay lock released");
+    close(lockFd);
+    CLog::Log(LOGDEBUG, "LogindUPowerSyscall - delay lock %s released", what);
   }
 }

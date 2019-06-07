@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2017 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "LibInputPointer.h"
@@ -71,10 +59,7 @@ void CLibInputPointer::ProcessButton(libinput_event_pointer *e)
   event.button.x = static_cast<uint16_t>(m_pos.X);
   event.button.y = static_cast<uint16_t>(m_pos.Y);
 
-  CLog::Log(LOGDEBUG, "CLibInputPointer::%s - event.type: %i", __FUNCTION__, event.type);
-  CLog::Log(LOGDEBUG, "CLibInputPointer::%s - event.button.button: %i", __FUNCTION__, event.button.button);
-  CLog::Log(LOGDEBUG, "CLibInputPointer::%s - event.button.x: %i", __FUNCTION__, event.button.x);
-  CLog::Log(LOGDEBUG, "CLibInputPointer::%s - event.button.y: %i", __FUNCTION__, event.button.y);
+  CLog::Log(LOGDEBUG, "CLibInputPointer::%s - event.type: %i, event.button.button: %i, event.button.x: %i, event.button.y: %i", __FUNCTION__, event.type, event.button.button, event.button.x, event.button.y);
 
   std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
   if (appPort)
@@ -104,9 +89,7 @@ void CLibInputPointer::ProcessMotion(libinput_event_pointer *e)
   event.motion.x = static_cast<uint16_t>(m_pos.X);
   event.motion.y = static_cast<uint16_t>(m_pos.Y);
 
-  CLog::Log(LOGDEBUG, "CLibInputPointer::%s - event.type: %i", __FUNCTION__, event.type);
-  CLog::Log(LOGDEBUG, "CLibInputPointer::%s - event.motion.x: %i", __FUNCTION__, event.motion.x);
-  CLog::Log(LOGDEBUG, "CLibInputPointer::%s - event.motion.y: %i", __FUNCTION__, event.motion.y);
+  CLog::Log(LOGDEBUG, "CLibInputPointer::%s - event.type: %i, event.motion.x: %i, event.motion.y: %i", __FUNCTION__, event.type, event.motion.x, event.motion.y);
 
   std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
   if (appPort)
@@ -133,9 +116,7 @@ void CLibInputPointer::ProcessAxis(libinput_event_pointer *e)
   event.button.x = static_cast<uint16_t>(m_pos.X);
   event.button.y = static_cast<uint16_t>(m_pos.Y);
 
-  CLog::Log(LOGDEBUG, "CLibInputPointer::%s - scroll: %s", __FUNCTION__, scroll == XBMC_BUTTON_WHEELUP ? "up" : "down");
-  CLog::Log(LOGDEBUG, "CLibInputPointer::%s - event.button.x: %i", __FUNCTION__, event.button.x);
-  CLog::Log(LOGDEBUG, "CLibInputPointer::%s - event.button.y: %i", __FUNCTION__, event.button.y);
+  CLog::Log(LOGDEBUG, "CLibInputPointer::%s - scroll: %s, event.button.x: %i, event.button.y: %i", __FUNCTION__, scroll == XBMC_BUTTON_WHEELUP ? "up" : "down", event.button.x, event.button.y);
 
   std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
   if (appPort)

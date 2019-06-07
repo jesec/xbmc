@@ -191,7 +191,8 @@
         "type": "object",
         "properties": {
           "playerid": { "$ref": "Player.Id", "required": true },
-          "type": { "$ref": "Player.Type", "required": true }
+          "type": { "$ref": "Player.Type", "required": true },
+          "playertype": { "type": "string", "enum": [ "internal", "external", "remote" ], "required": true }
         }
       }
     }
@@ -1539,7 +1540,8 @@
     "params": [
       { "name": "setid", "$ref": "Library.Id", "required": true },
       { "name": "title", "$ref": "Optional.String" },
-      { "name": "art", "type": [ "null", { "$ref": "Media.Artwork.Set", "required": true } ], "default": null }
+      { "name": "art", "type": [ "null", { "$ref": "Media.Artwork.Set", "required": true } ], "default": null },
+      { "name": "plot", "$ref": "Optional.String" }
     ],
     "returns": "string"
   },
@@ -1585,7 +1587,8 @@
     "params": [
       { "name": "seasonid", "$ref": "Library.Id", "required": true },
       { "name": "art", "type": [ "null", { "$ref": "Media.Artwork.Set", "required": true } ], "default": null },
-      { "name": "userrating", "$ref": "Optional.Integer" }
+      { "name": "userrating", "$ref": "Optional.Integer" },
+      { "name": "title", "$ref": "Optional.String" }
     ],
     "returns": "string"
   },

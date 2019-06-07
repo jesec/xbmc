@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -33,30 +21,30 @@ public:
    CNetworkInterfaceLinux(CNetworkLinux* network, std::string interfaceName, char interfaceMacAddrRaw[6]);
    ~CNetworkInterfaceLinux(void) override;
 
-   std::string& GetName(void) override;
+   const std::string& GetName(void) const override;
 
-   bool IsEnabled(void) override;
-   bool IsConnected(void) override;
-   bool IsWireless(void) override;
+   bool IsEnabled(void) const override;
+   bool IsConnected(void) const override;
+   bool IsWireless(void) const override;
 
-   std::string GetMacAddress(void) override;
-   void GetMacAddressRaw(char rawMac[6]) override;
+   std::string GetMacAddress(void) const override;
+   void GetMacAddressRaw(char rawMac[6]) const override;
 
-   bool GetHostMacAddress(unsigned long host, std::string& mac) override;
+   bool GetHostMacAddress(unsigned long host, std::string& mac) const override;
 
-   std::string GetCurrentIPAddress() override;
-   std::string GetCurrentNetmask() override;
-   std::string GetCurrentDefaultGateway(void) override;
-   std::string GetCurrentWirelessEssId(void) override;
+   std::string GetCurrentIPAddress() const override;
+   std::string GetCurrentNetmask() const override;
+   std::string GetCurrentDefaultGateway(void) const override;
+   std::string GetCurrentWirelessEssId(void) const override;
 
-   void GetSettings(NetworkAssignment& assignment, std::string& ipAddress, std::string& networkMask, std::string& defaultGateway, std::string& essId, std::string& key, EncMode& encryptionMode) override;
-   void SetSettings(NetworkAssignment& assignment, std::string& ipAddress, std::string& networkMask, std::string& defaultGateway, std::string& essId, std::string& key, EncMode& encryptionMode) override;
+   void GetSettings(NetworkAssignment& assignment, std::string& ipAddress, std::string& networkMask, std::string& defaultGateway, std::string& essId, std::string& key, EncMode& encryptionMode) const override;
+   void SetSettings(const NetworkAssignment& assignment, const std::string& ipAddress, const std::string& networkMask, const std::string& defaultGateway, const std::string& essId, const std::string& key, const EncMode& encryptionMode) override;
 
    // Returns the list of access points in the area
-   std::vector<NetworkAccessPoint> GetAccessPoints(void) override;
+   std::vector<NetworkAccessPoint> GetAccessPoints(void) const override;
 
 private:
-   void WriteSettings(FILE* fw, NetworkAssignment assignment, std::string& ipAddress, std::string& networkMask, std::string& defaultGateway, std::string& essId, std::string& key, EncMode& encryptionMode);
+   void WriteSettings(FILE* fw, NetworkAssignment assignment, const std::string& ipAddress, const std::string& networkMask, const std::string& defaultGateway, const std::string& essId, const std::string& key, const EncMode& encryptionMode);
    std::string     m_interfaceName;
    std::string     m_interfaceMacAdr;
    char           m_interfaceMacAddrRaw[6];
@@ -66,7 +54,7 @@ private:
 class CNetworkLinux : public CNetworkBase
 {
 public:
-   CNetworkLinux(CSettings &settings);
+   CNetworkLinux();
    ~CNetworkLinux(void) override;
 
    // Return the list of interfaces

@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "MusicThumbLoader.h"
@@ -164,10 +152,17 @@ bool CMusicThumbLoader::FillThumb(CFileItem &item, bool folderThumbs /* = true *
 
 bool CMusicThumbLoader::FillLibraryArt(CFileItem &item)
 {
+  /* Called for any item with MusicInfoTag and no art. 
+     Items on Genres, Sources and Roles nodes have ID (although items on Years
+     node do not) so check for song/album/artist specifically.
+     Non-library songs (file view) can also have MusicInfoTag but no ID or type
+  */
   bool artfound(false);
   std::vector<ArtForThumbLoader> art;
   CMusicInfoTag &tag = *item.GetMusicInfoTag();
-  if (tag.GetDatabaseId() > -1 && !tag.GetType().empty())
+  if (tag.GetDatabaseId() > -1 && (tag.GetType() == MediaTypeSong || 
+      tag.GetType() == MediaTypeAlbum || 
+      tag.GetType() == MediaTypeArtist))
   {
     // Item in music library, fetch the art
     m_musicDatabase->Open();
@@ -180,53 +175,27 @@ bool CMusicThumbLoader::FillLibraryArt(CFileItem &item)
 
     m_musicDatabase->Close();
   }
-  else
+  else if (!tag.GetArtist().empty() && 
+    (tag.GetType() == MediaTypeNone || tag.GetType() == MediaTypeSong))
   {
-    // Non-library song (has musictag but no ID, and may have thumb already loaded),
-    // try to fetch both song artist(s) and album artist(s) art by artist name,
-    // e.g. "artist.thumb", "artist.fanart", "artist.clearlogo", "artist.banner",
-    // "artist1.thumb", "artist1.fanart", "artist1.clearlogo", "artist1.banner",
-    // "albumartist.thumb", "albumartist.fanart" etc. Set fanart as fallback.
-    tag.SetType(MediaTypeSong);
-
-    // Song artist art
-    // Split song artist names correctly into artist credits from various tag arrays
+    /* 
+    Could be non-library song - has musictag but no ID or type (may have
+    thumb already). Try to fetch both song artist(s) and album artist(s) art by
+    artist name, e.g. "artist.thumb", "artist.fanart", "artist.clearlogo",
+    "artist.banner", "artist1.thumb", "artist1.fanart", "artist1.clearlogo",
+    "artist1.banner", "albumartist.thumb", "albumartist.fanart" etc. 
+    Set fanart as fallback.
+    */
     CSong song;
+    // Try to split song artist names (various tags) into artist credits
     song.SetArtistCredits(tag.GetArtist(), tag.GetMusicBrainzArtistHints(), tag.GetMusicBrainzArtistID());
-    m_musicDatabase->Open();
-    int iOrder = 0;
-    for (const auto& artistCredit : song.artistCredits)
+    if (!song.artistCredits.empty())
     {
-      int idArtist = m_musicDatabase->GetArtistByName(artistCredit.GetArtist());
-      if (idArtist > 0)
-      {
-        std::vector<ArtForThumbLoader> artistart;
-        if (m_musicDatabase->GetArtForItem(-1, -1, idArtist, true, artistart))
-        {
-          for (auto& artitem : artistart)
-          {
-            if (iOrder > 0)
-              artitem.prefix = StringUtils::Format("artist%i", iOrder);
-            else
-              artitem.prefix = "artist";
-          }
-          art.insert(art.end(), artistart.begin(), artistart.end());
-        }
-      }
-      ++iOrder;
-    }
-
-    // Album artist art
-    if (!tag.GetAlbumArtist().empty() && tag.GetArtistString().compare(tag.GetAlbumArtistString()) != 0)
-    {
-      // Split song artist names correctly into artist credits from various tag
-      // arrays, inc. fallback to song artist names
-      CAlbum album;
-      album.SetArtistCredits(tag.GetAlbumArtist(), tag.GetMusicBrainzAlbumArtistHints(), tag.GetMusicBrainzAlbumArtistID(),
-        tag.GetArtist(), tag.GetMusicBrainzArtistHints(), tag.GetMusicBrainzArtistID());
-
-      iOrder = 0;
-      for (const auto& artistCredit : album.artistCredits)
+      tag.SetType(MediaTypeSong);  // Makes "Information" context menu visible
+      m_musicDatabase->Open();
+      int iOrder = 0;
+      // Song artist art
+      for (const auto& artistCredit : song.artistCredits)
       {
         int idArtist = m_musicDatabase->GetArtistByName(artistCredit.GetArtist());
         if (idArtist > 0)
@@ -237,33 +206,64 @@ bool CMusicThumbLoader::FillLibraryArt(CFileItem &item)
             for (auto& artitem : artistart)
             {
               if (iOrder > 0)
-                artitem.prefix = StringUtils::Format("albumartist%i", iOrder);
+                artitem.prefix = StringUtils::Format("artist%i", iOrder);
               else
-                artitem.prefix = "albumartist";
+                artitem.prefix = "artist";
             }
             art.insert(art.end(), artistart.begin(), artistart.end());
           }
         }
         ++iOrder;
       }
-    }
-    else
-    {
-      // Replicate the artist art as album artist art
-      std::vector<ArtForThumbLoader> artistart;
-      for (const auto& artitem : art)
+      // Album artist art
+      if (!tag.GetAlbumArtist().empty() && tag.GetArtistString().compare(tag.GetAlbumArtistString()) != 0)
       {
-        ArtForThumbLoader newart;
-        newart.artType = artitem.artType;
-        newart.mediaType = artitem.mediaType;
-        newart.prefix = "album" + artitem.prefix;
-        newart.url = artitem.url;
-        artistart.emplace_back(newart);
+        // Split song artist names correctly into artist credits from various tag
+        // arrays, inc. fallback to song artist names
+        CAlbum album;
+        album.SetArtistCredits(tag.GetAlbumArtist(), tag.GetMusicBrainzAlbumArtistHints(), tag.GetMusicBrainzAlbumArtistID(),
+          tag.GetArtist(), tag.GetMusicBrainzArtistHints(), tag.GetMusicBrainzArtistID());
+
+        iOrder = 0;
+        for (const auto& artistCredit : album.artistCredits)
+        {
+          int idArtist = m_musicDatabase->GetArtistByName(artistCredit.GetArtist());
+          if (idArtist > 0)
+          {
+            std::vector<ArtForThumbLoader> artistart;
+            if (m_musicDatabase->GetArtForItem(-1, -1, idArtist, true, artistart))
+            {
+              for (auto& artitem : artistart)
+              {
+                if (iOrder > 0)
+                  artitem.prefix = StringUtils::Format("albumartist%i", iOrder);
+                else
+                  artitem.prefix = "albumartist";
+              }
+              art.insert(art.end(), artistart.begin(), artistart.end());
+            }
+          }
+          ++iOrder;
+        }
       }
-      art.insert(art.end(), artistart.begin(), artistart.end());
-    }
-    artfound = !art.empty();
-    m_musicDatabase->Close();
+      else
+      {
+        // Replicate the artist art as album artist art
+        std::vector<ArtForThumbLoader> artistart;
+        for (const auto& artitem : art)
+        {
+          ArtForThumbLoader newart;
+          newart.artType = artitem.artType;
+          newart.mediaType = artitem.mediaType;
+          newart.prefix = "album" + artitem.prefix;
+          newart.url = artitem.url;
+          artistart.emplace_back(newart);
+        }
+        art.insert(art.end(), artistart.begin(), artistart.end());
+      }
+      artfound = !art.empty();
+      m_musicDatabase->Close();
+    }    
   }
 
   if (artfound)

@@ -1,26 +1,13 @@
 /*
- *      Copyright (C) 2005-2017 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with KODI; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "AddonInfo.h"
 
-#include "Util.h"
 #include "guilib/LocalizeStrings.h"
 
 namespace ADDON
@@ -84,9 +71,8 @@ static const TypeMapping types[] =
 
 std::string CAddonInfo::TranslateType(ADDON::TYPE type, bool pretty/*=false*/)
 {
-  for (unsigned int index=0; index < ARRAY_SIZE(types); ++index)
+  for (const TypeMapping& map : types)
   {
-    const TypeMapping &map = types[index];
     if (type == map.type)
     {
       if (pretty && map.pretty)
@@ -100,9 +86,8 @@ std::string CAddonInfo::TranslateType(ADDON::TYPE type, bool pretty/*=false*/)
 
 TYPE CAddonInfo::TranslateType(const std::string& string)
 {
-  for (unsigned int index=0; index < ARRAY_SIZE(types); ++index)
+  for (const TypeMapping& map : types)
   {
-    const TypeMapping &map = types[index];
     if (string == map.name)
       return map.type;
   }
@@ -112,9 +97,8 @@ TYPE CAddonInfo::TranslateType(const std::string& string)
 
 std::string CAddonInfo::TranslateIconType(ADDON::TYPE type)
 {
-  for (unsigned int index = 0; index < ARRAY_SIZE(types); ++index)
+  for (const TypeMapping& map : types)
   {
-    const TypeMapping &map = types[index];
     if (type == map.type)
       return map.icon;
   }

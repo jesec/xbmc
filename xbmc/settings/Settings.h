@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -141,6 +129,8 @@ public:
   static const std::string SETTING_SUBTITLES_HEIGHT;
   static const std::string SETTING_SUBTITLES_STYLE;
   static const std::string SETTING_SUBTITLES_COLOR;
+  static const std::string SETTING_SUBTITLES_BGCOLOR;
+  static const std::string SETTING_SUBTITLES_BGOPACITY;
   static const std::string SETTING_SUBTITLES_CHARSET;
   static const std::string SETTING_SUBTITLES_OVERRIDEASSFONTS;
   static const std::string SETTING_SUBTITLES_LANGUAGES;
@@ -185,6 +175,7 @@ public:
   static const std::string SETTING_PVRPLAYBACK_SIGNALQUALITY;
   static const std::string SETTING_PVRPLAYBACK_CONFIRMCHANNELSWITCH;
   static const std::string SETTING_PVRPLAYBACK_CHANNELENTRYTIMEOUT;
+  static const std::string SETTING_PVRPLAYBACK_DELAYMARKLASTWATCHED;
   static const std::string SETTING_PVRPLAYBACK_FPS;
   static const std::string SETTING_PVRRECORD_INSTANTRECORDACTION;
   static const std::string SETTING_PVRRECORD_INSTANTRECORDTIME;
@@ -204,6 +195,7 @@ public:
   static const std::string SETTING_PVRCLIENT_MENUHOOK;
   static const std::string SETTING_PVRTIMERS_HIDEDISABLEDTIMERS;
   static const std::string SETTING_MUSICLIBRARY_SHOWCOMPILATIONARTISTS;
+  static const std::string SETTING_MUSICLIBRARY_USEARTISTSORTNAME;
   static const std::string SETTING_MUSICLIBRARY_DOWNLOADINFO;
   static const std::string SETTING_MUSICLIBRARY_ARTISTSFOLDER;
   static const std::string SETTING_MUSICLIBRARY_PREFERONLINEALBUMART;
@@ -381,6 +373,9 @@ public:
   static const std::string SETTING_SOURCE_VIDEOS;
   static const std::string SETTING_SOURCE_MUSIC;
   static const std::string SETTING_SOURCE_PICTURES;
+  // values for SETTING_VIDEOLIBRARY_SHOWUNWATCHEDPLOTS
+  static const int VIDEOLIBRARY_PLOTS_SHOW_UNWATCHED_MOVIES = 0;
+  static const int VIDEOLIBRARY_PLOTS_SHOW_UNWATCHED_TVSHOWEPISODES = 1;
 
 #ifdef HAS_DS_PLAYER
   static const std::string CSettings::SETTING_DSPLAYER_RULES;

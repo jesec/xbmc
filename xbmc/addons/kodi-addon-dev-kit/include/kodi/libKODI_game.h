@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2014-2017 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2014-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this Program; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -135,7 +123,7 @@ public:
   /*!
    * \brief Get a symbol from the hardware context
    *
-   * \param symbol The symbol's name
+   * \param sym The symbol's name
    *
    * \return A function pointer for the specified symbol
    */
@@ -147,15 +135,15 @@ public:
   // --- Input callbacks -------------------------------------------------------
 
   /*!
-  * \brief Notify the port of an input event
-  *
-  * \param event The input event
-  *
-  * Input events can arrive for the following sources:
-  *   - GAME_INPUT_EVENT_MOTOR
-  *
-  * \return true if the event was handled, false otherwise
-  */
+   * \brief Notify the port of an input event
+   *
+   * \param event The input event
+   *
+   * Input events can arrive for the following sources:
+   *   - GAME_INPUT_EVENT_MOTOR
+   *
+   * \return true if the event was handled, false otherwise
+   */
   bool InputEvent(const game_input_event& event)
   {
     return m_callbacks->toKodi.InputEvent(m_callbacks->toKodi.kodiInstance, &event);

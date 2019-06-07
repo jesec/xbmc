@@ -2,14 +2,21 @@
 <settings version="1">
   <section id="player">
     <category id="videoplayer">
+       <group id="2">
+        <setting id="videoplayer.usedisplayasclock">
+          <visible>false</visible>
+          <default>false</default>
+        </setting>
+      </group>
       <group id="3">
         <setting id="videoplayer.useprimedecoder" type="boolean" label="13430" help="36172">
+          <visible>false</visible>
           <level>2</level>
           <default>true</default>
           <control type="toggle" />
         </setting>
         <setting id="videoplayer.useprimerenderer" type="integer" label="13462" help="13463">
-          <visible>true</visible>
+          <visible>false</visible>
           <dependencies>
             <dependency type="enable">
               <condition setting="videoplayer.useprimedecoder" operator="is">true</condition>
@@ -38,6 +45,21 @@
           <level>3</level>
           <default>false</default>
           <control type="toggle" />
+        </setting>
+      </group>
+    </category>
+    <category id="input">
+      <group id="4" label="35150">
+        <setting id="input.libinputkeyboardlayout" type="string" label="310" help="36436">
+          <level>0</level>
+          <default>us</default>
+          <visible>true</visible>
+          <constraints>
+            <options>libinputkeyboardlayout</options>
+          </constraints>
+          <control type="list" format="string">
+            <multiselect>false</multiselect>
+          </control>
         </setting>
       </group>
     </category>

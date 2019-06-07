@@ -1,43 +1,28 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "AppParamParser.h"
-#include "PlayListPlayer.h"
-#include "Application.h"
+#include "CompileInfo.h"
+#include "FileItem.h"
 #include "settings/AdvancedSettings.h"
 #include "utils/log.h"
 #include "utils/SystemInfo.h"
 #include "utils/StringUtils.h"
-#ifdef TARGET_WINDOWS
-#include "WIN32Util.h"
-#endif
-#ifndef TARGET_WINDOWS
-#include "platform/linux/XTimeUtils.h"
-#endif
 #include <stdlib.h>
 
-using namespace KODI::MESSAGING;
-
 CAppParamParser::CAppParamParser()
+: m_logLevel(LOG_LEVEL_NORMAL),
+  m_playlist(new CFileItemList())
 {
-  m_testmode = false;
+}
+
+CAppParamParser::~CAppParamParser()
+{
 }
 
 void CAppParamParser::Parse(const char* const* argv, int nArgs)
@@ -46,13 +31,18 @@ void CAppParamParser::Parse(const char* const* argv, int nArgs)
   {
     for (int i = 1; i < nArgs; i++)
       ParseArg(argv[i]);
+
+    // testmode is only valid if at least one item to play was given
+    if (m_playlist->IsEmpty())
+      m_testmode = false;
   }
 }
 
 void CAppParamParser::DisplayVersion()
 {
   printf("%s Media Center %s\n", CSysInfo::GetVersion().c_str(), CSysInfo::GetAppName().c_str());
-  printf("Copyright (C) 2005-2013 Team %s - http://kodi.tv\n", CSysInfo::GetAppName().c_str());
+  printf("Copyright (C) %s Team %s - http://kodi.tv\n",
+         CCompileInfo::GetCopyrightYears(), CSysInfo::GetAppName().c_str());
   exit(0);
 }
 
@@ -75,40 +65,52 @@ void CAppParamParser::DisplayHelp()
   exit(0);
 }
 
-void CAppParamParser::EnableDebugMode()
-{
-  g_advancedSettings.m_logLevel     = LOG_LEVEL_DEBUG;
-  g_advancedSettings.m_logLevelHint = LOG_LEVEL_DEBUG;
-  CLog::SetLogLevel(g_advancedSettings.m_logLevel);
-}
-
 void CAppParamParser::ParseArg(const std::string &arg)
 {
   if (arg == "-fs" || arg == "--fullscreen")
-    g_advancedSettings.m_startFullScreen = true;
+    m_startFullScreen = true;
   else if (arg == "-h" || arg == "--help")
     DisplayHelp();
   else if (arg == "-v" || arg == "--version")
     DisplayVersion();
   else if (arg == "--standalone")
-    g_application.SetStandAlone(true);
+    m_standAlone = true;
   else if (arg == "-p" || arg  == "--portable")
-    g_application.EnablePlatformDirectories(false);
+    m_platformDirectories = false;
   else if (arg == "--debug")
-    EnableDebugMode();
+    m_logLevel = LOG_LEVEL_DEBUG;
   else if (arg == "--test")
     m_testmode = true;
   else if (arg.substr(0, 11) == "--settings=")
-    g_advancedSettings.AddSettingsFile(arg.substr(11));
+    m_settingsFile = arg.substr(11);
   else if (arg.length() != 0 && arg[0] != '-')
   {
-    if (m_testmode)
-      g_application.SetEnableTestMode(true);
-
-    CFileItemPtr pItem(new CFileItem(arg));
-    pItem->SetPath(arg);
-
-    m_playlist.Add(pItem);
+    const CFileItemPtr item = std::make_shared<CFileItem>(arg);
+    item->SetPath(arg);
+    m_playlist->Add(item);
   }
 }
 
+void CAppParamParser::SetAdvancedSettings(CAdvancedSettings& advancedSettings) const
+{
+  if (m_logLevel == LOG_LEVEL_DEBUG)
+  {
+    advancedSettings.m_logLevel = LOG_LEVEL_DEBUG;
+    advancedSettings.m_logLevelHint = LOG_LEVEL_DEBUG;
+    CLog::SetLogLevel(LOG_LEVEL_DEBUG);
+  }
+
+  if (!m_settingsFile.empty())
+    advancedSettings.AddSettingsFile(m_settingsFile);
+
+  if (m_startFullScreen)
+    advancedSettings.m_startFullScreen = true;
+
+  if (m_standAlone)
+    advancedSettings.m_handleMounting = true;
+}
+
+const CFileItemList& CAppParamParser::GetPlaylist() const
+{
+  return *m_playlist;
+}

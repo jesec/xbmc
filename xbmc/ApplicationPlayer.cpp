@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "ApplicationPlayer.h"
@@ -25,7 +13,6 @@
 #include "cores/VideoPlayer/VideoPlayer.h"
 #include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
-#include "cores/DataCacheCore.h"
 #include "Application.h"
 #include "PlayListPlayer.h"
 #include "ServiceBroker.h"
@@ -49,10 +36,15 @@ void CApplicationPlayer::ClosePlayer()
   if (player)
   {
     CloseFile();
-    // we need to do this directly on the member
-    CSingleLock lock(m_playerLock);
-    m_pPlayer.reset();
+    ResetPlayer();
   }
+}
+
+void CApplicationPlayer::ResetPlayer()
+{
+  // we need to do this directly on the member
+  CSingleLock lock(m_playerLock);
+  m_pPlayer.reset();
 }
 
 void CApplicationPlayer::CloseFile(bool reopen)
@@ -125,6 +117,15 @@ bool CApplicationPlayer::OpenFile(const CFileItem& item, const CPlayerOptions& o
         m_pPlayer.reset();
       }
       return true;
+    }
+  }
+  else if (player && player->m_name != newPlayer)
+  {
+    CloseFile();
+    {
+      CSingleLock lock(m_playerLock);
+      m_pPlayer.reset();
+      player.reset();
     }
   }
 
@@ -498,11 +499,8 @@ float CApplicationPlayer::GetPercentage() const
   std::shared_ptr<IPlayer> player = GetInternal();
   if (player)
   {
-    int64_t iTotalTime = GetTotalTime();
-
-    if (!iTotalTime)
-      return 0.0f;
-    return GetTime() * 100 / static_cast<float>(iTotalTime);
+    float fPercent = CDataCacheCore::GetInstance().GetPlayPercentage();
+    return std::max(0.0f, std::min(fPercent, 100.0f));
   }
   else
     return 0.0;
@@ -1166,6 +1164,17 @@ bool CApplicationPlayer::IsExternalPlaying()
   return false;
 }
 
+bool CApplicationPlayer::IsRemotePlaying()
+{
+  std::shared_ptr<IPlayer> player = GetInternal();
+  if (player)
+  {
+    if (player->IsPlaying() && player->m_type == "remote")
+      return true;
+  }
+  return false;
+}
+
 CVideoSettings CApplicationPlayer::GetVideoSettings()
 {
   std::shared_ptr<IPlayer> player = GetInternal();
@@ -1196,4 +1205,13 @@ void CApplicationPlayer::SetUpdateStreamDetails()
   CVideoPlayer* vp = dynamic_cast<CVideoPlayer*>(player.get());
   if (vp)
     vp->SetUpdateStreamDetails();
+}
+
+bool CApplicationPlayer::HasGameAgent()
+{
+  std::shared_ptr<IPlayer> player = GetInternal();
+  if (player)
+    return player->HasGameAgent();
+
+  return false;
 }

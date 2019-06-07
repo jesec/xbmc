@@ -1,27 +1,16 @@
 /*
- *      Copyright (C) 2017 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2017-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this Program; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "ControllerTree.h"
 #include "games/controllers/Controller.h"
 #include "games/controllers/ControllerTopology.h"
 
+#include <algorithm>
 #include <utility>
 
 using namespace KODI;
@@ -48,9 +37,32 @@ CControllerNode &CControllerNode::operator=(const CControllerNode &rhs)
   return *this;
 }
 
+void CControllerNode::Clear()
+{
+  m_controller.reset();
+  m_address.clear();
+  m_hub.reset(new CControllerHub);
+}
+
 void CControllerNode::SetController(ControllerPtr controller)
 {
   m_controller = std::move(controller);
+}
+
+void CControllerNode::GetControllers(ControllerVector &controllers) const
+{
+  const ControllerPtr &myController = m_controller;
+
+  auto it = std::find_if(controllers.begin(), controllers.end(),
+    [&myController](const ControllerPtr &controller)
+    {
+      return myController->ID() == controller->ID();
+    });
+
+  if (it == controllers.end())
+    controllers.emplace_back(m_controller);
+
+  m_hub->GetControllers(controllers);
 }
 
 void CControllerNode::SetAddress(std::string address)
@@ -126,6 +138,16 @@ const CControllerNode &CControllerPortNode::ActiveController() const
     return m_controllers[m_active];
 
   static const CControllerNode invalid{};
+  return invalid;
+}
+
+CControllerNode &CControllerPortNode::ActiveController()
+{
+  if (m_bConnected && m_active < m_controllers.size())
+    return m_controllers[m_active];
+
+  static CControllerNode invalid;
+  invalid.Clear();
   return invalid;
 }
 
@@ -214,6 +236,11 @@ CControllerHub &CControllerHub::operator=(const CControllerHub &rhs)
   return *this;
 }
 
+void CControllerHub::Clear()
+{
+  m_ports.clear();
+}
+
 void CControllerHub::SetPorts(ControllerPortVec ports)
 {
   m_ports = std::move(ports);
@@ -250,6 +277,22 @@ bool CControllerHub::IsControllerAccepted(const std::string &portAddress,
   }
 
   return bAccepted;
+}
+
+ControllerVector CControllerHub::GetControllers() const
+{
+  ControllerVector controllers;
+  GetControllers(controllers);
+  return controllers;
+}
+
+void CControllerHub::GetControllers(ControllerVector &controllers) const
+{
+  for (const CControllerPortNode &port : m_ports)
+  {
+    for (const CControllerNode &node : port.CompatibleControllers())
+      node.GetControllers(controllers);
+  }
 }
 
 const CControllerPortNode &CControllerHub::GetPort(const std::string &address) const

@@ -57,6 +57,8 @@ if(UNIX)
   option(ENABLE_INTERNAL_CROSSGUID "Enable internal crossguid?" ON)
   option(ENABLE_INTERNAL_RapidJSON "Enable internal rapidjson?" OFF)
   option(ENABLE_INTERNAL_FMT "Enable internal fmt?" OFF)
+  option(ENABLE_INTERNAL_FSTRCMP "Enable internal fstrcmp?" OFF)
+  option(ENABLE_INTERNAL_FLATBUFFERS "Enable internal flatbuffers?" OFF)
 endif()
 # System options
 if(NOT WIN32)
@@ -107,6 +109,9 @@ foreach(depspec ${PLATFORM_REQUIRED_DEPS})
   # optional subdirectory for the specified platform to get built.
   split_dependency_specification(${depspec} dep version)
   string(TOUPPER ${dep} depup)
+  if(NOT ${ENABLE_${depup}} STREQUAL AUTO AND NOT ${ENABLE_${depup}})
+    message(WARNING "Your request to disable the dependency ${dep} required on platform ${CORE_PLATFORM_NAME} was ignored. Please choose another platform or add \"-DENABLE_${depup}=ON\" to your CMake command line to resolve this warning.")
+  endif()
   set(ENABLE_${depup} "ON" CACHE BOOL "Force enabling required ${depup} support" FORCE)
 endforeach()
 
@@ -119,9 +124,11 @@ set(required_deps ASS
                   DirectX
                   DSExternals
                   FFMPEG
+                  FlatBuffers
                   Fmt
                   FreeType
                   FriBidi
+                  fstrcmp
                   Iconv
                   LibDvd
                   Lzo2
@@ -155,6 +162,7 @@ set(optional_deps Alsa
                   LircClient
                   MDNS
                   MicroHttpd
+                  NFS
                   PulseAudio
                   Python
                   SmbClient
@@ -164,8 +172,7 @@ set(optional_deps Alsa
                   ${PLATFORM_OPTIONAL_DEPS})
 
 # Optional, dyloaded deps. Keep in alphabetical order please
-set(dyload_optional NFS
-                    Plist)
+set(dyload_optional Plist)
 
 # Required tools
 find_package(TexturePacker REQUIRED)
@@ -213,7 +220,8 @@ endif()
 # find all folders containing addon.xml.in
 # used to define ADDON_XML_OUTPUTS, ADDON_XML_DEPENDS and ADDON_INSTALL_DATA
 # Function defined in ./cmake/scripts/common/Macros.cmake
-find_addon_xml_in_files()
+set(outputFilterRegex "addons/xbmc.json")
+find_addon_xml_in_files(${outputFilterRegex})
 
 # Compile Info
 add_custom_command(OUTPUT ${CORE_BUILD_DIR}/xbmc/CompileInfo.cpp
@@ -224,6 +232,8 @@ add_custom_command(OUTPUT ${CORE_BUILD_DIR}/xbmc/CompileInfo.cpp
                                             -DCMAKE_BINARY_DIR=${CMAKE_BINARY_DIR}
                                             -DARCH_DEFINES="${ARCH_DEFINES}"
                                             -DAPP_SCMID=${APP_SCMID}
+                                            -DAPP_COPYRIGHT_YEARS=${APP_COPYRIGHT_YEARS}
+                                            -DAPP_BUILD_DATE=${APP_BUILD_DATE}
                                             -Dprefix=${CMAKE_BINARY_DIR}/${CORE_BUILD_DIR}
                                             -P ${CMAKE_SOURCE_DIR}/cmake/scripts/common/GenerateVersionedFiles.cmake
                    DEPENDS ${CMAKE_SOURCE_DIR}/version.txt
@@ -243,6 +253,9 @@ if(WIN32)
   target_include_directories(resources PRIVATE ${CMAKE_SOURCE_DIR}/tools/windows/packaging/media)
   set(RESOURCES $<TARGET_OBJECTS:resources>)
 endif()
+
+# Generate messages
+core_add_subdirs_from_filelist(${CMAKE_SOURCE_DIR}/cmake/messages/flatbuffers/*.txt)
 
 include_directories(${INCLUDES} ${SYSTEM_INCLUDES})
 add_compile_options(${ARCH_DEFINES} "${SYSTEM_DEFINES}" ${DEP_DEFINES} ${PATH_DEFINES})
@@ -290,9 +303,11 @@ elseif(CORE_SYSTEM_NAME STREQUAL android)
                  ${CORE_BUILD_DIR}/DllPaths_generated_android.h @ONLY)
 endif()
 
+set(GLOBAL_TARGET_DEPS libcpluff ffmpeg dvdnav crossguid fmt fstrcmp flatbuffers dsexternals ${PLATFORM_GLOBAL_TARGET_DEPS})
+
 # main library (used for main binary and tests)
 add_library(lib${APP_NAME_LC} STATIC $<TARGET_OBJECTS:compileinfo>)
-add_dependencies(lib${APP_NAME_LC} libcpluff ffmpeg dvdnav crossguid fmt dsexternals ${PLATFORM_GLOBAL_TARGET_DEPS})
+add_dependencies(lib${APP_NAME_LC} ${GLOBAL_TARGET_DEPS})
 set_target_properties(lib${APP_NAME_LC} PROPERTIES PREFIX "")
 
 # Other files (IDE)
@@ -483,6 +498,7 @@ if(VERBOSE)
   message(STATUS "BINARY: ${APP_NAME_LC}${APP_BINARY_SUFFIX}")
   message(STATUS "#---------------------------------------------#")
   message(STATUS "GIT_REV: ${APP_SCMID}")
+  message(STATUS "Build date: ${APP_BUILD_DATE}")
   message(STATUS "#---------------------------------------------#")
   message(STATUS "CPACK_GENERATOR       : ${CPACK_GENERATOR}")
   message(STATUS "CPACK_SOURCE_GENERATOR: ${CPACK_SOURCE_GENERATOR}")

@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2015 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "guilib/guiinfo/GUIInfoLabel.h"
@@ -91,7 +79,7 @@ const std::string &CGUIInfoLabel::GetItemLabel(const CGUIListItem *item, bool pr
       {
         std::string infoLabel;
         if (preferImages)
-          infoLabel = infoMgr.GetItemImage(static_cast<const CFileItem*>(item), 0, portion.m_info, fallback);
+          infoLabel = infoMgr.GetItemImage(item, 0, portion.m_info, fallback);
         else
           infoLabel = infoMgr.GetItemLabel(static_cast<const CFileItem *>(item), 0, portion.m_info, fallback);
         needsUpdate |= portion.NeedsUpdate(infoLabel);
@@ -267,14 +255,14 @@ void CGUIInfoLabel::Parse(const std::string &label, int context)
     size_t pos1 = work.size();
     size_t pos2;
     size_t len = 0;
-    for (size_t i = 0; i < sizeof(infoformatmap) / sizeof(infoformat); i++)
+    for (const infoformat& infoformat : infoformatmap)
     {
-      pos2 = work.find(infoformatmap[i].str);
+      pos2 = work.find(infoformat.str);
       if (pos2 != std::string::npos && pos2 < pos1)
       {
         pos1 = pos2;
-        len = strlen(infoformatmap[i].str);
-        format = infoformatmap[i].val;
+        len = strlen(infoformat.str);
+        format = infoformat.val;
       }
     }
 

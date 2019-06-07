@@ -1,21 +1,9 @@
 /*
-*      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "WinEventsWin10.h"
@@ -23,16 +11,18 @@
 #include "AppInboundProtocol.h"
 #include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
+#include "input/actions/Action.h"
+#include "input/actions/ActionIDs.h"
 #include "input/mouse/MouseStat.h"
 #include "input/touch/generic/GenericTouchInputHandler.h"
-#include "input/Action.h"
-#include "input/ActionIDs.h"
 #include "interfaces/AnnouncementManager.h"
 #include "messaging/ApplicationMessenger.h"
 #include "platform/win10/input/RemoteControlXbox.h"
 #include "rendering/dx/DeviceResources.h"
 #include "rendering/dx/RenderContext.h"
 #include "ServiceBroker.h"
+#include "settings/AdvancedSettings.h"
+#include "settings/SettingsComponent.h"
 #include "utils/log.h"
 #include "utils/SystemInfo.h"
 #include "utils/Variant.h"
@@ -54,7 +44,6 @@ using namespace winrt::Windows::UI::Core;
 using namespace winrt::Windows::UI::Input;
 using namespace winrt::Windows::UI::ViewManagement;
 
-using namespace ANNOUNCEMENT;
 using namespace PERIPHERALS;
 using namespace KODI::MESSAGING;
 
@@ -120,6 +109,8 @@ size_t CWinEventsWin10::GetQueueSize()
 
 void CWinEventsWin10::InitEventHandlers(const CoreWindow& window)
 {
+  CWinEventsWin10::InitOSKeymap();
+
   //window->SetPointerCapture();
 
   // window
@@ -165,7 +156,7 @@ void CWinEventsWin10::InitEventHandlers(const CoreWindow& window)
       m_smtc.ButtonPressed(CWinEventsWin10::OnSystemMediaButtonPressed);
     }
     m_smtc.IsEnabled(true);;
-    CAnnouncementManager::GetInstance().AddAnnouncer(this);
+    CServiceBroker::GetAnnouncementManager()->AddAnnouncer(this);
   }
   if (CSysInfo::GetWindowsDeviceFamily() == CSysInfo::WindowsDeviceFamily::Xbox)
   {
@@ -178,14 +169,14 @@ void CWinEventsWin10::UpdateWindowSize()
 {
   auto size = DX::DeviceResources::Get()->GetOutputSize();
 
-  CLog::Log(LOGDEBUG, __FUNCTION__": window resize event %f x %f (as:%s)", size.Width, size.Height, g_advancedSettings.m_fullScreen ? "true" : "false");
+  CLog::Log(LOGDEBUG, __FUNCTION__": window resize event %f x %f (as:%s)", size.Width, size.Height, CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_fullScreen ? "true" : "false");
 
   auto appView = ApplicationView::GetForCurrentView();
   appView.SetDesiredBoundsMode(ApplicationViewBoundsMode::UseCoreWindow);
 
   // seems app has lost FS mode it may occurs if an user use core window's button
-  if (g_advancedSettings.m_fullScreen && !appView.IsFullScreenMode())
-    g_advancedSettings.m_fullScreen = false;
+  if (CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_fullScreen && !appView.IsFullScreenMode())
+    CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_fullScreen = false;
 
   XBMC_Event newEvent;
   memset(&newEvent, 0, sizeof(newEvent));
@@ -606,9 +597,9 @@ void CWinEventsWin10::OnSystemMediaButtonPressed(const SystemMediaTransportContr
   }
 }
 
-void CWinEventsWin10::Announce(AnnouncementFlag flag, const char * sender, const char * message, const CVariant & data)
+void CWinEventsWin10::Announce(ANNOUNCEMENT::AnnouncementFlag flag, const char * sender, const char * message, const CVariant & data)
 {
-  if (flag & AnnouncementFlag::Player)
+  if (flag & ANNOUNCEMENT::Player)
   {
     double speed = 1.0;
     if (data.isMember("player") && data["player"].isMember("speed"))

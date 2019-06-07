@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2018 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GUIDialogMusicInfo.h"
@@ -42,10 +30,11 @@
 #include "music/MusicUtils.h"
 #include "music/tags/MusicInfoTag.h"
 #include "music/windows/GUIWindowMusicNav.h"
-#include "profiles/ProfilesManager.h"
+#include "profiles/ProfileManager.h"
 #include "ServiceBroker.h"
 #include "settings/MediaSourceSettings.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "storage/MediaManager.h"
 #include "TextureCache.h"
 #include "utils/FileExtensionProvider.h"
@@ -118,7 +107,7 @@ public:
           artistItemPath = oldartistpath;
         else
           // Fall back further to browse the Artist Info Folder itself
-          artistItemPath = CServiceBroker::GetSettings().GetString(CSettings::SETTING_MUSICLIBRARY_ARTISTSFOLDER);
+          artistItemPath = CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_MUSICLIBRARY_ARTISTSFOLDER);
       }
       m_item->SetPath(artistItemPath);
 
@@ -327,11 +316,6 @@ CGUIDialogMusicInfo::CGUIDialogMusicInfo(void)
 {
   m_albumSongs = new CFileItemList;
   m_loadType = KEEP_IN_MEMORY;
-  m_startUserrating = -1;
-  m_hasUpdatedUserrating = false;
-  m_hasRefreshed = false;
-  m_bArtistInfo = false;
-  m_cancelled = false;
   m_artTypeList.Clear();
 }
 
@@ -540,11 +524,11 @@ void CGUIDialogMusicInfo::Update()
 
   }
 
-  const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+  const std::shared_ptr<CProfileManager> profileManager = CServiceBroker::GetSettingsComponent()->GetProfileManager();
 
   // Disable the Choose Art button if the user isn't allowed it
   CONTROL_ENABLE_ON_CONDITION(CONTROL_BTN_GET_THUMB,
-    profileManager.GetCurrentProfile().canWriteDatabases() || g_passwordManager.bMasterUser);
+    profileManager->GetCurrentProfile().canWriteDatabases() || g_passwordManager.bMasterUser);
 }
 
 void CGUIDialogMusicInfo::SetLabel(int iControl, const std::string& strLabel)
@@ -584,8 +568,8 @@ void CGUIDialogMusicInfo::FetchComplete()
 void CGUIDialogMusicInfo::RefreshInfo()
 {
   // Double check we have permission (button should be hidden when not)
-  const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
-  if (!profileManager.GetCurrentProfile().canWriteDatabases() && !g_passwordManager.bMasterUser)
+  const std::shared_ptr<CProfileManager> profileManager = CServiceBroker::GetSettingsComponent()->GetProfileManager();
+  if (!profileManager->GetCurrentProfile().canWriteDatabases() && !g_passwordManager.bMasterUser)
     return;
 
   // Check if scanning
@@ -701,7 +685,7 @@ void CGUIDialogMusicInfo::AddItemPathToFileBrowserSources(VECSOURCES &sources, c
     // For artist add Artist Info Folder path to browser sources
     if (item.GetMusicInfoTag()->GetType() == MediaTypeArtist)
     {
-      artistFolder = CServiceBroker::GetSettings().GetString(CSettings::SETTING_MUSICLIBRARY_ARTISTSFOLDER);
+      artistFolder = CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_MUSICLIBRARY_ARTISTSFOLDER);
       if (!artistFolder.empty() && artistFolder.compare(itemDir) == 0)
         itemDir.clear();  // skip *item when artist not have a unique path
     }

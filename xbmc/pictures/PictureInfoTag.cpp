@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "PictureInfoTag.h"
@@ -62,8 +50,8 @@ void CPictureInfoTag::Archive(CArchive& ar)
     ar << GetInfo(SLIDESHOW_EXIF_COMMENT); // Store and restore the comment charset converted
     ar << std::string(m_exifInfo.Description);
     ar << std::string(m_exifInfo.DateTime);
-    for (int i = 0; i < 10; i++)
-      ar << m_exifInfo.DateTimeOffsets[i];
+    for (int dateTimeOffset : m_exifInfo.DateTimeOffsets)
+      ar << dateTimeOffset;
     ar << m_exifInfo.DigitalZoomRatio;
     ar << m_exifInfo.Distance;
     ar << m_exifInfo.ExposureBias;
@@ -131,8 +119,8 @@ void CPictureInfoTag::Archive(CArchive& ar)
     m_exifInfo.CommentsCharset = EXIF_COMMENT_CHARSET_CONVERTED; // Store and restore the comment charset converted
     GetStringFromArchive(ar, m_exifInfo.Description, sizeof(m_exifInfo.Description));
     GetStringFromArchive(ar, m_exifInfo.DateTime, sizeof(m_exifInfo.DateTime));
-    for (int i = 0; i < 10; i++)
-      ar >> m_exifInfo.DateTimeOffsets[i];
+    for (int& dateTimeOffset : m_exifInfo.DateTimeOffsets)
+      ar >> dateTimeOffset;
     ar >> m_exifInfo.DigitalZoomRatio;
     ar >> m_exifInfo.Distance;
     ar >> m_exifInfo.ExposureBias;

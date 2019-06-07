@@ -1,26 +1,13 @@
 /*
- *      Copyright (C) 2005-2015 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "threads/SystemClock.h"
 #include "CompileInfo.h"
-#include "threads/SingleLock.h"
 #include "ExternalPlayer.h"
 #include "windowing/WinSystem.h"
 #include "dialogs/GUIDialogOK.h"
@@ -39,7 +26,6 @@
 #include "ServiceBroker.h"
 #include "cores/AudioEngine/Interfaces/AE.h"
 #include "cores/DataCacheCore.h"
-#include "input/InputManager.h"
 #if defined(TARGET_WINDOWS)
   #include "utils/CharsetConverter.h"
   #include "Windows.h"
@@ -101,7 +87,7 @@ bool CExternalPlayer::OpenFile(const CFileItem& file, const CPlayerOptions &opti
     m_bIsPlaying = true;
     m_time = 0;
     m_playbackStartTime = XbmcThreads::SystemClockMillis();
-    m_launchFilename = file.GetPath();
+    m_launchFilename = file.GetDynPath();
     CLog::Log(LOGNOTICE, "%s: %s", __FUNCTION__, m_launchFilename.c_str());
     Create();
 
@@ -292,7 +278,7 @@ void CExternalPlayer::Process()
   else if (currentStyle & WS_EX_TOPMOST)
   {
     CLog::Log(LOGNOTICE, "%s: Lowering %s window", __FUNCTION__, CCompileInfo::GetAppName());
-    SetWindowPos(g_hWnd,HWND_BOTTOM,0,0,0,0,SWP_NOMOVE|SWP_NOSIZE|SWP_NOREDRAW);
+    SetWindowPos(g_hWnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOREDRAW | SWP_ASYNCWINDOWPOS);
   }
 
   CLog::Log(LOGDEBUG, "%s: Unlocking foreground window", __FUNCTION__);
@@ -357,7 +343,7 @@ void CExternalPlayer::Process()
   if (currentStyle & WS_EX_TOPMOST)
   {
     CLog::Log(LOGNOTICE, "%s: Showing %s window TOPMOST", __FUNCTION__, CCompileInfo::GetAppName());
-    SetWindowPos(g_hWnd,HWND_TOPMOST,0,0,0,0,SWP_NOMOVE|SWP_NOSIZE|SWP_SHOWWINDOW);
+    SetWindowPos(g_hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_ASYNCWINDOWPOS);
     SetForegroundWindow(g_hWnd);
   }
   else
@@ -450,7 +436,7 @@ bool CExternalPlayer::ExecuteAppW32(const char* strPath, const char* strSwitches
     CloseHandle(m_processInfo.hProcess);
     m_processInfo.hProcess = 0;
   }
-  return (ret == 0);
+  return (ret == TRUE);
 }
 #endif
 

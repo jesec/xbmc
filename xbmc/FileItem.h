@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -213,6 +201,7 @@ public:
   bool IsOpticalMediaFile() const;
   bool IsDVDFile(bool bVobs = true, bool bIfos = true) const;
   bool IsBDFile() const;
+  bool IsBluray() const;
   bool IsRAR() const;
   bool IsAPK() const;
   bool IsZIP() const;
@@ -239,7 +228,6 @@ public:
   bool IsDeletedPVRRecording() const;
   bool IsInProgressPVRRecording() const;
   bool IsPVRTimer() const;
-  bool IsPVRRadioRDS() const;
   bool IsType(const char *ext) const;
   bool IsVirtualDirectoryRoot() const;
   bool IsReadOnly() const;
@@ -326,21 +314,6 @@ public:
   inline const PVR::CPVRTimerInfoTagPtr GetPVRTimerInfoTag() const
   {
     return m_pvrTimerInfoTag;
-  }
-
-  inline bool HasPVRRadioRDSInfoTag() const
-  {
-    return m_pvrRadioRDSInfoTag.get() != NULL;
-  }
-
-  inline const PVR::CPVRRadioRDSInfoTagPtr GetPVRRadioRDSInfoTag() const
-  {
-    return m_pvrRadioRDSInfoTag;
-  }
-
-  inline void SetPVRRadioRDSInfoTag(const PVR::CPVRRadioRDSInfoTagPtr& tag)
-  {
-    m_pvrRadioRDSInfoTag = tag;
   }
 
   /*!
@@ -594,7 +567,6 @@ private:
   PVR::CPVRChannelPtr m_pvrChannelInfoTag;
   PVR::CPVRRecordingPtr m_pvrRecordingInfoTag;
   PVR::CPVRTimerInfoTagPtr m_pvrTimerInfoTag;
-  PVR::CPVRRadioRDSInfoTagPtr m_pvrRadioRDSInfoTag;
   CPictureInfoTag* m_pictureInfoTag;
   std::shared_ptr<const ADDON::IAddon> m_addonInfo;
   KODI::GAME::CGameInfoTag* m_gameInfoTag;
@@ -669,7 +641,7 @@ public:
   void Remove(int iItem);
   CFileItemPtr Get(int iItem);
   const CFileItemPtr Get(int iItem) const;
-  const VECFILEITEMS GetList() const { return m_items; }
+  const VECFILEITEMS& GetList() const { return m_items; }
   CFileItemPtr Get(const std::string& strPath);
   const CFileItemPtr Get(const std::string& strPath) const;
   int Size() const;

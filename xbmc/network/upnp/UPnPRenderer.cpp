@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 #include <Platinum/Source/Platinum/Platinum.h>
 
@@ -35,7 +23,6 @@
 #include "pictures/GUIWindowSlideShow.h"
 #include "pictures/PictureInfoTag.h"
 #include "interfaces/AnnouncementManager.h"
-#include "settings/Settings.h"
 #include "PlayListPlayer.h"
 #include "TextureDatabase.h"
 #include "ThumbLoader.h"
@@ -43,13 +30,11 @@
 #include "utils/URIUtils.h"
 #include "utils/Variant.h"
 #include "utils/StringUtils.h"
-#include "playlists/PlayList.h"
 #include "GUIUserMessages.h"
 #include "guilib/guiinfo/GUIInfoLabels.h"
 
 NPT_SET_LOCAL_LOGGER("xbmc.upnp.renderer")
 
-using namespace ANNOUNCEMENT;
 using namespace KODI::MESSAGING;
 
 namespace UPNP
@@ -62,7 +47,7 @@ CUPnPRenderer::CUPnPRenderer(const char* friendly_name, bool show_ip /*= false*/
                              const char* uuid /*= NULL*/, unsigned int port /*= 0*/)
     : PLT_MediaRenderer(friendly_name, show_ip, uuid, port)
 {
-    CAnnouncementManager::GetInstance().AddAnnouncer(this);
+    CServiceBroker::GetAnnouncementManager()->AddAnnouncer(this);
 }
 
 /*----------------------------------------------------------------------
@@ -70,7 +55,7 @@ CUPnPRenderer::CUPnPRenderer(const char* friendly_name, bool show_ip /*= false*/
 +---------------------------------------------------------------------*/
 CUPnPRenderer::~CUPnPRenderer()
 {
-    CAnnouncementManager::GetInstance().RemoveAnnouncer(this);
+    CServiceBroker::GetAnnouncementManager()->RemoveAnnouncer(this);
 }
 
 /*----------------------------------------------------------------------
@@ -242,7 +227,7 @@ CUPnPRenderer::ProcessHttpGetRequest(NPT_HttpRequest&              request,
 |   CUPnPRenderer::Announce
 +---------------------------------------------------------------------*/
 void
-CUPnPRenderer::Announce(AnnouncementFlag flag, const char *sender, const char *message, const CVariant &data)
+CUPnPRenderer::Announce(ANNOUNCEMENT::AnnouncementFlag flag, const char *sender, const char *message, const CVariant &data)
 {
     if (strcmp(sender, "xbmc") != 0)
       return;
@@ -250,7 +235,7 @@ CUPnPRenderer::Announce(AnnouncementFlag flag, const char *sender, const char *m
     NPT_AutoLock lock(m_state);
     PLT_Service *avt, *rct;
 
-    if (flag == Player) {
+    if (flag == ANNOUNCEMENT::Player) {
         if (NPT_FAILED(FindServiceByType("urn:schemas-upnp-org:service:AVTransport:1", avt)))
             return;
         if (strcmp(message, "OnPlay") == 0 || strcmp(message, "OnResume") == 0 ) {
@@ -279,7 +264,7 @@ CUPnPRenderer::Announce(AnnouncementFlag flag, const char *sender, const char *m
             avt->SetStateVariable("TransportPlaySpeed", NPT_String::FromInteger(data["player"]["speed"].asInteger()));
         }
     }
-    else if (flag == Application && strcmp(message, "OnVolumeChanged") == 0) {
+    else if (flag == ANNOUNCEMENT::Application && strcmp(message, "OnVolumeChanged") == 0) {
         if (NPT_FAILED(FindServiceByType("urn:schemas-upnp-org:service:RenderingControl:1", rct)))
             return;
 

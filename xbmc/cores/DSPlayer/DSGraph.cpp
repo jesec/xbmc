@@ -760,21 +760,22 @@ void CDSGraph::Seek(bool bPlus, bool bLargeStep)
     return;
 
   int64_t seek = 0;
-  if (g_advancedSettings.m_videoUseTimeSeeking && DS_TIME_TO_SEC(GetTotalTime()) > 2 * g_advancedSettings.m_videoTimeSeekForwardBig)
+  const std::shared_ptr<CAdvancedSettings> advancedSettings = CServiceBroker::GetSettingsComponent()->GetAdvancedSettings();
+  if (advancedSettings->m_videoUseTimeSeeking && DS_TIME_TO_SEC(GetTotalTime()) > 2 * advancedSettings->m_videoTimeSeekForwardBig)
   {
     if (bLargeStep)
-      seek = bPlus ? g_advancedSettings.m_videoTimeSeekForwardBig : g_advancedSettings.m_videoTimeSeekBackwardBig;
+      seek = bPlus ? advancedSettings->m_videoTimeSeekForwardBig : advancedSettings->m_videoTimeSeekBackwardBig;
     else
-      seek = bPlus ? g_advancedSettings.m_videoTimeSeekForward : g_advancedSettings.m_videoTimeSeekBackward;
+      seek = bPlus ? advancedSettings->m_videoTimeSeekForward : advancedSettings->m_videoTimeSeekBackward;
     seek = GetTime() + SEC_TO_DS_TIME(seek);
   }
   else
   {
     float percent;
     if (bLargeStep)
-      percent = (float)(bPlus ? g_advancedSettings.m_videoPercentSeekForwardBig : g_advancedSettings.m_videoPercentSeekBackwardBig);
+      percent = (float)(bPlus ? advancedSettings->m_videoPercentSeekForwardBig : advancedSettings->m_videoPercentSeekBackwardBig);
     else
-      percent = (float)(bPlus ? g_advancedSettings.m_videoPercentSeekForward : g_advancedSettings.m_videoPercentSeekBackward);
+      percent = (float)(bPlus ? advancedSettings->m_videoPercentSeekForward : advancedSettings->m_videoPercentSeekBackward);
     seek = GetTotalTime() * (float)((GetPercentage() + percent) / 100);
   }
 

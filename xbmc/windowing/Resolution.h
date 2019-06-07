@@ -1,21 +1,9 @@
 /*
-*      Copyright (C) 2005-2015 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -27,30 +15,12 @@ typedef int DisplayMode;
 #define DM_WINDOWED     -1
 #define DM_FULLSCREEN    0
 
-enum RESOLUTION {
+enum RESOLUTION
+{
   RES_INVALID        = -1,
-  RES_HDTV_1080i     =  0,
-  RES_HDTV_720pSBS   =  1,
-  RES_HDTV_720pTB    =  2,
-  RES_HDTV_1080pSBS  =  3,
-  RES_HDTV_1080pTB   =  4,
-  RES_HDTV_720p      =  5,
-  RES_HDTV_480p_4x3  =  6,
-  RES_HDTV_480p_16x9 =  7,
-  RES_NTSC_4x3       =  8,
-  RES_NTSC_16x9      =  9,
-  RES_PAL_4x3        = 10,
-  RES_PAL_16x9       = 11,
-  RES_PAL60_4x3      = 12,
-  RES_PAL60_16x9     = 13,
-  RES_AUTORES        = 14,
   RES_WINDOW         = 15,
-  RES_DESKTOP        = 16,          // Desktop resolution for primary screen
-  RES_CUSTOM         = 16 + 1,      // Desktop resolution for screen #2
-//                     ...
-//                     12 + N - 1   // Desktop resolution for screen N
-//                     12 + N       // First additional resolution, in a N screen configuration.
-//                     12 + N + ... // Other resolutions, in any order
+  RES_DESKTOP        = 16,          // Desktop resolution
+  RES_CUSTOM         = 16 + 1,      // First additional resolution
 };
 
 #ifdef HAS_DS_PLAYER

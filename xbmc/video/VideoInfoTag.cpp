@@ -1,27 +1,17 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "VideoInfoTag.h"
 #include "utils/XMLUtils.h"
 #include "guilib/LocalizeStrings.h"
+#include "ServiceBroker.h"
 #include "settings/AdvancedSettings.h"
+#include "settings/SettingsComponent.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
 #include "utils/Variant.h"
@@ -225,7 +215,7 @@ bool CVideoInfoTag::Save(TiXmlNode *node, const std::string &tag, bool savePathI
   {
     TiXmlElement set("set");
     XMLUtils::SetString(&set, "name", m_set.title);
-    if (m_set.overview.empty())
+    if (!m_set.overview.empty())
       XMLUtils::SetString(&set, "overview", m_set.overview);
     movie->InsertEndChild(set);
   }
@@ -479,6 +469,8 @@ void CVideoInfoTag::Archive(CArchive& ar)
     ar >> m_strAlbum;
     ar >> m_artist;
     ar >> m_playCount;
+    //re-evaluate the playcount
+    m_playCount = PLAYCOUNT_NOT_SET;
     ar >> m_lastPlayed;
     ar >> m_iTop250;
     ar >> m_iSeason;
@@ -999,24 +991,26 @@ void CVideoInfoTag::ParseNative(const TiXmlElement* movie, bool prioritise)
     m_strPictureURL.m_xml = xmlAdd;
   }
 
+  const std::string itemSeparator = CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_videoItemSeparator;
+
   std::vector<std::string> genres(m_genre);
-  if (XMLUtils::GetStringArray(movie, "genre", genres, prioritise, g_advancedSettings.m_videoItemSeparator))
+  if (XMLUtils::GetStringArray(movie, "genre", genres, prioritise, itemSeparator))
     SetGenre(genres);
 
   std::vector<std::string> country(m_country);
-  if (XMLUtils::GetStringArray(movie, "country", country, prioritise, g_advancedSettings.m_videoItemSeparator))
+  if (XMLUtils::GetStringArray(movie, "country", country, prioritise, itemSeparator))
     SetCountry(country);
 
   std::vector<std::string> credits(m_writingCredits);
-  if (XMLUtils::GetStringArray(movie, "credits", credits, prioritise, g_advancedSettings.m_videoItemSeparator))
+  if (XMLUtils::GetStringArray(movie, "credits", credits, prioritise, itemSeparator))
     SetWritingCredits(credits);
 
   std::vector<std::string> director(m_director);
-  if (XMLUtils::GetStringArray(movie, "director", director, prioritise, g_advancedSettings.m_videoItemSeparator))
+  if (XMLUtils::GetStringArray(movie, "director", director, prioritise, itemSeparator))
     SetDirector(director);
 
   std::vector<std::string> showLink(m_showLink);
-  if (XMLUtils::GetStringArray(movie, "showlink", showLink, prioritise, g_advancedSettings.m_videoItemSeparator))
+  if (XMLUtils::GetStringArray(movie, "showlink", showLink, prioritise, itemSeparator))
     SetShowLink(showLink);
 
   const TiXmlElement* namedSeason = movie->FirstChildElement("namedseason");
@@ -1083,11 +1077,11 @@ void CVideoInfoTag::ParseNative(const TiXmlElement* movie, bool prioritise)
   }
 
   std::vector<std::string> tags(m_tags);
-  if (XMLUtils::GetStringArray(movie, "tag", tags, prioritise, g_advancedSettings.m_videoItemSeparator))
+  if (XMLUtils::GetStringArray(movie, "tag", tags, prioritise, itemSeparator))
     SetTags(tags);
 
   std::vector<std::string> studio(m_studio);
-  if (XMLUtils::GetStringArray(movie, "studio", studio, prioritise, g_advancedSettings.m_videoItemSeparator))
+  if (XMLUtils::GetStringArray(movie, "studio", studio, prioritise, itemSeparator))
     SetStudio(studio);
 
   // artists
@@ -1108,7 +1102,7 @@ void CVideoInfoTag::ParseNative(const TiXmlElement* movie, bool prioritise)
       const char* clear=node->Attribute("clear");
       if (clear && stricmp(clear,"true")==0)
         artist.clear();
-      std::vector<std::string> newArtists = StringUtils::Split(pValue, g_advancedSettings.m_videoItemSeparator);
+      std::vector<std::string> newArtists = StringUtils::Split(pValue, itemSeparator);
       artist.insert(artist.end(), newArtists.begin(), newArtists.end());
     }
     node = node->NextSiblingElement("artist");
@@ -1595,7 +1589,7 @@ bool CVideoInfoTag::SetResumePoint(const CBookmark &resumePoint)
   return true;
 }
 
-bool CVideoInfoTag::SetResumePoint(double timeInSeconds, double totalTimeInSeconds, const std::string &playerState /* = "" */)
+bool CVideoInfoTag::SetResumePoint(double timeInSeconds, double totalTimeInSeconds, const std::string &playerState)
 {
   CBookmark resumePoint;
   resumePoint.timeInSeconds = timeInSeconds;

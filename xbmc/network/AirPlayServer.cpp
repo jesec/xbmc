@@ -1,23 +1,12 @@
 /*
- * Many concepts and protocol specification in this code are taken
- * from Airplayer. https://github.com/PascalW/Airplayer
+ *  Copyright (C) 2011-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *      http://kodi.tv
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2.1, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  Many concepts and protocol specification in this code are taken
+ *  from Airplayer. https://github.com/PascalW/Airplayer
  */
 
 #include "network/Network.h"
@@ -27,7 +16,6 @@
 #include <arpa/inet.h>
 #include "DllLibPlist.h"
 #include "utils/log.h"
-#include "utils/URIUtils.h"
 #include "utils/StringUtils.h"
 #include "threads/SingleLock.h"
 #include "filesystem/File.h"
@@ -40,6 +28,7 @@
 #include "utils/Digest.h"
 #include "utils/Variant.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "input/Key.h"
 #include "URL.h"
 #include "cores/IPlayer.h"
@@ -48,7 +37,6 @@
 #include "network/Zeroconf.h"
 #endif // HAS_ZEROCONF
 
-using namespace ANNOUNCEMENT;
 using namespace KODI::MESSAGING;
 using KODI::UTILITY::CDigest;
 
@@ -159,11 +147,11 @@ const char *eventStrings[] = {"playing", "paused", "loading", "stopped"};
 #define AUTH_REALM "AirPlay"
 #define AUTH_REQUIRED "WWW-Authenticate: Digest realm=\""  AUTH_REALM  "\", nonce=\"%s\"\r\n"
 
-void CAirPlayServer::Announce(AnnouncementFlag flag, const char *sender, const char *message, const CVariant &data)
+void CAirPlayServer::Announce(ANNOUNCEMENT::AnnouncementFlag flag, const char *sender, const char *message, const CVariant &data)
 {
   CSingleLock lock(ServerInstanceLock);
 
-  if ( (flag & Player) && strcmp(sender, "xbmc") == 0 && ServerInstance)
+  if ( (flag & ANNOUNCEMENT::Player) && strcmp(sender, "xbmc") == 0 && ServerInstance)
   {
     if (strcmp(message, "OnStop") == 0)
     {
@@ -314,12 +302,12 @@ CAirPlayServer::CAirPlayServer(int port, bool nonlocal) : CThread("AirPlayServer
   m_ServerSockets = std::vector<SOCKET>();
   m_usePassword = false;
   m_origVolume = -1;
-  CAnnouncementManager::GetInstance().AddAnnouncer(this);
+  CServiceBroker::GetAnnouncementManager()->AddAnnouncer(this);
 }
 
 CAirPlayServer::~CAirPlayServer()
 {
-  CAnnouncementManager::GetInstance().RemoveAnnouncer(this);
+  CServiceBroker::GetAnnouncementManager()->RemoveAnnouncer(this);
 }
 
 void handleZeroconfAnnouncement()
@@ -741,7 +729,7 @@ void CAirPlayServer::restoreVolume()
 {
   CSingleLock lock(ServerInstanceLock);
 
-  if (ServerInstance && ServerInstance->m_origVolume != -1 && CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SERVICES_AIRPLAYVOLUMECONTROL))
+  if (ServerInstance && ServerInstance->m_origVolume != -1 && CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_SERVICES_AIRPLAYVOLUMECONTROL))
   {
     g_application.SetVolume((float)ServerInstance->m_origVolume);
     ServerInstance->m_origVolume = -1;
@@ -855,7 +843,7 @@ int CAirPlayServer::CTCPClient::ProcessRequest( std::string& responseHeader,
       {
         float oldVolume = g_application.GetVolume();
         volume *= 100;
-        if(oldVolume != volume && CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SERVICES_AIRPLAYVOLUMECONTROL))
+        if(oldVolume != volume && CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_SERVICES_AIRPLAYVOLUMECONTROL))
         {
           backupVolume();
           g_application.SetVolume(volume);

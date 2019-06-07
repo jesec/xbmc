@@ -1,30 +1,21 @@
-  /*
- *      Copyright (C) 2005-2018 Team XBMC
- *      http://kodi.tv
+/*
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
 
 #include "DRMUtils.h"
 
-#ifdef TARGET_POSIX
-#include "platform/linux/XTimeUtils.h"
-#endif
+namespace KODI
+{
+namespace WINDOWING
+{
+namespace GBM
+{
 
 class COffScreenModeSetting : public CDRMUtils
 {
@@ -35,15 +26,18 @@ public:
   bool SetVideoMode(const RESOLUTION_INFO& res, struct gbm_bo *bo) override { return false; }
   bool SetActive(bool active) override { return false; }
   bool InitDrm() override;
-  void DestroyDrm() override;
+  void DestroyDrm() override {}
 
   RESOLUTION_INFO GetCurrentMode() override;
   std::vector<RESOLUTION_INFO> GetModes() override;
   bool SetMode(const RESOLUTION_INFO& res) override { return true; }
-  void WaitVBlank() override { Sleep(20); }
 
 private:
   const int DISPLAY_WIDTH = 1280;
   const int  DISPLAY_HEIGHT= 720;
   const float DISPLAY_REFRESH = 50.0f;
 };
+
+}
+}
+}

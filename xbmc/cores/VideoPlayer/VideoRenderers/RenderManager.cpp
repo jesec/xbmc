@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "RenderManager.h"
@@ -35,7 +23,7 @@
 #include "settings/AdvancedSettings.h"
 #include "settings/MediaSettings.h"
 #include "settings/Settings.h"
-
+#include "settings/SettingsComponent.h"
 
 #if defined(TARGET_POSIX)
 #include "platform/linux/XTimeUtils.h"
@@ -46,7 +34,6 @@
 /* to use the same as player */
 #include "../VideoPlayer/DVDClock.h"
 #include "../VideoPlayer/DVDCodecs/Video/DVDVideoCodec.h"
-#include "../VideoPlayer/DVDCodecs/DVDCodecUtils.h"
 
 using namespace KODI::MESSAGING;
 
@@ -237,6 +224,7 @@ bool CRenderManager::Configure()
     m_renderDebug = false;
     m_clockSync.Reset();
     m_dvdClock.SetVsyncAdjust(0);
+    m_overlays.SetStereoMode(m_stereomode);
 
     m_renderState = STATE_CONFIGURED;
 
@@ -416,7 +404,7 @@ void CRenderManager::UnInit()
   m_initEvent.Set();
 }
 
-bool CRenderManager::Flush(bool wait)
+bool CRenderManager::Flush(bool wait, bool saveBuffers)
 {
   if (!m_pRenderer)
     return true;
@@ -433,18 +421,20 @@ bool CRenderManager::Flush(bool wait)
 
     if (m_pRenderer)
     {
-      m_pRenderer->Flush();
       m_overlays.Flush();
       m_debugRenderer.Flush();
 
-      m_queued.clear();
-      m_discard.clear();
-      m_free.clear();
-      m_presentsource = 0;
-      m_presentsourcePast = -1;
-      m_presentstep = PRESENT_IDLE;
-      for (int i = 1; i < m_QueueSize; i++)
-        m_free.push_back(i);
+      if (!m_pRenderer->Flush(saveBuffers))
+      {
+        m_queued.clear();
+        m_discard.clear();
+        m_free.clear();
+        m_presentsource = 0;
+        m_presentsourcePast = -1;
+        m_presentstep = PRESENT_IDLE;
+        for (int i = 1; i < m_QueueSize; i++)
+          m_free.push_back(i);
+      }
 
       m_flushEvent.Set();
     }
@@ -685,7 +675,7 @@ RESOLUTION CRenderManager::GetResolution()
   if (m_renderState == STATE_UNCONFIGURED)
     return res;
 
-  if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) != ADJUST_REFRESHRATE_OFF)
+  if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) != ADJUST_REFRESHRATE_OFF)
     res = CResolutionUtils::ChooseBestResolution(m_fps, m_width, m_height, !m_stereomode.empty());
 
   return res;
@@ -864,7 +854,7 @@ void CRenderManager::UpdateLatencyTweak()
   float refresh = fps;
   if (CServiceBroker::GetWinSystem()->GetGfxContext().GetVideoResolution() == RES_WINDOW)
     refresh = 0; // No idea about refresh rate when windowed, just get the default latency
-  m_latencyTweak = g_advancedSettings.GetLatencyTweak(refresh);
+  m_latencyTweak = CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->GetLatencyTweak(refresh);
 }
 
 void CRenderManager::UpdateResolution()
@@ -873,7 +863,7 @@ void CRenderManager::UpdateResolution()
   {
     if (CServiceBroker::GetWinSystem()->GetGfxContext().IsFullScreenVideo() && CServiceBroker::GetWinSystem()->GetGfxContext().IsFullScreenRoot())
     {
-      if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) != ADJUST_REFRESHRATE_OFF && m_fps > 0.0f)
+      if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) != ADJUST_REFRESHRATE_OFF && m_fps > 0.0f)
       {
         RESOLUTION res = CResolutionUtils::ChooseBestResolution(m_fps, m_width, m_height, !m_stereomode.empty());
         CServiceBroker::GetWinSystem()->GetGfxContext().SetVideoResolution(res, false);
@@ -887,12 +877,13 @@ void CRenderManager::UpdateResolution()
   }
 }
 
-void CRenderManager::TriggerUpdateResolution(float fps, int width, std::string &stereomode)
+void CRenderManager::TriggerUpdateResolution(float fps, int width, int height, std::string &stereomode)
 {
   if (width)
   {
     m_fps = fps;
     m_width = width;
+    m_height = height;
     m_stereomode = stereomode;
   }
   m_bTriggerUpdateResolution = true;
@@ -918,7 +909,7 @@ bool CRenderManager::AddVideoPicture(const VideoPicture& picture, volatile std::
     if (!m_pRenderer)
       return false;
 
-    m_pRenderer->AddVideoPicture(picture, index, m_dvdClock.GetClock());
+    m_pRenderer->AddVideoPicture(picture, index);
   }
 
 

@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "AudioLibrary.h"
@@ -34,8 +22,9 @@
 #include "music/Song.h"
 #include "messaging/ApplicationMessenger.h"
 #include "filesystem/Directory.h"
-#include "settings/Settings.h"
 #include "settings/AdvancedSettings.h"
+#include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "TextureDatabase.h"
 
 using namespace MUSIC_INFO;
@@ -115,7 +104,7 @@ JSONRPC_STATUS CAudioLibrary::GetArtists(const std::string &method, ITransportLa
     musicUrl.AddOption("xsp", xsp);
   }
 
-  bool albumArtistsOnly = !CServiceBroker::GetSettings().GetBool(CSettings::SETTING_MUSICLIBRARY_SHOWCOMPILATIONARTISTS);
+  bool albumArtistsOnly = !CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_MUSICLIBRARY_SHOWCOMPILATIONARTISTS);
   if (parameterObject["albumartistsonly"].isBoolean())
     albumArtistsOnly = parameterObject["albumartistsonly"].asBoolean();
   musicUrl.AddOption("albumartistsonly", albumArtistsOnly);
@@ -595,7 +584,7 @@ JSONRPC_STATUS CAudioLibrary::GetGenres(const std::string &method, ITransportLay
   checkProperties.insert("sourceid");
   std::set<std::string> additionalProperties;
   if (CheckForAdditionalProperties(parameterObject["properties"], checkProperties, additionalProperties))
-    sourcesneeded = (additionalProperties.find("sourcid") != additionalProperties.end());
+    sourcesneeded = (additionalProperties.find("sourceid") != additionalProperties.end());
    
   CFileItemList items;
   if (!musicdatabase.GetGenresJSON(items, sourcesneeded))
@@ -628,12 +617,19 @@ JSONRPC_STATUS JSONRPC::CAudioLibrary::GetSources(const std::string& method, ITr
   CMusicDatabase musicdatabase;
   if (!musicdatabase.Open())
     return InternalError;
-  
+
+  // Add "file" to "properties" array by default
+  CVariant param = parameterObject;
+  if (!param.isMember("properties"))
+    param["properties"] = CVariant(CVariant::VariantTypeArray);
+  if (!param["properties"].isMember("file"))
+    param["properties"].append("file");
+
   CFileItemList items;
   if (!musicdatabase.GetSources(items))
     return InternalError;
 
-  HandleFileItemList("sourceid", true, "sourceid", items, parameterObject, result);
+  HandleFileItemList("sourceid", true, "sources", items, param, result);
   return OK;
 }
 
@@ -747,7 +743,7 @@ JSONRPC_STATUS CAudioLibrary::SetAlbumDetails(const std::string &method, ITransp
       CopyStringArray(parameterObject["musicbrainzalbumartistid"], mbids);
     // When display artist is not provided and yet artists is changing make by concatenation
     if (!ParameterNotNull(parameterObject, "displayartist"))
-      album.strArtistDesc = StringUtils::Join(artists, g_advancedSettings.m_musicItemSeparator);
+      album.strArtistDesc = StringUtils::Join(artists, CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_musicItemSeparator);
     album.SetArtistCredits(artists, std::vector<std::string>(), mbids);
     // On updatealbum artists will be changed
     album.bArtistSongMerge = true;
@@ -846,7 +842,7 @@ JSONRPC_STATUS CAudioLibrary::SetSongDetails(const std::string &method, ITranspo
       CopyStringArray(parameterObject["musicbrainzartistid"], mbids);
     // When display artist is not provided and yet artists is changing make by concatenation
     if (!ParameterNotNull(parameterObject, "displayartist"))
-      song.strArtistDesc = StringUtils::Join(artists, g_advancedSettings.m_musicItemSeparator);
+      song.strArtistDesc = StringUtils::Join(artists, CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_musicItemSeparator);
     song.SetArtistCredits(artists, std::vector<std::string>(), mbids);
   }
 
@@ -1032,11 +1028,11 @@ bool CAudioLibrary::FillFileItemList(const CVariant &parameterObject, CFileItemL
     // If we retrieved the list of songs by "artistid"
     // we sort by album (and implicitly by track number)
     if (artistID != -1)
-      list.Sort(SortByAlbum, SortOrderAscending, CServiceBroker::GetSettings().GetBool(CSettings::SETTING_FILELISTS_IGNORETHEWHENSORTING) ? SortAttributeIgnoreArticle : SortAttributeNone);
+      list.Sort(SortByAlbum, SortOrderAscending, CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_FILELISTS_IGNORETHEWHENSORTING) ? SortAttributeIgnoreArticle : SortAttributeNone);
     // If we retrieve the list of songs by "genreid"
     // we sort by artist (and implicitly by album and track number)
     else if (genreID != -1)
-      list.Sort(SortByArtist, SortOrderAscending, CServiceBroker::GetSettings().GetBool(CSettings::SETTING_FILELISTS_IGNORETHEWHENSORTING) ? SortAttributeIgnoreArticle : SortAttributeNone);
+      list.Sort(SortByArtist, SortOrderAscending, CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_FILELISTS_IGNORETHEWHENSORTING) ? SortAttributeIgnoreArticle : SortAttributeNone);
     // otherwise we sort by track number
     else
       list.Sort(SortByTrackNumber, SortOrderAscending);

@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 /*
@@ -31,6 +19,7 @@
 #include "utils/log.h"
 #include "filesystem/SpecialProtocol.h"
 #include "windowing/GraphicContext.h"
+#include "input/Key.h"
 
 static inline void SDL_memset4(uint32_t* dst, uint32_t val, size_t len)
 {
@@ -692,12 +681,12 @@ bool CTeletextDecoder::InitDecoder()
 void CTeletextDecoder::EndDecoder()
 {
   /* clear SubtitleCache */
-  for (int i = 0; i < SUBTITLE_CACHESIZE; i++)
+  for (TextSubtitleCache_t*& subtitleCache : m_RenderInfo.SubtitleCache)
   {
-    if (m_RenderInfo.SubtitleCache[i] != NULL)
+    if (subtitleCache != NULL)
     {
-      delete m_RenderInfo.SubtitleCache[i];
-      m_RenderInfo.SubtitleCache[i] = NULL;
+      delete subtitleCache;
+      subtitleCache = NULL;
     }
   }
 
@@ -1218,14 +1207,14 @@ void CTeletextDecoder::RenderPage()
     if (m_RenderInfo.DelayStarted)
     {
       long now = XbmcThreads::SystemClockMillis()/1000;
-      for (int i = 0; i < SUBTITLE_CACHESIZE ; i++)
+      for (TextSubtitleCache_t* const subtitleCache : m_RenderInfo.SubtitleCache)
       {
-        if (m_RenderInfo.SubtitleCache[i] && m_RenderInfo.SubtitleCache[i]->Valid && now - m_RenderInfo.SubtitleCache[i]->Timestamp >= (long)m_RenderInfo.SubtitleDelay)
+        if (subtitleCache && subtitleCache->Valid && now - subtitleCache->Timestamp >= (long)m_RenderInfo.SubtitleDelay)
         {
-          memcpy(m_RenderInfo.PageChar, m_RenderInfo.SubtitleCache[i]->PageChar, 40 * 25);
-          memcpy(m_RenderInfo.PageAtrb, m_RenderInfo.SubtitleCache[i]->PageAtrb, 40 * 25 * sizeof(TextPageAttr_t));
+          memcpy(m_RenderInfo.PageChar, subtitleCache->PageChar, 40 * 25);
+          memcpy(m_RenderInfo.PageAtrb, subtitleCache->PageAtrb, 40 * 25 * sizeof(TextPageAttr_t));
           DoRenderPage(StartRow, national_subset_bak);
-          m_RenderInfo.SubtitleCache[i]->Valid = false;
+          subtitleCache->Valid = false;
           return;
         }
       }
@@ -1271,9 +1260,9 @@ void CTeletextDecoder::RenderPage()
               SetPosX(8);
 
             memcpy(&m_RenderInfo.PageChar[8], pCachedPage->p0, 24); /* header line without timestring */
-            for (int i = 0; i < 24; i++)
+            for (unsigned char i : pCachedPage->p0)
             {
-              RenderCharFB(pCachedPage->p0[i], &m_RenderInfo.PageAtrb[32]);
+              RenderCharFB(i, &m_RenderInfo.PageAtrb[32]);
             }
 
             /* Update on every Header number change */
@@ -3126,19 +3115,19 @@ TextPageinfo_t* CTeletextDecoder::DecodePage(bool showl25,             // 1=deco
     int o = 0;
     char bitmask ;
 
-    for (int r = 0; r < 25; r++)
+    for (unsigned char row : m_txtCache->FullRowColor)
     {
       for (int c = 0; c < 40; c++)
       {
-        bitmask = (PageAtrb[o].bg == 0x08 ? 0x08 : 0x00) | (m_txtCache->FullRowColor[r] == 0x08 ? 0x04 : 0x00) | (PageAtrb[o].boxwin <<1) | (int)boxed;
+        bitmask = (PageAtrb[o].bg == 0x08 ? 0x08 : 0x00) | (row == 0x08 ? 0x04 : 0x00) | (PageAtrb[o].boxwin <<1) | (int)boxed;
         switch (bitmask)
         {
           case 0x08:
           case 0x0b:
-            if (m_txtCache->FullRowColor[r] == 0x08)
+            if (row == 0x08)
               PageAtrb[o].bg = m_txtCache->FullScrColor;
             else
-              PageAtrb[o].bg = m_txtCache->FullRowColor[r];
+              PageAtrb[o].bg = row;
             break;
           case 0x01:
           case 0x05:
@@ -3151,15 +3140,15 @@ TextPageinfo_t* CTeletextDecoder::DecodePage(bool showl25,             // 1=deco
             PageAtrb[o].bg = TXT_ColorTransp;
             break;
         }
-        bitmask = (PageAtrb[o].fg  == 0x08 ? 0x08 : 0x00) | (m_txtCache->FullRowColor[r] == 0x08 ? 0x04 : 0x00) | (PageAtrb[o].boxwin <<1) | (int)boxed;
+        bitmask = (PageAtrb[o].fg  == 0x08 ? 0x08 : 0x00) | (row == 0x08 ? 0x04 : 0x00) | (PageAtrb[o].boxwin <<1) | (int)boxed;
         switch (bitmask)
         {
           case 0x08:
           case 0x0b:
-            if (m_txtCache->FullRowColor[r] == 0x08)
+            if (row == 0x08)
               PageAtrb[o].fg = m_txtCache->FullScrColor;
             else
-              PageAtrb[o].fg = m_txtCache->FullRowColor[r];
+              PageAtrb[o].fg = row;
             break;
           case 0x01:
           case 0x05:
@@ -3379,16 +3368,16 @@ void CTeletextDecoder::Eval_l25(unsigned char* PageChar, TextPageAttr_t *PageAtr
 
     {
       int o = 0;
-      for (int r = 0; r < 25; r++)
+      for (unsigned char row : m_txtCache->FullRowColor)
       {
         for (int c = 0; c < 40; c++)
         {
           if (BlackBgSubst && PageAtrb[o].bg == TXT_ColorBlack && !(PageAtrb[o].IgnoreAtBlackBgSubst))
           {
-            if (m_txtCache->FullRowColor[r] == 0x08)
+            if (row == 0x08)
               PageAtrb[o].bg = m_txtCache->FullScrColor;
             else
-              PageAtrb[o].bg = m_txtCache->FullRowColor[r];
+              PageAtrb[o].bg = row;
           }
           o++;
         }

@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2010-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2010-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -48,7 +36,8 @@ public:
     STREAM_TYPE_DTSHD_CORE,
     STREAM_TYPE_EAC3,
     STREAM_TYPE_MLP,
-    STREAM_TYPE_TRUEHD
+    STREAM_TYPE_TRUEHD,
+    STREAM_TYPE_DTSHD_MA
   };
   DataType m_type = STREAM_TYPE_NULL;
   unsigned int m_sampleRate;
@@ -98,12 +87,12 @@ private:
   unsigned int m_coreSize = 0;         /* core size for dtsHD */
   unsigned int m_dtsBlocks = 0;
   unsigned int m_fsize = 0;
-  unsigned int m_fsizeMain = 0;        /* used for EAC3 substreams */
   int m_substreams = 0;       /* used for TrueHD  */
   AVCRC m_crcTrueHD[1024];  /* TrueHD crc table */
 
   void GetPacket(uint8_t **buffer, unsigned int *bufferSize);
   unsigned int DetectType(uint8_t *data, unsigned int size);
+  bool TrySyncAC3(uint8_t *data, unsigned int size, bool resyncing, bool wantEAC3dependent);
   unsigned int SyncAC3(uint8_t *data, unsigned int size);
   unsigned int SyncDTS(uint8_t *data, unsigned int size);
   unsigned int SyncTrueHD(uint8_t *data, unsigned int size);

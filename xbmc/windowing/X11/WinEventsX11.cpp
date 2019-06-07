@@ -1,23 +1,10 @@
 /*
-*      Copyright (C) 2005-2012 Team XBMC
-*      http://www.xbmc.org
-*
-*  This Program is free software; you can redistribute it and/or modify
-*  it under the terms of the GNU General Public License as published by
-*  the Free Software Foundation; either version 2, or (at your option)
-*  any later version.
-*
-*  This Program is distributed in the hope that it will be useful,
-*  but WITHOUT ANY WARRANTY; without even the implied warranty of
-*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-*  GNU General Public License for more details.
-*
-*  You should have received a copy of the GNU General Public License
-*  along with XBMC; see the file COPYING.  If not, write to
-*  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
-*  http://www.gnu.org/copyleft/gpl.html
-*
-*/
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
+ *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
+ */
 
 #include "xbmc/windowing/WinEvents.h"
 #include "WinEventsX11.h"
@@ -36,6 +23,7 @@
 #include "input/mouse/MouseStat.h"
 #include "input/InputManager.h"
 #include "ServiceBroker.h"
+#include "cores/AudioEngine/Interfaces/AE.h"
 
 using namespace KODI::MESSAGING;
 
@@ -228,9 +216,9 @@ bool CWinEventsX11::Init(Display *dpy, Window win)
     CLog::Log(LOGWARNING,"CWinEventsX11::Init - no input method found");
 
   // build Keysym lookup table
-  for (unsigned int i = 0; i < sizeof(SymMappingsX11)/(2*sizeof(uint32_t)); ++i)
+  for (const auto& symMapping : SymMappingsX11)
   {
-    m_symLookupTable[SymMappingsX11[i][0]] = SymMappingsX11[i][1];
+    m_symLookupTable[symMapping[0]] = symMapping[1];
   }
 
   // register for xrandr events
@@ -304,19 +292,36 @@ bool CWinEventsX11::MessagePump()
 
     if (m_display && (xevent.type == m_RREventBase + RRScreenChangeNotify))
     {
-      XRRUpdateConfiguration(&xevent);
-      if (xevent.xgeneric.serial != serial)
+      if (xevent.xgeneric.serial == serial)
+        continue;
+
+      if (m_xrrEventPending)
+      {
         m_winSystem.NotifyXRREvent();
-      m_xrrEventPending = false;
-      serial = xevent.xgeneric.serial;
+        m_xrrEventPending = false;
+        serial = xevent.xgeneric.serial;
+      }
+
       continue;
     }
     else if (m_display && (xevent.type == m_RREventBase + RRNotify))
     {
-      if (xevent.xgeneric.serial != serial)
-        m_winSystem.NotifyXRREvent();
-      m_xrrEventPending = false;
-      serial = xevent.xgeneric.serial;
+      if (xevent.xgeneric.serial == serial)
+        continue;
+
+      XRRNotifyEvent* rrEvent = reinterpret_cast<XRRNotifyEvent*>(&xevent);
+      if (rrEvent->subtype == RRNotify_OutputChange)
+      {
+        XRROutputChangeNotifyEvent* changeEvent = reinterpret_cast<XRROutputChangeNotifyEvent*>(&xevent);
+        if (changeEvent->connection == RR_Connected ||
+            changeEvent->connection == RR_Disconnected)
+        {
+          m_winSystem.NotifyXRREvent();
+          CServiceBroker::GetActiveAE()->DeviceChange();
+          serial = xevent.xgeneric.serial;
+        }
+      }
+
       continue;
     }
 

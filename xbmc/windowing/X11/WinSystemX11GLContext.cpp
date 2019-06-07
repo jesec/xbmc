@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include <X11/Xlib.h>
@@ -30,7 +18,7 @@
 #include "threads/SingleLock.h"
 #include <vector>
 #include "Application.h"
-#include "VideoSyncDRM.h"
+#include "VideoSyncOML.h"
 
 #include "cores/RetroPlayer/process/X11/RPProcessInfoX11.h"
 #include "cores/RetroPlayer/rendering/VideoRenderers/RPRendererOpenGL.h"
@@ -154,6 +142,7 @@ EGLConfig CWinSystemX11GLContext::GetEGLConfig() const
 bool CWinSystemX11GLContext::SetWindow(int width, int height, bool fullscreen, const std::string &output, int *winstate)
 {
   int newwin = 0;
+
   CWinSystemX11::SetWindow(width, height, fullscreen, output, &newwin);
   if (newwin)
   {
@@ -222,13 +211,15 @@ bool CWinSystemX11GLContext::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res
 
 bool CWinSystemX11GLContext::DestroyWindowSystem()
 {
-  m_pGLContext->Destroy();
+  if (m_pGLContext)
+    m_pGLContext->Destroy();
   return CWinSystemX11::DestroyWindowSystem();
 }
 
 bool CWinSystemX11GLContext::DestroyWindow()
 {
-  m_pGLContext->Detach();
+  if (m_pGLContext)
+    m_pGLContext->Detach();
   return CWinSystemX11::DestroyWindow();
 }
 
@@ -261,6 +252,11 @@ bool CWinSystemX11GLContext::RefreshGLContext(bool force)
   if (m_pGLContext)
   {
     success = m_pGLContext->Refresh(force, m_screen, m_glWindow, m_newGlContext);
+    if (!success)
+    {
+      success = m_pGLContext->CreatePB();
+      m_newGlContext = true;
+    }
     return success;
   }
 
@@ -302,6 +298,12 @@ bool CWinSystemX11GLContext::RefreshGLContext(bool force)
           return true;
       }
     }
+    else if (gli == "EGL_PB")
+    {
+      success = m_pGLContext->CreatePB();
+      if (success)
+        return true;
+    }
   }
 
   delete m_pGLContext;
@@ -323,7 +325,7 @@ std::unique_ptr<CVideoSync> CWinSystemX11GLContext::GetVideoSync(void *clock)
 
   if (dynamic_cast<CGLContextEGL*>(m_pGLContext))
   {
-    pVSync.reset(new CVideoSyncDRM(clock, *this));
+    pVSync.reset(new CVideoSyncOML(clock, *this));
   }
   else
   {
@@ -337,9 +339,22 @@ float CWinSystemX11GLContext::GetFrameLatencyAdjustment()
 {
   if (m_pGLContext)
   {
-    float micros = m_pGLContext->GetFrameLatencyAdjustment();
+    uint64_t msc, interval;
+    float micros = m_pGLContext->GetVblankTiming(msc, interval);
     return micros / 1000;
   }
+  return 0;
+}
+
+uint64_t CWinSystemX11GLContext::GetVblankTiming(uint64_t &msc, uint64_t &interval)
+{
+  if (m_pGLContext)
+  {
+    float micros = m_pGLContext->GetVblankTiming(msc, interval);
+    return micros / 1000;
+  }
+  msc = 0;
+  interval = 0;
   return 0;
 }
 

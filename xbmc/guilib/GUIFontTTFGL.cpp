@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2015 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GUIFont.h"
@@ -65,8 +53,17 @@ bool CGUIFontTTFGL::FirstBegin()
 {
 #if defined(HAS_GL)
   GLenum pixformat = GL_RED;
+  GLenum internalFormat;
+  unsigned int major, minor;
+  CRenderSystemGL* renderSystem = dynamic_cast<CRenderSystemGL*>(CServiceBroker::GetRenderSystem());
+  renderSystem->GetRenderVersion(major, minor);
+  if (major >= 3)
+    internalFormat = GL_R8;
+  else
+    internalFormat = GL_LUMINANCE;
 #else
   GLenum pixformat = GL_ALPHA; // deprecated
+  GLenum internalFormat = GL_ALPHA;
 #endif
 
   if (m_textureStatus == TEXTURE_REALLOCATED)
@@ -89,7 +86,7 @@ bool CGUIFontTTFGL::FirstBegin()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     // Set the texture image -- THIS WORKS, so the pixels must be wrong.
-    glTexImage2D(GL_TEXTURE_2D, 0, pixformat, m_texture->GetWidth(), m_texture->GetHeight(), 0,
+    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, m_texture->GetWidth(), m_texture->GetHeight(), 0,
         pixformat, GL_UNSIGNED_BYTE, 0);
 
     VerifyGLState();

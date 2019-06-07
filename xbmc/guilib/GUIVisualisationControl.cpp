@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GUIVisualisationControl.h"
@@ -33,6 +21,7 @@
 #include "music/tags/MusicInfoTag.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "utils/log.h"
 #include "utils/URIUtils.h"
 
@@ -314,7 +303,7 @@ void CGUIVisualisationControl::UpdateTrack()
 
   std::string artist(tag->GetArtistString());
   std::string albumArtist(tag->GetAlbumArtistString());
-  std::string genre(StringUtils::Join(tag->GetGenre(), g_advancedSettings.m_musicItemSeparator));
+  std::string genre(StringUtils::Join(tag->GetGenre(), CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_musicItemSeparator));
 
   VisTrack track = {0};
   track.title       = tag->GetTitle().c_str();
@@ -381,7 +370,7 @@ bool CGUIVisualisationControl::GetPresetList(std::vector<std::string> &vecpreset
 
 bool CGUIVisualisationControl::InitVisualization()
 {
-  const ADDON::BinaryAddonBasePtr addonBase = CServiceBroker::GetBinaryAddonManager().GetInstalledAddonInfo(CServiceBroker::GetSettings().GetString(CSettings::SETTING_MUSICPLAYER_VISUALISATION), ADDON::ADDON_VIZ);
+  const ADDON::BinaryAddonBasePtr addonBase = CServiceBroker::GetBinaryAddonManager().GetInstalledAddonInfo(CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_MUSICPLAYER_VISUALISATION), ADDON::ADDON_VIZ);
   if (!addonBase)
     return false;
 
@@ -467,9 +456,9 @@ void CGUIVisualisationControl::ClearBuffers()
   m_numBuffers = 0;
   m_vecBuffers.clear();
 
-  for (int j = 0; j < AUDIO_BUFFER_SIZE; ++j)
+  for (float& freq : m_freq)
   {
-    m_freq[j] = 0.0f;
+    freq = 0.0f;
   }
 
   if (m_transform)

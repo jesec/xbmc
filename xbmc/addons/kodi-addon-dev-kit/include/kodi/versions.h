@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2016-2017 Team KODI
- *      http://kodi.tv
+ *  Copyright (C) 2016-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with KODI; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -87,8 +75,8 @@
 #define ADDON_INSTANCE_VERSION_AUDIOENCODER_XML_ID    "kodi.binary.instance.audioencoder"
 #define ADDON_INSTANCE_VERSION_AUDIOENCODER_DEPENDS   "addon-instance/AudioEncoder.h"
 
-#define ADDON_INSTANCE_VERSION_GAME                   "1.0.38"
-#define ADDON_INSTANCE_VERSION_GAME_MIN               "1.0.38"
+#define ADDON_INSTANCE_VERSION_GAME                   "1.1.0"
+#define ADDON_INSTANCE_VERSION_GAME_MIN               "1.1.0"
 #define ADDON_INSTANCE_VERSION_GAME_XML_ID            "kodi.binary.instance.game"
 #define ADDON_INSTANCE_VERSION_GAME_DEPENDS           "kodi_game_dll.h" \
                                                       "kodi_game_types.h" \
@@ -99,7 +87,7 @@
 #define ADDON_INSTANCE_VERSION_IMAGEDECODER_XML_ID    "kodi.binary.instance.imagedecoder"
 #define ADDON_INSTANCE_VERSION_IMAGEDECODER_DEPENDS   "addon-instance/ImageDecoder.h"
 
-#define ADDON_INSTANCE_VERSION_INPUTSTREAM            "2.0.7"
+#define ADDON_INSTANCE_VERSION_INPUTSTREAM            "2.0.8"
 #define ADDON_INSTANCE_VERSION_INPUTSTREAM_MIN        "2.0.7"
 #define ADDON_INSTANCE_VERSION_INPUTSTREAM_XML_ID     "kodi.binary.instance.inputstream"
 #define ADDON_INSTANCE_VERSION_INPUTSTREAM_DEPENDS    "addon-instance/Inputstream.h"
@@ -110,7 +98,7 @@
 #define ADDON_INSTANCE_VERSION_PERIPHERAL_DEPENDS     "addon-instance/Peripheral.h" \
                                                       "addon-instance/PeripheralUtils.h"
 
-#define ADDON_INSTANCE_VERSION_PVR                    "5.10.1"
+#define ADDON_INSTANCE_VERSION_PVR                    "5.10.3"
 #define ADDON_INSTANCE_VERSION_PVR_MIN                "5.10.0"
 #define ADDON_INSTANCE_VERSION_PVR_XML_ID             "kodi.binary.instance.pvr"
 #define ADDON_INSTANCE_VERSION_PVR_DEPENDS            "xbmc_pvr_dll.h" \

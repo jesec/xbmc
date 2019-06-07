@@ -1,28 +1,15 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
 
 #include "XBApplicationEx.h"
 
-#include "addons/AddonSystemSettings.h"
 #include "guilib/IMsgTargetCallback.h"
 #include "windowing/Resolution.h"
 #include "utils/GlobalsHandling.h"
@@ -54,7 +41,6 @@
 #include "threads/Thread.h"
 
 #include "ApplicationPlayer.h"
-#include "FileItem.h"
 
 class CAction;
 class CFileItem;
@@ -68,12 +54,18 @@ class CBookmark;
 class IActionListener;
 class CGUIComponent;
 class CAppInboundProtocol;
+class CSettingsComponent;
 
 namespace ADDON
 {
   class CSkinInfo;
   class IAddon;
   typedef std::shared_ptr<IAddon> AddonPtr;
+}
+
+namespace ANNOUNCEMENT
+{
+  class CAnnouncementManager;
 }
 
 namespace MEDIA_DETECT
@@ -130,6 +122,10 @@ friend class CAppInboundProtocol;
 
 public:
 
+  // If playback time of current item is greater than this value, ACTION_PREV_ITEM will seek to start
+  // of currently playing item, otherwise it will seek to start of the previous item in playlist
+  static const unsigned int ACTION_PREV_ITEM_THRESHOLD = 3; // seconds;
+
   enum ESERVERS
   {
     ES_WEBSERVER = 1,
@@ -154,7 +150,6 @@ public:
 
   bool CreateGUI();
   bool InitWindow(RESOLUTION res = RES_INVALID);
-  bool DestroyWindow();
   void StartServices();
   void StopServices();
   bool StartServer(enum ESERVERS eServer, bool bStart, bool bWait = false);
@@ -310,32 +305,9 @@ public:
 
   int GlobalIdleTime();
 
-  void EnablePlatformDirectories(bool enable=true)
-  {
-    m_bPlatformDirectories = enable;
-  }
-
-  bool PlatformDirectoriesEnabled()
-  {
-    return m_bPlatformDirectories;
-  }
-
-  void SetStandAlone(bool value);
-
-  bool IsStandAlone()
-  {
-    return m_bStandalone;
-  }
-
-  void SetEnableTestMode(bool value)
-  {
-    m_bTestMode = value;
-  }
-
-  bool IsEnableTestMode()
-  {
-    return m_bTestMode;
-  }
+  bool PlatformDirectoriesEnabled() { return m_bPlatformDirectories; }
+  bool IsStandAlone() { return m_bStandalone; }
+  bool IsEnableTestMode() { return m_bTestMode; }
 
   bool IsAppFocused() const { return m_AppFocused; }
 
@@ -376,6 +348,8 @@ public:
   */
   void UnlockFrameMoveGuard();
 
+  void SetRenderGUI(bool renderGUI);
+
 protected:
   bool OnSettingsSaving() const override;
   bool Load(const TiXmlNode *settings) override;
@@ -391,7 +365,6 @@ protected:
 
   // inbound protocol
   bool OnEvent(XBMC_Event& newEvent);
-  void SetRenderGUI(bool renderGUI);
 
   /*!
    \brief Delegates the action to all registered action handlers.
@@ -400,6 +373,8 @@ protected:
    */
   bool NotifyActionListeners(const CAction &action) const;
 
+  std::shared_ptr<ANNOUNCEMENT::CAnnouncementManager> m_pAnnouncementManager;
+  std::unique_ptr<CSettingsComponent> m_pSettingsComponent;
   std::unique_ptr<CGUIComponent> m_pGUI;
   std::unique_ptr<CWinSystemBase> m_pWinSystem;
   std::unique_ptr<ActiveAE::CActiveAE> m_pActiveAE;
@@ -480,10 +455,6 @@ protected:
   bool PlayStack(CFileItem& item, bool bRestart);
 
   float NavigationIdleTime();
-  bool InitDirectoriesLinux();
-  bool InitDirectoriesOSX();
-  bool InitDirectoriesWin32();
-  void CreateUserDirs() const;
   void HandlePortEvents();
 
   /*! \brief Helper method to determine how to handle TMSG_SHUTDOWN

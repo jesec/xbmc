@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2011-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2011-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 #include <stdlib.h>
 
@@ -36,6 +24,7 @@
 #include "windowing/GraphicContext.h"
 #include "utils/log.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "ServiceBroker.h"
 #include "utils/StringUtils.h"
 #include "utils/SysfsUtils.h"
@@ -164,7 +153,7 @@ CAndroidUtils::CAndroidUtils()
   }
 
   CLog::Log(LOGDEBUG, "CAndroidUtils: maximum/current resolution: %dx%d", m_width, m_height);
-  int limit = CServiceBroker::GetSettings().GetInt("videoscreen.limitgui");
+  int limit = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt("videoscreen.limitgui");
   switch (limit)
   {
     case 0: // auto
@@ -244,10 +233,10 @@ bool CAndroidUtils::SetNativeResolution(const RESOLUTION_INFO &res)
 
   if (s_hasModeApi)
   {
-    CXBMCApp::SetDisplayMode(atoi(res.strId.c_str()));
+    CXBMCApp::SetDisplayMode(atoi(res.strId.c_str()), res.fRefreshRate);
     s_res_cur_displayMode = res;
   }
-  else if (std::abs(currentRefreshRate() - res.fRefreshRate) > 0.0001)
+  else
     CXBMCApp::SetRefreshRate(res.fRefreshRate);
   CXBMCApp::SetBuffersGeometry(res.iWidth, res.iHeight, 0);
 
@@ -269,6 +258,7 @@ bool CAndroidUtils::ProbeResolutions(std::vector<RESOLUTION_INFO> &resolutions)
       {
         res.iWidth = std::min(res.iWidth, m_width);
         res.iHeight = std::min(res.iHeight, m_height);
+        res.iSubtitles = static_cast<int>(0.965 * res.iHeight);
       }
       resolutions.push_back(res);
     }

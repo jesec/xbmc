@@ -27,7 +27,8 @@
   12.1. **[Casts](#121-casts)**  
   12.2. **[NULL vs nullptr](#122-null-vs-nullptr)**  
   12.3. **[auto](#123-auto)**  
-  12.4. **[for loops](#124-for-loops)**
+  12.4. **[for loops](#124-for-loops)**  
+  12.5. **[Default member initialization](#125-default-member-initialization)**
 
 ## 1. Motivation
 When working in a large group, the two most important values are readability and maintainability. We code for other people, not computers. To accomplish these goals, we have created a unified set of code conventions.
@@ -172,6 +173,10 @@ for (int i = 0; i < x; ++i)
   doSomething(e);
   doSomething(f);
 ```
+Initializer lists have spaces between elements, but no surrounding spaces.
+```cpp
+const char *aStringArray[] = {"one", "two", "three"};
+```
 
 **[back to top](#table-of-contents)**
 
@@ -276,7 +281,7 @@ enum Dummy
 ```
 
 ### 11.4. Interfaces
-Use CamelCase for interface names and they have to be prefixed with an uppercase I. Filename has to match the interface name without the prefixed I, e.g. ILogger.h
+Use CamelCase for interface names and they have to be prefixed with an uppercase I. Filename has to match the interface name without the prefixed I, e.g. Logger.h
 ```cpp
 class ILogger
 {
@@ -344,5 +349,13 @@ for (const auto& : var)
 ```
 Remove `const` if the value has to be modified.
 
-**[back to top](#table-of-contents)**
+### 12.5. Default member initialization
+Use default member initialization instead of initializer lists or constructor assignments whenever it makes sense.
+```cpp
+class Foo
+{
+  bool bar = false;
+};
+```
 
+**[back to top](#table-of-contents)**

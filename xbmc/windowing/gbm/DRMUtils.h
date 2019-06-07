@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -24,15 +12,25 @@
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 #include <gbm.h>
+#include <map>
 #include <vector>
 
 #include "windowing/Resolution.h"
 #include "GBMUtils.h"
+#include "platform/posix/utils/FileHandle.h"
+
+namespace KODI
+{
+namespace WINDOWING
+{
+namespace GBM
+{
 
 enum EPLANETYPE
 {
-  VIDEO_PLANE,
-  GUI_PLANE
+  KODI_VIDEO_PLANE,
+  KODI_GUI_PLANE,
+  KODI_GUI_10_PLANE
 };
 
 struct drm_object
@@ -46,7 +44,28 @@ struct drm_object
 struct plane : drm_object
 {
   drmModePlanePtr plane = nullptr;
-  uint32_t format = DRM_FORMAT_XRGB8888;
+  bool useFallbackFormat{false};
+  std::map<uint32_t, std::vector<uint64_t>> modifiers_map;
+
+  void SetFormat(uint32_t newFormat)
+  {
+    if (useFallbackFormat)
+      fallbackFormat = newFormat;
+    else
+      format = newFormat;
+  }
+
+  uint32_t GetFormat()
+  {
+    if (useFallbackFormat)
+      return fallbackFormat;
+
+    return format;
+  }
+
+private:
+  uint32_t format{DRM_FORMAT_XRGB2101010};
+  uint32_t fallbackFormat{DRM_FORMAT_XRGB8888};
 };
 
 struct connector : drm_object
@@ -83,31 +102,38 @@ public:
   virtual void DestroyDrm();
 
   std::string GetModule() const { return m_module; }
-  std::string GetDevicePath() const { return m_device_path; }
   int GetFileDescriptor() const { return m_fd; }
-  struct plane* GetPrimaryPlane() const { return m_primary_plane; }
-  struct plane* GetOverlayPlane() const { return m_overlay_plane; }
+  int GetRenderNodeFileDescriptor() const { return m_renderFd; }
+  struct plane* GetVideoPlane() const { return m_video_plane; }
+  struct plane* GetGuiPlane() const { return m_gui_plane; }
+  std::vector<uint64_t> *GetVideoPlaneModifiersForFormat(uint32_t format) { return &m_video_plane->modifiers_map[format]; }
+  std::vector<uint64_t> *GetGuiPlaneModifiersForFormat(uint32_t format) { return &m_gui_plane->modifiers_map[format]; }
   struct crtc* GetCrtc() const { return m_crtc; }
 
   virtual RESOLUTION_INFO GetCurrentMode();
   virtual std::vector<RESOLUTION_INFO> GetModes();
   virtual bool SetMode(const RESOLUTION_INFO& res);
-  virtual void WaitVBlank();
 
+  bool SupportsProperty(struct drm_object *object, const char *name);
   virtual bool AddProperty(struct drm_object *object, const char *name, uint64_t value) { return false; }
   virtual bool SetProperty(struct drm_object *object, const char *name, uint64_t value) { return false; }
+
+  static uint32_t FourCCWithAlpha(uint32_t fourcc);
+  static uint32_t FourCCWithoutAlpha(uint32_t fourcc);
 
 protected:
   bool OpenDrm(bool needConnector);
   uint32_t GetPropertyId(struct drm_object *object, const char *name);
   drm_fb* DrmFbGetFromBo(struct gbm_bo *bo);
+  static bool GetProperties(int fd, uint32_t id, uint32_t type, struct drm_object *object);
+  static void FreeProperties(struct drm_object *object);
 
-  int m_fd;
+  KODI::UTILS::POSIX::CFileHandle m_fd;
   struct connector *m_connector = nullptr;
   struct encoder *m_encoder = nullptr;
   struct crtc *m_crtc = nullptr;
-  struct plane *m_primary_plane = nullptr;
-  struct plane *m_overlay_plane = nullptr;
+  struct plane *m_video_plane = nullptr;
+  struct plane *m_gui_plane = nullptr;
   drmModeModeInfo *m_mode = nullptr;
 
   int m_width = 0;
@@ -122,15 +148,21 @@ private:
   bool FindEncoder();
   bool FindCrtc();
   bool FindPlanes();
+  bool FindModifiersForPlane(struct plane *object);
   bool FindPreferredMode();
   bool RestoreOriginalMode();
   static void DrmFbDestroyCallback(struct gbm_bo *bo, void *data);
   RESOLUTION_INFO GetResolutionInfo(drmModeModeInfoPtr mode);
+  bool CheckConnector(int connectorId);
 
+  KODI::UTILS::POSIX::CFileHandle m_renderFd;
   int m_crtc_index;
   std::string m_module;
-  std::string m_device_path;
 
   drmModeResPtr m_drm_resources = nullptr;
   drmModeCrtcPtr m_orig_crtc = nullptr;
 };
+
+}
+}
+}

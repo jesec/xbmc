@@ -1,26 +1,15 @@
 /*
- *      Copyright (C) 2016 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2016-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this Program; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
 
 #include "addons/kodi-addon-dev-kit/include/kodi/addon-instance/PeripheralUtils.h"
+#include "threads/CriticalSection.h"
 
 #include <string>
 #include <utility>
@@ -35,13 +24,13 @@ namespace PERIPHERALS
   {
   public:
     CAndroidJoystickState();
+    CAndroidJoystickState(CAndroidJoystickState &&other);
     virtual ~CAndroidJoystickState();
 
     int GetDeviceId() const { return m_deviceId; }
 
-    unsigned int GetButtonCount() const { return m_buttons.size(); }
-    unsigned int GetHatCount() const { return m_hats.size(); }
-    unsigned int GetAxisCount() const { return m_axes.size(); }
+    unsigned int GetButtonCount() const { return static_cast<unsigned int>(m_buttons.size()); }
+    unsigned int GetAxisCount() const { return static_cast<unsigned int>(m_axes.size()); }
 
     /*!
      * Initialize the joystick object. Joystick will be initialized before the
@@ -63,15 +52,13 @@ namespace PERIPHERALS
     /*!
      * Get events that have occurred since the last call to GetEvents()
      */
-    void GetEvents(std::vector<kodi::addon::PeripheralEvent>& events) const;
+    void GetEvents(std::vector<kodi::addon::PeripheralEvent>& events);
 
   private:
     bool SetButtonValue(int axisId, JOYSTICK_STATE_BUTTON buttonValue);
-    bool SetHatValue(const std::vector<int>& axisIds, JOYSTICK_STATE_HAT hatValue);
     bool SetAxisValue(const std::vector<int>& axisIds, JOYSTICK_STATE_AXIS axisValue);
 
-    void GetButtonEvents(std::vector<kodi::addon::PeripheralEvent>& events) const;
-    void GetHatEvents(std::vector<kodi::addon::PeripheralEvent>& events) const;
+    void GetButtonEvents(std::vector<kodi::addon::PeripheralEvent>& events);
     void GetAxisEvents(std::vector<kodi::addon::PeripheralEvent>& events) const;
 
     static float Contain(float value, float min, float max);
@@ -95,20 +82,14 @@ namespace PERIPHERALS
     static bool ContainsAxis(int axisId, const JoystickAxes& axes);
     static bool GetAxesIndex(const std::vector<int>& axisIds, const JoystickAxes& axes, size_t& axesIndex);
 
-    struct JoystickState
-    {
-      std::vector<JOYSTICK_STATE_BUTTON> buttons;
-      std::vector<JOYSTICK_STATE_HAT> hats;
-      std::vector<JOYSTICK_STATE_AXIS> axes;
-    };
-
     int m_deviceId;
 
     JoystickAxes m_buttons;
-    JoystickAxes m_hats;
     JoystickAxes m_axes;
 
-    mutable JoystickState m_state;
-    JoystickState m_stateBuffer;
+    std::vector<JOYSTICK_STATE_AXIS> m_analogState;
+
+    CCriticalSection m_eventMutex;
+    std::vector<kodi::addon::PeripheralEvent> m_digitalEvents;
   };
 }

@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 //-----------------------------------------------------------------------
 //
@@ -37,8 +25,8 @@
 #include "StringUtils.h"
 #include "CharsetConverter.h"
 #include "LangInfo.h"
-#include "utils/fstrcmp.h"
 #include "Util.h"
+#include <fstrcmp.h>
 #include <functional>
 #include <array>
 #include <iomanip>
@@ -1154,7 +1142,7 @@ bool StringUtils::ValidateUUID(const std::string &uuid)
 
 double StringUtils::CompareFuzzy(const std::string &left, const std::string &right)
 {
-  return (0.5 + fstrcmp(left.c_str(), right.c_str(), 0.0) * (left.length() + right.length())) / 2.0;
+  return (0.5 + fstrcmp(left.c_str(), right.c_str()) * (left.length() + right.length())) / 2.0;
 }
 
 int StringUtils::FindBestMatch(const std::string &str, const std::vector<std::string> &strings, double &matchscore)

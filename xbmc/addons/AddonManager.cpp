@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "AddonManager.h"
@@ -27,13 +15,15 @@
 #include "events/NotificationEvent.h"
 #include "filesystem/File.h"
 #include "filesystem/SpecialProtocol.h"
-#include "settings/AdvancedSettings.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
 #include "utils/XMLUtils.h"
 
+#include <algorithm>
 #include <array>
+#include <set>
+#include <utility>
 
 using namespace XFILE;
 
@@ -701,17 +691,28 @@ bool CAddonMgr::FindAddons()
 
     //Sync with db
     {
-      std::set<std::string> installed;
+      std::set<std::pair<std::string, std::string>> installed;
       cp_status_t status;
       int n;
       cp_plugin_info_t** cp_addons = cp_get_plugins_info(m_cp_context, &status, &n);
       for (int i = 0; i < n; ++i)
       {
-        CLog::Log(LOGNOTICE, "ADDON: %s v%s installed", cp_addons[i]->identifier, cp_addons[i]->version);
-        installed.insert(cp_addons[i]->identifier);
+        installed.emplace(cp_addons[i]->identifier, cp_addons[i]->version ? cp_addons[i]->version : "");
       }
       cp_release_info(m_cp_context, cp_addons);
-      m_database.SyncInstalled(installed, m_systemAddons, m_optionalAddons);
+      // Log separately so list is sorted
+      for (const auto& installedAddon : installed)
+      {
+        CLog::Log(LOGNOTICE, "ADDON: {} v{} installed", installedAddon.first, installedAddon.second);
+      }
+
+      std::set<std::string> installedIdentifiers;
+      std::transform(
+          installed.cbegin(), installed.cend(),
+          std::inserter(installedIdentifiers, installedIdentifiers.begin()),
+          [](const decltype(installed)::value_type& p) { return p.first; }
+      );
+      m_database.SyncInstalled(installedIdentifiers, m_systemAddons, m_optionalAddons);
     }
 
     // Reload caches
@@ -764,13 +765,13 @@ bool CAddonMgr::LoadAddon(const std::string& addonId)
 
   if (!FindAddons())
   {
-    CLog::Log(LOGERROR, "CAddonMgr: could not reload add-on %s. FindAddons failed.", addon->ID().c_str());
+    CLog::Log(LOGERROR, "CAddonMgr: could not reload add-on %s. FindAddons failed.", addonId.c_str());
     return false;
   }
 
   if (!GetAddon(addonId, addon, ADDON_UNKNOWN, false))
   {
-    CLog::Log(LOGERROR, "CAddonMgr: could not load add-on %s. No add-on with that ID is installed.", addon->ID().c_str());
+    CLog::Log(LOGERROR, "CAddonMgr: could not load add-on %s. No add-on with that ID is installed.", addonId.c_str());
     return false;
   }
 
@@ -958,7 +959,7 @@ bool CAddonMgr::IsAddonInstalled(const std::string& ID)
 
 bool CAddonMgr::CanAddonBeInstalled(const AddonPtr& addon)
 {
-  return addon != nullptr &&!IsAddonInstalled(addon->ID());
+  return addon != nullptr && !addon->IsBroken() && !IsAddonInstalled(addon->ID());
 }
 
 bool CAddonMgr::CanUninstall(const AddonPtr& addon)
@@ -1038,6 +1039,15 @@ bool CAddonMgr::PlatformSupportsAddon(const cp_plugin_info_t *plugin)
     "all",
 #if defined(TARGET_ANDROID)
     "android",
+#if defined(__ARM_ARCH_7A__)
+    "android-armv7",
+#elif defined(__aarch64__)
+    "android-aarch64",
+#elif defined(__i686__)
+    "android-i686",
+#else
+    #warning no architecture dependant platform tag
+#endif
 #elif defined(TARGET_FREEBSD)
     "freebsd",
     "linux",
@@ -1046,16 +1056,34 @@ bool CAddonMgr::PlatformSupportsAddon(const cp_plugin_info_t *plugin)
 #elif defined(TARGET_WINDOWS_DESKTOP)
     "windx",
     "windows",
+#if defined(_M_IX86)
+    "windows-i686",
+#elif defined(_M_AMD64)
+    "windows-x86_64",
+#else
+#error no architecture dependant platform tag
+#endif
 #elif defined(TARGET_WINDOWS_STORE)
     "windowsstore",
 #elif defined(TARGET_DARWIN_IOS)
     "ios",
+#if defined(__ARM_ARCH_7A__)
+    "ios-armv7",
+#elif defined(__aarch64__)
+    "ios-aarch64",
+#else
+#warning no architecture dependant platform tag
+#endif
 #elif defined(TARGET_DARWIN_OSX)
     "osx",
 #if defined(__x86_64__)
     "osx64",
-#else
+    "osx-x86_64",
+#elif defined(__i686__)
+    "osx-i686",
     "osx32",
+#else
+#warning no architecture dependant platform tag
 #endif
 #endif
   };

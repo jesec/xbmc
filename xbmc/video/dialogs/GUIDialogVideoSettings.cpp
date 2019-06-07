@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2014 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GUIDialogVideoSettings.h"
@@ -29,11 +17,12 @@
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
 #include "GUIPassword.h"
-#include "profiles/ProfilesManager.h"
+#include "profiles/ProfileManager.h"
 #include "settings/lib/Setting.h"
 #include "settings/lib/SettingsManager.h"
 #include "settings/MediaSettings.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "utils/log.h"
 #include "utils/Variant.h"
 #include "video/VideoDatabase.h"
@@ -63,6 +52,7 @@
 #define SETTING_VIDEO_VERTICAL_SHIFT      "video.verticalshift"
 #define SETTING_VIDEO_TONEMAP_METHOD      "video.tonemapmethod"
 #define SETTING_VIDEO_TONEMAP_PARAM       "video.tonemapparam"
+#define SETTING_VIDEO_ORIENTATION         "video.orientation"
 
 #define SETTING_VIDEO_VDPAU_NOISE         "vdpau.noise"
 #define SETTING_VIDEO_VDPAU_SHARPNESS     "vdpau.sharpness"
@@ -207,6 +197,12 @@ void CGUIDialogVideoSettings::OnSettingChanged(std::shared_ptr<const CSetting> s
     vs.m_ToneMapParam = static_cast<float>(std::static_pointer_cast<const CSettingNumber>(setting)->GetValue());
     g_application.GetAppPlayer().SetVideoSettings(vs);
   }
+  else if (settingId == SETTING_VIDEO_ORIENTATION)
+  {
+    CVideoSettings vs = g_application.GetAppPlayer().GetVideoSettings();
+    vs.m_Orientation = std::static_pointer_cast<const CSettingInt>(setting)->GetValue();
+    g_application.GetAppPlayer().SetVideoSettings(vs);
+  }
   else if (settingId == SETTING_VIDEO_STEREOSCOPICMODE)
   {
     CVideoSettings vs = g_application.GetAppPlayer().GetVideoSettings();
@@ -231,11 +227,11 @@ void CGUIDialogVideoSettings::OnSettingAction(std::shared_ptr<const CSetting> se
   const std::string &settingId = setting->GetId();
   if (settingId == SETTING_VIDEO_CALIBRATION)
   {
-    const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+    const std::shared_ptr<CProfileManager> profileManager = CServiceBroker::GetSettingsComponent()->GetProfileManager();
 
     // launch calibration window
-    if (profileManager.GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE  &&
-        g_passwordManager.CheckSettingLevelLock(CServiceBroker::GetSettings().GetSetting(CSettings::SETTING_VIDEOSCREEN_GUICALIBRATION)->GetLevel()))
+    if (profileManager->GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE  &&
+        g_passwordManager.CheckSettingLevelLock(CServiceBroker::GetSettingsComponent()->GetSettings()->GetSetting(CSettings::SETTING_VIDEOSCREEN_GUICALIBRATION)->GetLevel()))
       return;
     CServiceBroker::GetGUI()->GetWindowManager().ForceActivateWindow(WINDOW_SCREEN_CALIBRATION);
   }
@@ -308,9 +304,9 @@ void CGUIDialogVideoSettings::OnSettingAction(std::shared_ptr<const CSetting> se
 
 void CGUIDialogVideoSettings::Save()
 {
-  const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+  const std::shared_ptr<CProfileManager> profileManager = CServiceBroker::GetSettingsComponent()->GetProfileManager();
 
-  if (profileManager.GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE &&
+  if (profileManager->GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE &&
       !g_passwordManager.CheckSettingLevelLock(::SettingLevel::Expert))
     return;
 
@@ -326,7 +322,7 @@ void CGUIDialogVideoSettings::Save()
     CMediaSettings::GetInstance().GetDefaultVideoSettings() = g_application.GetAppPlayer().GetVideoSettings();
     CMediaSettings::GetInstance().GetDefaultVideoSettings().m_SubtitleStream = -1;
     CMediaSettings::GetInstance().GetDefaultVideoSettings().m_AudioStream = -1;
-    CServiceBroker::GetSettings().Save();
+    CServiceBroker::GetSettingsComponent()->GetSettings()->Save();
   }
 }
 
@@ -485,6 +481,9 @@ void CGUIDialogVideoSettings::InitializeSettings()
     AddSlider(groupVideo, SETTING_VIDEO_VERTICAL_SHIFT, 225, SettingLevel::Basic, videoSettings.m_CustomVerticalShift, "%2.2f", -2.0f, 0.01f, 2.0f, 225, usePopup);
   if (g_application.GetAppPlayer().Supports(RENDERFEATURE_PIXEL_RATIO))
     AddSlider(groupVideo, SETTING_VIDEO_PIXEL_RATIO, 217, SettingLevel::Basic, videoSettings.m_CustomPixelRatio, "%2.2f", 0.5f, 0.01f, 2.0f, 217, usePopup);
+
+  AddList(groupVideo, SETTING_VIDEO_ORIENTATION, 21843, SettingLevel::Basic, videoSettings.m_Orientation, CGUIDialogVideoSettings::VideoOrientationFiller, 21843);
+
   if (g_application.GetAppPlayer().Supports(RENDERFEATURE_POSTPROCESS))
     AddToggle(groupVideo, SETTING_VIDEO_POSTPROCESS, 16400, SettingLevel::Basic, videoSettings.m_PostProcess);
   if (g_application.GetAppPlayer().Supports(RENDERFEATURE_BRIGHTNESS))
@@ -584,17 +583,25 @@ void CGUIDialogVideoSettings::VideoStreamsOptionFiller(std::shared_ptr<const CSe
   }
 }
 
+void CGUIDialogVideoSettings::VideoOrientationFiller(std::shared_ptr<const CSetting> setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data)
+{
+  list.push_back(std::make_pair(g_localizeStrings.Get(687), 0));
+  list.push_back(std::make_pair(g_localizeStrings.Get(35229), 90));
+  list.push_back(std::make_pair(g_localizeStrings.Get(35230), 180));
+  list.push_back(std::make_pair(g_localizeStrings.Get(35231), 270));
+}
+
 std::string CGUIDialogVideoSettings::FormatFlags(StreamFlags flags)
 {
   std::vector<std::string> localizedFlags;
   if (flags & StreamFlags::FLAG_DEFAULT)
-    localizedFlags.emplace_back(g_localizeStrings.Get(39104));
-  if (flags & StreamFlags::FLAG_FORCED)
     localizedFlags.emplace_back(g_localizeStrings.Get(39105));
-  if (flags & StreamFlags::FLAG_HEARING_IMPAIRED)
+  if (flags & StreamFlags::FLAG_FORCED)
     localizedFlags.emplace_back(g_localizeStrings.Get(39106));
-  if (flags &  StreamFlags::FLAG_VISUAL_IMPAIRED)
+  if (flags & StreamFlags::FLAG_HEARING_IMPAIRED)
     localizedFlags.emplace_back(g_localizeStrings.Get(39107));
+  if (flags &  StreamFlags::FLAG_VISUAL_IMPAIRED)
+    localizedFlags.emplace_back(g_localizeStrings.Get(39108));
 
   std::string formated = StringUtils::Join(localizedFlags, ", ");
 

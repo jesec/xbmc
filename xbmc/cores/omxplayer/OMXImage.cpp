@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2010-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2010-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "OMXImage.h"
@@ -31,6 +19,7 @@
 #include "settings/AdvancedSettings.h"
 #include "settings/DisplaySettings.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "platform/linux/RBP.h"
 #include "utils/URIUtils.h"
 #include "windowing/WinSystem.h"
@@ -161,13 +150,15 @@ bool COMXImage::ClampLimits(unsigned int &width, unsigned int &height, unsigned 
 
   if (max_width == 0 || max_height == 0)
   {
-    max_height = g_advancedSettings.m_imageRes;
+    const std::shared_ptr<CAdvancedSettings> advancedSettings = CServiceBroker::GetSettingsComponent()->GetAdvancedSettings();
 
-    if (g_advancedSettings.m_fanartRes > g_advancedSettings.m_imageRes)
+    max_height = advancedSettings->m_imageRes;
+
+    if (advancedSettings->m_fanartRes > advancedSettings->m_imageRes)
     { // 16x9 images larger than the fanart res use that rather than the image res
-      if (fabsf(aspect / (16.0f/9.0f) - 1.0f) <= 0.01f && m_height >= g_advancedSettings.m_fanartRes)
+      if (fabsf(aspect / (16.0f/9.0f) - 1.0f) <= 0.01f && m_height >= advancedSettings->m_fanartRes)
       {
-        max_height = g_advancedSettings.m_fanartRes;
+        max_height = advancedSettings->m_fanartRes;
       }
     }
     max_width = max_height * 16/9;
@@ -261,7 +252,7 @@ bool COMXImage::AllocTextureInternal(EGLDisplay egl_display, EGLContext egl_cont
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  GLenum type = CServiceBroker::GetSettings().GetBool("videoscreen.textures32") ? GL_UNSIGNED_BYTE:GL_UNSIGNED_SHORT_5_6_5;
+  GLenum type = CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool("videoscreen.textures32") ? GL_UNSIGNED_BYTE:GL_UNSIGNED_SHORT_5_6_5;
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, tex->width, tex->height, 0, GL_RGB, type, 0);
   tex->egl_image = eglCreateImageKHR(egl_display, egl_context, EGL_GL_TEXTURE_2D_KHR, (EGLClientBuffer)tex->texture, NULL);
   if (!tex->egl_image)

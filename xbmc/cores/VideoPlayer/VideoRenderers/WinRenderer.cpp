@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include <ppltasks.h>
@@ -32,6 +20,7 @@
 #include "settings/DisplaySettings.h"
 #include "settings/MediaSettings.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "ServiceBroker.h"
 #include "system.h"
 #include "threads/SingleLock.h"
@@ -106,8 +95,9 @@ CWinRenderer::CWinRenderer() : CBaseRenderer()
 
   m_colorManager = std::make_unique<CColorManager>();
   m_outputShader.reset();
-  m_useDithering = CServiceBroker::GetSettings().GetBool("videoscreen.dither");
-  m_ditherDepth = CServiceBroker::GetSettings().GetInt("videoscreen.ditherdepth");
+  const std::shared_ptr<CSettings> settings = CServiceBroker::GetSettingsComponent()->GetSettings();
+  m_useDithering = settings->GetBool("videoscreen.dither");
+  m_ditherDepth = settings->GetInt("videoscreen.ditherdepth");
 
   PreInit();
 }
@@ -271,7 +261,7 @@ int CWinRenderer::NextBuffer() const
   return -1;
 }
 
-void CWinRenderer::AddVideoPicture(const VideoPicture &picture, int index, double currentClock)
+void CWinRenderer::AddVideoPicture(const VideoPicture &picture, int index)
 {
   m_renderBuffers[index].AppendPicture(picture);
   m_renderBuffers[index].frameIdx = m_frameIdx;
@@ -308,7 +298,7 @@ void CWinRenderer::PreInit()
   m_bConfigured = false;
   UnInit();
 
-  m_iRequestedMethod = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOPLAYER_RENDERMETHOD);
+  m_iRequestedMethod = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_VIDEOPLAYER_RENDERMETHOD);
 
   m_processor = std::make_unique<DXVA::CProcessorHD>();
   if (!m_processor->PreInit())
@@ -350,10 +340,10 @@ void CWinRenderer::UnInit()
   m_outputShader.reset();
 }
 
-void CWinRenderer::Flush()
+bool CWinRenderer::Flush(bool saveBuffers)
 {
   if (!m_bConfigured)
-    return;
+    return false;
 
   for (int i = 0; i < NUM_BUFFERS; i++)
     DeleteRenderBuffer(i);
@@ -361,6 +351,8 @@ void CWinRenderer::Flush()
   m_iYV12RenderBuffer = 0;
   m_NumYV12Buffers = 0;
   m_bFilterInitialized = false;
+
+  return false;
 }
 
 bool CWinRenderer::CreateIntermediateRenderTarget(unsigned int width, unsigned int height, bool dynamic)
@@ -479,7 +471,7 @@ EBufferFormat CWinRenderer::SelectBufferFormat(AVPixelFormat format, const Rende
       return BUFFER_FMT_YUV420P16;
     // is they still used?
     case AV_PIX_FMT_YUYV422:
-      return BUFFER_FMT_YUV420P16;
+      return BUFFER_FMT_YUYV422;
     case AV_PIX_FMT_UYVY422:
       return BUFFER_FMT_UYVY422;
     default:
@@ -536,7 +528,7 @@ void CWinRenderer::SelectPSVideoFilter()
     bool scaleSD = m_sourceHeight < 720 && m_sourceWidth < 1280;
     bool scaleUp = static_cast<int>(m_sourceHeight) < CServiceBroker::GetWinSystem()->GetGfxContext().GetHeight()
                 && static_cast<int>(m_sourceWidth) < CServiceBroker::GetWinSystem()->GetGfxContext().GetWidth();
-    bool scaleFps = m_fps < (g_advancedSettings.m_videoAutoScaleMaxFps + 0.01f);
+    bool scaleFps = m_fps < (CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_videoAutoScaleMaxFps + 0.01f);
 
     if (m_renderMethod == RENDER_DXVA)
     {
@@ -938,8 +930,8 @@ void CWinRenderer::RenderHW(DWORD flags, CD3DTexture* target)
   if (target != DX::Windowing()->GetBackBuffer())
   {
     // rendering capture
-    targetRect.x2 = target->GetWidth();
-    targetRect.y2 = target->GetHeight();
+    targetRect.x2 = static_cast<float>(target->GetWidth());
+    targetRect.y2 = static_cast<float>(target->GetHeight());
   }
   CWIN32Util::CropSource(src, dst, targetRect, m_renderOrientation);
 
@@ -1049,7 +1041,7 @@ bool CWinRenderer::Supports(ESCALINGMETHOD method)
       if (method == VS_SCALINGMETHOD_DXVA_HARDWARE
        || method == VS_SCALINGMETHOD_AUTO)
         return true;
-      if (!g_advancedSettings.m_DXVAAllowHqScaling || m_renderOrientation)
+      if (!CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_DXVAAllowHqScaling || m_renderOrientation)
         return false;
     }
 
@@ -1069,7 +1061,7 @@ bool CWinRenderer::Supports(ESCALINGMETHOD method)
         // if scaling is below level, avoid hq scaling
         float scaleX = fabs((static_cast<float>(m_sourceWidth) - m_destRect.Width())/m_sourceWidth)*100;
         float scaleY = fabs((static_cast<float>(m_sourceHeight) - m_destRect.Height())/m_sourceHeight)*100;
-        int minScale = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOPLAYER_HQSCALERS);
+        int minScale = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_VIDEOPLAYER_HQSCALERS);
         if (scaleX < minScale && scaleY < minScale)
           return false;
         return true;

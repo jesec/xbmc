@@ -1,31 +1,19 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "WinSystem.h"
 #include "ServiceBroker.h"
-#include "guilib/gui3d.h"
 #include "guilib/DispResource.h"
 #include "windowing/GraphicContext.h"
 #include "settings/DisplaySettings.h"
 #include "settings/lib/Setting.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "utils/StringUtils.h"
 #if HAS_GLES
 #include "guilib/GUIFontTTFGL.h"
@@ -34,11 +22,6 @@
 CWinSystemBase::CWinSystemBase()
 {
   m_gfxContext.reset(new CGraphicContext());
-  for (int i = RES_HDTV_1080i; i <= RES_PAL60_16x9; i++)
-  {
-    m_gfxContext->ResetScreenParameters((RESOLUTION)i);
-    m_gfxContext->ResetOverscan((RESOLUTION)i, CDisplaySettings::GetInstance().GetResolutionInfo(i).Overscan);
-  }
 }
 
 CWinSystemBase::~CWinSystemBase() = default;
@@ -234,7 +217,7 @@ std::string CWinSystemBase::GetClipboardText(void)
 
 int CWinSystemBase::NoOfBuffers(void)
 {
-  int buffers = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOSCREEN_NOOFBUFFERS);
+  int buffers = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_VIDEOSCREEN_NOOFBUFFERS);
   return buffers;
 }
 

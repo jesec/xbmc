@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include <limits.h>
@@ -37,6 +25,7 @@
 #include "CPUInfo.h"
 #include "CompileInfo.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "platform/Filesystem.h"
 #include "utils/log.h"
 
@@ -84,6 +73,7 @@ using namespace winrt::Windows::System::Profile;
 #include <sys/param.h>
 #elif defined(TARGET_LINUX)
 #include <linux/version.h>
+#include "utils/SysfsUtils.h"
 #endif
 
 #include <system_error>
@@ -510,6 +500,13 @@ std::string CSysInfo::GetCPUBogoMips()
   return "BogoMips: " + g_cpuInfo.getCPUBogoMips();
 }
 
+std::string CSysInfo::GetCPUSoC()
+{
+  if (!g_cpuInfo.getCPUSoC().empty())
+    return "SoC: " + g_cpuInfo.getCPUSoC();
+  return "";
+}
+
 std::string CSysInfo::GetCPUHardware()
 {
   return "Hardware: " + g_cpuInfo.getCPUHardware();
@@ -776,6 +773,20 @@ std::string CSysInfo::GetManufacturerName(void)
     auto eas = EasClientDeviceInformation();
     auto manufacturer = eas.SystemManufacturer();
     g_charsetConverter.wToUTF8(std::wstring(manufacturer.c_str()), manufName);
+#elif defined(TARGET_LINUX)
+    if (SysfsUtils::Has("/sys/bus/soc/devices/soc0/family"))
+    {
+      std::string family;
+      SysfsUtils::GetString("/sys/bus/soc/devices/soc0/family", family);
+      if (SysfsUtils::Has("/sys/bus/soc/devices/soc0/soc_id"))
+      {
+        std::string soc_id;
+        SysfsUtils::GetString("/sys/bus/soc/devices/soc0/soc_id", soc_id);
+        manufName = family + " " + soc_id;
+      }
+      else
+        manufName = family;
+    }
 #elif defined(TARGET_WINDOWS)
     // We just don't care, might be useful on embedded
 #endif
@@ -809,6 +820,9 @@ std::string CSysInfo::GetModelName(void)
     auto eas = EasClientDeviceInformation();
     auto manufacturer = eas.SystemProductName();
     g_charsetConverter.wToUTF8(std::wstring(manufacturer.c_str()), modelName);
+#elif defined(TARGET_LINUX)
+    if (SysfsUtils::Has("/sys/bus/soc/devices/soc0/machine"))
+      SysfsUtils::GetString("/sys/bus/soc/devices/soc0/machine", modelName);
 #elif defined(TARGET_WINDOWS)
     // We just don't care, might be useful on embedded
 #endif
@@ -1201,7 +1215,7 @@ std::string CSysInfo::GetUserAgent()
 
 std::string CSysInfo::GetDeviceName()
 {
-  std::string friendlyName = CServiceBroker::GetSettings().GetString(CSettings::SETTING_SERVICES_DEVICENAME);
+  std::string friendlyName = CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_SERVICES_DEVICENAME);
   if (StringUtils::EqualsNoCase(friendlyName, CCompileInfo::GetAppName()))
   {
     std::string hostname("[unknown]");
@@ -1229,7 +1243,7 @@ std::string CSysInfo::GetVersion()
 
 std::string CSysInfo::GetBuildDate()
 {
-  return StringUtils::Format("%s", __DATE__);
+  return CCompileInfo::GetBuildDate();
 }
 
 bool CSysInfo::HasVideoToolBoxDecoder()

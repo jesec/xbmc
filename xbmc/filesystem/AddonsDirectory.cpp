@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include <array>
@@ -30,16 +18,14 @@
 #include "interfaces/generic/ScriptInvocationManager.h"
 #include "FileItem.h"
 #include "addons/AddonInstaller.h"
-#include "addons/BinaryAddonCache.h"
 #include "addons/PluginSource.h"
 #include "addons/RepositoryUpdater.h"
 #include "games/addons/GameClient.h"
 #include "games/GameUtils.h"
 #include "guilib/TextureManager.h"
-#include "File.h"
 #include "messaging/helpers/DialogOKHelper.h"
 #include "settings/Settings.h"
-#include "SpecialProtocol.h"
+#include "settings/SettingsComponent.h"
 #include "utils/URIUtils.h"
 #include "utils/StringUtils.h"
 #include "URL.h"
@@ -641,7 +627,7 @@ static void RootDirectory(CFileItemList& items)
     item->SetIconImage("DefaultNetwork.png");
     items.Add(item);
   }
-  if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_ADDONS_AUTOUPDATES) == ADDON::AUTO_UPDATES_ON
+  if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_ADDONS_AUTOUPDATES) == ADDON::AUTO_UPDATES_ON
       && HasRecentlyUpdatedAddons())
   {
     CFileItemPtr item(new CFileItem("addons://recently_updated/", true));
@@ -812,7 +798,7 @@ void CAddonsDirectory::GenerateAddonListing(const CURL &path,
       pItem->SetProperty("Addon.Status", g_localizeStrings.Get(24023));
     if (hasUpdate)
       pItem->SetProperty("Addon.Status", g_localizeStrings.Get(24068));
-    else if (!addon->Broken().empty())
+    else if (addon->IsBroken())
       pItem->SetProperty("Addon.Status", g_localizeStrings.Get(24098));
 
     items.Add(pItem);

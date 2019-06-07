@@ -1,27 +1,18 @@
 /*
- *      Copyright (C) 2005-2017 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "LibInputKeyboard.h"
 
 #include "AppInboundProtocol.h"
+#include "LibInputSettings.h"
 #include "ServiceBroker.h"
+#include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "utils/log.h"
 
 #include <algorithm>
@@ -165,18 +156,47 @@ CLibInputKeyboard::CLibInputKeyboard()
     return;
   }
 
-  m_keymap = xkb_keymap_new_from_names(m_ctx, nullptr, XKB_KEYMAP_COMPILE_NO_FLAGS);
+  std::string layout = CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CLibInputSettings::SETTING_INPUT_LIBINPUTKEYBOARDLAYOUT);
+
+  if (!SetKeymap(layout))
+  {
+    CLog::Log(LOGERROR, "CLibInputKeyboard::%s - failed set default keymap", __FUNCTION__);
+    return;
+  }
+}
+
+CLibInputKeyboard::~CLibInputKeyboard()
+{
+  xkb_state_unref(m_state);
+  xkb_keymap_unref(m_keymap);
+  xkb_context_unref(m_ctx);
+}
+
+bool CLibInputKeyboard::SetKeymap(const std::string& layout)
+{
+  xkb_state_unref(m_state);
+  xkb_keymap_unref(m_keymap);
+
+  xkb_rule_names names;
+
+  names.rules = nullptr;
+  names.model = nullptr;
+  names.layout = layout.c_str();
+  names.variant = nullptr;
+  names.options = nullptr;
+
+  m_keymap = xkb_keymap_new_from_names(m_ctx, &names, XKB_KEYMAP_COMPILE_NO_FLAGS);
   if (!m_keymap)
   {
     CLog::Log(LOGERROR, "CLibInputKeyboard::%s - failed to compile keymap", __FUNCTION__);
-    return;
+    return false;
   }
 
   m_state = xkb_state_new(m_keymap);
   if (!m_state)
   {
     CLog::Log(LOGERROR, "CLibInputKeyboard::%s - failed to create xkb state", __FUNCTION__);
-    return;
+    return false;
   }
 
   m_modindex[0] = xkb_keymap_mod_get_index(m_keymap, XKB_MOD_NAME_CTRL);
@@ -189,13 +209,8 @@ CLibInputKeyboard::CLibInputKeyboard()
   m_ledindex[2] = xkb_keymap_led_get_index(m_keymap, XKB_LED_NAME_SCROLL);
 
   m_leds = 0;
-}
 
-CLibInputKeyboard::~CLibInputKeyboard()
-{
-  xkb_state_unref(m_state);
-  xkb_keymap_unref(m_keymap);
-  xkb_context_unref(m_ctx);
+  return true;
 }
 
 void CLibInputKeyboard::ProcessKey(libinput_event_keyboard *e)

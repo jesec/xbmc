@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2010-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2010-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include <stdint.h>
@@ -27,6 +15,7 @@
 #include <algorithm>
 
 #include "AESinkALSA.h"
+#include "ServiceBroker.h"
 #include "cores/AudioEngine/AESinkFactory.h"
 #include "cores/AudioEngine/Utils/AEUtil.h"
 #include "cores/AudioEngine/Utils/AEELDParser.h"
@@ -35,6 +24,7 @@
 #include "utils/SystemInfo.h"
 #include "threads/SingleLock.h"
 #include "settings/AdvancedSettings.h"
+#include "settings/SettingsComponent.h"
 #if defined(HAS_LIBAMCODEC)
 #include "utils/AMLUtils.h"
 #endif
@@ -122,7 +112,7 @@ inline CAEChannelInfo CAESinkALSA::GetChannelLayoutRaw(const AEAudioFormat& form
 
   switch (format.m_streamInfo.m_type)
   {
-    case CAEStreamInfo::STREAM_TYPE_DTSHD:
+    case CAEStreamInfo::STREAM_TYPE_DTSHD_MA:
     case CAEStreamInfo::STREAM_TYPE_TRUEHD:
       count = 8;
       break;
@@ -132,6 +122,7 @@ inline CAEChannelInfo CAESinkALSA::GetChannelLayoutRaw(const AEAudioFormat& form
     case CAEStreamInfo::STREAM_TYPE_DTS_2048:
     case CAEStreamInfo::STREAM_TYPE_AC3:
     case CAEStreamInfo::STREAM_TYPE_EAC3:
+    case CAEStreamInfo::STREAM_TYPE_DTSHD:
       count = 2;
       break;
     default:
@@ -458,7 +449,7 @@ snd_pcm_chmap_t* CAESinkALSA::SelectALSAChannelMap(const CAEChannelInfo& info)
       chmap = CopyALSAchmap(&supportedMaps[best]->map);
   }
 
-  if (chmap && g_advancedSettings.CanLogComponent(LOGAUDIO))
+  if (chmap && CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->CanLogComponent(LOGAUDIO))
     CLog::Log(LOGDEBUG, "CAESinkALSA::SelectALSAChannelMap - Selected ALSA map \"%s\"", ALSAchmapToString(chmap).c_str());
 
   snd_pcm_free_chmaps(supportedMaps);
@@ -1096,7 +1087,7 @@ bool CAESinkALSA::OpenPCMDevice(const std::string &name, const std::string &para
 
 void CAESinkALSA::EnumerateDevicesEx(AEDeviceInfoList &list, bool force)
 {
-#if HAVE_LIBUDEV
+#if defined(HAVE_LIBUDEV)
   m_deviceMonitor.Start();
 #endif
 
@@ -1113,7 +1104,9 @@ void CAESinkALSA::EnumerateDevicesEx(AEDeviceInfoList &list, bool force)
   snd_config_t *config;
   snd_config_copy(&config, snd_config);
 
+#if !defined(HAVE_X11)
   m_controlMonitor.Clear();
+#endif
 
   /* Always enumerate the default device.
    * Note: If "default" is a stereo device, EnumerateDevice()
@@ -1192,7 +1185,9 @@ void CAESinkALSA::EnumerateDevicesEx(AEDeviceInfoList &list, bool force)
   }
   snd_device_name_free_hint(hints);
 
+#if !defined(HAVE_X11)
   m_controlMonitor.Start();
+#endif
 
   /* set the displayname for default device */
   if (!list.empty() && list[0].m_deviceName == "default")
@@ -1375,8 +1370,10 @@ void CAESinkALSA::EnumerateDevice(AEDeviceInfoList &list, const std::string &dev
             snd_hctl_load(hctl);
             bool badHDMI = false;
 
+#if !defined(HAVE_X11)
             /* add ELD to monitoring */
             m_controlMonitor.Add(strHwName, SND_CTL_ELEM_IFACE_PCM, dev, "ELD");
+#endif
 
             if (!GetELD(hctl, dev, info, badHDMI))
               CLog::Log(LOGDEBUG, "CAESinkALSA - Unable to obtain ELD information for device \"%s\" (not supported by device, or kernel older than 3.2)",
@@ -1533,6 +1530,7 @@ void CAESinkALSA::EnumerateDevice(AEDeviceInfoList &list, const std::string &dev
     // we don't trust ELD information and push back our supported formats explicitly
     info.m_streamTypes.push_back(CAEStreamInfo::STREAM_TYPE_AC3);
     info.m_streamTypes.push_back(CAEStreamInfo::STREAM_TYPE_DTSHD);
+    info.m_streamTypes.push_back(CAEStreamInfo::STREAM_TYPE_DTSHD_MA);
     info.m_streamTypes.push_back(CAEStreamInfo::STREAM_TYPE_DTSHD_CORE);
     info.m_streamTypes.push_back(CAEStreamInfo::STREAM_TYPE_DTS_1024);
     info.m_streamTypes.push_back(CAEStreamInfo::STREAM_TYPE_DTS_2048);
@@ -1604,7 +1602,7 @@ bool CAESinkALSA::GetELD(snd_hctl_t *hctl, int device, CAEDeviceInfo& info, bool
 
 void CAESinkALSA::sndLibErrorHandler(const char *file, int line, const char *function, int err, const char *fmt, ...)
 {
-  if(!g_advancedSettings.CanLogComponent(LOGAUDIO))
+  if(!CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->CanLogComponent(LOGAUDIO))
     return;
 
   va_list arg;
@@ -1624,11 +1622,17 @@ void CAESinkALSA::Cleanup()
 #if HAVE_LIBUDEV
   m_deviceMonitor.Stop();
 #endif
+
+#if !defined(HAVE_X11)
   m_controlMonitor.Clear();
+#endif
 }
 
 #if HAVE_LIBUDEV
 CALSADeviceMonitor CAESinkALSA::m_deviceMonitor; // ARGH
 #endif
+
+#if !defined(HAVE_X11)
 CALSAHControlMonitor CAESinkALSA::m_controlMonitor; // ARGH
+#endif
 

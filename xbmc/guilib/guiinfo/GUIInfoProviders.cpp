@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "guilib/guiinfo/GUIInfoProviders.h"
@@ -28,8 +16,10 @@ using namespace KODI::GUILIB::GUIINFO;
 CGUIInfoProviders::CGUIInfoProviders()
 {
   RegisterProvider(&m_guiControlsGUIInfo);
+  RegisterProvider(&m_videoGUIInfo); // Note: video info provider must be registered before music info provider,
+                                     // because of music videos having both a video info tag and a music info tag
+                                     // and video info tag always has to be evaluated first.
   RegisterProvider(&m_musicGUIInfo);
-  RegisterProvider(&m_videoGUIInfo);
   RegisterProvider(&m_picturesGUIInfo);
   RegisterProvider(&m_playerGUIInfo);
   RegisterProvider(&m_libraryGUIInfo);
@@ -52,8 +42,8 @@ CGUIInfoProviders::~CGUIInfoProviders()
   UnregisterProvider(&m_libraryGUIInfo);
   UnregisterProvider(&m_playerGUIInfo);
   UnregisterProvider(&m_picturesGUIInfo);
-  UnregisterProvider(&m_videoGUIInfo);
   UnregisterProvider(&m_musicGUIInfo);
+  UnregisterProvider(&m_videoGUIInfo);
   UnregisterProvider(&m_guiControlsGUIInfo);
 }
 
@@ -117,10 +107,10 @@ bool CGUIInfoProviders::GetBool(bool& value, const CGUIListItem *item, int conte
   return false;
 }
 
-void CGUIInfoProviders::UpdateAVInfo(const AudioStreamInfo& audioInfo, const VideoStreamInfo& videoInfo)
+void CGUIInfoProviders::UpdateAVInfo(const AudioStreamInfo& audioInfo, const VideoStreamInfo& videoInfo, const SubtitleStreamInfo& subtitleInfo)
 {
   for (const auto& provider : m_providers)
   {
-    provider->UpdateAVInfo(audioInfo, videoInfo);
+    provider->UpdateAVInfo(audioInfo, videoInfo, subtitleInfo);
   }
 }

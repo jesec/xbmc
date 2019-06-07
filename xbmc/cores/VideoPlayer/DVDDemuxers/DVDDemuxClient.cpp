@@ -1,28 +1,15 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "DVDInputStreams/DVDInputStream.h"
 #include "DVDDemuxClient.h"
 #include "DVDDemuxUtils.h"
 #include "utils/log.h"
-#include "settings/Settings.h"
 #include "cores/VideoPlayer/Interface/Addon/TimingConstants.h"
 
 #define FF_MAX_EXTRADATA_SIZE ((1 << 28) - AV_INPUT_BUFFER_PADDING_SIZE)
@@ -102,6 +89,7 @@ void CDVDDemuxClient::Dispose()
 void CDVDDemuxClient::DisposeStreams()
 {
   m_streams.clear();
+  m_videoStreamPlaying = -1;
 }
 
 bool CDVDDemuxClient::Reset()
@@ -304,6 +292,15 @@ DemuxPacket* CDVDDemuxClient::Read()
     }
   }
 
+  if (!IsVideoReady())
+  {
+    m_packet.reset();
+    DemuxPacket *pPacket = CDVDDemuxUtils::AllocateDemuxPacket(0);
+    pPacket->demuxerId = m_demuxerId;
+    return pPacket;
+  }
+
+  //! @todo drop this block
   CDVDInputStream::IDisplayTime *inputStream = m_pInput->GetIDisplayTime();
   if (inputStream)
   {
@@ -322,6 +319,7 @@ DemuxPacket* CDVDDemuxClient::Read()
       m_packet->dispTime += DVD_TIME_TO_MSEC(m_packet->dts - m_dtsAtDisplayTime);
     }
   }
+
   return m_packet.release();
 }
 
@@ -566,6 +564,18 @@ int CDVDDemuxClient::GetNrOfStreams() const
   return m_streams.size();
 }
 
+bool CDVDDemuxClient::IsVideoReady()
+{
+  for (const auto& stream : m_streams)
+  {
+    if (stream.first == m_videoStreamPlaying &&
+        stream.second->type == STREAM_VIDEO &&
+        stream.second->ExtraData == nullptr)
+      return false;
+  }
+  return true;
+}
+
 std::string CDVDDemuxClient::GetFileName()
 {
   if (m_pInput)
@@ -629,9 +639,16 @@ void CDVDDemuxClient::OpenStream(int id)
 {
   // OpenStream may change some parameters
   // in this case we need to reset our stream properties
-  if (m_IDemux && m_IDemux->OpenStream(id))
+  if (m_IDemux)
   {
-    SetStreamProps(m_IDemux->GetStream(id), m_streams, true);
+    bool bOpenStream = m_IDemux->OpenStream(id);
+
+    CDemuxStream *stream(m_IDemux->GetStream(id));
+    if (stream && stream->type == STREAM_VIDEO)
+      m_videoStreamPlaying = id;
+
+    if (bOpenStream)
+      SetStreamProps(stream, m_streams, true);
   }
 }
 

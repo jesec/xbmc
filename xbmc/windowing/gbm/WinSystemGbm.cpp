@@ -1,27 +1,16 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "WinSystemGbm.h"
 #include "ServiceBroker.h"
 #include "settings/DisplaySettings.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "settings/lib/Setting.h"
 #include <string.h>
 
@@ -37,6 +26,7 @@
 #include "OffScreenModeSetting.h"
 #include "messaging/ApplicationMessenger.h"
 
+using namespace KODI::WINDOWING::GBM;
 
 CWinSystemGbm::CWinSystemGbm() :
   m_DRM(nullptr),
@@ -119,46 +109,12 @@ bool CWinSystemGbm::InitWindowSystem()
 
 bool CWinSystemGbm::DestroyWindowSystem()
 {
-  m_GBM->DestroySurface();
   m_GBM->DestroyDevice();
 
   CLog::Log(LOGDEBUG, "CWinSystemGbm::%s - deinitialized DRM", __FUNCTION__);
-  return true;
-}
 
-bool CWinSystemGbm::CreateNewWindow(const std::string& name,
-                                    bool fullScreen,
-                                    RESOLUTION_INFO& res)
-{
-  //Notify other subsystems that we change resolution
-  OnLostDevice();
+  m_libinput.reset();
 
-  if(!m_DRM->SetMode(res))
-  {
-    CLog::Log(LOGERROR, "CWinSystemGbm::%s - failed to set DRM mode", __FUNCTION__);
-    return false;
-  }
-
-  if(!m_GBM->CreateSurface(res.iWidth, res.iHeight))
-  {
-    CLog::Log(LOGERROR, "CWinSystemGbm::%s - failed to initialize GBM", __FUNCTION__);
-    return false;
-  }
-
-  m_bFullScreen = fullScreen;
-  m_nWidth = res.iWidth;
-  m_nHeight = res.iHeight;
-  m_fRefreshRate = res.fRefreshRate;
-
-  CLog::Log(LOGDEBUG, "CWinSystemGbm::%s - initialized GBM", __FUNCTION__);
-  return true;
-}
-
-bool CWinSystemGbm::DestroyWindow()
-{
-  m_GBM->DestroySurface();
-
-  CLog::Log(LOGDEBUG, "CWinSystemGbm::%s - deinitialized GBM", __FUNCTION__);
   return true;
 }
 
@@ -233,7 +189,7 @@ bool CWinSystemGbm::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool bl
     m_GBM->ReleaseBuffer();
   }
 
-  int delay = CServiceBroker::GetSettings().GetInt("videoscreen.delayrefreshchange");
+  int delay = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt("videoscreen.delayrefreshchange");
   if (delay > 0)
   {
     m_delayDispReset = true;
@@ -245,21 +201,28 @@ bool CWinSystemGbm::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool bl
 
 void CWinSystemGbm::FlipPage(bool rendered, bool videoLayer)
 {
+  if (m_videoLayerBridge && !videoLayer)
+  {
+    // disable video plane when video layer no longer is active
+    m_videoLayerBridge->Disable();
+  }
+
   struct gbm_bo *bo = m_GBM->LockFrontBuffer();
 
   m_DRM->FlipPage(bo, rendered, videoLayer);
 
   m_GBM->ReleaseBuffer();
-}
 
-void CWinSystemGbm::WaitVBlank()
-{
-  m_DRM->WaitVBlank();
+  if (m_videoLayerBridge && !videoLayer)
+  {
+    // delete video layer bridge when video layer no longer is active
+    m_videoLayerBridge.reset();
+  }
 }
 
 bool CWinSystemGbm::UseLimitedColor()
 {
-  return CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOSCREEN_LIMITEDRANGE);
+  return CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_VIDEOSCREEN_LIMITEDRANGE);
 }
 
 bool CWinSystemGbm::Hide()
@@ -296,8 +259,7 @@ void CWinSystemGbm::OnLostDevice()
 {
   CLog::Log(LOGDEBUG, "%s - notify display change event", __FUNCTION__);
 
-  { CSingleLock lock(m_resourceSection);
-    for (std::vector<IDispResource *>::iterator i = m_resources.begin(); i != m_resources.end(); ++i)
-      (*i)->OnLostDisplay();
-  }
+  CSingleLock lock(m_resourceSection);
+  for (auto resource : m_resources)
+    resource->OnLostDisplay();
 }

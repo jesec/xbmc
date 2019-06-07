@@ -1,24 +1,10 @@
 /*
- *      Copyright (C) 2011-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2011-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
-
-#include "DllLibNfs.h"
 
 #ifdef TARGET_WINDOWS
 #include <sys\stat.h>
@@ -36,6 +22,7 @@
 #include "threads/SingleLock.h"
 using namespace XFILE;
 #include <limits.h>
+#include <nfsc/libnfs.h>
 #include <nfsc/libnfs-raw-nfs.h>
 
 #if defined(TARGET_WINDOWS)
@@ -90,12 +77,7 @@ bool CNFSDirectory::GetServerList(CFileItemList &items)
   struct nfs_server_list *srv;
   bool ret = false;
 
-  if(!gNfsConnection.HandleDyLoad())
-  {
-    return false;
-  }
-
-  srvrs = gNfsConnection.GetImpl()->nfs_find_local_servers();
+  srvrs = nfs_find_local_servers();	
 
   for (srv=srvrs; srv; srv = srv->next)
   {
@@ -111,7 +93,7 @@ bool CNFSDirectory::GetServerList(CFileItemList &items)
       items.Add(pItem);
       ret = true; //added at least one entry
   }
-  gNfsConnection.GetImpl()->free_nfs_srvr_list(srvrs);
+  free_nfs_srvr_list(srvrs);
 
   return ret;
 }
@@ -132,7 +114,7 @@ bool CNFSDirectory::ResolveSymlink( const std::string &dirName, struct nfsdirent
   resolvedUrl.SetProtocol("nfs");
   resolvedUrl.SetHostName(gNfsConnection.GetConnectedIp());
 
-  ret = gNfsConnection.GetImpl()->nfs_readlink(gNfsConnection.GetNfsContext(), fullpath.c_str(), resolvedLink, MAX_PATH);
+  ret = nfs_readlink(gNfsConnection.GetNfsContext(), fullpath.c_str(), resolvedLink, MAX_PATH);
 
   if(ret == 0)
   {
@@ -155,13 +137,13 @@ bool CNFSDirectory::ResolveSymlink( const std::string &dirName, struct nfsdirent
     }
     else
     {
-      ret = gNfsConnection.GetImpl()->nfs_stat(gNfsConnection.GetNfsContext(), fullpath.c_str(), &tmpBuffer);
+      ret = nfs_stat(gNfsConnection.GetNfsContext(), fullpath.c_str(), &tmpBuffer);
       resolvedUrl.SetFileName(gNfsConnection.GetConnectedExport() + fullpath);
     }
 
     if (ret != 0)
     {
-      CLog::Log(LOGERROR, "NFS: Failed to stat(%s) on link resolve %s\n", fullpath.c_str(), gNfsConnection.GetImpl()->nfs_get_error(gNfsConnection.GetNfsContext()));
+      CLog::Log(LOGERROR, "NFS: Failed to stat(%s) on link resolve %s\n", fullpath.c_str(), nfs_get_error(gNfsConnection.GetNfsContext()));
       retVal = false;
     }
     else
@@ -185,7 +167,7 @@ bool CNFSDirectory::ResolveSymlink( const std::string &dirName, struct nfsdirent
   }
   else
   {
-    CLog::Log(LOGERROR, "Failed to readlink(%s) %s\n", fullpath.c_str(), gNfsConnection.GetImpl()->nfs_get_error(gNfsConnection.GetNfsContext()));
+    CLog::Log(LOGERROR, "Failed to readlink(%s) %s\n", fullpath.c_str(), nfs_get_error(gNfsConnection.GetNfsContext()));
     retVal = false;
   }
   return retVal;
@@ -224,16 +206,16 @@ bool CNFSDirectory::GetDirectory(const CURL& url, CFileItemList &items)
   struct nfsdir *nfsdir = NULL;
   struct nfsdirent *nfsdirent = NULL;
 
-  ret = gNfsConnection.GetImpl()->nfs_opendir(gNfsConnection.GetNfsContext(), strDirName.c_str(), &nfsdir);
+  ret = nfs_opendir(gNfsConnection.GetNfsContext(), strDirName.c_str(), &nfsdir);
 
   if(ret != 0)
   {
-    CLog::Log(LOGERROR, "Failed to open(%s) %s\n", strDirName.c_str(), gNfsConnection.GetImpl()->nfs_get_error(gNfsConnection.GetNfsContext()));
+    CLog::Log(LOGERROR, "Failed to open(%s) %s\n", strDirName.c_str(), nfs_get_error(gNfsConnection.GetNfsContext()));
     return false;
   }
   lock.Leave();
 
-  while((nfsdirent = gNfsConnection.GetImpl()->nfs_readdir(gNfsConnection.GetNfsContext(), nfsdir)) != NULL)
+  while((nfsdirent = nfs_readdir(gNfsConnection.GetNfsContext(), nfsdir)) != NULL)
   {
     struct nfsdirent tmpDirent = *nfsdirent;
     std::string strName = tmpDirent.name;
@@ -298,7 +280,7 @@ bool CNFSDirectory::GetDirectory(const CURL& url, CFileItemList &items)
   }
 
   lock.Enter();
-  gNfsConnection.GetImpl()->nfs_closedir(gNfsConnection.GetNfsContext(), nfsdir);//close the dir
+  nfs_closedir(gNfsConnection.GetNfsContext(), nfsdir);//close the dir
   lock.Leave();
   return true;
 }
@@ -317,11 +299,11 @@ bool CNFSDirectory::Create(const CURL& url2)
   if(!gNfsConnection.Connect(url,folderName))
     return false;
 
-  ret = gNfsConnection.GetImpl()->nfs_mkdir(gNfsConnection.GetNfsContext(), folderName.c_str());
+  ret = nfs_mkdir(gNfsConnection.GetNfsContext(), folderName.c_str());
 
   success = (ret == 0 || -EEXIST == ret);
   if(!success)
-    CLog::Log(LOGERROR, "NFS: Failed to create(%s) %s\n", folderName.c_str(), gNfsConnection.GetImpl()->nfs_get_error(gNfsConnection.GetNfsContext()));
+    CLog::Log(LOGERROR, "NFS: Failed to create(%s) %s\n", folderName.c_str(), nfs_get_error(gNfsConnection.GetNfsContext()));
   return success;
 }
 
@@ -338,11 +320,11 @@ bool CNFSDirectory::Remove(const CURL& url2)
   if(!gNfsConnection.Connect(url,folderName))
     return false;
 
-  ret = gNfsConnection.GetImpl()->nfs_rmdir(gNfsConnection.GetNfsContext(), folderName.c_str());
+  ret = nfs_rmdir(gNfsConnection.GetNfsContext(), folderName.c_str());
 
   if(ret != 0 && errno != ENOENT)
   {
-    CLog::Log(LOGERROR, "%s - Error( %s )", __FUNCTION__, gNfsConnection.GetImpl()->nfs_get_error(gNfsConnection.GetNfsContext()));
+    CLog::Log(LOGERROR, "%s - Error( %s )", __FUNCTION__, nfs_get_error(gNfsConnection.GetNfsContext()));
     return false;
   }
   return true;
@@ -362,7 +344,7 @@ bool CNFSDirectory::Exists(const CURL& url2)
     return false;
 
   NFSSTAT info;
-  ret = gNfsConnection.GetImpl()->nfs_stat(gNfsConnection.GetNfsContext(), folderName.c_str(), &info);
+  ret = nfs_stat(gNfsConnection.GetNfsContext(), folderName.c_str(), &info);
 
   if (ret != 0)
   {

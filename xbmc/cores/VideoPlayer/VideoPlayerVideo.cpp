@@ -1,33 +1,20 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "ServiceBroker.h"
 #include "windowing/WinSystem.h"
 #include "settings/AdvancedSettings.h"
-#include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "utils/MathUtils.h"
 #include "VideoPlayerVideo.h"
 #include "DVDCodecs/DVDFactoryCodec.h"
 #include "DVDCodecs/DVDCodecUtils.h"
 #include "DVDCodecs/Video/DVDVideoCodecFFmpeg.h"
-#include "DVDDemuxers/DVDDemux.h"
 #include "cores/VideoPlayer/Interface/Addon/DemuxPacket.h"
 #include "cores/VideoPlayer/Interface/Addon/TimingConstants.h"
 #include "windowing/GraphicContext.h"
@@ -365,8 +352,8 @@ void CVideoPlayerVideo::Process()
       }
       // don't ask for a new frame if we can't deliver it to renderer
       else if ((m_speed != DVD_PLAYSPEED_PAUSE ||
-                m_syncState != IDVDStreamPlayer::SYNC_INSYNC) &&
-               !m_paused)
+                m_processInfo.IsFrameAdvance() ||
+                m_syncState != IDVDStreamPlayer::SYNC_INSYNC) && !m_paused)
       {
         if (ProcessDecoderOutput(frametime, pts))
         {
@@ -849,9 +836,13 @@ CVideoPlayerVideo::EOutputState CVideoPlayerVideo::OutputPicture(const VideoPict
       config_framerate = 59.94;
   }
 
+  int sorient = m_processInfo.GetVideoSettings().m_Orientation;
+  int orientation = sorient != 0 ? (sorient + m_hints.orientation) % 360
+                                 : m_hints.orientation;
+
   if (!m_renderManager.Configure(*pPicture,
                                 static_cast<float>(config_framerate),
-                                m_hints.orientation,
+                                orientation,
                                 m_pVideoCodec->GetAllowedReferences()))
   {
     CLog::Log(LOGERROR, "%s - failed to configure renderer", __FUNCTION__);
@@ -959,7 +950,7 @@ void CVideoPlayerVideo::ResetFrameRateCalc()
   m_iFrameRateCount = 0;
   m_iFrameRateLength = 1;
   m_iFrameRateErr = 0;
-  m_bAllowDrop = g_advancedSettings.m_videoFpsDetect == 0;
+  m_bAllowDrop = CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_videoFpsDetect == 0;
 }
 
 double CVideoPlayerVideo::GetCurrentPts()
@@ -988,7 +979,7 @@ double CVideoPlayerVideo::GetCurrentPts()
 
 void CVideoPlayerVideo::CalcFrameRate()
 {
-  if (m_iFrameRateLength >= 128 || g_advancedSettings.m_videoFpsDetect == 0)
+  if (m_iFrameRateLength >= 128 || CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_videoFpsDetect == 0)
     return; //don't calculate the fps
 
   if (!m_ptsTracker.HasFullBuffer())
@@ -1001,7 +992,7 @@ void CVideoPlayerVideo::CalcFrameRate()
     frameduration = m_ptsTracker.GetMinFrameDuration();
 
   if ((frameduration==DVD_NOPTS_VALUE) ||
-      ((g_advancedSettings.m_videoFpsDetect == 1) && ((m_ptsTracker.GetPatternLength() > 1) && !m_ptsTracker.VFRDetection())))
+      ((CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_videoFpsDetect == 1) && ((m_ptsTracker.GetPatternLength() > 1) && !m_ptsTracker.VFRDetection())))
   {
     //reset the stored framerates if no good framerate was detected
     m_fStableFrameRate = 0.0;

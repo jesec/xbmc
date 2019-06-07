@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include <stdlib.h>
@@ -149,30 +137,26 @@ IDirectory* CDirectoryFactory::Create(const CURL& url)
   if (CWinLibraryDirectory::IsValid(url)) return new CWinLibraryDirectory();
 #endif
 
-  bool networkAvailable = CServiceBroker::GetNetwork().IsAvailable();
-  if (networkAvailable)
-  {
-    if (url.IsProtocol("ftp") || url.IsProtocol("ftps")) return new CFTPDirectory();
-    if (url.IsProtocol("http") || url.IsProtocol("https")) return new CHTTPDirectory();
-    if (url.IsProtocol("dav") || url.IsProtocol("davs")) return new CDAVDirectory();
+  if (url.IsProtocol("ftp") || url.IsProtocol("ftps")) return new CFTPDirectory();
+  if (url.IsProtocol("http") || url.IsProtocol("https")) return new CHTTPDirectory();
+  if (url.IsProtocol("dav") || url.IsProtocol("davs")) return new CDAVDirectory();
 #ifdef HAS_FILESYSTEM_SMB
 #ifdef TARGET_WINDOWS
-    if (url.IsProtocol("smb")) return new CWin32SMBDirectory();
+  if (url.IsProtocol("smb")) return new CWin32SMBDirectory();
 #else
-    if (url.IsProtocol("smb")) return new CSMBDirectory();
+  if (url.IsProtocol("smb")) return new CSMBDirectory();
 #endif
 #endif
 #ifdef HAS_UPNP
-    if (url.IsProtocol("upnp")) return new CUPnPDirectory();
+  if (url.IsProtocol("upnp")) return new CUPnPDirectory();
 #endif
-    if (url.IsProtocol("rss") || url.IsProtocol("rsss")) return new CRSSDirectory();
+  if (url.IsProtocol("rss") || url.IsProtocol("rsss")) return new CRSSDirectory();
 #ifdef HAS_ZEROCONF
-    if (url.IsProtocol("zeroconf")) return new CZeroconfDirectory();
+  if (url.IsProtocol("zeroconf")) return new CZeroconfDirectory();
 #endif
 #ifdef HAS_FILESYSTEM_NFS
-    if (url.IsProtocol("nfs")) return new CNFSDirectory();
+  if (url.IsProtocol("nfs")) return new CNFSDirectory();
 #endif
-  }
 
   if (url.IsProtocol("pvr"))
     return new CPVRDirectory();
@@ -186,7 +170,7 @@ IDirectory* CDirectoryFactory::Create(const CURL& url)
     }
   }
 
-  CLog::Log(LOGWARNING, "%s - %sunsupported protocol(%s) in %s", __FUNCTION__, networkAvailable ? "" : "Network down or ", url.GetProtocol().c_str(), url.GetRedacted().c_str() );
+  CLog::Log(LOGWARNING, "%s - unsupported protocol(%s) in %s", __FUNCTION__, url.GetProtocol().c_str(), url.GetRedacted().c_str() );
   return NULL;
 }
 

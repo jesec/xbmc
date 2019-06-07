@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2015 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GUIWindowManager.h"
@@ -28,8 +16,8 @@
 #include "GUIInfoManager.h"
 #include "threads/SingleLock.h"
 #include "utils/URIUtils.h"
-#include "SeekHandler.h"
 #include "settings/AdvancedSettings.h"
+#include "settings/SettingsComponent.h"
 #include "addons/Skin.h"
 #include "GUITexture.h"
 #include "utils/Variant.h"
@@ -52,12 +40,6 @@
 #include "video/dialogs/GUIDialogVideoInfo.h"
 #include "video/windows/GUIWindowVideoNav.h"
 #include "profiles/windows/GUIWindowSettingsProfile.h"
-#ifdef HAS_GL
-#include "rendering/gl/GUIWindowTestPatternGL.h"
-#endif
-#ifdef HAS_DX
-#include "rendering/dx/GUIWindowTestPatternDX.h"
-#endif
 #include "settings/windows/GUIWindowSettingsScreenCalibration.h"
 #include "programs/GUIWindowPrograms.h"
 #include "pictures/GUIWindowPictures.h"
@@ -208,12 +190,6 @@ void CGUIWindowManager::CreateWindows()
   Add(new CGUIWindowFileManager);
   Add(new CGUIWindowSettings);
   Add(new CGUIWindowSystemInfo);
-#ifdef HAS_GL
-  Add(new CGUIWindowTestPatternGL);
-#endif
-#ifdef HAS_DX
-  Add(new CGUIWindowTestPatternDX);
-#endif
   Add(new CGUIWindowSettingsScreenCalibration);
   Add(new CGUIWindowSettingsCategory);
   Add(new CGUIWindowVideoNav);
@@ -451,7 +427,6 @@ bool CGUIWindowManager::DestroyWindows()
     DestroyWindow(WINDOW_VISUALISATION);
     DestroyWindow(WINDOW_SETTINGS_MENU);
     DestroyWindow(WINDOW_SETTINGS_PROFILES);
-    DestroyWindow(WINDOW_TEST_PATTERN);
     DestroyWindow(WINDOW_SCREEN_CALIBRATION);
     DestroyWindow(WINDOW_SYSTEM_INFORMATION);
     DestroyWindow(WINDOW_SCREENSAVER);
@@ -876,15 +851,6 @@ void CGUIWindowManager::ActivateWindow_Internal(int iWindowID, const std::vector
     return;
   }
 
-  // pause game when leaving fullscreen or resume game when entering fullscreen
-  if (g_application.GetAppPlayer().IsPlayingGame())
-  {
-    if (GetActiveWindow() == WINDOW_FULLSCREEN_GAME && !g_application.GetAppPlayer().IsPaused())
-      g_application.OnAction(ACTION_PAUSE);
-    else if (iWindowID == WINDOW_FULLSCREEN_GAME && g_application.GetAppPlayer().IsPaused())
-      g_application.OnAction(ACTION_PAUSE);
-  }
-
   CServiceBroker::GetGUI()->GetInfoManager().GetInfoProviders().GetGUIControlsInfoProvider().SetNextWindow(iWindowID);
 
   // deactivate any window
@@ -1263,12 +1229,12 @@ bool CGUIWindowManager::Render()
 
   bool hasRendered = false;
   // If we visualize the regions we will always render the entire viewport
-  if (g_advancedSettings.m_guiVisualizeDirtyRegions || g_advancedSettings.m_guiAlgorithmDirtyRegions == DIRTYREGION_SOLVER_FILL_VIEWPORT_ALWAYS)
+  if (CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_guiVisualizeDirtyRegions || CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_guiAlgorithmDirtyRegions == DIRTYREGION_SOLVER_FILL_VIEWPORT_ALWAYS)
   {
     RenderPass();
     hasRendered = true;
   }
-  else if (g_advancedSettings.m_guiAlgorithmDirtyRegions == DIRTYREGION_SOLVER_FILL_VIEWPORT_ON_CHANGE)
+  else if (CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_guiAlgorithmDirtyRegions == DIRTYREGION_SOLVER_FILL_VIEWPORT_ON_CHANGE)
   {
     if (!dirtyRegions.empty())
     {
@@ -1290,7 +1256,7 @@ bool CGUIWindowManager::Render()
     CServiceBroker::GetWinSystem()->GetGfxContext().ResetScissors();
   }
 
-  if (g_advancedSettings.m_guiVisualizeDirtyRegions)
+  if (CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_guiVisualizeDirtyRegions)
   {
     CServiceBroker::GetWinSystem()->GetGfxContext().SetRenderingResolution(CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo(), false);
     const CDirtyRegionList &markedRegions  = m_tracker.GetMarkedRegions();

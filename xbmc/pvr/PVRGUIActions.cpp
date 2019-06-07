@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2016 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2016-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "PVRGUIActions.h"
@@ -24,6 +12,8 @@
 #include "FileItem.h"
 #include "ServiceBroker.h"
 #include "addons/PVRClient.h"
+#include "addons/PVRClientMenuHooks.h"
+#include "cores/DataCacheCore.h"
 #include "dialogs/GUIDialogBusy.h"
 #include "dialogs/GUIDialogKaiToast.h"
 #include "dialogs/GUIDialogNumeric.h"
@@ -796,7 +786,7 @@ namespace PVR
         return false;
       }
     }
-    else if (timer->HasTimerType() && timer->GetTimerType()->IsReadOnly())
+    else if (timer->HasTimerType() && !timer->GetTimerType()->AllowsDelete())
     {
       return false;
     }
@@ -845,10 +835,11 @@ namespace PVR
   bool CPVRGUIActions::ConfirmDeleteTimer(const CPVRTimerInfoTagPtr &timer, bool &bDeleteRule) const
   {
     bool bConfirmed(false);
+    const CPVRTimerInfoTagPtr parentTimer(CServiceBroker::GetPVRManager().Timers()->GetTimerRule(timer));
 
-    if (timer->GetTimerRuleId() != PVR_TIMER_NO_PARENT)
+    if (parentTimer && parentTimer->HasTimerType() && parentTimer->GetTimerType()->AllowsDelete())
     {
-      // timer was scheduled by a timer rule. prompt user for confirmation for deleting the timer rule, including scheduled timers.
+      // timer was scheduled by a deletable timer rule. prompt user for confirmation for deleting the timer rule, including scheduled timers.
       bool bCancel(false);
       bDeleteRule = CGUIDialogYesNo::ShowAndGetInput(CVariant{122}, // "Confirm delete"
                                                      CVariant{840}, // "Do you want to delete only this timer or also the timer rule that has scheduled it?"
@@ -1391,93 +1382,27 @@ namespace PVR
     return true;
   }
 
-  bool CPVRGUIActions::ProcessMenuHooks(const CFileItemPtr &item)
+  bool CPVRGUIActions::ProcessSettingsMenuHooks()
   {
-    if (!CServiceBroker::GetPVRManager().IsStarted())
-      return false;
+    CPVRClientMap clients;
+    CServiceBroker::GetPVRManager().Clients()->GetCreatedClients(clients);
 
-    int iClientID = -1;
-    PVR_MENUHOOK_CAT menuCategory = PVR_MENUHOOK_SETTING;
-
-    if (item)
+    std::vector<std::pair<CPVRClientPtr, CPVRClientMenuHook>> settingsHooks;
+    for (const auto& client : clients)
     {
-      if (item->IsEPG())
+      for (const auto& hook : client.second->GetMenuHooks()->GetSettingsHooks())
       {
-        if (item->GetEPGInfoTag()->HasChannel())
-        {
-          iClientID = item->GetEPGInfoTag()->Channel()->ClientID();
-          menuCategory = PVR_MENUHOOK_EPG;
-        }
-        else
-          return false;
-      }
-      else if (item->IsPVRChannel())
-      {
-        iClientID = item->GetPVRChannelInfoTag()->ClientID();
-        menuCategory = PVR_MENUHOOK_CHANNEL;
-      }
-      else if (item->IsDeletedPVRRecording())
-      {
-        iClientID = item->GetPVRRecordingInfoTag()->m_iClientId;
-        menuCategory = PVR_MENUHOOK_DELETED_RECORDING;
-      }
-      else if (item->IsUsablePVRRecording())
-      {
-        iClientID = item->GetPVRRecordingInfoTag()->m_iClientId;
-        menuCategory = PVR_MENUHOOK_RECORDING;
-      }
-      else if (item->IsPVRTimer())
-      {
-        iClientID = item->GetPVRTimerInfoTag()->m_iClientId;
-        menuCategory = PVR_MENUHOOK_TIMER;
+        settingsHooks.emplace_back(std::make_pair(client.second, hook));
       }
     }
 
-    // get client id
-    if (iClientID < 0 && menuCategory == PVR_MENUHOOK_SETTING)
-    {
-      CPVRClientMap clients;
-      CServiceBroker::GetPVRManager().Clients()->GetCreatedClients(clients);
+    if (settingsHooks.empty())
+      return true;  // no settings hooks, no error
 
-      if (clients.size() == 1)
-      {
-        iClientID = clients.begin()->first;
-      }
-      else if (clients.size() > 1)
-      {
-        // have user select client
-        CGUIDialogSelect* pDialog= CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogSelect>(WINDOW_DIALOG_SELECT);
-        if (!pDialog)
-        {
-          CLog::LogF(LOGERROR, "Unable to get WINDOW_DIALOG_SELECT!");
-          return false;
-        }
+    auto selectedHook = settingsHooks.begin();
 
-        pDialog->Reset();
-        pDialog->SetHeading(CVariant{19196}); // "PVR client specific actions"
-
-        for (const auto client : clients)
-        {
-          pDialog->Add(client.second->GetBackendName());
-        }
-
-        pDialog->Open();
-
-        int selection = pDialog->GetSelectedItem();
-        if (selection >= 0)
-        {
-          auto client = clients.begin();
-          std::advance(client, selection);
-          iClientID = client->first;
-        }
-      }
-    }
-
-    if (iClientID < 0)
-      iClientID = CServiceBroker::GetPVRManager().GetPlayingClientID();
-
-    CPVRClientPtr client;
-    if (CServiceBroker::GetPVRManager().Clients()->GetCreatedClient(iClientID, client) && client->HasMenuHooks(menuCategory))
+    // if there is only one settings hook, execute it directly, otherwise let the user select
+    if (settingsHooks.size() > 1)
     {
       CGUIDialogSelect* pDialog= CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogSelect>(WINDOW_DIALOG_SELECT);
       if (!pDialog)
@@ -1489,34 +1414,23 @@ namespace PVR
       pDialog->Reset();
       pDialog->SetHeading(CVariant{19196}); // "PVR client specific actions"
 
-      PVR_MENUHOOKS& hooks = client->GetMenuHooks();
-      std::vector<int> hookIDs;
-      unsigned int i = 0;
-
-      for (const auto& hook : hooks)
+      for (const auto& hook : settingsHooks)
       {
-        if (hook.category == menuCategory || hook.category == PVR_MENUHOOK_ALL)
-        {
-          pDialog->Add(g_localizeStrings.GetAddonString(client->ID(), hook.iLocalizedStringId));
-          hookIDs.emplace_back(i);
-        }
-        ++i;
+        if (clients.size() == 1)
+          pDialog->Add(hook.second.GetLabel());
+        else
+          pDialog->Add(hook.first->GetBackendName() + ": " + hook.second.GetLabel());
       }
 
-      int selection = 0;
-      if (hookIDs.size() > 1)
-      {
-        pDialog->Open();
-        selection = pDialog->GetSelectedItem();
-      }
+      pDialog->Open();
 
-      if (selection >= 0)
-        client->CallMenuHook(hooks.at(hookIDs.at(selection)), item);
-      else
-        return false;
+      int selection = pDialog->GetSelectedItem();
+      if (selection < 0)
+        return true; // cancelled
+
+      std::advance(selectedHook, selection);
     }
-
-    return true;
+    return selectedHook->first->CallMenuHook(selectedHook->second, CFileItemPtr()) == PVR_ERROR_NO_ERROR;
   }
 
   bool CPVRGUIActions::ResetPVRDatabase(bool bResetEPGOnly)
@@ -1836,6 +1750,84 @@ namespace PVR
 
     CSingleLock lock(m_critSection);
     return bRadio ? m_selectedItemPathRadio : m_selectedItemPathTV;
+  }
+
+  void CPVRGUIActions::SeekForward()
+  {
+    time_t playbackStartTime = CServiceBroker::GetDataCacheCore().GetStartTime();
+    if (playbackStartTime > 0)
+    {
+      const CPVRChannelPtr playingChannel = CServiceBroker::GetPVRManager().GetPlayingChannel();
+      if (playingChannel)
+      {
+        time_t nextTime = 0;
+        CPVREpgInfoTagPtr next = playingChannel->GetEPGNext();
+        if (next)
+        {
+          next->StartAsUTC().GetAsTime(nextTime);
+        }
+        else
+        {
+          // if there is no next event, jump to end of currently playing event
+          next = playingChannel->GetEPGNow();
+          if (next)
+            next->EndAsUTC().GetAsTime(nextTime);
+        }
+
+        int64_t seekTime = 0;
+        if (nextTime != 0)
+        {
+          seekTime = (nextTime - playbackStartTime) * 1000;
+        }
+        else
+        {
+          // no epg; jump to end of buffer
+          seekTime = CServiceBroker::GetDataCacheCore().GetMaxTime();
+        }
+        CApplicationMessenger::GetInstance().PostMsg(TMSG_MEDIA_SEEK_TIME, seekTime);
+      }
+    }
+  }
+
+  void CPVRGUIActions::SeekBackward(unsigned int iThreshold)
+  {
+    time_t playbackStartTime = CServiceBroker::GetDataCacheCore().GetStartTime();
+    if (playbackStartTime > 0)
+    {
+      const CPVRChannelPtr playingChannel = CServiceBroker::GetPVRManager().GetPlayingChannel();
+      if (playingChannel)
+      {
+        time_t prevTime = 0;
+        CPVREpgInfoTagPtr prev = playingChannel->GetEPGNow();
+        if (prev)
+        {
+          prev->StartAsUTC().GetAsTime(prevTime);
+
+          // if playback time of current event is above threshold jump to start of current event
+          int64_t playTime = CServiceBroker::GetDataCacheCore().GetPlayTime() / 1000;
+          if ((playbackStartTime + playTime - prevTime) <= iThreshold)
+          {
+            // jump to start of previous event
+            prevTime = 0;
+            prev = playingChannel->GetEPGPrevious();
+            if (prev)
+              prev->StartAsUTC().GetAsTime(prevTime);
+          }
+        }
+
+        int64_t seekTime = 0;
+        if (prevTime != 0)
+        {
+          seekTime = (prevTime - playbackStartTime) * 1000;
+        }
+        else
+        {
+          // no epg; jump to begin of buffer
+          seekTime = CServiceBroker::GetDataCacheCore().GetMinTime();
+        }
+        CApplicationMessenger::GetInstance().PostMsg(TMSG_MEDIA_SEEK_TIME, seekTime);
+      }
+    }
   }
 
   CPVRChannelNumberInputHandler &CPVRGUIActions::GetChannelNumberInputHandler()

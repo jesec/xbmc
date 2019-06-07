@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "WeatherManager.h"
@@ -30,6 +18,7 @@
 #include "settings/lib/Setting.h"
 #include "settings/lib/SettingsManager.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
 #include "utils/XMLUtils.h"
@@ -40,7 +29,7 @@ using namespace ADDON;
 
 CWeatherManager::CWeatherManager(void) : CInfoLoader(30 * 60 * 1000) // 30 minutes
 {
-  CServiceBroker::GetSettings().GetSettingsManager()->RegisterCallback(this, {
+  CServiceBroker::GetSettingsComponent()->GetSettings()->GetSettingsManager()->RegisterCallback(this, {
     CSettings::SETTING_WEATHER_ADDON,
     CSettings::SETTING_WEATHER_ADDONSETTINGS
   });
@@ -50,7 +39,15 @@ CWeatherManager::CWeatherManager(void) : CInfoLoader(30 * 60 * 1000) // 30 minut
 
 CWeatherManager::~CWeatherManager(void)
 {
-  CServiceBroker::GetSettings().GetSettingsManager()->UnregisterCallback(this);
+  CSettingsComponent *settingsComponent = CServiceBroker::GetSettingsComponent();
+  if (!settingsComponent)
+    return;
+
+  const std::shared_ptr<CSettings> settings = settingsComponent->GetSettings();
+  if (!settings)
+    return;
+
+  settings->GetSettingsManager()->UnregisterCallback(this);
 }
 
 std::string CWeatherManager::BusyInfo(int info) const
@@ -127,8 +124,9 @@ const ForecastDay &CWeatherManager::GetForecast(int day) const
  */
 void CWeatherManager::SetArea(int iLocation)
 {
-  CServiceBroker::GetSettings().SetInt(CSettings::SETTING_WEATHER_CURRENTLOCATION, iLocation);
-  CServiceBroker::GetSettings().Save();
+  const std::shared_ptr<CSettings> settings = CServiceBroker::GetSettingsComponent()->GetSettings();
+  settings->SetInt(CSettings::SETTING_WEATHER_CURRENTLOCATION, iLocation);
+  settings->Save();
 }
 
 /*!
@@ -137,7 +135,7 @@ void CWeatherManager::SetArea(int iLocation)
  */
 int CWeatherManager::GetArea() const
 {
-  return CServiceBroker::GetSettings().GetInt(CSettings::SETTING_WEATHER_CURRENTLOCATION);
+  return CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_WEATHER_CURRENTLOCATION);
 }
 
 CJob *CWeatherManager::GetJob() const
@@ -176,7 +174,7 @@ void CWeatherManager::OnSettingAction(std::shared_ptr<const CSetting> setting)
   if (settingId == CSettings::SETTING_WEATHER_ADDONSETTINGS)
   {
     AddonPtr addon;
-    if (CServiceBroker::GetAddonMgr().GetAddon(CServiceBroker::GetSettings().GetString(CSettings::SETTING_WEATHER_ADDON), addon, ADDON_SCRIPT_WEATHER) && addon != NULL)
+    if (CServiceBroker::GetAddonMgr().GetAddon(CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_WEATHER_ADDON), addon, ADDON_SCRIPT_WEATHER) && addon != NULL)
     { //! @todo maybe have ShowAndGetInput return a bool if settings changed, then only reset weather if true.
       CGUIDialogAddonSettings::ShowForAddon(addon);
       Refresh();

@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2011-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2011-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "AddonInstaller.h"
@@ -33,7 +21,7 @@
 #include "filesystem/Directory.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
-#include "messaging/ApplicationMessenger.h"
+#include "settings/SettingsComponent.h"
 #include "messaging/helpers/DialogHelper.h"
 #include "messaging/helpers/DialogOKHelper.h"
 #include "favourites/FavouritesService.h"
@@ -97,7 +85,8 @@ void CAddonInstaller::OnJobProgress(unsigned int jobID, unsigned int progress, u
   if (i != m_downloadJobs.end())
   {
     // update job progress
-    i->second.progress = progress;
+    i->second.progress = 100 / total * progress;
+    i->second.downloadFinshed = std::string(job->GetType()) == CAddonInstallJob::TYPE_INSTALL;
     CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UPDATE_ITEM);
     msg.SetStringParam(i->first);
     lock.Leave();
@@ -132,13 +121,14 @@ void CAddonInstaller::GetInstallList(VECADDONS &addons) const
   }
 }
 
-bool CAddonInstaller::GetProgress(const std::string &addonID, unsigned int &percent) const
+bool CAddonInstaller::GetProgress(const std::string& addonID, unsigned int& percent, bool& downloadFinshed) const
 {
   CSingleLock lock(m_critSection);
   JobMap::const_iterator i = m_downloadJobs.find(addonID);
   if (i != m_downloadJobs.end())
   {
     percent = i->second.progress;
+    downloadFinshed = i->second.downloadFinshed;
     return true;
   }
   return false;
@@ -323,7 +313,7 @@ bool CAddonInstaller::CheckDependencies(const AddonPtr &addon,
     const AddonVersion &version = it.requiredVersion;
     bool optional = it.optional;
     AddonPtr dep;
-    bool haveAddon = CServiceBroker::GetAddonMgr().GetAddon(addonID, dep);
+    bool haveAddon = CServiceBroker::GetAddonMgr().GetAddon(addonID, dep, ADDON_UNKNOWN, false);
     if ((haveAddon && !dep->MeetsVersion(version)) || (!haveAddon && !optional))
     {
       // we have it but our version isn't good enough, or we don't have it and we need it
@@ -340,6 +330,11 @@ bool CAddonInstaller::CheckDependencies(const AddonPtr &addon,
         return false;
       }
     }
+
+    // need to enable the dependency
+    if (dep && CServiceBroker::GetAddonMgr().IsAddonDisabled(addonID))
+      if (!CServiceBroker::GetAddonMgr().EnableAddon(addonID))
+        return false;
 
     // at this point we have our dep, or the dep is optional (and we don't have it) so check that it's OK as well
     //! @todo should we assume that installed deps are OK?
@@ -368,7 +363,7 @@ void CAddonInstaller::PrunePackageCache()
 {
   std::map<std::string,CFileItemList*> packs;
   int64_t size = EnumeratePackageFolder(packs);
-  int64_t limit = (int64_t)g_advancedSettings.m_addonPackageFolderSize * 1024 * 1024;
+  int64_t limit = static_cast<int64_t>(CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_addonPackageFolderSize) * 1024 * 1024;
   if (size < limit)
     return;
 
@@ -492,6 +487,8 @@ bool CAddonInstallJob::GetAddon(const std::string& addonID, RepositoryPtr& repo,
 
 bool CAddonInstallJob::DoWork()
 {
+  m_currentType = CAddonInstallJob::TYPE_DOWNLOAD;
+
   SetTitle(StringUtils::Format(g_localizeStrings.Get(24057).c_str(), m_addon->Name().c_str()));
   SetProgress(0);
 
@@ -609,6 +606,8 @@ bool CAddonInstallJob::DoWork()
     }
   }
 
+  m_currentType = CAddonInstallJob::TYPE_INSTALL;
+
   // run any pre-install functions
   ADDON::OnPreInstall(m_addon);
 
@@ -631,7 +630,7 @@ bool CAddonInstallJob::DoWork()
   }
 
   g_localizeStrings.LoadAddonStrings(URIUtils::AddFileToFolder(m_addon->Path(), "resources/language/"),
-      CServiceBroker::GetSettings().GetString(CSettings::SETTING_LOCALE_LANGUAGE), m_addon->ID());
+      CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_LOCALE_LANGUAGE), m_addon->ID());
 
   ADDON::OnPostInstall(m_addon, m_isUpdate, IsModal());
 
@@ -643,12 +642,12 @@ bool CAddonInstallJob::DoWork()
       database.SetLastUpdated(m_addon->ID(), CDateTime::GetCurrentDateTime());
   }
 
-  bool notify = (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_ADDONS_NOTIFICATIONS)
+  bool notify = (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_ADDONS_NOTIFICATIONS)
         || !m_isAutoUpdate) && !IsModal();
   CServiceBroker::GetEventLog().Add(
       EventPtr(new CAddonManagementEvent(m_addon, m_isUpdate ? 24065 : 24084)), notify, false);
 
-  if (m_isAutoUpdate && !m_addon->Broken().empty())
+  if (m_isAutoUpdate && m_addon->IsBroken())
   {
     CLog::Log(LOGDEBUG, "CAddonInstallJob[%s]: auto-disabling due to being marked as broken", m_addon->ID().c_str());
     CServiceBroker::GetAddonMgr().DisableAddon(m_addon->ID());
@@ -715,7 +714,7 @@ bool CAddonInstallJob::Install(const std::string &installFrom, const RepositoryP
   SetText(g_localizeStrings.Get(24079));
   auto deps = m_addon->GetDependencies();
 
-  unsigned int totalSteps = static_cast<unsigned int>(deps.size());
+  unsigned int totalSteps = static_cast<unsigned int>(deps.size()) + 1;
   if (ShouldCancel(0, totalSteps))
     return false;
 
@@ -787,7 +786,7 @@ bool CAddonInstallJob::Install(const std::string &installFrom, const RepositoryP
   }
 
   SetText(g_localizeStrings.Get(24086));
-  SetProgress(0);
+  SetProgress(static_cast<unsigned int>(100.0 * (totalSteps - 1.0) / totalSteps));
 
   CFilesystemInstaller fsInstaller;
   if (!fsInstaller.InstallToFilesystem(installFrom, m_addon->ID()))

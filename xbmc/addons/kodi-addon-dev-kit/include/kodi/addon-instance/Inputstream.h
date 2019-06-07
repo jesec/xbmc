@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2017 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -132,6 +120,31 @@ extern "C" {
       FLAG_HEARING_IMPAIRED = 0x0080,
       FLAG_VISUAL_IMPAIRED = 0x0100
     };
+
+    enum INPUTSTREAM_COLORSPACE
+    {
+      COLORSPACE_UNKNOWN,
+      COLORSPACE_BT709,
+      COLORSPACE_BT470M,
+      COLORSPACE_BT470BG,
+      COLORSPACE_SMPTE170M,
+      COLORSPACE_SMPTE240M,
+      COLORSPACE_FILM,
+      COLORSPACE_BT2020,
+      COLORSPACE_SMPTE428,
+      COLORSPACE_SMPTEST428_1,
+      COLORSPACE_SMPTE431,
+      COLORSPACE_SMPTE432,
+      COLORSPACE_JEDEC_P22
+    };
+
+    enum INPUTSTREAM_COLORRANGE
+    {
+      COLORRANGE_UNKNOWN,
+      COLORRANGE_LIMITED,
+      COLORRANGE_FULLRANGE
+    };
+
     uint32_t m_flags;
 
     char m_name[256];                    /*!< @brief (optinal) name of the stream, \0 for default handling */
@@ -151,6 +164,7 @@ extern "C" {
     unsigned int m_Width;                /*!< @brief width of the stream reported by the demuxer */
     float m_Aspect;                      /*!< @brief display aspect of stream */
 
+
     unsigned int m_Channels;             /*!< @brief (required) amount of channels */
     unsigned int m_SampleRate;           /*!< @brief (required) sample rate */
     unsigned int m_BitRate;              /*!< @brief (required) bit rate */
@@ -158,6 +172,11 @@ extern "C" {
     unsigned int m_BlockAlign;
 
     CRYPTO_INFO m_cryptoInfo;
+
+    // new in API version 2.0.8
+    unsigned int m_codecFourCC;          /*!< @brief Codec If available, the fourcc code codec */
+    INPUTSTREAM_COLORSPACE m_colorSpace; /*!< @brief definition of colorspace */
+    INPUTSTREAM_COLORRANGE m_colorRange; /*!< @brief color range if available */
   };
 
   struct INPUTSTREAM_TIMES

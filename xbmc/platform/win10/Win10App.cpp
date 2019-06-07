@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2017 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "pch.h"
@@ -27,7 +15,6 @@
 #include "platform/xbmc.h"
 #include "platform/win32/CharsetConverter.h"
 #include "rendering/dx/RenderContext.h"
-#include "settings/AdvancedSettings.h"
 #include "utils/log.h"
 #include "utils/SystemInfo.h"
 #include "windowing/win10/WinEventsWin10.h"
@@ -66,8 +53,6 @@ void App::Initialize(const CoreApplicationView& applicationView)
 
   // At this point we have access to the device.
   // We can create the device-dependent resources.
-  CWinEventsWin10::InitOSKeymap();
-
   // Initialise Winsock
   WSADATA wd;
   WSAStartup(MAKEWORD(2, 2), &wd);
@@ -90,19 +75,17 @@ void App::Load(const winrt::hstring&)
 void App::Run()
 {
   {
-    // Initialize before CAppParamParser so it can set the log level
-    g_advancedSettings.Initialize();
     // fix the case then window opened in FS, but current setting is RES_WINDOW
     // the proper way is make window params related to setting, but in this setting isn't loaded yet
     // perhaps we should observe setting changes and change window's Preffered props
     bool fullscreen = ApplicationView::GetForCurrentView().IsFullScreenMode();
-    g_advancedSettings.m_startFullScreen = fullscreen;
 
     CAppParamParser appParamParser;
     appParamParser.Parse(m_argv.data(), m_argv.size());
+    appParamParser.m_startFullScreen = fullscreen;
 
     if (CSysInfo::GetWindowsDeviceFamily() == CSysInfo::Xbox)
-      g_application.SetStandAlone(true);
+      appParamParser.m_standAlone = true;
 
     // Create and run the app
     XBMC_Run(true, appParamParser);

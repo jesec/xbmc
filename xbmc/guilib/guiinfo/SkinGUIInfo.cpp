@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "guilib/guiinfo/SkinGUIInfo.h"
@@ -24,6 +12,7 @@
 #include "addons/Skin.h"
 #include "guilib/LocalizeStrings.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "settings/SkinSettings.h"
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
@@ -62,12 +51,12 @@ bool CSkinGUIInfo::GetLabel(std::string& value, const CFileItem *item, int conte
     }
     case SKIN_THEME:
     {
-      value = CServiceBroker::GetSettings().GetString(CSettings::SETTING_LOOKANDFEEL_SKINTHEME);
+      value = CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_LOOKANDFEEL_SKINTHEME);
       return true;
     }
     case SKIN_COLOUR_THEME:
     {
-      value = CServiceBroker::GetSettings().GetString(CSettings::SETTING_LOOKANDFEEL_SKINCOLORS);
+      value = CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_LOOKANDFEEL_SKINCOLORS);
       return true;
     }
     case SKIN_ASPECT_RATIO:
@@ -81,7 +70,7 @@ bool CSkinGUIInfo::GetLabel(std::string& value, const CFileItem *item, int conte
     }
     case SKIN_FONT:
     {
-      value = CServiceBroker::GetSettings().GetString(CSettings::SETTING_LOOKANDFEEL_FONT);
+      value = CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_LOOKANDFEEL_FONT);
       return true;
     }
   }
@@ -118,7 +107,7 @@ bool CSkinGUIInfo::GetBool(bool& value, const CGUIListItem *gitem, int contextWi
     }
     case SKIN_HAS_THEME:
     {
-      std::string theme = CServiceBroker::GetSettings().GetString(CSettings::SETTING_LOOKANDFEEL_SKINTHEME);
+      std::string theme = CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_LOOKANDFEEL_SKINTHEME);
       URIUtils::RemoveExtension(theme);
       value = StringUtils::EqualsNoCase(theme, info.GetData3());
       return true;

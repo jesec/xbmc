@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GUIWindowMusicNav.h"
@@ -24,7 +12,6 @@
 #include "addons/AddonSystemSettings.h"
 #include "utils/FileUtils.h"
 #include "utils/URIUtils.h"
-#include "PlayListPlayer.h"
 #include "GUIPassword.h"
 #include "music/dialogs/GUIDialogInfoProviderSettings.h"
 #include "filesystem/MusicDatabaseDirectory.h"
@@ -32,7 +19,7 @@
 #include "PartyModeManager.h"
 #include "playlists/PlayList.h"
 #include "playlists/PlayListFactory.h"
-#include "profiles/ProfilesManager.h"
+#include "profiles/ProfileManager.h"
 #include "video/VideoDatabase.h"
 #include "video/dialogs/GUIDialogVideoInfo.h"
 #include "video/windows/GUIWindowVideoNav.h"
@@ -50,6 +37,7 @@
 #include "messaging/helpers/DialogOKHelper.h"
 #include "messaging/ApplicationMessenger.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "guilib/LocalizeStrings.h"
 #include "utils/LegacyPathTranslation.h"
 #include "utils/log.h"
@@ -58,7 +46,6 @@
 #include "Util.h"
 #include "URL.h"
 #include "storage/MediaManager.h"
-#include "ContextMenuManager.h"
 
 using namespace XFILE;
 using namespace PLAYLIST;
@@ -97,12 +84,12 @@ bool CGUIWindowMusicNav::OnMessage(CGUIMessage& message)
     break;
   case GUI_MSG_WINDOW_INIT:
     {
-/* We don't want to show Autosourced items (ie removable pendrives, memorycards) in Library mode */
+      /* We don't want to show Autosourced items (ie removable pendrives, memorycards) in Library mode */
       m_rootDir.AllowNonLocalSources(false);
 
       // is this the first time the window is opened?
       if (m_vecItems->GetPath() == "?" && message.GetStringParam().empty())
-        message.SetStringParam(CServiceBroker::GetSettings().GetString(CSettings::SETTING_MYMUSIC_DEFAULTLIBVIEW));
+        message.SetStringParam(CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_MYMUSIC_DEFAULTLIBVIEW));
 
       if (!CGUIWindowMusicBase::OnMessage(message))
         return false;
@@ -115,6 +102,11 @@ bool CGUIWindowMusicNav::OnMessage(CGUIMessage& message)
         for (; i < m_vecItems->Size(); i++)
         {
           CFileItemPtr pItem = m_vecItems->Get(i);
+
+          // skip ".."
+          if (pItem->IsParentFolder())
+            continue;
+
           if (URIUtils::PathEquals(pItem->GetPath(), message.GetStringParam(0), true, true))
           {
             m_viewControl.SetSelectedItem(i);
@@ -331,11 +323,12 @@ bool CGUIWindowMusicNav::ManageInfoProvider(const CFileItemPtr item)
           // Save scraper addon default setting values
           scraper->SaveSettings();
           // Set default scraper
+          const std::shared_ptr<CSettings> settings = CServiceBroker::GetSettingsComponent()->GetSettings();
           if (content == CONTENT_ARTISTS)
-            CServiceBroker::GetSettings().SetString(CSettings::SETTING_MUSICLIBRARY_ARTISTSSCRAPER, scraper->ID());
+            settings->SetString(CSettings::SETTING_MUSICLIBRARY_ARTISTSSCRAPER, scraper->ID());
           else
-            CServiceBroker::GetSettings().SetString(CSettings::SETTING_MUSICLIBRARY_ALBUMSSCRAPER, scraper->ID());
-          CServiceBroker::GetSettings().Save();
+            settings->SetString(CSettings::SETTING_MUSICLIBRARY_ALBUMSSCRAPER, scraper->ID());
+          settings->Save();
           // Clear all item specifc settings
           if (content == CONTENT_ARTISTS)
             result = m_musicdatabase.SetScraperAll("musicdb://artists/", nullptr);
@@ -581,7 +574,7 @@ void CGUIWindowMusicNav::GetContextButtons(int itemNumber, CContextButtons &butt
     item = m_vecItems->Get(itemNumber);
   if (item)
   {
-    const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+    const std::shared_ptr<CProfileManager> profileManager = CServiceBroker::GetSettingsComponent()->GetProfileManager();
 
     // are we in the playlists location?
     bool inPlaylists = m_vecItems->IsPath(CUtil::MusicPlaylistsLocation()) ||
@@ -610,7 +603,7 @@ void CGUIWindowMusicNav::GetContextButtons(int itemNumber, CContextButtons &butt
         !item->IsPath("add") && !item->IsParentFolder() &&
         !item->IsPlugin() &&
         !StringUtils::StartsWithNoCase(item->GetPath(), "addons://") &&
-        (profileManager.GetCurrentProfile().canWriteDatabases() || g_passwordManager.bMasterUser))
+        (profileManager->GetCurrentProfile().canWriteDatabases() || g_passwordManager.bMasterUser))
       {
         buttons.Add(CONTEXT_BUTTON_SCAN, 13352);
       }
@@ -641,9 +634,10 @@ void CGUIWindowMusicNav::GetContextButtons(int itemNumber, CContextButtons &butt
               nodetype == NODE_TYPE_OVERVIEW ||
               nodetype == NODE_TYPE_TOP100))
           {
-            if (!item->IsPath(CServiceBroker::GetSettings().GetString(CSettings::SETTING_MYMUSIC_DEFAULTLIBVIEW)))
+            const std::shared_ptr<CSettings> settings = CServiceBroker::GetSettingsComponent()->GetSettings();
+            if (!item->IsPath(settings->GetString(CSettings::SETTING_MYMUSIC_DEFAULTLIBVIEW)))
               buttons.Add(CONTEXT_BUTTON_SET_DEFAULT, 13335); // set default
-            if (!CServiceBroker::GetSettings().GetString(CSettings::SETTING_MYMUSIC_DEFAULTLIBVIEW).empty())
+            if (!settings->GetString(CSettings::SETTING_MYMUSIC_DEFAULTLIBVIEW).empty())
               buttons.Add(CONTEXT_BUTTON_CLEAR_DEFAULT, 13403); // clear default
           }
 
@@ -673,7 +667,7 @@ void CGUIWindowMusicNav::GetContextButtons(int itemNumber, CContextButtons &butt
         }
         if (item->HasVideoInfoTag() && !item->m_bIsFolder)
         {
-          if ((profileManager.GetCurrentProfile().canWriteDatabases() || g_passwordManager.bMasterUser) && !item->IsPlugin())
+          if ((profileManager->GetCurrentProfile().canWriteDatabases() || g_passwordManager.bMasterUser) && !item->IsPlugin())
           {
             buttons.Add(CONTEXT_BUTTON_RENAME, 16105);
             buttons.Add(CONTEXT_BUTTON_DELETE, 646);
@@ -683,7 +677,7 @@ void CGUIWindowMusicNav::GetContextButtons(int itemNumber, CContextButtons &butt
           && (item->IsPlayList() || item->IsSmartPlayList()))
           buttons.Add(CONTEXT_BUTTON_DELETE, 117);
 
-        if (!item->IsReadOnly() && CServiceBroker::GetSettings().GetBool("filelists.allowfiledeletion"))
+        if (!item->IsReadOnly() && CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool("filelists.allowfiledeletion"))
         {
           buttons.Add(CONTEXT_BUTTON_DELETE, 117);
           buttons.Add(CONTEXT_BUTTON_RENAME, 118);
@@ -756,14 +750,20 @@ bool CGUIWindowMusicNav::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
     return true;
 
   case CONTEXT_BUTTON_SET_DEFAULT:
-    CServiceBroker::GetSettings().SetString(CSettings::SETTING_MYMUSIC_DEFAULTLIBVIEW, GetQuickpathName(item->GetPath()));
-    CServiceBroker::GetSettings().Save();
+  {
+    const std::shared_ptr<CSettings> settings = CServiceBroker::GetSettingsComponent()->GetSettings();
+    settings->SetString(CSettings::SETTING_MYMUSIC_DEFAULTLIBVIEW, GetQuickpathName(item->GetPath()));
+    settings->Save();
     return true;
+  }
 
   case CONTEXT_BUTTON_CLEAR_DEFAULT:
-    CServiceBroker::GetSettings().SetString(CSettings::SETTING_MYMUSIC_DEFAULTLIBVIEW, "");
-    CServiceBroker::GetSettings().Save();
+  {
+    const std::shared_ptr<CSettings> settings = CServiceBroker::GetSettingsComponent()->GetSettings();
+    settings->SetString(CSettings::SETTING_MYMUSIC_DEFAULTLIBVIEW, "");
+    settings->Save();
     return true;
+  }
 
   case CONTEXT_BUTTON_GO_TO_ARTIST:
     {

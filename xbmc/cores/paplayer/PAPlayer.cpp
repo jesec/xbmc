@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2015 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "PAPlayer.h"
@@ -23,6 +11,7 @@
 #include "ServiceBroker.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "music/tags/MusicInfoTag.h"
 #include "utils/log.h"
 #include "utils/JobManager.h"
@@ -30,6 +19,7 @@
 
 #include "cores/AudioEngine/Interfaces/AE.h"
 #include "cores/AudioEngine/Utils/AEUtil.h"
+#include "cores/AudioEngine/Utils/AEStreamData.h"
 #include "cores/AudioEngine/Interfaces/AEStream.h"
 #include "cores/DataCacheCore.h"
 #include "cores/VideoPlayer/Process/ProcessInfo.h"
@@ -227,7 +217,7 @@ void PAPlayer::CloseAllStreams(bool fade/* = true */)
 
 bool PAPlayer::OpenFile(const CFileItem& file, const CPlayerOptions &options)
 {
-  m_defaultCrossfadeMS = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_MUSICPLAYER_CROSSFADE) * 1000;
+  m_defaultCrossfadeMS = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_MUSICPLAYER_CROSSFADE) * 1000;
 
   if (m_streams.size() > 1 || !m_defaultCrossfadeMS || m_isPaused)
   {
@@ -282,12 +272,12 @@ void PAPlayer::UpdateCrossfadeTime(const CFileItem& file)
   if (file.IsCDDA())
    m_upcomingCrossfadeMS = 0;
   else
-    m_upcomingCrossfadeMS = m_defaultCrossfadeMS = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_MUSICPLAYER_CROSSFADE) * 1000;
+    m_upcomingCrossfadeMS = m_defaultCrossfadeMS = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_MUSICPLAYER_CROSSFADE) * 1000;
 
   if (m_upcomingCrossfadeMS)
   {
     if (!m_currentStream ||
-         (file.HasMusicInfoTag() && !CServiceBroker::GetSettings().GetBool(CSettings::SETTING_MUSICPLAYER_CROSSFADEALBUMTRACKS) &&
+         (file.HasMusicInfoTag() && !CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_MUSICPLAYER_CROSSFADEALBUMTRACKS) &&
           m_currentStream->m_fileItem.HasMusicInfoTag() &&
           (m_currentStream->m_fileItem.GetMusicInfoTag()->GetAlbum() != "") &&
           (m_currentStream->m_fileItem.GetMusicInfoTag()->GetAlbum() == file.GetMusicInfoTag()->GetAlbum()) &&
@@ -478,7 +468,7 @@ inline bool PAPlayer::PrepareStream(StreamInfo *si)
   if (peak * gain <= 1.0)
     // No clipping protection needed
     si->m_stream->SetReplayGain(gain);
-  else if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_MUSICPLAYER_REPLAYGAINAVOIDCLIPPING))
+  else if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_MUSICPLAYER_REPLAYGAINAVOIDCLIPPING))
     // Normalise volume reducing replaygain to avoid needing clipping protection, plays file at lower level
     si->m_stream->SetReplayGain(1.0f / fabs(peak));
   else
@@ -861,7 +851,7 @@ bool PAPlayer::QueueData(StreamInfo *si)
     }
 
     unsigned int frames = samples/si->m_audioFormat.m_channelLayout.Count();
-    unsigned int added = si->m_stream->AddData(&data, 0, frames, 0);
+    unsigned int added = si->m_stream->AddData(&data, 0, frames, nullptr);
     si->m_framesSent += added;
   }
   else
@@ -873,7 +863,7 @@ bool PAPlayer::QueueData(StreamInfo *si)
     uint8_t *data = si->m_decoder.GetRawData(size);
     if (data && size)
     {
-      int added = si->m_stream->AddData(&data, 0, size, 0);
+      int added = si->m_stream->AddData(&data, 0, size, nullptr);
       if (added != size)
       {
         CLog::Log(LOGERROR, "PAPlayer::QueueData - unknown error");
@@ -1035,12 +1025,13 @@ void PAPlayer::Seek(bool bPlus, bool bLargeStep, bool bChapterOverride)
   if (!CanSeek()) return;
 
   long long seek;
-  if (g_advancedSettings.m_musicUseTimeSeeking && m_playerGUIData.m_totalTime > 2 * g_advancedSettings.m_musicTimeSeekForwardBig)
+  const std::shared_ptr<CAdvancedSettings> advancedSettings = CServiceBroker::GetSettingsComponent()->GetAdvancedSettings();
+  if (advancedSettings->m_musicUseTimeSeeking && m_playerGUIData.m_totalTime > 2 * advancedSettings->m_musicTimeSeekForwardBig)
   {
     if (bLargeStep)
-      seek = bPlus ? g_advancedSettings.m_musicTimeSeekForwardBig : g_advancedSettings.m_musicTimeSeekBackwardBig;
+      seek = bPlus ? advancedSettings->m_musicTimeSeekForwardBig : advancedSettings->m_musicTimeSeekBackwardBig;
     else
-      seek = bPlus ? g_advancedSettings.m_musicTimeSeekForward : g_advancedSettings.m_musicTimeSeekBackward;
+      seek = bPlus ? advancedSettings->m_musicTimeSeekForward : advancedSettings->m_musicTimeSeekBackward;
     seek *= 1000;
     seek += m_playerGUIData.m_time;
   }
@@ -1048,9 +1039,9 @@ void PAPlayer::Seek(bool bPlus, bool bLargeStep, bool bChapterOverride)
   {
     float percent;
     if (bLargeStep)
-      percent = bPlus ? (float)g_advancedSettings.m_musicPercentSeekForwardBig : (float)g_advancedSettings.m_musicPercentSeekBackwardBig;
+      percent = bPlus ? static_cast<float>(advancedSettings->m_musicPercentSeekForwardBig) : static_cast<float>(advancedSettings->m_musicPercentSeekBackwardBig);
     else
-      percent = bPlus ? (float)g_advancedSettings.m_musicPercentSeekForward : (float)g_advancedSettings.m_musicPercentSeekBackward;
+      percent = bPlus ? static_cast<float>(advancedSettings->m_musicPercentSeekForward) : static_cast<float>(advancedSettings->m_musicPercentSeekBackward);
     seek = static_cast<long long>(GetTotalTime64() * (GetPercentage() + percent) / 100);
   }
 

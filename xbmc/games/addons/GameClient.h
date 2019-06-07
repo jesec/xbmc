@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2017 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this Program; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -23,7 +11,6 @@
 #include "GameClientSubsystem.h"
 #include "addons/binary-addons/AddonDll.h"
 #include "addons/kodi-addon-dev-kit/include/kodi/kodi_game_types.h"
-#include "games/GameTypes.h"
 #include "threads/CriticalSection.h"
 
 #include <atomic>
@@ -47,7 +34,6 @@ namespace GAME
 class CGameClientInGameSaves;
 class CGameClientInput;
 class CGameClientProperties;
-class IGameClientPlayback;
 class IGameInputCallback;
 
 /*!
@@ -78,12 +64,12 @@ public:
   virtual ADDON::AddonPtr GetRunningInstance() const override;
 
   // Query properties of the game client
-  bool                         SupportsStandalone() const { return m_bSupportsStandalone; }
-  bool                         SupportsPath() const;
-  bool                         SupportsVFS() const { return m_bSupportsVFS; }
+  bool SupportsStandalone() const { return m_bSupportsStandalone; }
+  bool SupportsPath() const;
+  bool SupportsVFS() const { return m_bSupportsVFS; }
   const std::set<std::string>& GetExtensions() const { return m_extensions; }
-  bool                         SupportsAllExtensions() const { return m_bSupportsAllExtensions; }
-  bool                         IsExtensionValid(const std::string& strExtension) const;
+  bool SupportsAllExtensions() const { return m_bSupportsAllExtensions; }
+  bool IsExtensionValid(const std::string& strExtension) const;
 
   // Start/stop gameplay
   bool Initialize(void);
@@ -95,8 +81,9 @@ public:
   const std::string& GetGamePath() const { return m_gamePath; }
 
   // Playback control
+  bool RequiresGameLoop() const { return m_bRequiresGameLoop; }
   bool IsPlaying() const { return m_bIsPlaying; }
-  IGameClientPlayback* GetPlayback() { return m_playback.get(); }
+  size_t GetSerializeSize() const { return m_serializeSize; }
   double GetFrameRate() const { return m_framerate; }
   double GetSampleRate() const { return m_samplerate; }
   void RunFrame();
@@ -123,11 +110,6 @@ private:
   bool LoadGameInfo();
   void NotifyError(GAME_ERROR error);
   std::string GetMissingResource();
-  void CreatePlayback();
-  void ResetPlayback();
-
-  // Private memory stream functions
-  size_t GetSerializeSize();
 
   // Helper functions
   void LogAddonProperties(void) const;
@@ -159,11 +141,11 @@ private:
   // Properties of the current playing file
   std::atomic_bool      m_bIsPlaying;          // True between OpenFile() and CloseFile()
   std::string           m_gamePath;
+  bool                  m_bRequiresGameLoop = false;
   size_t                m_serializeSize;
   IGameInputCallback*   m_input = nullptr;     // The input callback passed to OpenFile()
   double                m_framerate = 0.0;     // Video frame rate (fps)
   double                m_samplerate = 0.0;    // Audio sample rate (Hz)
-  std::unique_ptr<IGameClientPlayback> m_playback; // Interface to control playback
   GAME_REGION           m_region;              // Region of the loaded game
 
   // In-game saves

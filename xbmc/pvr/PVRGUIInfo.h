@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -31,6 +19,7 @@
 #include "utils/Observer.h"
 
 #include "pvr/PVRGUITimerInfo.h"
+#include "pvr/PVRGUITimesInfo.h"
 #include "pvr/PVRTypes.h"
 #include "pvr/addons/PVRClients.h"
 
@@ -64,17 +53,6 @@ namespace PVR
     bool GetInt(int& value, const CGUIListItem *item, int contextWindow, const KODI::GUILIB::GUIINFO::CGUIInfo &info) const override;
     bool GetBool(bool& value, const CGUIListItem *item, int contextWindow, const KODI::GUILIB::GUIINFO::CGUIInfo &info) const override;
 
-    /*!
-     * @brief Clear the playing EPG tag.
-     */
-    void ResetPlayingTag(void);
-
-    /*!
-     * @brief Get the currently playing EPG tag.
-     * @return The currently playing EPG tag or NULL if no EPG tag is playing.
-     */
-    CPVREpgInfoTagPtr GetPlayingTag() const;
-
   private:
     void ResetProperties(void);
     void ClearQualityInfo(PVR_SIGNAL_STATUS &qualityInfo);
@@ -82,14 +60,14 @@ namespace PVR
 
     void Process(void) override;
 
-    void UpdatePlayingTag(void);
     void UpdateTimersCache(void);
     void UpdateBackendCache(void);
     void UpdateQualityData(void);
     void UpdateDescrambleData(void);
     void UpdateMisc(void);
     void UpdateNextTimer(void);
-    void UpdateTimeshift(void);
+    void UpdateTimeshiftData(void);
+    void UpdateTimeshiftProgressData();
 
     void UpdateTimersToggle(void);
 
@@ -104,10 +82,6 @@ namespace PVR
     bool GetPVRBool(const CFileItem *item, const KODI::GUILIB::GUIINFO::CGUIInfo &info, bool& bValue) const;
     bool GetRadioRDSBool(const CFileItem *item, const KODI::GUILIB::GUIINFO::CGUIInfo &info, bool &bValue) const;
 
-    void CharInfoEpgEventDuration(const CFileItem *item, TIME_FORMAT format, std::string &strValue) const;
-    void CharInfoEpgEventElapsedTime(const CFileItem *item, TIME_FORMAT format, std::string &strValue) const;
-    void CharInfoEpgEventRemainingTime(const CFileItem *item, TIME_FORMAT format, std::string &strValue) const;
-    void CharInfoEpgEventFinishTime(const CFileItem *item, TIME_FORMAT format, std::string &strValue) const;
     void CharInfoBackendNumber(std::string &strValue) const;
     void CharInfoTotalDiskSpace(std::string &strValue) const;
     void CharInfoSignal(std::string &strValue) const;
@@ -129,25 +103,14 @@ namespace PVR
     void CharInfoService(std::string &strValue) const;
     void CharInfoMux(std::string &strValue) const;
     void CharInfoProvider(std::string &strValue) const;
-    void CharInfoTimeshiftStartTime(TIME_FORMAT format, std::string &strValue) const;
-    void CharInfoTimeshiftEndTime(TIME_FORMAT format, std::string &strValue) const;
-    void CharInfoTimeshiftPlayTime(TIME_FORMAT format, std::string &strValue) const;
-    void CharInfoTimeshiftOffset(TIME_FORMAT format, std::string &strValue) const;
-
-    /*!
-     * @brief Get the elapsed time since the start of the currently playing epg event or if
-     *        no epg is available since the start of the playback of the current Live TV stream.
-     * @return The time in seconds or 0 if no channel is playing.
-     */
-    int GetElapsedTime(void) const;
-
-    int GetRemainingTime(const CFileItem *item) const;
 
     /** @name PVRGUIInfo data */
     //@{
     CPVRGUIAnyTimerInfo   m_anyTimersInfo; // tv + radio
     CPVRGUITVTimerInfo    m_tvTimersInfo;
     CPVRGUIRadioTimerInfo m_radioTimersInfo;
+
+    CPVRGUITimesInfo m_timesInfo;
 
     bool                            m_bHasTVRecordings;
     bool                            m_bHasRadioRecordings;
@@ -162,7 +125,6 @@ namespace PVR
     std::string                     m_strBackendChannels;
     long long                       m_iBackendDiskTotal;
     long long                       m_iBackendDiskUsed;
-    unsigned int                    m_iDuration;
     bool                            m_bIsPlayingTV;
     bool                            m_bIsPlayingRadio;
     bool                            m_bIsPlayingRecording;
@@ -179,17 +141,7 @@ namespace PVR
 
     PVR_SIGNAL_STATUS               m_qualityInfo;       /*!< stream quality information */
     PVR_DESCRAMBLE_INFO             m_descrambleInfo;    /*!< stream descramble information */
-    CPVREpgInfoTagPtr               m_playingEpgTag;
     std::vector<SBackend>           m_backendProperties;
-
-    bool                            m_bHasTimeshiftData;
-    bool                            m_bIsTimeshifting;
-    time_t                          m_iLastTimeshiftUpdate;
-    time_t                          m_iStartTime;
-    time_t                          m_iTimeshiftStartTime;
-    time_t                          m_iTimeshiftEndTime;
-    time_t                          m_iTimeshiftPlayTime;
-    unsigned int                    m_iTimeshiftOffset;
 
     mutable CCriticalSection m_critSection;
 
@@ -199,7 +151,7 @@ namespace PVR
      * backend querying when we're not displaying any of the queried
      * information.
      */
-    mutable std::atomic<bool>       m_updateBackendCacheRequested;
+    mutable std::atomic<bool> m_updateBackendCacheRequested;
 
     bool m_bRegistered;
   };

@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "network/Network.h"
@@ -141,32 +129,28 @@ IFile* CFileFactory::CreateLoader(const CURL& url)
   else if (CWinLibraryFile::IsValid(url)) return new CWinLibraryFile();
 #endif
 
-  bool networkAvailable = CServiceBroker::GetNetwork().IsAvailable();
-  if (networkAvailable)
-  {
-    if (url.IsProtocol("ftp")
-    ||  url.IsProtocol("ftps")
-    ||  url.IsProtocol("rss")
-    ||  url.IsProtocol("rsss")
-    ||  url.IsProtocol("http")
-    ||  url.IsProtocol("https")) return new CCurlFile();
-    else if (url.IsProtocol("dav") || url.IsProtocol("davs")) return new CDAVFile();
-    else if (url.IsProtocol("shout")) return new CShoutcastFile();
+  if (url.IsProtocol("ftp")
+  ||  url.IsProtocol("ftps")
+  ||  url.IsProtocol("rss")
+  ||  url.IsProtocol("rsss")
+  ||  url.IsProtocol("http")
+  ||  url.IsProtocol("https")) return new CCurlFile();
+  else if (url.IsProtocol("dav") || url.IsProtocol("davs")) return new CDAVFile();
+  else if (url.IsProtocol("shout")) return new CShoutcastFile();
 #ifdef HAS_FILESYSTEM_SMB
 #ifdef TARGET_WINDOWS
-    else if (url.IsProtocol("smb")) return new CWin32SMBFile();
+  else if (url.IsProtocol("smb")) return new CWin32SMBFile();
 #else
-    else if (url.IsProtocol("smb")) return new CSMBFile();
+  else if (url.IsProtocol("smb")) return new CSMBFile();
 #endif
 #endif
 #ifdef HAS_FILESYSTEM_NFS
-    else if (url.IsProtocol("nfs")) return new CNFSFile();
+  else if (url.IsProtocol("nfs")) return new CNFSFile();
 #endif
 #ifdef HAS_UPNP
-    else if (url.IsProtocol("upnp")) return new CUPnPFile();
+  else if (url.IsProtocol("upnp")) return new CUPnPFile();
 #endif
-  }
 
-  CLog::Log(LOGWARNING, "%s - %sunsupported protocol(%s) in %s", __FUNCTION__, networkAvailable ? "" : "Network down or ", url.GetProtocol().c_str(), url.GetRedacted().c_str());
+  CLog::Log(LOGWARNING, "%s - unsupported protocol(%s) in %s", __FUNCTION__, url.GetProtocol().c_str(), url.GetRedacted().c_str());
   return NULL;
 }

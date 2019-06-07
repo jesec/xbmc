@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -35,9 +23,18 @@ extern "C"
 }
 
 #define MAX_PLAYLIST_ID 99999
+#define MAX_CLIP_ID 99999
 #define BD_EVENT_MENU_OVERLAY -1
 #define BD_EVENT_MENU_ERROR   -2
 #define BD_EVENT_ENC_ERROR    -3
+
+#define HDMV_PID_VIDEO            0x1011
+#define HDMV_PID_AUDIO_FIRST      0x1100
+#define HDMV_PID_AUDIO_LAST       0x111f
+#define HDMV_PID_PG_FIRST         0x1200
+#define HDMV_PID_PG_LAST          0x121f
+#define HDMV_PID_IG_FIRST         0x1400
+#define HDMV_PID_IG_LAST          0x141f
 
 class CDVDOverlayImage;
 class IVideoPlayer;
@@ -50,6 +47,7 @@ class CDVDInputStreamBluray
   , public CDVDInputStream::IMenus
 {
 public:
+  CDVDInputStreamBluray() = delete;
   CDVDInputStreamBluray(IVideoPlayer* player, const CFileItem& fileitem);
   ~CDVDInputStreamBluray() override;
   bool Open() override;
@@ -131,14 +129,15 @@ protected:
   static void OverlayClear(SPlane& plane, int x, int y, int w, int h);
   static void OverlayInit (SPlane& plane, int w, int h);
 
-  IVideoPlayer* m_player;
-  BLURAY* m_bd;
-  BLURAY_TITLE_INFO* m_title;
-  uint32_t m_playlist;
-  uint32_t m_clip;
-  uint32_t m_angle;
-  bool m_menu;
-  bool m_navmode;
+  IVideoPlayer* m_player = nullptr;
+  BLURAY* m_bd = nullptr;
+  const BLURAY_TITLE* m_title = nullptr;
+  BLURAY_TITLE_INFO* m_titleInfo = nullptr;
+  uint32_t m_playlist = MAX_PLAYLIST_ID + 1;
+  BLURAY_CLIP_INFO* m_clip = nullptr;
+  uint32_t m_angle = 0;
+  bool m_menu = false;
+  bool m_navmode = false;
   int m_dispTimeBeforeRead = 0;
 
   typedef std::shared_ptr<CDVDOverlayImage> SOverlay;
@@ -159,7 +158,7 @@ protected:
     HOLD_STILL,
     HOLD_ERROR,
     HOLD_EXIT
-  } m_hold;
+  } m_hold = HOLD_NONE;
   BD_EVENT m_event;
 #ifdef HAVE_LIBBLURAY_BDJ
   struct bd_argb_buffer_s m_argb;
@@ -168,6 +167,7 @@ protected:
   private:
     bool OpenStream(CFileItem &item);
     void SetupPlayerSettings();
-    std::unique_ptr<CDVDInputStreamFile> m_pstream;
+    void FreeTitleInfo();
+    std::unique_ptr<CDVDInputStreamFile> m_pstream = nullptr;
     std::string m_rootPath;
 };

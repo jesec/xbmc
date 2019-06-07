@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GUIWindowLoginScreen.h"
@@ -33,12 +21,12 @@
 #include "messaging/ApplicationMessenger.h"
 #include "messaging/helpers/DialogOKHelper.h"
 #include "profiles/Profile.h"
-#include "profiles/ProfilesManager.h"
+#include "profiles/ProfileManager.h"
 #include "profiles/dialogs/GUIDialogProfileSettings.h"
 #include "pvr/PVRGUIActions.h"
 #include "pvr/PVRManager.h"
 #include "settings/Settings.h"
-#include "utils/log.h"
+#include "settings/SettingsComponent.h"
 #include "utils/StringUtils.h"
 #include "utils/Variant.h"
 #include "view/ViewState.h"
@@ -160,18 +148,18 @@ void CGUIWindowLoginScreen::FrameMove()
       m_iSelectedItem = m_viewControl.GetSelectedItem();
   }
 
-  const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+  const std::shared_ptr<CProfileManager> profileManager = CServiceBroker::GetSettingsComponent()->GetProfileManager();
 
-  std::string strLabel = StringUtils::Format(g_localizeStrings.Get(20114).c_str(), m_iSelectedItem+1, profileManager.GetNumberOfProfiles());
+  std::string strLabel = StringUtils::Format(g_localizeStrings.Get(20114).c_str(), m_iSelectedItem+1, profileManager->GetNumberOfProfiles());
   SET_CONTROL_LABEL(CONTROL_LABEL_SELECTED_PROFILE,strLabel);
   CGUIWindow::FrameMove();
 }
 
 void CGUIWindowLoginScreen::OnInitWindow()
 {
-  const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+  const std::shared_ptr<CProfileManager> profileManager = CServiceBroker::GetSettingsComponent()->GetProfileManager();
 
-  m_iSelectedItem = static_cast<int>(profileManager.GetLastUsedProfileIndex());
+  m_iSelectedItem = static_cast<int>(profileManager->GetLastUsedProfileIndex());
 
   // Update list/thumb control
   m_viewControl.SetCurrentView(DEFAULT_VIEW_LIST);
@@ -201,11 +189,11 @@ void CGUIWindowLoginScreen::Update()
 {
   m_vecItems->Clear();
 
-  const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+  const std::shared_ptr<CProfileManager> profileManager = CServiceBroker::GetSettingsComponent()->GetProfileManager();
 
-  for (unsigned int i = 0; i < profileManager.GetNumberOfProfiles(); ++i)
+  for (unsigned int i = 0; i < profileManager->GetNumberOfProfiles(); ++i)
   {
-    const CProfile *profile = profileManager.GetProfile(i);
+    const CProfile *profile = profileManager->GetProfile(i);
 
     CFileItemPtr item(new CFileItem(profile->getName()));
 
@@ -232,7 +220,7 @@ bool CGUIWindowLoginScreen::OnPopupMenu(int iItem)
   if (iItem < 0 || iItem >= m_vecItems->Size())
     return false;
 
-  const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+  const std::shared_ptr<CProfileManager> profileManager = CServiceBroker::GetSettingsComponent()->GetProfileManager();
 
   CFileItemPtr pItem = m_vecItems->Get(iItem);
   bool bSelect = pItem->IsSelected();
@@ -249,8 +237,8 @@ bool CGUIWindowLoginScreen::OnPopupMenu(int iItem)
   int choice = CGUIDialogContextMenu::ShowAndGetChoice(choices);
   if (choice == 2)
   {
-    if (g_passwordManager.CheckLock(profileManager.GetMasterProfile().getLockMode(), profileManager.GetMasterProfile().getLockCode(), 20075))
-      g_passwordManager.iMasterLockRetriesLeft = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_MASTERLOCK_MAXRETRIES);
+    if (g_passwordManager.CheckLock(profileManager->GetMasterProfile().getLockMode(), profileManager->GetMasterProfile().getLockCode(), 20075))
+      g_passwordManager.iMasterLockRetriesLeft = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_MASTERLOCK_MAXRETRIES);
     else // be inconvenient
       CApplicationMessenger::GetInstance().PostMsg(TMSG_SHUTDOWN);
 
@@ -262,7 +250,7 @@ bool CGUIWindowLoginScreen::OnPopupMenu(int iItem)
     CGUIDialogProfileSettings::ShowForProfile(m_viewControl.GetSelectedItem());
 
   //NOTE: this can potentially (de)select the wrong item if the filelisting has changed because of an action above.
-  if (iItem < static_cast<int>(profileManager.GetNumberOfProfiles()))
+  if (iItem < static_cast<int>(profileManager->GetNumberOfProfiles()))
     m_vecItems->Get(iItem)->Select(bSelect);
 
   return false;

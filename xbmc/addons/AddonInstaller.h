@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2011-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2011-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -39,7 +27,7 @@ public:
 
   bool IsDownloading() const;
   void GetInstallList(ADDON::VECADDONS &addons) const;
-  bool GetProgress(const std::string &addonID, unsigned int &percent) const;
+  bool GetProgress(const std::string& addonID, unsigned int& percent, bool& downloadFinshed) const;
   bool Cancel(const std::string &addonID);
 
   /*! \brief Installs the addon while showing a modal progress dialog
@@ -105,13 +93,11 @@ public:
   class CDownloadJob
   {
   public:
-    explicit CDownloadJob(unsigned int id)
-    {
-      jobID = id;
-      progress = 0;
-    }
+    explicit CDownloadJob(unsigned int id) : jobID(id) { }
+
     unsigned int jobID;
-    unsigned int progress;
+    unsigned int progress = 0;
+    bool downloadFinshed = false;
   };
 
   typedef std::map<std::string, CDownloadJob> JobMap;
@@ -158,12 +144,21 @@ public:
 
   bool DoWork() override;
 
-  /*! \brief Find the add-on and itshash for the given add-on ID
+  static constexpr const char* TYPE_DOWNLOAD = "DOWNLOAD";
+  static constexpr const char* TYPE_INSTALL = "INSTALL";
+  /*!
+   * \brief Returns the current processing type in the installation job
+   *
+   * \return The current processing type as string, can be \ref TYPE_DOWNLOAD or
+   *         \ref TYPE_INSTALL
+   */
+  const char* GetType() const override { return m_currentType; }
+
+  /*! \brief Find the add-on and its repository for the given add-on ID
    *  \param addonID ID of the add-on to find
-   *  \param repoID ID of the repo to use
-   *  \param addon Add-on with the given add-on ID
-   *  \param hash Hash of the add-on
-   *  \return True if the add-on and its hash were found, false otherwise.
+   *  \param[out] repo the repository to use
+   *  \param[out] addon Add-on with the given add-on ID
+   *  \return True if the add-on and its repository were found, false otherwise.
    */
   static bool GetAddon(const std::string& addonID, ADDON::RepositoryPtr& repo, ADDON::AddonPtr& addon);
 
@@ -186,6 +181,7 @@ private:
   ADDON::RepositoryPtr m_repo;
   bool m_isUpdate;
   bool m_isAutoUpdate;
+  const char* m_currentType = TYPE_DOWNLOAD;
 };
 
 class CAddonUnInstallJob : public CFileOperationJob

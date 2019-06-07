@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2015 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GUIWindowAddonBrowser.h"
@@ -23,7 +11,6 @@
 #include "AddonSystemSettings.h"
 #include "addons/RepositoryUpdater.h"
 #include "GUIDialogAddonInfo.h"
-#include "addons/settings/GUIDialogAddonSettings.h"
 #include "dialogs/GUIDialogBusy.h"
 #include "dialogs/GUIDialogYesNo.h"
 #include "dialogs/GUIDialogSelect.h"
@@ -31,7 +18,6 @@
 #include "GUIUserMessages.h"
 #include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
-#include "utils/URIUtils.h"
 #include "URL.h"
 #include "FileItem.h"
 #include "ServiceBroker.h"
@@ -39,11 +25,11 @@
 #include "addons/AddonInstaller.h"
 #include "messaging/helpers/DialogHelper.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "settings/MediaSourceSettings.h"
 #include "threads/IRunnable.h"
 #include "utils/StringUtils.h"
 #include "utils/Variant.h"
-#include "AddonDatabase.h"
 #include "storage/MediaManager.h"
 #include "LangInfo.h"
 #include "input/Key.h"
@@ -92,15 +78,17 @@ bool CGUIWindowAddonBrowser::OnMessage(CGUIMessage& message)
       int iControl = message.GetSenderId();
       if (iControl == CONTROL_FOREIGNFILTER)
       {
-        CServiceBroker::GetSettings().ToggleBool(CSettings::SETTING_GENERAL_ADDONFOREIGNFILTER);
-        CServiceBroker::GetSettings().Save();
+        const std::shared_ptr<CSettings> settings = CServiceBroker::GetSettingsComponent()->GetSettings();
+        settings->ToggleBool(CSettings::SETTING_GENERAL_ADDONFOREIGNFILTER);
+        settings->Save();
         Refresh();
         return true;
       }
       else if (iControl == CONTROL_BROKENFILTER)
       {
-        CServiceBroker::GetSettings().ToggleBool(CSettings::SETTING_GENERAL_ADDONBROKENFILTER);
-        CServiceBroker::GetSettings().Save();
+        const std::shared_ptr<CSettings> settings = CServiceBroker::GetSettingsComponent()->GetSettings();
+        settings->ToggleBool(CSettings::SETTING_GENERAL_ADDONBROKENFILTER);
+        settings->Save();
         Refresh();
         return true;
       }
@@ -187,7 +175,7 @@ void CGUIWindowAddonBrowser::InstallFromZip()
 {
   using namespace KODI::MESSAGING::HELPERS;
 
-  if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_ADDONS_ALLOW_UNKNOWN_SOURCES))
+  if (!CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_ADDONS_ALLOW_UNKNOWN_SOURCES))
   {
     if (ShowYesNoDialogText(13106, 36617, 186, 10004) == DialogResponse::YES)
       CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(WINDOW_SETTINGS_SYSTEM, CSettings::SETTING_ADDONS_ALLOW_UNKNOWN_SOURCES);
@@ -247,8 +235,9 @@ bool CGUIWindowAddonBrowser::OnClick(int iItem, const std::string &player)
 
 void CGUIWindowAddonBrowser::UpdateButtons()
 {
-  SET_CONTROL_SELECTED(GetID(),CONTROL_FOREIGNFILTER, CServiceBroker::GetSettings().GetBool(CSettings::SETTING_GENERAL_ADDONFOREIGNFILTER));
-  SET_CONTROL_SELECTED(GetID(),CONTROL_BROKENFILTER, CServiceBroker::GetSettings().GetBool(CSettings::SETTING_GENERAL_ADDONBROKENFILTER));
+  const std::shared_ptr<CSettings> settings = CServiceBroker::GetSettingsComponent()->GetSettings();
+  SET_CONTROL_SELECTED(GetID(),CONTROL_FOREIGNFILTER, settings->GetBool(CSettings::SETTING_GENERAL_ADDONFOREIGNFILTER));
+  SET_CONTROL_SELECTED(GetID(),CONTROL_BROKENFILTER, settings->GetBool(CSettings::SETTING_GENERAL_ADDONBROKENFILTER));
   CONTROL_ENABLE(CONTROL_CHECK_FOR_UPDATES);
   CONTROL_ENABLE(CONTROL_SETTINGS);
 
@@ -284,7 +273,8 @@ bool CGUIWindowAddonBrowser::GetDirectory(const std::string& strDirectory, CFile
 
   if (result && CAddonsDirectory::IsRepoDirectory(CURL(strDirectory)))
   {
-    if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_GENERAL_ADDONFOREIGNFILTER))
+    const std::shared_ptr<CSettings> settings = CServiceBroker::GetSettingsComponent()->GetSettings();
+    if (settings->GetBool(CSettings::SETTING_GENERAL_ADDONFOREIGNFILTER))
     {
       int i = 0;
       while (i < items.Size())
@@ -296,11 +286,11 @@ bool CGUIWindowAddonBrowser::GetDirectory(const std::string& strDirectory, CFile
           ++i;
       }
     }
-    if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_GENERAL_ADDONBROKENFILTER))
+    if (settings->GetBool(CSettings::SETTING_GENERAL_ADDONBROKENFILTER))
     {
       for (int i = items.Size() - 1; i >= 0; i--)
       {
-        if (items[i]->GetAddonInfo() && !items[i]->GetAddonInfo()->Broken().empty())
+        if (items[i]->GetAddonInfo() && items[i]->GetAddonInfo()->IsBroken())
         {
           //check if it's installed
           AddonPtr addon;
@@ -323,9 +313,10 @@ void CGUIWindowAddonBrowser::UpdateStatus(const CFileItemPtr& item)
     return;
 
   unsigned int percent;
-  if (CAddonInstaller::GetInstance().GetProgress(item->GetProperty("Addon.ID").asString(), percent))
+  bool downloadFinshed;
+  if (CAddonInstaller::GetInstance().GetProgress(item->GetProperty("Addon.ID").asString(), percent, downloadFinshed))
   {
-    std::string progress = StringUtils::Format(g_localizeStrings.Get(24042).c_str(), percent);
+    std::string progress = StringUtils::Format(!downloadFinshed ? g_localizeStrings.Get(24042) : g_localizeStrings.Get(24044), percent);
     item->SetProperty("Addon.Status", progress);
     item->SetProperty("Addon.Downloading", true);
   }

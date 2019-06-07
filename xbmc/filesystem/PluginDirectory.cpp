@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "Application.h"
@@ -25,16 +13,20 @@
 #include "addons/AddonManager.h"
 #include "addons/AddonInstaller.h"
 #include "addons/IAddon.h"
+#include "addons/PluginSource.h"
 #include "interfaces/generic/ScriptInvocationManager.h"
 #include "threads/SingleLock.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "dialogs/GUIDialogBusy.h"
+#include "dialogs/GUIDialogProgress.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "FileItem.h"
 #include "video/VideoInfoTag.h"
 #include "utils/log.h"
-#include "utils/JobManager.h"
 #include "utils/StringUtils.h"
+#include "utils/URIUtils.h"
 #include "messaging/ApplicationMessenger.h"
 #include "URL.h"
 
@@ -271,25 +263,25 @@ void CPluginDirectory::AddSortMethod(int handle, SORT_METHOD sortMethod, const s
     case SORT_METHOD_LABEL:
     case SORT_METHOD_LABEL_IGNORE_THE:
       {
-        dir->m_listItems->AddSortMethod(SortByLabel, 551, LABEL_MASKS("%T", label2Mask), CServiceBroker::GetSettings().GetBool(CSettings::SETTING_FILELISTS_IGNORETHEWHENSORTING) ? SortAttributeIgnoreArticle : SortAttributeNone);
+        dir->m_listItems->AddSortMethod(SortByLabel, 551, LABEL_MASKS("%T", label2Mask), CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_FILELISTS_IGNORETHEWHENSORTING) ? SortAttributeIgnoreArticle : SortAttributeNone);
         break;
       }
     case SORT_METHOD_TITLE:
     case SORT_METHOD_TITLE_IGNORE_THE:
       {
-        dir->m_listItems->AddSortMethod(SortByTitle, 556, LABEL_MASKS("%T", label2Mask), CServiceBroker::GetSettings().GetBool(CSettings::SETTING_FILELISTS_IGNORETHEWHENSORTING) ? SortAttributeIgnoreArticle : SortAttributeNone);
+        dir->m_listItems->AddSortMethod(SortByTitle, 556, LABEL_MASKS("%T", label2Mask), CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_FILELISTS_IGNORETHEWHENSORTING) ? SortAttributeIgnoreArticle : SortAttributeNone);
         break;
       }
     case SORT_METHOD_ARTIST:
     case SORT_METHOD_ARTIST_IGNORE_THE:
       {
-        dir->m_listItems->AddSortMethod(SortByArtist, 557, LABEL_MASKS("%T", "%A"), CServiceBroker::GetSettings().GetBool(CSettings::SETTING_FILELISTS_IGNORETHEWHENSORTING) ? SortAttributeIgnoreArticle : SortAttributeNone);
+        dir->m_listItems->AddSortMethod(SortByArtist, 557, LABEL_MASKS("%T", "%A"), CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_FILELISTS_IGNORETHEWHENSORTING) ? SortAttributeIgnoreArticle : SortAttributeNone);
         break;
       }
     case SORT_METHOD_ALBUM:
     case SORT_METHOD_ALBUM_IGNORE_THE:
       {
-        dir->m_listItems->AddSortMethod(SortByAlbum, 558, LABEL_MASKS("%T", "%B"), CServiceBroker::GetSettings().GetBool(CSettings::SETTING_FILELISTS_IGNORETHEWHENSORTING) ? SortAttributeIgnoreArticle : SortAttributeNone);
+        dir->m_listItems->AddSortMethod(SortByAlbum, 558, LABEL_MASKS("%T", "%B"), CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_FILELISTS_IGNORETHEWHENSORTING) ? SortAttributeIgnoreArticle : SortAttributeNone);
         break;
       }
     case SORT_METHOD_DATE:
@@ -352,7 +344,7 @@ void CPluginDirectory::AddSortMethod(int handle, SORT_METHOD sortMethod, const s
     case SORT_METHOD_VIDEO_SORT_TITLE:
     case SORT_METHOD_VIDEO_SORT_TITLE_IGNORE_THE:
       {
-        dir->m_listItems->AddSortMethod(SortBySortTitle, 556, LABEL_MASKS("%T", label2Mask), CServiceBroker::GetSettings().GetBool(CSettings::SETTING_FILELISTS_IGNORETHEWHENSORTING) ? SortAttributeIgnoreArticle : SortAttributeNone);
+        dir->m_listItems->AddSortMethod(SortBySortTitle, 556, LABEL_MASKS("%T", label2Mask), CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_FILELISTS_IGNORETHEWHENSORTING) ? SortAttributeIgnoreArticle : SortAttributeNone);
         break;
       }
     case SORT_METHOD_MPAA_RATING:
@@ -363,7 +355,7 @@ void CPluginDirectory::AddSortMethod(int handle, SORT_METHOD sortMethod, const s
     case SORT_METHOD_STUDIO:
     case SORT_METHOD_STUDIO_IGNORE_THE:
       {
-        dir->m_listItems->AddSortMethod(SortByStudio, 572, LABEL_MASKS("%T", "%U"), CServiceBroker::GetSettings().GetBool(CSettings::SETTING_FILELISTS_IGNORETHEWHENSORTING) ? SortAttributeIgnoreArticle : SortAttributeNone);
+        dir->m_listItems->AddSortMethod(SortByStudio, 572, LABEL_MASKS("%T", "%U"), CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_FILELISTS_IGNORETHEWHENSORTING) ? SortAttributeIgnoreArticle : SortAttributeNone);
         break;
       }
     case SORT_METHOD_PROGRAM_COUNT:
@@ -388,7 +380,7 @@ void CPluginDirectory::AddSortMethod(int handle, SORT_METHOD sortMethod, const s
       }
     case SORT_METHOD_PLAYLIST_ORDER:
       {
-        std::string strTrack=CServiceBroker::GetSettings().GetString(CSettings::SETTING_MUSICFILES_TRACKFORMAT);
+        std::string strTrack=CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_MUSICFILES_TRACKFORMAT);
         dir->m_listItems->AddSortMethod(SortByPlaylistOrder, 559, LABEL_MASKS(strTrack, "%D"));
         break;
       }
@@ -507,10 +499,20 @@ bool CPluginDirectory::WaitOnScriptResult(const std::string &scriptPath, int scr
     if (!m_fetchComplete.WaitMSec(20))
     {
       CScriptObserver scriptObs(scriptId, m_fetchComplete);
-      if (!CGUIDialogBusy::WaitOnEvent(m_fetchComplete, 200))
+
+      CGUIDialogProgress* progress = nullptr;
+      CGUIWindowManager& wm = CServiceBroker::GetGUI()->GetWindowManager();
+      if (wm.IsModalDialogTopmost(WINDOW_DIALOG_PROGRESS))
+        progress = wm.GetWindow<CGUIDialogProgress>(WINDOW_DIALOG_PROGRESS);
+
+      if (progress != nullptr)
       {
-        m_cancelled = true;
+        if (!progress->WaitOnEvent(m_fetchComplete))
+          m_cancelled = true;
       }
+      else if (!CGUIDialogBusy::WaitOnEvent(m_fetchComplete, 200))
+        m_cancelled = true;
+
       scriptObs.Abort();
     }
   }
@@ -603,4 +605,47 @@ float CPluginDirectory::GetProgress() const
   if (m_totalItems > 0)
     return (m_listItems->Size() * 100.0f) / m_totalItems;
   return 0.0f;
+}
+
+bool CPluginDirectory::IsMediaLibraryScanningAllowed(const std::string& content, const std::string& strPath)
+{
+  if (content.empty())
+    return false;
+
+  CURL url(strPath);
+  if (url.GetHostName().empty())
+    return false;
+  AddonPtr addon;
+  if (!CServiceBroker::GetAddonMgr().GetAddon(url.GetHostName(), addon, ADDON_PLUGIN))
+  {
+    CLog::Log(LOGERROR, "Unable to find plugin %s", url.GetHostName().c_str());
+    return false;
+  }
+  CPluginSource* plugin = dynamic_cast<CPluginSource*>(addon.get());
+  if (!plugin)
+    return false;
+
+  auto& paths = plugin->MediaLibraryScanPaths();
+  if (paths.empty())
+    return false;
+  auto it = paths.find(content);
+  if (it == paths.end())
+    return false;
+  std::string path = url.GetFileName();
+  for (const auto& p : it->second)
+    if (p.empty() || p == "/" || URIUtils::PathHasParent(path, p))
+      return true;
+  return false;
+}
+
+bool CPluginDirectory::CheckExists(const std::string& content, const std::string& strPath)
+{
+  if (!IsMediaLibraryScanningAllowed(content, strPath))
+    return false;
+  // call the plugin at specified path with option "kodi_action=check_exists"
+  // url exists if the plugin returns any fileitem with setResolvedUrl
+  CURL url(strPath);
+  url.SetOption("kodi_action", "check_exists");
+  CFileItem item;
+  return CPluginDirectory::GetPluginResult(url.Get(), item, false);
 }

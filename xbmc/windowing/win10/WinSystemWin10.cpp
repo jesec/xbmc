@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "Application.h"
@@ -31,6 +19,7 @@
 #include "ServiceBroker.h"
 #include "settings/DisplaySettings.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "threads/SingleLock.h"
 #include "utils/log.h"
 #include "utils/SystemInfo.h"
@@ -409,7 +398,17 @@ void CWinSystemWin10::UpdateResolutions()
       for (auto& mode : hdmiModes)
       {
         RESOLUTION_INFO res;
-        UpdateDesktopResolution(res, mode.ResolutionWidthInRawPixels(), mode.ResolutionHeightInRawPixels(), mode.RefreshRate(), 0);
+        res.iWidth = mode.ResolutionWidthInRawPixels();
+        res.iHeight = mode.ResolutionHeightInRawPixels();
+        res.bFullScreen = true;
+        res.dwFlags = 0;
+        res.fRefreshRate = mode.RefreshRate();
+        res.fPixelRatio = 1.0f;
+        res.iScreenWidth = res.iWidth;
+        res.iScreenHeight = res.iHeight;
+        res.iSubtitles = (int)(0.965 * res.iHeight);
+        res.strMode = StringUtils::Format("Default: %dx%d @ %.2fHz",
+                                          res.iWidth, res.iHeight, res.fRefreshRate);
         GetGfxContext().ResetOverscan(res);
 
         if (AddResolution(res))
@@ -582,7 +581,7 @@ void CWinSystemWin10::OnDisplayReset()
 
 void CWinSystemWin10::OnDisplayBack()
 {
-  int delay = CServiceBroker::GetSettings().GetInt("videoscreen.delayrefreshchange");
+  int delay = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt("videoscreen.delayrefreshchange");
   if (delay > 0)
   {
     m_delayDispReset = true;
@@ -619,7 +618,7 @@ std::string CWinSystemWin10::GetClipboardText()
 
 bool CWinSystemWin10::UseLimitedColor()
 {
-  return CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOSCREEN_LIMITEDRANGE);
+  return CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_VIDEOSCREEN_LIMITEDRANGE);
 }
 
 void CWinSystemWin10::NotifyAppFocusChange(bool bGaining)

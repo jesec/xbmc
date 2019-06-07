@@ -1,25 +1,12 @@
 /*
- *      Copyright (C) 2005-2015 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "Resolution.h"
-#include "guilib/gui3d.h"
 #include "GraphicContext.h"
 #include "utils/Variant.h"
 #include "utils/log.h"
@@ -27,6 +14,7 @@
 #include "settings/AdvancedSettings.h"
 #include "settings/DisplaySettings.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "ServiceBroker.h"
 
 #include <cstdlib>
@@ -100,7 +88,25 @@ void CResolutionUtils::FindResolutionFromWhitelist(float fps, int width, int hei
 {
   RESOLUTION_INFO curr = CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo(resolution);
 
-  std::vector<CVariant> indexList = CServiceBroker::GetSettings().GetList(CSettings::SETTING_VIDEOSCREEN_WHITELIST);
+  std::vector<CVariant> indexList = CServiceBroker::GetSettingsComponent()->GetSettings()->GetList(CSettings::SETTING_VIDEOSCREEN_WHITELIST);
+  if (indexList.empty())
+  {
+    CLog::Log(LOGDEBUG, "Whitelist is empty using default one");
+    std::vector<RESOLUTION> candidates;
+    RESOLUTION_INFO info;
+    std::string resString;
+    CServiceBroker::GetWinSystem()->GetGfxContext().GetAllowedResolutions(candidates);
+    for (const auto& c : candidates)
+    {
+      info = CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo(c);
+      if (info.iScreenHeight >= curr.iScreenHeight && info.iScreenWidth >= curr.iScreenWidth &&
+          (info.dwFlags & D3DPRESENTFLAG_MODEMASK) == (curr.dwFlags & D3DPRESENTFLAG_MODEMASK))
+      {
+        resString = CDisplaySettings::GetInstance().GetStringFromRes(c);
+        indexList.push_back(resString);
+      }
+    }
+  }
 
   CLog::Log(LOGDEBUG, "Trying to find exact refresh rate");
 
@@ -188,9 +194,9 @@ bool CResolutionUtils::FindResolutionFromOverride(float fps, int width, bool is3
   RESOLUTION_INFO curr = CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo(resolution);
 
   //try to find a refreshrate from the override
-  for (int i = 0; i < (int)g_advancedSettings.m_videoAdjustRefreshOverrides.size(); i++)
+  for (int i = 0; i < (int)CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_videoAdjustRefreshOverrides.size(); i++)
   {
-    RefreshOverride& override = g_advancedSettings.m_videoAdjustRefreshOverrides[i];
+    RefreshOverride& override = CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_videoAdjustRefreshOverrides[i];
 
     if (override.fallback != fallback)
       continue;
@@ -263,6 +269,6 @@ float CResolutionUtils::RefreshWeight(float refresh, float fps)
 
 bool CResolutionUtils::HasWhitelist()
 {
-  std::vector<CVariant> indexList = CServiceBroker::GetSettings().GetList(CSettings::SETTING_VIDEOSCREEN_WHITELIST);
+  std::vector<CVariant> indexList = CServiceBroker::GetSettingsComponent()->GetSettings()->GetList(CSettings::SETTING_VIDEOSCREEN_WHITELIST);
   return !indexList.empty();
 }

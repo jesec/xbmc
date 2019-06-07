@@ -1,13 +1,12 @@
-/*   SDLMain.m - main entry point for our Cocoa-ized SDL app
-       Initial Version: Darrell Walisser <dwaliss1@purdue.edu>
-       Non-NIB-Code & other changes: Max Horn <max@quendi.de>
-
-    Feel free to customize this file to suit your needs
-*/
 /*
-  SDLMain.m and SDLMain.h carry neither a copyright or license. They are in the
-  public domain.
-*/
+ *  SDLMain.mm - main entry point for our Cocoa-ized SDL app
+ *  Initial Version: Darrell Walisser <dwaliss1@purdue.edu>
+ *  Non-NIB-Code & other changes: Max Horn <max@quendi.de>
+ *
+ *  SPDX-License-Identifier: Unlicense
+ *  See LICENSES/README.md for more information.
+ */
+
 #if !defined(__arm__) && !defined(__aarch64__)
 
 #import "SDL/SDL.h"
@@ -408,7 +407,13 @@ static void setupWindowMenu(void)
   // calling into c++ code, need to use autorelease pools
   NSAutoreleasePool* pool = [[NSAutoreleasePool alloc] init];
 
-  CDarwinStorageProvider::SetEvent();
+  NSString* volumeLabel = [note.userInfo objectForKey:@"NSWorkspaceVolumeLocalizedNameKey"];
+  const char* label = [volumeLabel UTF8String];
+
+  NSString* volumePath = [note.userInfo objectForKey:@"NSDevicePath"];
+  const char* path = [volumePath UTF8String];
+
+  CDarwinStorageProvider::VolumeMountNotification(label, path);
   [pool release];
 }
 
@@ -417,7 +422,13 @@ static void setupWindowMenu(void)
   // calling into c++ code, need to use autorelease pools
   NSAutoreleasePool* pool = [[NSAutoreleasePool alloc] init];
 
-  CDarwinStorageProvider::SetEvent();
+  NSString* volumeLabel = [note.userInfo objectForKey:@"NSWorkspaceVolumeLocalizedNameKey"];
+  const char* label = [volumeLabel UTF8String];
+
+  NSString* volumePath = [note.userInfo objectForKey:@"NSDevicePath"];
+  const char* path = [volumePath UTF8String];
+
+  CDarwinStorageProvider::VolumeUnmountNotification(label, path);
   [pool release];
 }
 

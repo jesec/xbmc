@@ -38,6 +38,7 @@ ifeq ($(OS), android)
       ffmpg_config += --cpu=cortex-a9
     else
       ffmpg_config += --cpu=i686 --disable-mmx
+      ffmpg_config += --extra-cflags=-no-integrated-as --extra-cflags=-mno-stackrealign
     endif
   endif
   ffmpg_config += --target-os=linux --extra-libs=-liconv --disable-linux-perf
@@ -61,7 +62,7 @@ ifeq ($(findstring arm, $(CPU)), arm)
   ffmpg_config += --enable-pic --disable-armv5te --disable-armv6t2
 endif
 ifeq ($(findstring mips, $(CPU)), mips)
-  ffmpg_config += --disable-mips32r2 --disable-mipsdspr1 --disable-mipsdspr2
+  ffmpg_config += --disable-mips32r2 --disable-mipsdsp --disable-mipsdspr2
 endif
 ifeq ($(Configuration), Release)
   ffmpg_config += --disable-debug

@@ -1,11 +1,26 @@
 # IOS packaging
 
-set(BUNDLE_RESOURCES ${CMAKE_SOURCE_DIR}/xbmc/platform/darwin/ios/Default-568h@2x.png
-                     ${CMAKE_SOURCE_DIR}/xbmc/platform/darwin/ios/Default-667h@2x.png
-                     ${CMAKE_SOURCE_DIR}/xbmc/platform/darwin/ios/Default-736h@3x.png
-                     ${CMAKE_SOURCE_DIR}/xbmc/platform/darwin/ios/Default-Landscape-736h@3x.png
-                     ${CMAKE_SOURCE_DIR}/xbmc/platform/darwin/ios/Default-812h@3x.png
-                     ${CMAKE_SOURCE_DIR}/xbmc/platform/darwin/ios/Default-Landscape-812h@3x.png
+set(BUNDLE_RESOURCES ${CMAKE_SOURCE_DIR}/xbmc/platform/darwin/ios/LaunchImage-1100-Landscape-2436h@3x.png
+                     ${CMAKE_SOURCE_DIR}/xbmc/platform/darwin/ios/LaunchImage-1100-Portrait-2436h@3x.png
+                     ${CMAKE_SOURCE_DIR}/xbmc/platform/darwin/ios/LaunchImage-1200-Landscape-1792h@2x.png
+                     ${CMAKE_SOURCE_DIR}/xbmc/platform/darwin/ios/LaunchImage-1200-Portrait-2224h@2x.png
+                     ${CMAKE_SOURCE_DIR}/xbmc/platform/darwin/ios/LaunchImage-1200-Landscape-2224h@2x.png
+                     ${CMAKE_SOURCE_DIR}/xbmc/platform/darwin/ios/LaunchImage-1200-Portrait-2388h@2x.png
+                     ${CMAKE_SOURCE_DIR}/xbmc/platform/darwin/ios/LaunchImage-1200-Landscape-2388h@2x.png
+                     ${CMAKE_SOURCE_DIR}/xbmc/platform/darwin/ios/LaunchImage-1200-Landscape-2688h@3x.png
+                     ${CMAKE_SOURCE_DIR}/xbmc/platform/darwin/ios/LaunchImage-1200-Portrait-1792h@2x.png
+                     ${CMAKE_SOURCE_DIR}/xbmc/platform/darwin/ios/LaunchImage-1200-Portrait-2688h@3x.png
+                     ${CMAKE_SOURCE_DIR}/xbmc/platform/darwin/ios/LaunchImage-568h@2x.png
+                     ${CMAKE_SOURCE_DIR}/xbmc/platform/darwin/ios/LaunchImage-700-568h@2x.png
+                     ${CMAKE_SOURCE_DIR}/xbmc/platform/darwin/ios/LaunchImage-700-Landscape@2x~ipad.png
+                     ${CMAKE_SOURCE_DIR}/xbmc/platform/darwin/ios/LaunchImage-700-Portrait@2x~ipad.png
+                     ${CMAKE_SOURCE_DIR}/xbmc/platform/darwin/ios/LaunchImage-700@2x.png
+                     ${CMAKE_SOURCE_DIR}/xbmc/platform/darwin/ios/LaunchImage-800-667h@2x.png
+                     ${CMAKE_SOURCE_DIR}/xbmc/platform/darwin/ios/LaunchImage-800-Landscape-736h@3x.png
+                     ${CMAKE_SOURCE_DIR}/xbmc/platform/darwin/ios/LaunchImage-800-Portrait-736h@3x.png
+                     ${CMAKE_SOURCE_DIR}/xbmc/platform/darwin/ios/LaunchImage-Landscape@2x~ipad.png
+                     ${CMAKE_SOURCE_DIR}/xbmc/platform/darwin/ios/LaunchImage-Portrait@2x~ipad.png
+                     ${CMAKE_SOURCE_DIR}/xbmc/platform/darwin/ios/LaunchImage@2x.png
                      ${CMAKE_SOURCE_DIR}/tools/darwin/packaging/media/ios/rounded/AppIcon29x29.png
                      ${CMAKE_SOURCE_DIR}/tools/darwin/packaging/media/ios/rounded/AppIcon29x29@2x.png
                      ${CMAKE_SOURCE_DIR}/tools/darwin/packaging/media/ios/rounded/AppIcon40x40.png
@@ -21,19 +36,13 @@ set(BUNDLE_RESOURCES ${CMAKE_SOURCE_DIR}/xbmc/platform/darwin/ios/Default-568h@2
                      ${CMAKE_SOURCE_DIR}/tools/darwin/packaging/media/ios/rounded/AppIcon76x76.png
                      ${CMAKE_SOURCE_DIR}/tools/darwin/packaging/media/ios/rounded/AppIcon76x76@2x.png)
 
-if(CMAKE_GENERATOR STREQUAL Xcode)
-  set(RESOURCE_LOCATION ${APP_NAME}.app)
-else()
-  set(RESOURCE_LOCATION ".")
-endif()
-
 target_sources(${APP_NAME_LC} PRIVATE ${BUNDLE_RESOURCES})
 foreach(file IN LISTS BUNDLE_RESOURCES)
-  set_source_files_properties(${file} PROPERTIES MACOSX_PACKAGE_LOCATION ${RESOURCE_LOCATION})
+  set_source_files_properties(${file} PROPERTIES MACOSX_PACKAGE_LOCATION .)
 endforeach()
 
 target_sources(${APP_NAME_LC} PRIVATE ${CMAKE_SOURCE_DIR}/xbmc/platform/darwin/ios/English.lproj/InfoPlist.strings)
-set_source_files_properties(${CMAKE_SOURCE_DIR}/xbmc/platform/darwin/ios/English.lproj/InfoPlist.strings PROPERTIES MACOSX_PACKAGE_LOCATION "${RESOURCE_LOCATION}/English.lproj")
+set_source_files_properties(${CMAKE_SOURCE_DIR}/xbmc/platform/darwin/ios/English.lproj/InfoPlist.strings PROPERTIES MACOSX_PACKAGE_LOCATION "./English.lproj")
 
 # Options for code signing propagated as env vars to Codesign.command via Xcode
 set(IOS_CODE_SIGN_IDENTITY "" CACHE STRING "Code Sign Identity")
@@ -66,7 +75,8 @@ add_custom_command(TARGET ${APP_NAME_LC} POST_BUILD
             "WRAPPER_EXTENSION=app"
             "SRCROOT=${CMAKE_BINARY_DIR}"
             ${CMAKE_SOURCE_DIR}/tools/darwin/Support/copyframeworks-ios.command
-    COMMAND "NATIVEPREFIX=${NATIVEPREFIX}"
+    COMMAND "XBMC_DEPENDS=${DEPENDS_PATH}"
+            "NATIVEPREFIX=${NATIVEPREFIX}"
             "PLATFORM_NAME=${PLATFORM}"
             "CODESIGNING_FOLDER_PATH=$<TARGET_FILE_DIR:${APP_NAME_LC}>"
             "BUILT_PRODUCTS_DIR=$<TARGET_FILE_DIR:${APP_NAME_LC}>/.."

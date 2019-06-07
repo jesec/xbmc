@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "WinSystemWin32DX.h"
@@ -24,7 +12,7 @@
 #include "rendering/dx/RenderContext.h"
 #include "settings/DisplaySettings.h"
 #include "settings/Settings.h"
-#include "utils/SystemInfo.h"
+#include "settings/SettingsComponent.h"
 #include "utils/log.h"
 #include "windowing/GraphicContext.h"
 
@@ -32,6 +20,7 @@
 
 #ifndef _M_X64
 #pragma comment(lib, "EasyHook32.lib")
+#include "utils/SystemInfo.h"
 #else
 #pragma comment(lib, "EasyHook64.lib")
 #endif
@@ -83,7 +72,7 @@ void CWinSystemWin32DX::PresentRenderImpl(bool rendered)
 
 bool CWinSystemWin32DX::CreateNewWindow(const std::string& name, bool fullScreen, RESOLUTION_INFO& res)
 {
-  const MONITOR_DETAILS* monitor = GetDisplayDetails(CServiceBroker::GetSettings().GetString(CSettings::SETTING_VIDEOSCREEN_MONITOR));
+  const MONITOR_DETAILS* monitor = GetDisplayDetails(CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_VIDEOSCREEN_MONITOR));
   if (!monitor)
     return false;
 

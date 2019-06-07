@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -42,6 +30,7 @@
 #include "IInputHandler.h"
 #include "JNIMainActivity.h"
 #include "JNIXBMCAudioManagerOnAudioFocusChangeListener.h"
+#include "JNIXBMCDisplayManagerDisplayListener.h"
 #include "JNIXBMCMainView.h"
 #include "JNIXBMCMediaSession.h"
 #include "platform/xbmc.h"
@@ -116,6 +105,12 @@ public:
   void onInputDeviceChanged(int deviceId) override;
   void onInputDeviceRemoved(int deviceId) override;
 
+  // implementation of DisplayManager::DisplayListener
+  void onDisplayAdded(int displayId) override;
+  void onDisplayChanged(int displayId) override;
+  void onDisplayRemoved(int displayId) override;
+  jni::jhobject getDisplayListener() { return m_displayListener.get_raw(); }
+
   bool isValid() { return m_activity != NULL; }
   const ANativeActivity *getActivity() const { return m_activity; }
 
@@ -164,7 +159,7 @@ public:
   static void SetSystemVolume(float percent);
 
   static void SetRefreshRate(float rate);
-  static void SetDisplayMode(int mode);
+  static void SetDisplayMode(int mode, float rate);
   static int GetDPI();
 
   static CRect MapRenderToDroid(const CRect& srcRect);
@@ -196,6 +191,8 @@ public:
   void ProcessSlow();
 
   static bool WaitVSync(unsigned int milliSeconds);
+  static int64_t GetNextFrameTime();
+  static float GetFrameLatencyMs();
 
   bool getVideosurfaceInUse();
   void setVideosurfaceInUse(bool videosurfaceInUse);
@@ -212,21 +209,26 @@ protected:
 private:
   static CXBMCApp* m_xbmcappinstance;
   CJNIXBMCAudioManagerOnAudioFocusChangeListener m_audioFocusListener;
+  CJNIXBMCDisplayManagerDisplayListener m_displayListener;
   static std::unique_ptr<CJNIXBMCMainView> m_mainView;
   std::unique_ptr<jni::CJNIXBMCMediaSession> m_mediaSession;
   static bool HasLaunchIntent(const std::string &package);
   std::string GetFilenameFromIntent(const CJNIIntent &intent);
+
   void run();
   void stop();
   void SetupEnv();
   static void SetRefreshRateCallback(CVariant *rate);
   static void SetDisplayModeCallback(CVariant *mode);
+  static void RegisterDisplayListener(CVariant*);
+
   static ANativeActivity *m_activity;
   static CJNIWakeLock *m_wakeLock;
   static int m_batteryLevel;
   static bool m_hasFocus;
   static bool m_headsetPlugged;
   static bool m_hdmiPlugged;
+  static bool m_hdmiReportedState;
   static IInputDeviceCallbacks* m_inputDeviceCallbacks;
   static IInputDeviceEventHandler* m_inputDeviceEventHandler;
   static bool m_hasReqVisible;
@@ -242,6 +244,7 @@ private:
 
   static CVideoSyncAndroid* m_syncImpl;
   static CEvent m_vsyncEvent;
+  static CEvent m_displayChangeEvent;
 
   void XBMC_Pause(bool pause);
   void XBMC_Stop();
@@ -249,6 +252,8 @@ private:
   bool XBMC_SetupDisplay();
 
   static uint32_t m_playback_state;
+  static int64_t m_frameTimeNanos;
+  static float m_refreshRate;
 
 public:
   // CJNISurfaceHolderCallback interface

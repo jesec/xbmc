@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include <stdlib.h>
@@ -61,6 +49,7 @@
 #include "URL.h"
 #include "filesystem/File.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "FileItem.h"
 #include "filesystem/Directory.h"
 
@@ -198,23 +187,25 @@ extern "C" void __stdcall init_emu_environ()
 
 extern "C" void __stdcall update_emu_environ()
 {
+  const std::shared_ptr<CSettings> settings = CServiceBroker::GetSettingsComponent()->GetSettings();
+
   // Use a proxy, if the GUI was configured as such
-  if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_NETWORK_USEHTTPPROXY)
-      && !CServiceBroker::GetSettings().GetString(CSettings::SETTING_NETWORK_HTTPPROXYSERVER).empty()
-      && CServiceBroker::GetSettings().GetInt(CSettings::SETTING_NETWORK_HTTPPROXYPORT) > 0
-      && CServiceBroker::GetSettings().GetInt(CSettings::SETTING_NETWORK_HTTPPROXYTYPE) == 0)
+  if (settings->GetBool(CSettings::SETTING_NETWORK_USEHTTPPROXY)
+      && !settings->GetString(CSettings::SETTING_NETWORK_HTTPPROXYSERVER).empty()
+      && settings->GetInt(CSettings::SETTING_NETWORK_HTTPPROXYPORT) > 0
+      && settings->GetInt(CSettings::SETTING_NETWORK_HTTPPROXYTYPE) == 0)
   {
     std::string strProxy;
-    if (!CServiceBroker::GetSettings().GetString(CSettings::SETTING_NETWORK_HTTPPROXYUSERNAME).empty() &&
-        !CServiceBroker::GetSettings().GetString(CSettings::SETTING_NETWORK_HTTPPROXYPASSWORD).empty())
+    if (!settings->GetString(CSettings::SETTING_NETWORK_HTTPPROXYUSERNAME).empty() &&
+        !settings->GetString(CSettings::SETTING_NETWORK_HTTPPROXYPASSWORD).empty())
     {
       strProxy = StringUtils::Format("%s:%s@",
-                                     CServiceBroker::GetSettings().GetString(CSettings::SETTING_NETWORK_HTTPPROXYUSERNAME).c_str(),
-                                     CServiceBroker::GetSettings().GetString(CSettings::SETTING_NETWORK_HTTPPROXYPASSWORD).c_str());
+                                     settings->GetString(CSettings::SETTING_NETWORK_HTTPPROXYUSERNAME).c_str(),
+                                     settings->GetString(CSettings::SETTING_NETWORK_HTTPPROXYPASSWORD).c_str());
     }
 
-    strProxy += CServiceBroker::GetSettings().GetString(CSettings::SETTING_NETWORK_HTTPPROXYSERVER);
-    strProxy += StringUtils::Format(":%d", CServiceBroker::GetSettings().GetInt(CSettings::SETTING_NETWORK_HTTPPROXYPORT));
+    strProxy += settings->GetString(CSettings::SETTING_NETWORK_HTTPPROXYSERVER);
+    strProxy += StringUtils::Format(":%d", settings->GetInt(CSettings::SETTING_NETWORK_HTTPPROXYPORT));
 
     CEnvironment::setenv( "HTTP_PROXY", "http://" + strProxy, true );
     CEnvironment::setenv( "HTTPS_PROXY", "http://" + strProxy, true );
@@ -296,9 +287,9 @@ extern "C"
     // close all open dirs...
     if (bVecDirsInited)
     {
-      for (int i=0;i < MAX_OPEN_DIRS; ++i)
+      for (SDirData& dir : vecDirsOpen)
       {
-        vecDirsOpen[i].items.Clear();
+        dir.items.Clear();
       }
       bVecDirsInited = false;
     }
@@ -971,9 +962,9 @@ extern "C"
       return NULL;
 
     bool emulated(false);
-    for (int i = 0; i < MAX_OPEN_DIRS; i++)
+    for (const SDirData& dir : vecDirsOpen)
     {
-      if (dirp == (DIR*)&vecDirsOpen[i])
+      if (dirp == (DIR*)&dir)
       {
         emulated = true;
         break;
@@ -1010,9 +1001,9 @@ extern "C"
   int dll_closedir(DIR *dirp)
   {
     bool emulated(false);
-    for (int i = 0; i < MAX_OPEN_DIRS; i++)
+    for (const SDirData& dir : vecDirsOpen)
     {
-      if (dirp == (DIR*)&vecDirsOpen[i])
+      if (dirp == (DIR*)&dir)
       {
         emulated = true;
         break;
@@ -1034,9 +1025,9 @@ extern "C"
   void dll_rewinddir(DIR *dirp)
   {
     bool emulated(false);
-    for (int i = 0; i < MAX_OPEN_DIRS; i++)
+    for (const SDirData& dir : vecDirsOpen)
     {
-      if (dirp == (DIR*)&vecDirsOpen[i])
+      if (dirp == (DIR*)&dir)
       {
         emulated = true;
         break;
@@ -2064,66 +2055,6 @@ extern "C"
 #endif
   }
 
-#if _MSC_VER < 1900
-  int dll_filbuf(FILE *fp)
-  {
-    if (fp == NULL)
-      return EOF;
-
-    if(IS_STD_STREAM(fp))
-      return EOF;
-
-    CFile* pFile = g_emuFileWrapper.GetFileXbmcByStream(fp);
-    if (pFile)
-    {
-      unsigned char data;
-      if(pFile->Read(&data, 1) == 1)
-      {
-        pFile->Seek(-1, SEEK_CUR);
-        return (int)data;
-      }
-      else
-        return EOF;
-    }
-#ifdef TARGET_POSIX
-    return EOF;
-#else
-    return _filbuf(fp);
-#endif
-  }
-
-  int dll_flsbuf(int data, FILE *fp)
-  {
-    if (fp == NULL)
-      return EOF;
-
-    if(IS_STDERR_STREAM(fp) || IS_STDOUT_STREAM(fp))
-    {
-      CLog::Log(LOGDEBUG, "dll_flsbuf() - %c", data);
-      return data;
-    }
-
-    if(IS_STD_STREAM(fp))
-      return EOF;
-
-    CFile* pFile = g_emuFileWrapper.GetFileXbmcByStream(fp);
-    if (pFile)
-    {
-      pFile->Flush();
-      unsigned char c = (unsigned char)data;
-      if(pFile->Write(&c, 1) == 1)
-        return data;
-      else
-        return EOF;
-    }
-#ifdef TARGET_POSIX
-    return EOF;
-#else
-    return _flsbuf(data, fp);
-#endif
-  }
-
-#endif
   // this needs to be wrapped, since dll's have their own file
   // descriptor list, but we always use app's list with our wrappers
   int __cdecl dll_open_osfhandle(intptr_t _OSFileHandle, int _Flags)

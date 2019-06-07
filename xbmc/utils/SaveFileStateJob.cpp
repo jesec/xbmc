@@ -1,26 +1,12 @@
 /*
- *      Copyright (C) 2010-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2010-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "SaveFileStateJob.h"
-#include "ServiceBroker.h"
-#include "settings/MediaSettings.h"
 #include "network/upnp/UPnP.h"
 #include "StringUtils.h"
 #include "utils/Variant.h"
@@ -38,6 +24,8 @@
 #include "xbmc/music/tags/MusicInfoTag.h"
 #include "Application.h"
 #include "ServiceBroker.h"
+#include "FileItem.h"
+#include "video/Bookmark.h"
 
 #ifdef HAS_DS_PLAYER
 #include "DSPlayerDatabase.h"
@@ -52,6 +40,8 @@ void CSaveFileState::DoWork(CFileItem& item,
 
   if (item.HasVideoInfoTag() && StringUtils::StartsWith(item.GetVideoInfoTag()->m_strFileNameAndPath, "removable://"))
     progressTrackingFile = item.GetVideoInfoTag()->m_strFileNameAndPath; // this variable contains removable:// suffixed by disc label+uniqueid or is empty if label not uniquely identified
+  else if (item.HasVideoInfoTag() && item.IsVideoDb())
+    progressTrackingFile = item.GetVideoInfoTag()->m_strFileNameAndPath; // we need the file url of the video db item to create the bookmark
   else if (item.HasProperty("original_listitem_url"))
   {
     // only use original_listitem_url for Python, UPnP and Bluray sources
@@ -129,7 +119,7 @@ void CSaveFileState::DoWork(CFileItem& item,
                 if (data["type"] == MediaTypeEpisode)
                   dspdb.SetLastTvShowId(true, item.GetVideoInfoTag()->m_iIdShow);
 #endif
-                ANNOUNCEMENT::CAnnouncementManager::GetInstance().Announce(ANNOUNCEMENT::VideoLibrary, "xbmc", "OnUpdate", data);
+                CServiceBroker::GetAnnouncementManager()->Announce(ANNOUNCEMENT::VideoLibrary, "xbmc", "OnUpdate", data);
               }
             }
           }
@@ -162,7 +152,7 @@ void CSaveFileState::DoWork(CFileItem& item,
               CVariant data;
               data["id"] = item.GetVideoInfoTag()->m_iDbId;
               data["type"] = item.GetVideoInfoTag()->m_type;
-              ANNOUNCEMENT::CAnnouncementManager::GetInstance().Announce(ANNOUNCEMENT::VideoLibrary, "xbmc", "OnUpdate", data);
+              CServiceBroker::GetAnnouncementManager()->Announce(ANNOUNCEMENT::VideoLibrary, "xbmc", "OnUpdate", data);
             }
 
             updateListing = true;
@@ -232,7 +222,7 @@ void CSaveFileState::DoWork(CFileItem& item,
             CVariant data;
             data["id"] = item.GetMusicInfoTag()->GetDatabaseId();
             data["type"] = item.GetMusicInfoTag()->GetType();
-            ANNOUNCEMENT::CAnnouncementManager::GetInstance().Announce(ANNOUNCEMENT::AudioLibrary, "xbmc", "OnUpdate", data);
+            CServiceBroker::GetAnnouncementManager()->Announce(ANNOUNCEMENT::AudioLibrary, "xbmc", "OnUpdate", data);
           }
         }
       }

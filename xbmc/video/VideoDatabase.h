@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2016 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2016-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -507,6 +495,7 @@ public:
   bool GetMovieInfo(const std::string& strFilenameAndPath, CVideoInfoTag& details, int idMovie = -1, int getDetails = VideoDbDetailsAll);
   bool GetTvShowInfo(const std::string& strPath, CVideoInfoTag& details, int idTvShow = -1, CFileItem* item = NULL, int getDetails = VideoDbDetailsAll);
   bool GetSeasonInfo(int idSeason, CVideoInfoTag& details, bool allDetails = true);
+  bool GetEpisodeBasicInfo(const std::string& strFilenameAndPath, CVideoInfoTag& details, int idEpisode  = -1);
   bool GetEpisodeInfo(const std::string& strFilenameAndPath, CVideoInfoTag& details, int idEpisode = -1, int getDetails = VideoDbDetailsAll);
   bool GetMusicVideoInfo(const std::string& strFilenameAndPath, CVideoInfoTag& details, int idMVideo = -1, int getDetails = VideoDbDetailsAll);
   bool GetSetInfo(int idSet, CVideoInfoTag& details);
@@ -847,6 +836,7 @@ public:
   void SetArtForItem(int mediaId, const MediaType &mediaType, const std::map<std::string, std::string> &art);
   bool GetArtForItem(int mediaId, const MediaType &mediaType, std::map<std::string, std::string> &art);
   std::string GetArtForItem(int mediaId, const MediaType &mediaType, const std::string &artType);
+  bool HasArtForItem(int mediaId, const MediaType &mediaType);
   bool RemoveArtForItem(int mediaId, const MediaType &mediaType, const std::string &artType);
   bool RemoveArtForItem(int mediaId, const MediaType &mediaType, const std::set<std::string> &artTypes);
   bool GetTvShowSeasons(int showId, std::map<int, int> &seasons);
@@ -932,6 +922,8 @@ protected:
   CVideoInfoTag GetDetailsForMovie(const dbiplus::sql_record* const record, int getDetails = VideoDbDetailsNone);
   CVideoInfoTag GetDetailsForTvShow(std::unique_ptr<dbiplus::Dataset> &pDS, int getDetails = VideoDbDetailsNone, CFileItem* item = NULL);
   CVideoInfoTag GetDetailsForTvShow(const dbiplus::sql_record* const record, int getDetails = VideoDbDetailsNone, CFileItem* item = NULL);
+  CVideoInfoTag GetBasicDetailsForEpisode(std::unique_ptr<dbiplus::Dataset> &pDS);
+  CVideoInfoTag GetBasicDetailsForEpisode(const dbiplus::sql_record* const record);
   CVideoInfoTag GetDetailsForEpisode(std::unique_ptr<dbiplus::Dataset> &pDS, int getDetails = VideoDbDetailsNone);
   CVideoInfoTag GetDetailsForEpisode(const dbiplus::sql_record* const record, int getDetails = VideoDbDetailsNone);
   CVideoInfoTag GetDetailsForMusicVideo(std::unique_ptr<dbiplus::Dataset> &pDS, int getDetails = VideoDbDetailsNone);

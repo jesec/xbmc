@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<addon id="skin.estouchy" version="2.0.14" name="Estouchy" provider-name="Team Kodi">
+<addon id="skin.estouchy" version="2.0.19" name="Estouchy" provider-name="Team Kodi">
 	<requires>
-		<import addon="xbmc.gui" version="5.13.0"/>
+		<import addon="xbmc.gui" version="5.14.0"/>
 	</requires>
 	<extension point="xbmc.gui.skin" debugging="false">
 		<res width="1280" height="960" aspect="4:3" folder="xml"/>
@@ -14,6 +14,7 @@
 		<summary lang="bg_BG">Облик за устройства със сензорен екран</summary>
 		<summary lang="ca_ES">Aparença per als dispositius amb pantalla tàctil</summary>
 		<summary lang="cs_CZ">Vzhled pro zařízení s dotykovou obrazovkou</summary>
+		<summary lang="da_DK">Skin for touchscreen enheder</summary>
 		<summary lang="de_DE">Skin für Touchscreen-Geräte</summary>
 		<summary lang="el_GR">Κέλυφος για συσκευές με οθόνη αφής</summary>
 		<summary lang="en_GB">Skin for touchscreen devices</summary>
@@ -58,6 +59,7 @@
 		<description lang="bg_BG">Обликът е разработен за ползване на устройства със сензорен екран, като таблети и телефони.</description>
 		<description lang="ca_ES">Aparença dissenyada perquè s'utilitzi en dispositius amb pantalla tàctil com taules i telèfons intel·ligents</description>
 		<description lang="cs_CZ">Vzhled navržený pro použití na zařízeních s dotykovou obrazovkou, jako jsou tablety a chytré telefony</description>
+		<description lang="da_DK">Skins som er designet til brug på touchscreen enheder som tablets og smartphones</description>
 		<description lang="de_DE">Dieses Skin wurde für die Benutzung mit Touchscreen-Geräten wie Tablets und Handys entworfen</description>
 		<description lang="el_GR">Κέλυφος σχεδιασμένο για να χρησιμοποιηθεί σε συσκευές με οθόνη αφής όπως ταμπλέτες και έξυπνα κινητά.</description>
 		<description lang="en_GB">Skin designed to be used on touchscreen devices like tablets and smartphones</description>
@@ -92,6 +94,7 @@
 		<description lang="szl">Skōra dlŏ maszin ze tykowym ekranym, jak tablety i smartfōny.</description>
 		<description lang="th_TH">หน้าตาที่ออกแบบมาเพื่อใช้งานบนอุปกรณ์หน้าจอสัมผัส เช่น แท็บเล็ตและสมาร์ทโฟน</description>
 		<description lang="tr_TR">Bu dış görünüm tabletler ve akıllı telefonlar gibi dokunmatik ekranlı aygıtlarda kullanılmak üzere tasarlandı</description>
+		<description lang="uk_UA">Ця обкладинка призначена для пристроїв із сенсорним екраном, наприклад планшетів чи смартфонів.</description>
 		<description lang="zh_CN">为触屏设备如平板电脑和智能手机而设计的皮肤</description>
 		<description lang="zh_TW">本佈景主題專為平板及手機等具有觸控螢幕的裝置而設計。</description>
 		<platform>all</platform>

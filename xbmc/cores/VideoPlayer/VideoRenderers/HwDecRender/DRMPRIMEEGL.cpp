@@ -1,24 +1,14 @@
 /*
- *      Copyright (C) 2007-2017 Team XBMC
- *      http://xbmc.org
+ *  Copyright (C) 2007-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "DRMPRIMEEGL.h"
+
+#include "utils/log.h"
 
 void CDRMPRIMETexture::Init(EGLDisplay eglDisplay)
 {
@@ -52,6 +42,8 @@ bool CDRMPRIMETexture::Map(CVideoBufferDRMPRIME *buffer)
     attribs.width = m_texWidth;
     attribs.height = m_texHeight;
     attribs.format = layer->format;
+    attribs.colorSpace = GetColorSpace(buffer->GetColorEncoding());
+    attribs.colorRange = GetColorRange(buffer->GetColorRange());
     attribs.planes = planes;
 
     if (!m_eglImage->CreateImage(attribs))
@@ -84,4 +76,38 @@ void CDRMPRIMETexture::Unmap()
 
   m_primebuffer->Release();
   m_primebuffer = nullptr;
+}
+
+int CDRMPRIMETexture::GetColorSpace(int colorSpace)
+{
+  switch(colorSpace)
+  {
+    case DRM_COLOR_YCBCR_BT2020:
+      return EGL_ITU_REC2020_EXT;
+    case DRM_COLOR_YCBCR_BT601:
+      return EGL_ITU_REC601_EXT;
+    case DRM_COLOR_YCBCR_BT709:
+      return EGL_ITU_REC709_EXT;
+    default:
+      CLog::Log(LOGERROR, "CEGLImage::%s - failed to get colorspace for: %d", __FUNCTION__, colorSpace);
+      break;
+  }
+
+  return -1;
+}
+
+int CDRMPRIMETexture::GetColorRange(int colorRange)
+{
+  switch(colorRange)
+  {
+    case DRM_COLOR_YCBCR_FULL_RANGE:
+      return EGL_YUV_FULL_RANGE_EXT;
+    case DRM_COLOR_YCBCR_LIMITED_RANGE:
+      return EGL_YUV_NARROW_RANGE_EXT;
+    default:
+      CLog::Log(LOGERROR, "CEGLImage::%s - failed to get colorrange for: %d", __FUNCTION__, colorRange);
+      break;
+  }
+
+  return -1;
 }

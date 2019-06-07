@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2017 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2017-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "PVRGUIChannelNavigator.h"
@@ -24,6 +12,7 @@
 #include "ServiceBroker.h"
 #include "guilib/GUIComponent.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "settings/lib/SettingsManager.h"
 
 #include "pvr/PVRGUIActions.h"
@@ -92,7 +81,7 @@ namespace PVR
 
     if (IsPreview() && eSwitchMode == ChannelSwitchMode::INSTANT_OR_DELAYED_SWITCH)
     {
-      int iTimeout = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_PVRPLAYBACK_CHANNELENTRYTIMEOUT);
+      int iTimeout = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_PVRPLAYBACK_CHANNELENTRYTIMEOUT);
       if (iTimeout > 0)
       {
         // delayed switch
@@ -148,7 +137,7 @@ namespace PVR
 
   void CPVRGUIChannelNavigator::ShowInfo(bool bForce)
   {
-    int iTimeout = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_PVRMENU_DISPLAYCHANNELINFO);
+    int iTimeout = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_PVRMENU_DISPLAYCHANNELINFO);
 
     if (bForce || iTimeout > 0)
     {

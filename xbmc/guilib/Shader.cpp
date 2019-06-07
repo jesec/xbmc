@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "ServiceBroker.h"
@@ -23,6 +11,7 @@
 #include "filesystem/File.h"
 #include "utils/log.h"
 #include "utils/GLUtils.h"
+#include "utils/StringUtils.h"
 #include "rendering/RenderSystem.h"
 
 #ifdef HAS_GLES
@@ -63,6 +52,9 @@ bool CShader::LoadSource(const std::string& filename, const std::string& prefix)
       pos = versionPos + 1;
   }
   m_source.insert(pos, prefix);
+
+  m_filenames = filename;
+
   return true;
 }
 
@@ -84,6 +76,9 @@ bool CShader::AppendSource(const std::string& filename)
   }
   getline(file, temp, '\0');
   m_source.append(temp);
+
+  m_filenames.append(" " + filename);
+
   return true;
 }
 
@@ -114,8 +109,26 @@ bool CShader::InsertSource(const std::string& filename, const std::string& loc)
 
   m_source.insert(locPos, temp);
 
+  m_filenames.append(" " + filename);
+
   return true;
 }
+
+std::string CShader::GetSourceWithLineNumbers() const
+{
+  int i{1};
+  auto lines = StringUtils::Split(m_source, "\n");
+  for (auto& line : lines)
+  {
+    line.insert(0, StringUtils::Format("%3d: ", i));
+    i++;
+  }
+
+  auto output = StringUtils::Join(lines, "\n");
+
+  return output;
+}
+
 
 //////////////////////////////////////////////////////////////////////
 // CGLSLVertexShader
@@ -186,7 +199,7 @@ bool CGLSLPixelShader::Compile()
   glShaderSource(m_pixelShader, 1, &ptr, 0);
   glCompileShader(m_pixelShader);
   glGetShaderiv(m_pixelShader, GL_COMPILE_STATUS, params);
-  if (params[0]!=GL_TRUE)
+  if (params[0] != GL_TRUE)
   {
     GLchar log[LOG_SIZE];
     CLog::Log(LOGERROR, "GL: Error compiling pixel shader");
@@ -198,9 +211,13 @@ bool CGLSLPixelShader::Compile()
   else
   {
     GLchar log[LOG_SIZE];
-    CLog::Log(LOGDEBUG, "GL: Pixel Shader compilation log:");
-    glGetShaderInfoLog(m_pixelShader, LOG_SIZE, NULL, log);
-    CLog::Log(LOGDEBUG, "%s", log);
+    GLsizei length;
+    glGetShaderInfoLog(m_pixelShader, LOG_SIZE, &length, log);
+    if (length > 0)
+    {
+      CLog::Log(LOGDEBUG, "GL: Pixel Shader compilation log:");
+      CLog::Log(LOGDEBUG, "%s", log);
+    }
     m_lastLog = log;
     m_compiled = true;
   }
@@ -262,7 +279,8 @@ bool CGLSLShaderProgram::CompileAndLink()
   // compiled vertex shader
   if (!m_pVP->Compile())
   {
-    CLog::Log(LOGERROR, "GL: Error compiling vertex shader");
+    CLog::Log(LOGERROR, "GL: Error compiling vertex shader: {}", m_pVP->GetName());
+    CLog::Log(LOGDEBUG, "GL: vertex shader source:\n{}", m_pVP->GetSourceWithLineNumbers());
     return false;
   }
 
@@ -270,7 +288,8 @@ bool CGLSLShaderProgram::CompileAndLink()
   if (!m_pFP->Compile())
   {
     m_pVP->Free();
-    CLog::Log(LOGERROR, "GL: Error compiling fragment shader");
+    CLog::Log(LOGERROR, "GL: Error compiling fragment shader: {}", m_pFP->GetName());
+    CLog::Log(LOGDEBUG, "GL: fragment shader source:\n{}", m_pFP->GetSourceWithLineNumbers());
     return false;
   }
 

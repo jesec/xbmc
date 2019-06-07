@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2015 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2015-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "InputStreamAddon.h"
@@ -23,7 +11,6 @@
 #include "addons/binary-addons/AddonDll.h"
 #include "addons/binary-addons/BinaryAddonBase.h"
 #include "addons/kodi-addon-dev-kit/include/kodi/addon-instance/VideoCodec.h"
-#include "cores/VideoPlayer/DVDClock.h"
 #include "cores/VideoPlayer/DVDDemuxers/DVDDemux.h"
 #include "cores/VideoPlayer/DVDDemuxers/DVDDemuxUtils.h"
 #include "cores/VideoPlayer/Interface/Addon/DemuxCrypto.h"
@@ -384,6 +371,11 @@ CDemuxStream* CInputStreamAddon::GetStream(int streamId) const
   demuxStream->uniqueId = streamId;
   demuxStream->flags = static_cast<StreamFlags>(stream.m_flags);
   demuxStream->language = stream.m_language;
+
+  if (GetAddonBase()->Version() >= AddonVersion("2.0.8"))
+  {
+    demuxStream->codec_fourcc = stream.m_codecFourCC;
+  }
 
   if (stream.m_ExtraData && stream.m_ExtraSize)
   {

@@ -1,22 +1,10 @@
 /*
-*      Copyright (C) 2005-2014 Team XBMC
-*      http://kodi.tv
-*
-*  This Program is free software; you can redistribute it and/or modify
-*  it under the terms of the GNU General Public License as published by
-*  the Free Software Foundation; either version 2, or (at your option)
-*  any later version.
-*
-*  This Program is distributed in the hope that it will be useful,
-*  but WITHOUT ANY WARRANTY; without even the implied warranty of
-*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-*  GNU General Public License for more details.
-*
-*  You should have received a copy of the GNU General Public License
-*  along with XBMC; see the file COPYING.  If not, see
-*  <http://www.gnu.org/licenses/>.
-*
-*/
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
+ *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
+ */
 
 #include <math.h>
 
@@ -33,7 +21,6 @@
 #include "input/mouse/interfaces/IMouseDriverHandler.h"
 #include "input/mouse/MouseTranslator.h"
 #include "input/Key.h"
-#include "input/WindowTranslator.h"
 #include "messaging/ApplicationMessenger.h"
 #include "guilib/GUIComponent.h"
 #include "guilib/GUIAudioManager.h"
@@ -44,13 +31,13 @@
 #include "network/EventServer.h"
 #include "ButtonTranslator.h"
 #include "peripherals/Peripherals.h"
-#include "peripherals/devices/PeripheralImon.h"
 #include "XBMC_vkeys.h"
 #include "utils/Geometry.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
 #include "Util.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "settings/lib/Setting.h"
 #include "AppParamParser.h"
 #include "AppInboundProtocol.h"
@@ -79,7 +66,7 @@ CInputManager::CInputManager(const CAppParamParser &params) :
   // Register settings
   std::set<std::string> settingSet;
   settingSet.insert(CSettings::SETTING_INPUT_ENABLEMOUSE);
-  CServiceBroker::GetSettings().RegisterCallback(this, settingSet);
+  CServiceBroker::GetSettingsComponent()->GetSettings()->RegisterCallback(this, settingSet);
 }
 
 CInputManager::~CInputManager()
@@ -87,7 +74,7 @@ CInputManager::~CInputManager()
   Deinitialize();
 
   // Unregister settings
-  CServiceBroker::GetSettings().UnregisterCallback(this);
+  CServiceBroker::GetSettingsComponent()->GetSettings()->UnregisterCallback(this);
 
   UnregisterKeyboardDriverHandler(m_keyboardEasterEgg.get());
 
@@ -101,7 +88,7 @@ void CInputManager::InitializeInputs()
   m_Keyboard.Initialize();
 
   m_Mouse.Initialize();
-  m_Mouse.SetEnabled(CServiceBroker::GetSettings().GetBool(CSettings::SETTING_INPUT_ENABLEMOUSE));
+  m_Mouse.SetEnabled(CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_INPUT_ENABLEMOUSE));
 }
 
 void CInputManager::Deinitialize()
@@ -230,6 +217,8 @@ bool CInputManager::ProcessEventServer(int windowId, float frameTime)
             return true;
 
           m_Mouse.SetActive(false);
+
+          CLog::Log(LOGDEBUG, "EventServer: key %d translated to action %s", wKeyID, actionName);
 
           return ExecuteInputAction(CAction(actionID, fAmount, 0.0f, actionName));
         }

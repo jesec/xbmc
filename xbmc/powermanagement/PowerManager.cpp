@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2015 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "PowerManager.h"
@@ -23,6 +11,7 @@
 #include <list>
 #include <memory>
 
+#include "PowerTypes.h"
 #include "Application.h"
 #include "ServiceBroker.h"
 #include "cores/AudioEngine/Interfaces/AE.h"
@@ -37,7 +26,9 @@
 #include "pvr/PVRManager.h"
 #include "ServiceBroker.h"
 #include "settings/lib/Setting.h"
+#include "settings/lib/SettingsManager.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "utils/log.h"
 #include "weather/WeatherManager.h"
 #include "windowing/WinSystem.h"
@@ -46,9 +37,11 @@
 extern HWND g_hWnd;
 #endif
 
-using namespace ANNOUNCEMENT;
-
-CPowerManager::CPowerManager() = default;
+CPowerManager::CPowerManager()
+{
+  m_settings = CServiceBroker::GetSettingsComponent()->GetSettings();
+  m_settings->GetSettingsManager()->RegisterSettingOptionsFiller("shutdownstates", SettingOptionsShutdownStatesFiller);
+}
 
 CPowerManager::~CPowerManager() = default;
 
@@ -59,7 +52,7 @@ void CPowerManager::Initialize()
 
 void CPowerManager::SetDefaults()
 {
-  int defaultShutdown = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_POWERMANAGEMENT_SHUTDOWNSTATE);
+  int defaultShutdown = m_settings->GetInt(CSettings::SETTING_POWERMANAGEMENT_SHUTDOWNSTATE);
 
   switch (defaultShutdown)
   {
@@ -98,7 +91,7 @@ void CPowerManager::SetDefaults()
     break;
   }
 
-  std::static_pointer_cast<CSettingInt>(CServiceBroker::GetSettings().GetSetting(CSettings::SETTING_POWERMANAGEMENT_SHUTDOWNSTATE))->SetDefault(defaultShutdown);
+  std::static_pointer_cast<CSettingInt>(m_settings->GetSetting(CSettings::SETTING_POWERMANAGEMENT_SHUTDOWNSTATE))->SetDefault(defaultShutdown);
 }
 
 bool CPowerManager::Powerdown()
@@ -131,7 +124,7 @@ bool CPowerManager::Reboot()
 
   if (success)
   {
-    CAnnouncementManager::GetInstance().Announce(System, "xbmc", "OnRestart");
+    CServiceBroker::GetAnnouncementManager()->Announce(ANNOUNCEMENT::System, "xbmc", "OnRestart");
 
     CGUIDialogBusy* dialog = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogBusy>(WINDOW_DIALOG_BUSY);
     if (dialog)
@@ -176,7 +169,7 @@ void CPowerManager::ProcessEvents()
 
 void CPowerManager::OnSleep()
 {
-  CAnnouncementManager::GetInstance().Announce(System, "xbmc", "OnSleep");
+  CServiceBroker::GetAnnouncementManager()->Announce(ANNOUNCEMENT::System, "xbmc", "OnSleep");
 
   CGUIDialogBusy* dialog = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogBusy>(WINDOW_DIALOG_BUSY);
   if (dialog)
@@ -223,7 +216,7 @@ void CPowerManager::OnWake()
   CServiceBroker::GetPVRManager().OnWake();
   RestorePlayerState();
 
-  CAnnouncementManager::GetInstance().Announce(System, "xbmc", "OnWake");
+  CServiceBroker::GetAnnouncementManager()->Announce(ANNOUNCEMENT::System, "xbmc", "OnWake");
 }
 
 void CPowerManager::OnLowBattery()
@@ -232,7 +225,7 @@ void CPowerManager::OnLowBattery()
 
   CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Warning, g_localizeStrings.Get(13050), "");
 
-  CAnnouncementManager::GetInstance().Announce(System, "xbmc", "OnLowBattery");
+  CServiceBroker::GetAnnouncementManager()->Announce(ANNOUNCEMENT::System, "xbmc", "OnLowBattery");
 }
 
 void CPowerManager::StorePlayerState()

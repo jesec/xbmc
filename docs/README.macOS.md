@@ -103,7 +103,7 @@ Build tools and dependencies:
 make -j$(getconf _NPROCESSORS_ONLN)
 ```
 
-**TIP:** By adding `-j<number>` to the make command, you can choose how many concurrent jobs will be used and expedite the build process. It is recommended to use `-j$(getconf _NPROCESSORS_ONLN)` to compile on all available processor cores. The build machine can also be configured to do this automatically by adding `export MAKEFLAGS="-j(getconf _NPROCESSORS_ONLN)"` to your shell config (e.g. `~/.bashrc`).
+**TIP:** By adding `-j<number>` to the make command, you can choose how many concurrent jobs will be used and expedite the build process. It is recommended to use `-j$(getconf _NPROCESSORS_ONLN)` to compile on all available processor cores. The build machine can also be configured to do this automatically by adding `export MAKEFLAGS="-j$(getconf _NPROCESSORS_ONLN)"` to your shell config (e.g. `~/.bashrc`).
 
 **WARNING:** Look for the `Dependencies built successfully.` success message. If in doubt run a single threaded `make` command until the message appears. If the single make fails, clean the specific library by issuing `make -C target/<name_of_failed_lib> distclean` and run `make`again.
 
@@ -122,17 +122,21 @@ Change to Kodi's source code directory:
 cd $HOME/kodi
 ```
 
-Build all add-ons:
+There are multiple possibilities to choose which addons are built. The following 3 examples will give an idea.
+
+(1) Build all add-ons:
 ```
 make -j$(getconf _NPROCESSORS_ONLN) -C tools/depends/target/binary-addons
 ```
+OR
 
-Build specific add-ons:
+(2) Build specific add-ons:
 ```
 make -j$(getconf _NPROCESSORS_ONLN) -C tools/depends/target/binary-addons ADDONS="audioencoder.flac pvr.vdr.vnsi audiodecoder.snesapu"
 ```
+OR
 
-Build a specific group of add-ons:
+(3) Build a specific group of add-ons:
 ```
 make -j$(getconf _NPROCESSORS_ONLN) -C tools/depends/target/binary-addons ADDONS="pvr.*"
 ```

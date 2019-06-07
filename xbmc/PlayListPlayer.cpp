@@ -1,29 +1,17 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "threads/SystemClock.h"
 #include "PlayListPlayer.h"
 #include "Application.h"
 #include "PartyModeManager.h"
-#include "ServiceManager.h"
 #include "settings/AdvancedSettings.h"
+#include "settings/SettingsComponent.h"
 #include "GUIUserMessages.h"
 #include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
@@ -40,6 +28,7 @@
 #include "messaging/ApplicationMessenger.h"
 #include "filesystem/VideoDatabaseFile.h"
 #include "messaging/helpers/DialogOKHelper.h"
+#include "ServiceBroker.h"
 
 using namespace PLAYLIST;
 using namespace KODI::MESSAGING;
@@ -53,8 +42,8 @@ CPlayListPlayer::CPlayListPlayer(void)
   m_bPlayedFirstFile = false;
   m_bPlaybackStarted = false;
   m_iCurrentPlayList = PLAYLIST_NONE;
-  for (int i = 0; i < 2; i++)
-    m_repeatState[i] = REPEAT_NONE;
+  for (REPEAT_STATE& repeatState : m_repeatState)
+    repeatState = REPEAT_NONE;
   m_iFailedSongs = 0;
   m_failedSongsStart = 0;
 }
@@ -326,8 +315,10 @@ bool CPlayListPlayer::Play(int iSong, std::string player, bool bAutoPlay /* = fa
     if (!m_iFailedSongs)
       m_failedSongsStart = playAttempt;
     m_iFailedSongs++;
-    if ((m_iFailedSongs >= g_advancedSettings.m_playlistRetries && g_advancedSettings.m_playlistRetries >= 0)
-        || ((XbmcThreads::SystemClockMillis() - m_failedSongsStart  >= (unsigned int)g_advancedSettings.m_playlistTimeout * 1000) && g_advancedSettings.m_playlistTimeout))
+    const std::shared_ptr<CAdvancedSettings> advancedSettings = CServiceBroker::GetSettingsComponent()->GetAdvancedSettings();
+    if ((m_iFailedSongs >= advancedSettings->m_playlistRetries && advancedSettings->m_playlistRetries >= 0)
+        || ((XbmcThreads::SystemClockMillis() - m_failedSongsStart  >= static_cast<unsigned int>(advancedSettings->m_playlistTimeout) * 1000) &&
+            advancedSettings->m_playlistTimeout))
     {
       CLog::Log(LOGDEBUG,"Playlist Player: one or more items failed to play... aborting playback");
 
@@ -611,14 +602,14 @@ void CPlayListPlayer::ReShuffle(int iPlaylist, int iPosition)
       (g_application.GetAppPlayer().IsPlayingVideo() && iPlaylist == PLAYLIST_VIDEO)
       )
     {
-      CServiceBroker::GetPlaylistPlayer().GetPlaylist(iPlaylist).Shuffle(m_iCurrentSong + 2);
+      GetPlaylist(iPlaylist).Shuffle(m_iCurrentSong + 2);
     }
   }
   // otherwise, shuffle from the passed position
   // which is the position of the first new item added
   else
   {
-    CServiceBroker::GetPlaylistPlayer().GetPlaylist(iPlaylist).Shuffle(iPosition);
+    GetPlaylist(iPlaylist).Shuffle(iPosition);
   }
 }
 
@@ -747,7 +738,7 @@ void CPlayListPlayer::AnnouncePropertyChanged(int iPlaylist, const std::string &
   CVariant data;
   data["player"]["playerid"] = iPlaylist;
   data["property"][strProperty] = value;
-  ANNOUNCEMENT::CAnnouncementManager::GetInstance().Announce(ANNOUNCEMENT::Player, "xbmc", "OnPropertyChanged", data);
+  CServiceBroker::GetAnnouncementManager()->Announce(ANNOUNCEMENT::Player, "xbmc", "OnPropertyChanged", data);
 }
 
 int PLAYLIST::CPlayListPlayer::GetMessageMask()
@@ -936,7 +927,8 @@ void PLAYLIST::CPlayListPlayer::OnApplicationMessage(KODI::MESSAGING::ThreadMess
     g_application.WakeUpScreenSaverAndDPMS();
 
     // stop playing file
-    if (g_application.GetAppPlayer().IsPlaying()) g_application.StopPlaying();
+    if (g_application.GetAppPlayer().IsPlaying())
+      g_application.StopPlaying();
   }
   break;
 
@@ -966,9 +958,16 @@ void PLAYLIST::CPlayListPlayer::OnApplicationMessage(KODI::MESSAGING::ThreadMess
       g_application.GetAppPlayer().Pause();
     }
     break;
+
+  case TMSG_MEDIA_SEEK_TIME:
+  {
+    CApplicationPlayer& player = g_application.GetAppPlayer();
+    if (player.IsPlaying() || player.IsPaused())
+      player.SeekTime(pMsg->param3);
+
+    break;
+  }
   default:
     break;
   }
 }
-
-

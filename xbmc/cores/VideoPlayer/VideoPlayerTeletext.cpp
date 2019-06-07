@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "VideoPlayerTeletext.h"
@@ -153,13 +141,13 @@ void CDVDTeletextData::ResetTeletextCache()
   CSingleLock lock(m_critSection);
 
   /* Reset Data structures */
-  for (int i = 0; i < 0x900; i++)
+  for (auto& pages : m_TXTCache->astCachetable)
   {
-    for (int j = 0; j < 0x80; j++)
+    for (TextCachedPage_t*& page : pages)
     {
-      if (m_TXTCache->astCachetable[i][j])
+      if (page)
       {
-        TextPageinfo_t *p = &(m_TXTCache->astCachetable[i][j]->pageinfo);
+        TextPageinfo_t *p = &(page->pageinfo);
         if (p->p24)
           free(p->p24);
 
@@ -168,15 +156,15 @@ void CDVDTeletextData::ResetTeletextCache()
           if (p->ext->p27)
             free(p->ext->p27);
 
-          for (int d26 = 0; d26 < 16; d26++)
+          for (unsigned char* const d26 : p->ext->p26)
           {
-            if (p->ext->p26[d26])
-              free(p->ext->p26[d26]);
+            if (d26)
+              free(d26);
           }
           free(p->ext);
         }
-        delete m_TXTCache->astCachetable[i][j];
-        m_TXTCache->astCachetable[i][j] = 0;
+        delete page;
+        page = 0;
       }
     }
   }
@@ -188,10 +176,10 @@ void CDVDTeletextData::ResetTeletextCache()
       if (m_TXTCache->astP29[i]->p27)
         free(m_TXTCache->astP29[i]->p27);
 
-      for (int d26 = 0; d26 < 16; d26++)
+      for (unsigned char* const d26 : m_TXTCache->astP29[i]->p26)
       {
-        if (m_TXTCache->astP29[i]->p26[d26])
-          free(m_TXTCache->astP29[i]->p26[d26]);
+        if (d26)
+          free(d26);
       }
       free(m_TXTCache->astP29[i]);
       m_TXTCache->astP29[i] = 0;

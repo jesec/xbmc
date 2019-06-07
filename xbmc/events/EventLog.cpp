@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2015 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2015-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "EventLog.h"
@@ -27,8 +15,9 @@
 #include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/WindowIDs.h"
-#include "profiles/ProfilesManager.h"
+#include "profiles/ProfileManager.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "threads/SingleLock.h"
 
 #include <utility>
@@ -102,8 +91,8 @@ EventPtr CEventLog::Get(const std::string& eventPtrIdentifier) const
 void CEventLog::Add(const EventPtr& eventPtr)
 {
   if (eventPtr == nullptr || eventPtr->GetIdentifier().empty() ||
-      !CServiceBroker::GetSettings().GetBool(CSettings::SETTING_EVENTLOG_ENABLED) ||
-     (eventPtr->GetLevel() == EventLevel::Information && !CServiceBroker::GetSettings().GetBool(CSettings::SETTING_EVENTLOG_ENABLED_NOTIFICATIONS)))
+      !CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_EVENTLOG_ENABLED) ||
+     (eventPtr->GetLevel() == EventLevel::Information && !CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_EVENTLOG_ENABLED_NOTIFICATIONS)))
     return;
 
   CSingleLock lock(m_critical);

@@ -58,7 +58,7 @@ HRESULT CMadvrSharedRender::Render(DS_RENDER_LAYER layer)
     m_kodiWait.Unlock();
 
   // Return to madVR if we rendered something
-  if (m_bGuiVisible && !g_advancedSettings.m_bDisableMadvrLowLatency)
+  if (m_bGuiVisible && !CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_bDisableMadvrLowLatency)
   {
     return CALLBACK_USER_INTERFACE;
   }

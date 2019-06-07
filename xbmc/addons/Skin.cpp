@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "Skin.h"
@@ -34,6 +22,7 @@
 #include "messaging/ApplicationMessenger.h"
 #include "messaging/helpers/DialogHelper.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "settings/lib/Setting.h"
 #include "threads/Timer.h"
 #include "utils/log.h"
@@ -323,7 +312,7 @@ void CSkinInfo::ResolveIncludes(TiXmlElement *node, std::map<INFO::InfoPtr, bool
 
 int CSkinInfo::GetStartWindow() const
 {
-  int windowID = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_LOOKANDFEEL_STARTUPWINDOW);
+  int windowID = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_LOOKANDFEEL_STARTUPWINDOW);
   assert(m_startupWindows.size());
   for (std::vector<CStartupWindow>::const_iterator it = m_startupWindows.begin(); it != m_startupWindows.end(); ++it)
   {
@@ -393,7 +382,7 @@ int CSkinInfo::GetFirstWindow() const
 bool CSkinInfo::IsInUse() const
 {
   // Could extend this to prompt for reverting to the standard skin perhaps
-  return CServiceBroker::GetSettings().GetString(CSettings::SETTING_LOOKANDFEEL_SKIN) == ID();
+  return CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_LOOKANDFEEL_SKIN) == ID();
 }
 
 const INFO::CSkinVariableString* CSkinInfo::CreateSkinVariable(const std::string& name, int context)
@@ -419,10 +408,10 @@ void CSkinInfo::OnPostInstall(bool update, bool modal)
       toast->ResetTimer();
       toast->Close(true);
     }
-    if (CServiceBroker::GetSettings().GetString(CSettings::SETTING_LOOKANDFEEL_SKIN) == ID())
+    if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_LOOKANDFEEL_SKIN) == ID())
       CApplicationMessenger::GetInstance().PostMsg(TMSG_EXECUTE_BUILT_IN, -1, -1, nullptr, "ReloadSkin");
     else
-      CServiceBroker::GetSettings().SetString(CSettings::SETTING_LOOKANDFEEL_SKIN, ID());
+      CServiceBroker::GetSettingsComponent()->GetSettings()->SetString(CSettings::SETTING_LOOKANDFEEL_SKIN, ID());
   }
 }
 

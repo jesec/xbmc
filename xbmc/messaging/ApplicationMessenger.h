@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2015 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -57,8 +45,7 @@
 #define TMSG_MEDIA_RESTART                TMSG_MASK_PLAYLISTPLAYER + 15
 #define TMSG_MEDIA_UNPAUSE                TMSG_MASK_PLAYLISTPLAYER + 16
 #define TMSG_MEDIA_PAUSE_IF_PLAYING       TMSG_MASK_PLAYLISTPLAYER + 17
-
-
+#define TMSG_MEDIA_SEEK_TIME              TMSG_MASK_PLAYLISTPLAYER + 18
 
 #define TMSG_SHUTDOWN                     TMSG_MASK_APPLICATION + 0
 #define TMSG_POWERDOWN                    TMSG_MASK_APPLICATION + 1
@@ -98,13 +85,9 @@
 #define TMSG_GUI_INFOBOOL                 TMSG_MASK_GUIINFOMANAGER + 1
 #define TMSG_UPDATE_CURRENT_ITEM          TMSG_MASK_GUIINFOMANAGER + 2
 
-
 #define TMSG_CECTOGGLESTATE               TMSG_MASK_PERIPHERALS + 1
 #define TMSG_CECACTIVATESOURCE            TMSG_MASK_PERIPHERALS + 2
 #define TMSG_CECSTANDBY                   TMSG_MASK_PERIPHERALS + 3
-
-
-
 
 #define TMSG_GUI_DIALOG_OPEN              TMSG_MASK_WINDOWMANAGER + 1
 #define TMSG_GUI_ACTIVATE_WINDOW          TMSG_MASK_WINDOWMANAGER + 2
@@ -329,6 +312,17 @@ public:
    * \param [in] messageId defined further up in this file
    */
   void PostMsg(uint32_t messageId);
+
+  /*!
+   * \brief Send a non-blocking message and return immediately
+   *
+   * If and what the response is depends entirely on the message being sent and
+   * should be documented on the message.
+   *
+   * \param [in] messageId defined further up in this file
+   * \param [in] param3 value depends on the message being sent
+   */
+  void PostMsg(uint32_t messageId, int64_t param3);
 
   /*!
    * \brief Send a non-blocking message and return immediately

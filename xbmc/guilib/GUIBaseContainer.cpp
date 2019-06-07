@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GUIBaseContainer.h"
@@ -34,6 +22,7 @@
 #include "utils/XBMCTinyXML.h"
 #include "listproviders/IListProvider.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "guilib/guiinfo/GUIInfoLabels.h"
 
 #define HOLD_TIME_START 100
@@ -583,7 +572,7 @@ void CGUIBaseContainer::OnJumpLetter(char letter, bool skip /*=false*/)
   {
     CGUIListItemPtr item = m_items[i];
     std::string label = item->GetLabel();
-    if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_FILELISTS_IGNORETHEWHENSORTING))
+    if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_FILELISTS_IGNORETHEWHENSORTING))
       label = SortUtils::RemoveArticles(label);
     if (0 == strnicmp(label.c_str(), m_match.c_str(), m_match.size()))
     {
@@ -768,7 +757,7 @@ bool CGUIBaseContainer::OnClick(int actionID)
     if (m_listProvider)
     { // "select" action
       int selected = GetSelectedItem();
-      if (selected >= 0 && selected < (int)m_items.size())
+      if (selected >= 0 && selected < static_cast<int>(m_items.size()))
       {
         if (m_clickActions.HasActionsMeetingCondition())
           m_clickActions.ExecuteActions(0, GetParentID(), m_items[selected]);
@@ -919,8 +908,10 @@ void CGUIBaseContainer::UpdateVisibility(const CGUIListItem *item)
   if ((m_layout && m_layout->CheckCondition() != m_layoutCondition) ||
       (m_focusedLayout && m_focusedLayout->CheckCondition() != m_focusedLayoutCondition))
   {
-    m_layoutCondition = m_layout->CheckCondition();
-    m_focusedLayoutCondition = m_focusedLayout->CheckCondition();
+    if (m_layout)
+      m_layoutCondition = m_layout->CheckCondition();
+    if (m_focusedLayout)
+      m_focusedLayoutCondition = m_focusedLayout->CheckCondition();
 
     int itemIndex = GetSelectedItem();
     UpdateLayout(true); // true to refresh all items

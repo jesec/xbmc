@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2017 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this Program; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GameClient.h"
@@ -25,24 +13,20 @@
 #include "GameClientTranslator.h"
 #include "addons/AddonManager.h"
 #include "addons/BinaryAddonCache.h"
-#include "cores/AudioEngine/Utils/AEChannelInfo.h"
 #include "filesystem/Directory.h"
 #include "filesystem/File.h"
 #include "filesystem/SpecialProtocol.h"
 #include "games/addons/input/GameClientInput.h"
-#include "games/addons/playback/GameClientRealtimePlayback.h"
-#include "games/addons/playback/GameClientReversiblePlayback.h"
 #include "games/addons/streams/GameClientStreams.h"
 #include "games/addons/streams/IGameClientStream.h"
 #include "games/GameServices.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
 #include "guilib/WindowIDs.h"
-#include "input/Action.h"
-#include "input/ActionIDs.h"
+#include "input/actions/Action.h"
+#include "input/actions/ActionIDs.h"
 #include "messaging/ApplicationMessenger.h"
 #include "messaging/helpers/DialogOKHelper.h"
-#include "settings/Settings.h"
 #include "threads/SingleLock.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
@@ -147,8 +131,6 @@ CGameClient::CGameClient(ADDON::CAddonInfo addonInfo) :
   it = extraInfo.find(GAME_PROPERTY_SUPPORTS_STANDALONE);
   if (it != extraInfo.end())
     m_bSupportsStandalone = (it->second == "true");
-
-  ResetPlayback();
 }
 
 CGameClient::~CGameClient(void)
@@ -204,7 +186,8 @@ bool CGameClient::Initialize(void)
   if (!CDirectory::Exists(savestatesDir))
     CDirectory::Create(savestatesDir);
 
-  AddonProperties().InitializeProperties();
+  if (!AddonProperties().InitializeProperties())
+    return false;
 
   m_struct.toKodi.kodiInstance = this;
   m_struct.toKodi.CloseGame = cb_close_game;
@@ -330,18 +313,14 @@ bool CGameClient::InitializeGameplay(const std::string& gamePath, RETRO::IStream
 {
   if (LoadGameInfo())
   {
-    Input().Start();
+    Input().Start(input);
 
     m_bIsPlaying      = true;
     m_gamePath        = gamePath;
-    m_serializeSize   = GetSerializeSize();
     m_input           = input;
 
     m_inGameSaves.reset(new CGameClientInGameSaves(this, &m_struct.toAddon));
     m_inGameSaves->Load();
-
-    // Start playback
-    CreatePlayback();
 
     return true;
   }
@@ -351,6 +330,17 @@ bool CGameClient::InitializeGameplay(const std::string& gamePath, RETRO::IStream
 
 bool CGameClient::LoadGameInfo()
 {
+  bool bRequiresGameLoop;
+  try
+  {
+    bRequiresGameLoop = m_struct.toAddon.RequiresGameLoop();
+  }
+  catch (...)
+  {
+    LogException("RequiresGameLoop()");
+    return false;
+  }
+
   // Get information about system timings
   // Can be called only after retro_load_game()
   game_system_timing timingInfo = { };
@@ -369,12 +359,27 @@ bool CGameClient::LoadGameInfo()
   try { region = m_struct.toAddon.GetRegion(); }
   catch (...) { LogException("GetRegion()"); return false; }
 
+  size_t serializeSize;
+  try
+  {
+    serializeSize = m_struct.toAddon.SerializeSize();
+  }
+  catch (...)
+  {
+    LogException("SerializeSize()");
+    return false;
+  }
+
   CLog::Log(LOGINFO, "GAME: ---------------------------------------");
-  CLog::Log(LOGINFO, "GAME: FPS:         %f", timingInfo.fps);
-  CLog::Log(LOGINFO, "GAME: Sample Rate: %f", timingInfo.sample_rate);
-  CLog::Log(LOGINFO, "GAME: Region:      %s", CGameClientTranslator::TranslateRegion(region));
+  CLog::Log(LOGINFO, "GAME: Game loop:      %s", bRequiresGameLoop ? "true" : "false");
+  CLog::Log(LOGINFO, "GAME: FPS:            %f", timingInfo.fps);
+  CLog::Log(LOGINFO, "GAME: Sample Rate:    %f", timingInfo.sample_rate);
+  CLog::Log(LOGINFO, "GAME: Region:         %s", CGameClientTranslator::TranslateRegion(region));
+  CLog::Log(LOGINFO, "GAME: Savestate size: %u", serializeSize);
   CLog::Log(LOGINFO, "GAME: ---------------------------------------");
 
+  m_bRequiresGameLoop = bRequiresGameLoop;
+  m_serializeSize = serializeSize;
   m_framerate = timingInfo.fps;
   m_samplerate = timingInfo.sample_rate;
   m_region = region;
@@ -428,47 +433,19 @@ std::string CGameClient::GetMissingResource()
   return strAddonId;
 }
 
-void CGameClient::CreatePlayback()
-{
-  bool bRequiresGameLoop = false;
-
-  try { bRequiresGameLoop = m_struct.toAddon.RequiresGameLoop(); }
-  catch (...) { LogException("RequiresGameLoop()"); }
-
-  if (bRequiresGameLoop)
-  {
-    m_playback.reset(new CGameClientReversiblePlayback(this, m_framerate, m_serializeSize));
-  }
-  else
-  {
-    ResetPlayback();
-  }
-}
-
-void CGameClient::ResetPlayback()
-{
-  m_playback.reset(new CGameClientRealtimePlayback);
-}
-
 void CGameClient::Reset()
 {
-  ResetPlayback();
-
   CSingleLock lock(m_critSection);
 
   if (m_bIsPlaying)
   {
     try { LogError(m_struct.toAddon.Reset(), "Reset()"); }
     catch (...) { LogException("Reset()"); }
-
-    CreatePlayback();
   }
 }
 
 void CGameClient::CloseFile()
 {
-  ResetPlayback();
-
   CSingleLock lock(m_critSection);
 
   if (m_bIsPlaying)
@@ -509,20 +486,6 @@ void CGameClient::RunFrame()
     try { LogError(m_struct.toAddon.RunFrame(), "RunFrame()"); }
     catch (...) { LogException("RunFrame()"); }
   }
-}
-
-size_t CGameClient::GetSerializeSize()
-{
-  CSingleLock lock(m_critSection);
-
-  size_t serializeSize = 0;
-  if (m_bIsPlaying)
-  {
-    try { serializeSize = m_struct.toAddon.SerializeSize(); }
-    catch (...) { LogException("SerializeSize()"); }
-  }
-
-  return serializeSize;
 }
 
 bool CGameClient::Serialize(uint8_t* data, size_t size)

@@ -135,8 +135,7 @@ install(FILES ${CMAKE_SOURCE_DIR}/tools/Linux/firewalld-services/kodi-eventserve
         COMPONENT kodi)
 
 # Install docs
-install(FILES ${CMAKE_SOURCE_DIR}/copying.txt
-              ${CMAKE_SOURCE_DIR}/LICENSE.md
+install(FILES ${CMAKE_SOURCE_DIR}/LICENSE.md
               ${CMAKE_SOURCE_DIR}/version.txt
               ${CMAKE_SOURCE_DIR}/docs/README.Linux.md
         DESTINATION ${docdir}
@@ -265,11 +264,11 @@ if(ENABLE_EVENTCLIENTS)
             COMPONENT kodi-eventclients-wiiremote)
   endif()
 
-  # Install kodi-eventclients-xbmc-send
+  # Install kodi-eventclients-kodi-send
   install(PROGRAMS ${CMAKE_SOURCE_DIR}/tools/EventClients/Clients/KodiSend/kodi-send.py
           RENAME ${APP_NAME_LC}-send
           DESTINATION ${bindir}
-          COMPONENT kodi-eventclients-xbmc-send)
+          COMPONENT kodi-eventclients-kodi-send)
 endif()
 
 # Install XBT skin files

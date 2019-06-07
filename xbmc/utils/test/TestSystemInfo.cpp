@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "utils/SystemInfo.h"
@@ -24,11 +12,6 @@
 #include "platform/win32/CharsetConverter.h"
 
 #include "gtest/gtest.h"
-
-#ifdef TARGET_WINDOWS_STORE
-#include <algorithm>
-using namespace Windows::Storage;
-#endif
 
 class TestSystemInfo : public testing::Test
 {
@@ -317,18 +300,7 @@ TEST_F(TestSystemInfo, GetDiskSpace)
 #ifdef TARGET_WINDOWS
   using KODI::PLATFORM::WINDOWS::FromW;
   wchar_t sysDrive[300];
-#if defined(TARGET_WINDOWS_STORE)
-  DWORD res = 0;
-  auto values = ApplicationData::Current->LocalSettings->Values;
-  if (values->HasKey(L"SystemDrive"))
-  {
-    auto value = safe_cast<Platform::String^>(values->Lookup(L"SystemDrive"));
-    wcscpy_s(sysDrive, value->Data());
-    res = value->Length();
-  }
-#else
   DWORD res = GetEnvironmentVariableW(L"SystemDrive", sysDrive, sizeof(sysDrive) / sizeof(wchar_t));
-#endif
   std::string sysDriveLtr;
   if (res != 0 && res <= sizeof(sysDrive) / sizeof(wchar_t))
     sysDriveLtr.assign(FromW(sysDrive), 0, 1);

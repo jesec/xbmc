@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "WinSystemWin32.h"
@@ -25,7 +13,6 @@
 #include "cores/AudioEngine/Sinks/AESinkWASAPI.h"
 #include "filesystem/File.h"
 #include "filesystem/SpecialProtocol.h"
-#include "guilib/gui3d.h"
 #include "messaging/ApplicationMessenger.h"
 #include "platform/Environment.h"
 #include "platform/win32/CharsetConverter.h"
@@ -36,9 +23,9 @@
 #include "settings/AdvancedSettings.h"
 #include "settings/DisplaySettings.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "threads/SingleLock.h"
 #include "utils/log.h"
-#include "utils/CharsetConverter.h"
 #include "utils/SystemInfo.h"
 #include "VideoSyncD3D.h"
 #include "windowing/GraphicContext.h"
@@ -81,7 +68,7 @@ CWinSystemWin32::CWinSystemWin32()
   CAESinkDirectSound::Register();
   CAESinkWASAPI::Register();
   CWin32PowerSyscall::Register();
-  if (g_advancedSettings.m_bScanIRServer)
+  if (CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_bScanIRServer)
   {
     m_irss.reset(new CIRServerSuite());
     m_irss->Initialize();
@@ -355,7 +342,7 @@ void CWinSystemWin32::AdjustWindow(bool forceResize)
   }
   else // m_state == WINDOW_STATE_WINDOWED
   {
-    windowAfter = g_advancedSettings.m_alwaysOnTop ? HWND_TOPMOST : HWND_NOTOPMOST;
+    windowAfter = CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_alwaysOnTop ? HWND_TOPMOST : HWND_NOTOPMOST;
 
     rc.left = m_nLeft;
     rc.right = m_nLeft + m_nWidth;
@@ -872,7 +859,7 @@ void CWinSystemWin32::UpdateResolutions()
   CWinSystemBase::UpdateResolutions();
   GetConnectedDisplays(m_displays);
 
-  MONITOR_DETAILS* details = GetDisplayDetails(CServiceBroker::GetSettings().GetString(CSettings::SETTING_VIDEOSCREEN_MONITOR));
+  MONITOR_DETAILS* details = GetDisplayDetails(CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_VIDEOSCREEN_MONITOR));
   if (!details)
     return;
 
@@ -895,6 +882,7 @@ void CWinSystemWin32::UpdateResolutions()
 
   // erase previous stored modes
   CDisplaySettings::GetInstance().ClearCustomResolutions();
+  std::string monitorName = FromW(details->MonitorNameW);
 
   for(int mode = 0;; mode++)
   {
@@ -913,7 +901,17 @@ void CWinSystemWin32::UpdateResolutions()
     dwFlags = (devmode.dmDisplayFlags & DM_INTERLACED) ? D3DPRESENTFLAG_INTERLACED : 0;
 
     RESOLUTION_INFO res;
-    UpdateDesktopResolution(res, devmode.dmPelsWidth, devmode.dmPelsHeight, refresh, dwFlags);
+    res.iWidth = devmode.dmPelsWidth;
+    res.iHeight = devmode.dmPelsHeight;
+    res.bFullScreen = true;
+    res.dwFlags = dwFlags;
+    res.fRefreshRate = refresh;
+    res.fPixelRatio = 1.0f;
+    res.iScreenWidth = res.iWidth;
+    res.iScreenHeight = res.iHeight;
+    res.iSubtitles = (int)(0.965 * res.iHeight);
+    res.strMode = StringUtils::Format("%s: %dx%d @ %.2fHz", monitorName.c_str(), res.iWidth,
+                                      res.iHeight, res.fRefreshRate);
     GetGfxContext().ResetOverscan(res);
     res.strOutput = strOuput;
 
@@ -972,10 +970,10 @@ bool CWinSystemWin32::Show(bool raise)
     if (m_bFullScreen)
       windowAfter = HWND_TOP;
     else
-      windowAfter = g_advancedSettings.m_alwaysOnTop ? HWND_TOPMOST : HWND_NOTOPMOST;
+      windowAfter = CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_alwaysOnTop ? HWND_TOPMOST : HWND_NOTOPMOST;
   }
 
-  SetWindowPos(m_hWnd, windowAfter, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE|SWP_SHOWWINDOW);
+  SetWindowPos(m_hWnd, windowAfter, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_ASYNCWINDOWPOS);
   UpdateWindow(m_hWnd);
 
   if (raise)
@@ -1024,7 +1022,7 @@ void CWinSystemWin32::OnDisplayReset()
 
 void CWinSystemWin32::OnDisplayBack()
 {
-  int delay = CServiceBroker::GetSettings().GetInt("videoscreen.delayrefreshchange");
+  int delay = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt("videoscreen.delayrefreshchange");
   if (delay > 0)
   {
     m_delayDispReset = true;
@@ -1112,7 +1110,7 @@ std::string CWinSystemWin32::GetClipboardText()
 
 bool CWinSystemWin32::UseLimitedColor()
 {
-  return CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOSCREEN_LIMITEDRANGE);
+  return CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_VIDEOSCREEN_LIMITEDRANGE);
 }
 
 void CWinSystemWin32::NotifyAppFocusChange(bool bGaining)
@@ -1143,7 +1141,7 @@ void CWinSystemWin32::NotifyAppFocusChange(bool bGaining)
 
 void CWinSystemWin32::UpdateStates(bool fullScreen)
 {
-  m_fullscreenState = CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOSCREEN_FAKEFULLSCREEN)
+  m_fullscreenState = CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_VIDEOSCREEN_FAKEFULLSCREEN)
     ? WINDOW_FULLSCREEN_STATE_FULLSCREEN_WINDOW
     : WINDOW_FULLSCREEN_STATE_FULLSCREEN;
   m_windowState = WINDOW_WINDOW_STATE_WINDOWED; // currently only this allowed

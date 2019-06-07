@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2015 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "PVRManager.h"
@@ -29,6 +17,7 @@
 #include "messaging/ApplicationMessenger.h"
 #include "settings/Settings.h"
 #include "threads/SystemClock.h"
+#include "threads/Timer.h"
 #include "utils/JobManager.h"
 #include "utils/Stopwatch.h"
 #include "utils/StringUtils.h"
@@ -49,7 +38,6 @@
 #include "pvr/timers/PVRTimers.h"
 
 using namespace PVR;
-using namespace ANNOUNCEMENT;
 using namespace KODI::MESSAGING;
 
 CPVRManagerJobQueue::CPVRManagerJobQueue()
@@ -140,22 +128,23 @@ CPVRManager::CPVRManager(void) :
     m_database(new CPVRDatabase),
     m_parentalTimer(new CStopWatch),
     m_settings({
+      CSettings::SETTING_PVRPLAYBACK_DELAYMARKLASTWATCHED,
       CSettings::SETTING_PVRPOWERMANAGEMENT_ENABLED,
       CSettings::SETTING_PVRPOWERMANAGEMENT_SETWAKEUPCMD,
       CSettings::SETTING_PVRPARENTAL_ENABLED,
       CSettings::SETTING_PVRPARENTAL_DURATION
     })
 {
-  CAnnouncementManager::GetInstance().AddAnnouncer(this);
+  CServiceBroker::GetAnnouncementManager()->AddAnnouncer(this);
 }
 
 CPVRManager::~CPVRManager(void)
 {
-  CAnnouncementManager::GetInstance().RemoveAnnouncer(this);
+  CServiceBroker::GetAnnouncementManager()->RemoveAnnouncer(this);
   CLog::LogFC(LOGDEBUG, LOGPVR, "PVR Manager instance destroyed");
 }
 
-void CPVRManager::Announce(AnnouncementFlag flag, const char *sender, const char *message, const CVariant &data)
+void CPVRManager::Announce(ANNOUNCEMENT::AnnouncementFlag flag, const char *sender, const char *message, const CVariant &data)
 {
   if (!IsStarted())
     return;
@@ -378,23 +367,23 @@ void CPVRManager::SetState(CPVRManager::ManagerState state)
     switch (state)
     {
       case ManagerStateError:
-        event = ManagerError;
+        event = PVREvent::ManagerError;
         break;
       case ManagerStateStopped:
-        event = ManagerStopped;
+        event = PVREvent::ManagerStopped;
         observableMsg = ObservableMessageManagerStopped;
         break;
       case ManagerStateStarting:
-        event = ManagerStarting;
+        event = PVREvent::ManagerStarting;
         break;
       case ManagerStateStopping:
-        event = ManagerStopped;
+        event = PVREvent::ManagerStopped;
         break;
       case ManagerStateInterrupted:
-        event = ManagerInterrupted;
+        event = PVREvent::ManagerInterrupted;
         break;
       case ManagerStateStarted:
-        event = ManagerStarted;
+        event = PVREvent::ManagerStarted;
         break;
       default:
         return;
@@ -680,29 +669,10 @@ bool CPVRManager::IsRecordingOnPlayingChannel(void) const
   return currentChannel && currentChannel->IsRecording();
 }
 
-bool CPVRManager::IsTimeshifting(void) const
-{
-  bool bTimeshifting = false;
-  if (m_playingChannel)
-  {
-    const CPVRClientPtr client = GetClient(m_playingChannel->ClientID());
-    if (client)
-      client->IsTimeshifting(bTimeshifting);
-  }
-  return bTimeshifting;
-}
-
 bool CPVRManager::CanRecordOnPlayingChannel(void) const
 {
   const CPVRChannelPtr currentChannel = GetPlayingChannel();
   return currentChannel && currentChannel->CanRecord();
-}
-
-void CPVRManager::ResetPlayingTag(void)
-{
-  CSingleLock lock(m_critSection);
-  if (IsStarted() && m_guiInfo)
-    m_guiInfo->ResetPlayingTag();
 }
 
 void CPVRManager::RestartParentalTimer()
@@ -754,13 +724,40 @@ void CPVRManager::SetPlayingGroup(const CPVRChannelPtr &channel)
   }
 }
 
-CPVRChannelGroupPtr CPVRManager::GetPlayingGroup(bool bRadio /* = false */)
+CPVRChannelGroupPtr CPVRManager::GetPlayingGroup(bool bRadio /* = false */) const
 {
   if (m_channelGroups)
     return m_channelGroups->GetSelectedGroup(bRadio);
 
   return CPVRChannelGroupPtr();
 }
+
+class CPVRManager::CLastWatchedUpdateTimer : public CTimer, private ITimerCallback
+{
+public:
+  explicit CLastWatchedUpdateTimer(CPVRManager& pvrMgr,
+                                   const std::shared_ptr<CPVRChannel>& channel,
+                                   const CDateTime& time)
+  : CTimer(this),
+    m_pvrMgr(pvrMgr),
+    m_channel(channel),
+    m_time(time)
+  {
+  }
+
+  // ITimerCallback implementation
+  void OnTimeout() override
+  {
+    m_pvrMgr.UpdateLastWatched(m_channel, m_time);
+  }
+
+private:
+  CLastWatchedUpdateTimer() = delete;
+
+  CPVRManager& m_pvrMgr;
+  const std::shared_ptr<CPVRChannel> m_channel;
+  const CDateTime m_time;
+};
 
 void CPVRManager::OnPlaybackStarted(const CFileItemPtr item)
 {
@@ -778,7 +775,22 @@ void CPVRManager::OnPlaybackStarted(const CFileItemPtr item)
     m_playingClientId = m_playingChannel->ClientID();
 
     SetPlayingGroup(channel);
-    UpdateLastWatched(channel);
+
+    int iLastWatchedDelay = m_settings.GetIntValue(CSettings::SETTING_PVRPLAYBACK_DELAYMARKLASTWATCHED) * 1000;
+    if (iLastWatchedDelay > 0)
+    {
+      // Insert new / replace existing last watched update timer
+      if (m_lastWatchedUpdateTimer)
+        m_lastWatchedUpdateTimer->Stop(true);
+
+      m_lastWatchedUpdateTimer.reset(new CLastWatchedUpdateTimer(*this, channel, CDateTime::GetUTCDateTime()));
+      m_lastWatchedUpdateTimer->Start(iLastWatchedDelay);
+    }
+    else
+    {
+      // Store last watched timestamp immediately
+      UpdateLastWatched(channel, CDateTime::GetUTCDateTime());
+    }
   }
   else if (item->HasPVRRecordingInfoTag())
   {
@@ -799,6 +811,7 @@ void CPVRManager::OnPlaybackStarted(const CFileItemPtr item)
   }
 
   m_guiActions->OnPlaybackStarted(item);
+  m_epgContainer.OnPlaybackStarted(item);
 }
 
 void CPVRManager::OnPlaybackStopped(const CFileItemPtr item)
@@ -807,7 +820,28 @@ void CPVRManager::OnPlaybackStopped(const CFileItemPtr item)
 
   if (item->HasPVRChannelInfoTag() && item->GetPVRChannelInfoTag() == m_playingChannel)
   {
-    UpdateLastWatched(item->GetPVRChannelInfoTag());
+    bool bUpdateLastWatched = true;
+
+    if (m_lastWatchedUpdateTimer)
+    {
+      if (m_lastWatchedUpdateTimer->IsRunning())
+      {
+        // If last watched timer is still running, cancel it. Channel was not watched long enough to store the value.
+        m_lastWatchedUpdateTimer->Stop(true);
+        bUpdateLastWatched = false;
+      }
+      m_lastWatchedUpdateTimer.reset();
+    }
+
+    if (bUpdateLastWatched)
+    {
+      // If last watched timer is not running (any more), channel was watched long enough to store the value.
+      UpdateLastWatched(m_playingChannel, CDateTime::GetUTCDateTime());
+    }
+
+    SetChanged();
+    NotifyObservers(ObservableMessageChannelPlaybackStopped);
+
     m_playingChannel.reset();
     m_playingClientId = -1;
     m_strPlayingClientName.clear();
@@ -826,6 +860,7 @@ void CPVRManager::OnPlaybackStopped(const CFileItemPtr item)
   }
 
   m_guiActions->OnPlaybackStopped(item);
+  m_epgContainer.OnPlaybackStopped(item);
 }
 
 void CPVRManager::OnPlaybackEnded(const CFileItemPtr item)
@@ -945,16 +980,16 @@ bool CPVRManager::CreateChannelEpgs(void)
   return m_bEpgsCreated;
 }
 
-void CPVRManager::UpdateLastWatched(const CPVRChannelPtr &channel)
+void CPVRManager::UpdateLastWatched(const CPVRChannelPtr &channel, const CDateTime& time)
 {
-  time_t tNow;
-  CDateTime::GetCurrentDateTime().GetAsTime(tNow);
+  time_t iTime;
+  time.GetAsTime(iTime);
 
-  channel->SetLastWatched(tNow);
+  channel->SetLastWatched(iTime);
 
   // update last watched timestamp for group
   CPVRChannelGroupPtr group(GetPlayingGroup(channel->IsRadio()));
-  group->SetLastWatched(tNow);
+  group->SetLastWatched(iTime);
 
   /* update last played group */
   m_channelGroups->SetLastPlayedGroup(group);

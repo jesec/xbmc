@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2015 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GUIDialogSmartPlaylistEditor.h"
@@ -33,8 +21,9 @@
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
 #include "input/Key.h"
-#include "profiles/ProfilesManager.h"
+#include "profiles/ProfileManager.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "Util.h"
 #include "utils/SortUtils.h"
 #include "utils/StringUtils.h"
@@ -74,8 +63,6 @@ static const translateType types[] = { { CGUIDialogSmartPlaylistEditor::TYPE_SON
                                        { CGUIDialogSmartPlaylistEditor::TYPE_TVSHOWS, "tvshows", 20343 },
                                        { CGUIDialogSmartPlaylistEditor::TYPE_EPISODES, "episodes", 20360 }
                                      };
-
-#define NUM_TYPES (sizeof(types) / sizeof(translateType))
 
 CGUIDialogSmartPlaylistEditor::CGUIDialogSmartPlaylistEditor(void)
     : CGUIDialog(WINDOW_DIALOG_SMART_PLAYLIST_EDITOR, "SmartPlaylistEditor.xml")
@@ -157,9 +144,9 @@ bool CGUIDialogSmartPlaylistEditor::OnMessage(CGUIMessage& message)
       if (!startupList.empty())
       {
         int party = 0;
-        if (URIUtils::PathEquals(startupList, CServiceBroker::GetProfileManager().GetUserDataItem("PartyMode.xsp")))
+        if (URIUtils::PathEquals(startupList, CServiceBroker::GetSettingsComponent()->GetProfileManager()->GetUserDataItem("PartyMode.xsp")))
           party = 1;
-        else if (URIUtils::PathEquals(startupList, CServiceBroker::GetProfileManager().GetUserDataItem("PartyMode-Video.xsp")))
+        else if (URIUtils::PathEquals(startupList, CServiceBroker::GetSettingsComponent()->GetProfileManager()->GetUserDataItem("PartyMode-Video.xsp")))
           party = 2;
 
         if ((party && !XFILE::CFile::Exists(startupList)) ||
@@ -230,7 +217,7 @@ void CGUIDialogSmartPlaylistEditor::OnRuleList(int item)
 
 void CGUIDialogSmartPlaylistEditor::OnOK()
 {
-  std::string systemPlaylistsPath = CServiceBroker::GetSettings().GetString(CSettings::SETTING_SYSTEM_PLAYLISTSPATH);
+  std::string systemPlaylistsPath = CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_SYSTEM_PLAYLISTSPATH);
   // save our playlist
   if (m_path.empty())
   {
@@ -515,27 +502,27 @@ void CGUIDialogSmartPlaylistEditor::OnDeinitWindow(int nextWindowID)
 
 CGUIDialogSmartPlaylistEditor::PLAYLIST_TYPE CGUIDialogSmartPlaylistEditor::ConvertType(const std::string &type)
 {
-  for (unsigned int i = 0; i < NUM_TYPES; i++)
-    if (type == types[i].string)
-      return types[i].type;
+  for (const translateType& t : types)
+    if (type == t.string)
+      return t.type;
   assert(false);
   return TYPE_SONGS;
 }
 
 std::string CGUIDialogSmartPlaylistEditor::GetLocalizedType(PLAYLIST_TYPE type)
 {
-  for (unsigned int i = 0; i < NUM_TYPES; i++)
-    if (types[i].type == type)
-      return g_localizeStrings.Get(types[i].localizedString);
+  for (const translateType& t : types)
+    if (t.type == type)
+      return g_localizeStrings.Get(t.localizedString);
   assert(false);
   return "";
 }
 
 std::string CGUIDialogSmartPlaylistEditor::ConvertType(PLAYLIST_TYPE type)
 {
-  for (unsigned int i = 0; i < NUM_TYPES; i++)
-    if (types[i].type == type)
-      return types[i].string;
+  for (const translateType& t : types)
+    if (t.type == type)
+      return t.string;
   assert(false);
   return "songs";
 }
@@ -627,9 +614,9 @@ bool CGUIDialogSmartPlaylistEditor::EditPlaylist(const std::string &path, const 
   if (!editor) return false;
 
   editor->m_mode = type;
-  if (URIUtils::PathEquals(path, CServiceBroker::GetProfileManager().GetUserDataItem("PartyMode.xsp")))
+  if (URIUtils::PathEquals(path, CServiceBroker::GetSettingsComponent()->GetProfileManager()->GetUserDataItem("PartyMode.xsp")))
     editor->m_mode = "partymusic";
-  if (URIUtils::PathEquals(path, CServiceBroker::GetProfileManager().GetUserDataItem("PartyMode-Video.xsp")))
+  if (URIUtils::PathEquals(path, CServiceBroker::GetSettingsComponent()->GetProfileManager()->GetUserDataItem("PartyMode-Video.xsp")))
     editor->m_mode = "partyvideo";
 
   CSmartPlaylist playlist;

@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2017 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "WinLibraryDirectory.h"
@@ -227,4 +215,69 @@ StorageFolder CWinLibraryDirectory::GetFolder(const CURL& url)
   }
 
   return rootFolder;
+}
+
+int CWinLibraryDirectory::StatDirectory(const CURL& url, struct __stat64* statData)
+{
+  if (!statData)
+    return -1;
+
+  auto dir = GetFolder(url);
+  if (dir == nullptr)
+    return -1;
+
+  /* set st_gid */
+  statData->st_gid = 0; // UNIX group ID is always zero on Win32
+  /* set st_uid */
+  statData->st_uid = 0; // UNIX user ID is always zero on Win32
+  /* set st_ino */
+  statData->st_ino = 0; // inode number is not implemented on Win32
+
+  statData->st_atime = 0;
+  statData->st_ctime = 0;
+  statData->st_mtime = 0;
+
+  auto requestedProps = Wait(dir.Properties().RetrievePropertiesAsync(
+      {L"System.DateAccessed", L"System.DateCreated", L"System.DateModified"}));
+
+  if (requestedProps.HasKey(L"System.DateAccessed") && 
+      requestedProps.Lookup(L"System.DateAccessed"))
+  {
+    auto dateAccessed = requestedProps.Lookup(L"System.DateAccessed").as<winrt::IPropertyValue>();
+    if (dateAccessed)
+    {
+      statData->st_atime = winrt::clock::to_time_t(dateAccessed.GetDateTime());
+    }
+  }
+  if (requestedProps.HasKey(L"System.DateCreated") && 
+      requestedProps.Lookup(L"System.DateCreated"))
+  {
+    auto dateCreated = requestedProps.Lookup(L"System.DateCreated").as<winrt::IPropertyValue>();
+    if (dateCreated)
+    {
+      statData->st_ctime = winrt::clock::to_time_t(dateCreated.GetDateTime());
+    }
+  }
+  if (requestedProps.HasKey(L"System.DateModified") && 
+      requestedProps.Lookup(L"System.DateModified"))
+  {
+    auto dateModified = requestedProps.Lookup(L"System.DateModified").as<winrt::IPropertyValue>();
+    if (dateModified)
+    {
+      statData->st_mtime = winrt::clock::to_time_t(dateModified.GetDateTime());
+    }
+  }
+
+  statData->st_dev = 0;
+  statData->st_rdev = statData->st_dev;
+  /* set st_nlink */
+  statData->st_nlink = 0;
+  /* set st_mode */
+  statData->st_mode = _S_IREAD | _S_IFDIR | _S_IEXEC; // only read permission for directory from library
+  // copy user RWX rights to group rights
+  statData->st_mode |= (statData->st_mode & (_S_IREAD | _S_IWRITE | _S_IEXEC)) >> 3;
+  // copy user RWX rights to other rights
+  statData->st_mode |= (statData->st_mode & (_S_IREAD | _S_IWRITE | _S_IEXEC)) >> 6;
+
+  return 0;
 }

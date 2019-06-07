@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GUIWindowVideoPlaylist.h"
@@ -33,6 +21,7 @@
 #include "GUIUserMessages.h"
 #include "favourites/FavouritesService.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "settings/MediaSettings.h"
 #include "input/Key.h"
 #include "guilib/LocalizeStrings.h"
@@ -129,7 +118,7 @@ bool CGUIWindowVideoPlaylist::OnMessage(CGUIMessage& message)
         {
           CServiceBroker::GetPlaylistPlayer().SetShuffle(PLAYLIST_VIDEO, !(CServiceBroker::GetPlaylistPlayer().IsShuffled(PLAYLIST_VIDEO)));
           CMediaSettings::GetInstance().SetVideoPlaylistShuffled(CServiceBroker::GetPlaylistPlayer().IsShuffled(PLAYLIST_VIDEO));
-          CServiceBroker::GetSettings().Save();
+          CServiceBroker::GetSettingsComponent()->GetSettings()->Save();
           UpdateButtons();
           Refresh();
         }
@@ -172,7 +161,7 @@ bool CGUIWindowVideoPlaylist::OnMessage(CGUIMessage& message)
 
         // save settings
         CMediaSettings::GetInstance().SetVideoPlaylistRepeat(CServiceBroker::GetPlaylistPlayer().GetRepeat(PLAYLIST_VIDEO) == PLAYLIST::REPEAT_ALL);
-        CServiceBroker::GetSettings().Save();
+        CServiceBroker::GetSettingsComponent()->GetSettings()->Save();
 
         UpdateButtons();
       }
@@ -379,7 +368,7 @@ void CGUIWindowVideoPlaylist::SavePlayList()
     strNewFileName = CUtil::MakeLegalFileName(strNewFileName);
     strNewFileName += ".m3u";
     std::string strPath = URIUtils::AddFileToFolder(
-      CServiceBroker::GetSettings().GetString(CSettings::SETTING_SYSTEM_PLAYLISTSPATH),
+      CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_SYSTEM_PLAYLISTSPATH),
       "video",
       strNewFileName);
 

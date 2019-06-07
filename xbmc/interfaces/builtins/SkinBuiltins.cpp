@@ -1,27 +1,14 @@
 /*
- *      Copyright (C) 2005-2015 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "SkinBuiltins.h"
 
 #include "ServiceBroker.h"
-#include "addons/Addon.h"
 #include "addons/GUIWindowAddonBrowser.h"
 #include "Application.h"
 #include "dialogs/GUIDialogFileBrowser.h"
@@ -32,8 +19,8 @@
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
 #include "MediaSource.h"
-#include "settings/MediaSourceSettings.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "settings/SkinSettings.h"
 #include "storage/MediaManager.h"
 #include "utils/StringUtils.h"
@@ -74,7 +61,7 @@ static int ToggleSetting(const std::vector<std::string>& params)
 {
   int setting = CSkinSettings::GetInstance().TranslateBool(params[0]);
   CSkinSettings::GetInstance().SetBool(setting, !CSkinSettings::GetInstance().GetBool(setting));
-  CServiceBroker::GetSettings().Save();
+  CServiceBroker::GetSettingsComponent()->GetSettings()->Save();
 
   return 0;
 }
@@ -98,7 +85,7 @@ static int SetAddon(const std::vector<std::string>& params)
   if (!types.empty() && CGUIWindowAddonBrowser::SelectAddonID(types, result, true) == 1)
   {
     CSkinSettings::GetInstance().SetString(string, result);
-    CServiceBroker::GetSettings().Save();
+    CServiceBroker::GetSettingsComponent()->GetSettings()->Save();
   }
 
   return 0;
@@ -142,7 +129,7 @@ static int SelectBool(const std::vector<std::string>& params)
       else
         CSkinSettings::GetInstance().SetBool(setting, false);
     }
-    CServiceBroker::GetSettings().Save();
+    CServiceBroker::GetSettingsComponent()->GetSettings()->Save();
   }
 
   return 0;
@@ -159,13 +146,13 @@ static int SetBool(const std::vector<std::string>& params)
   {
     int string = CSkinSettings::GetInstance().TranslateBool(params[0]);
     CSkinSettings::GetInstance().SetBool(string, StringUtils::EqualsNoCase(params[1], "true"));
-    CServiceBroker::GetSettings().Save();
+    CServiceBroker::GetSettingsComponent()->GetSettings()->Save();
     return 0;
   }
   // default is to set it to true
   int setting = CSkinSettings::GetInstance().TranslateBool(params[0]);
   CSkinSettings::GetInstance().SetBool(setting, true);
-  CServiceBroker::GetSettings().Save();
+  CServiceBroker::GetSettingsComponent()->GetSettings()->Save();
 
   return 0;
 }
@@ -213,7 +200,7 @@ static int SetPath(const std::vector<std::string>& params)
   if (CGUIDialogFileBrowser::ShowAndGetDirectory(localShares, g_localizeStrings.Get(657), value))
     CSkinSettings::GetInstance().SetString(string, value);
 
-  CServiceBroker::GetSettings().Save();
+  CServiceBroker::GetSettingsComponent()->GetSettings()->Save();
 
   return 0;
 }
@@ -325,7 +312,7 @@ static int SetString(const std::vector<std::string>& params)
   {
     string = CSkinSettings::GetInstance().TranslateString(params[0]);
     CSkinSettings::GetInstance().SetString(string, params[1]);
-    CServiceBroker::GetSettings().Save();
+    CServiceBroker::GetSettingsComponent()->GetSettings()->Save();
     return 0;
   }
   else
@@ -351,11 +338,13 @@ static int SetTheme(const std::vector<std::string>& params)
   int iTheme = -1;
 
   // find current theme
-  if (!StringUtils::EqualsNoCase(CServiceBroker::GetSettings().GetString(CSettings::SETTING_LOOKANDFEEL_SKINTHEME), "SKINDEFAULT"))
+  const std::shared_ptr<CSettings> settings = CServiceBroker::GetSettingsComponent()->GetSettings();
+  const std::string strTheme = settings->GetString(CSettings::SETTING_LOOKANDFEEL_SKINTHEME);
+  if (!StringUtils::EqualsNoCase(strTheme, "SKINDEFAULT"))
   {
     for (size_t i=0;i<vecTheme.size();++i)
     {
-      std::string strTmpTheme(CServiceBroker::GetSettings().GetString(CSettings::SETTING_LOOKANDFEEL_SKINTHEME));
+      std::string strTmpTheme(strTheme);
       URIUtils::RemoveExtension(strTmpTheme);
       if (StringUtils::EqualsNoCase(vecTheme[i], strTmpTheme))
       {
@@ -379,12 +368,12 @@ static int SetTheme(const std::vector<std::string>& params)
   if (iTheme != -1 && iTheme < (int)vecTheme.size())
     strSkinTheme = vecTheme[iTheme];
 
-  CServiceBroker::GetSettings().SetString(CSettings::SETTING_LOOKANDFEEL_SKINTHEME, strSkinTheme);
+  settings->SetString(CSettings::SETTING_LOOKANDFEEL_SKINTHEME, strSkinTheme);
   // also set the default color theme
   std::string colorTheme(URIUtils::ReplaceExtension(strSkinTheme, ".xml"));
   if (StringUtils::EqualsNoCase(colorTheme, "Textures.xml"))
     colorTheme = "defaults.xml";
-  CServiceBroker::GetSettings().SetString(CSettings::SETTING_LOOKANDFEEL_SKINCOLORS, colorTheme);
+  settings->SetString(CSettings::SETTING_LOOKANDFEEL_SKINCOLORS, colorTheme);
   g_application.ReloadSkin();
 
   return 0;
@@ -397,7 +386,7 @@ static int SetTheme(const std::vector<std::string>& params)
 static int SkinReset(const std::vector<std::string>& params)
 {
   CSkinSettings::GetInstance().Reset(params[0]);
-  CServiceBroker::GetSettings().Save();
+  CServiceBroker::GetSettingsComponent()->GetSettings()->Save();
 
   return 0;
 }
@@ -408,7 +397,7 @@ static int SkinReset(const std::vector<std::string>& params)
 static int SkinResetAll(const std::vector<std::string>& params)
 {
   CSkinSettings::GetInstance().Reset();
-  CServiceBroker::GetSettings().Save();
+  CServiceBroker::GetSettingsComponent()->GetSettings()->Save();
 
   return 0;
 }

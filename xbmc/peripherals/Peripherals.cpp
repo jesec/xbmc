@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2015 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "Peripherals.h"
@@ -23,7 +11,6 @@
 #include <utility>
 
 #include "EventScanner.h"
-#include "addons/PeripheralAddon.h"
 #include "addons/AddonButtonMap.h"
 #include "addons/AddonManager.h"
 #include "addons/settings/GUIDialogAddonSettings.h"
@@ -45,7 +32,6 @@
 #include "devices/PeripheralNIC.h"
 #include "devices/PeripheralNyxboard.h"
 #include "devices/PeripheralTuner.h"
-#include "dialogs/GUIDialogKaiToast.h"
 #include "FileItem.h"
 #include "bus/virtual/PeripheralBusApplication.h"
 #include "input/joysticks/interfaces/IButtonMapper.h"
@@ -53,7 +39,6 @@
 #include "filesystem/Directory.h"
 #include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
-#include "guilib/LocalizeStrings.h"
 #include "guilib/WindowIDs.h"
 #include "GUIUserMessages.h"
 #include "input/Key.h"
@@ -62,6 +47,7 @@
 #include "peripherals/dialogs/GUIDialogPeripherals.h"
 #include "settings/lib/Setting.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "threads/SingleLock.h"
 #include "Util.h"
 #include "utils/log.h"
@@ -72,6 +58,9 @@
 
 #if defined(HAVE_LIBCEC)
 #include "bus/virtual/PeripheralBusCEC.h"
+#else
+#include "dialogs/GUIDialogKaiToast.h"
+#include "guilib/LocalizeStrings.h"
 #endif
 
 using namespace KODI;
@@ -80,10 +69,8 @@ using namespace PERIPHERALS;
 using namespace XFILE;
 using namespace KODI::MESSAGING;
 
-CPeripherals::CPeripherals(ANNOUNCEMENT::CAnnouncementManager &announcements,
-                           CInputManager &inputManager,
+CPeripherals::CPeripherals(CInputManager &inputManager,
                            GAME::CControllerManager &controllerProfiles) :
-  m_announcements(announcements),
   m_inputManager(inputManager),
   m_controllerProfiles(controllerProfiles),
   m_eventScanner(new CEventScanner(*this))
@@ -95,13 +82,13 @@ CPeripherals::CPeripherals(ANNOUNCEMENT::CAnnouncementManager &announcements,
   settingSet.insert(CSettings::SETTING_INPUT_CONTROLLERCONFIG);
   settingSet.insert(CSettings::SETTING_INPUT_TESTRUMBLE);
   settingSet.insert(CSettings::SETTING_LOCALE_LANGUAGE);
-  CServiceBroker::GetSettings().RegisterCallback(this, settingSet);
+  CServiceBroker::GetSettingsComponent()->GetSettings()->RegisterCallback(this, settingSet);
 }
 
 CPeripherals::~CPeripherals()
 {
   // Unregister settings
-  CServiceBroker::GetSettings().UnregisterCallback(this);
+  CServiceBroker::GetSettingsComponent()->GetSettings()->UnregisterCallback(this);
 
   Clear();
 }
@@ -142,13 +129,13 @@ void CPeripherals::Initialise()
   m_eventScanner->Start();
 
   MESSAGING::CApplicationMessenger::GetInstance().RegisterReceiver(this);
-  m_announcements.AddAnnouncer(this);
+  CServiceBroker::GetAnnouncementManager()->AddAnnouncer(this);
 #endif
 }
 
 void CPeripherals::Clear()
 {
-  m_announcements.RemoveAnnouncer(this);
+  CServiceBroker::GetAnnouncementManager()->RemoveAnnouncer(this);
 
   m_eventScanner->Stop();
 
@@ -790,7 +777,7 @@ EventLockHandlePtr CPeripherals::RegisterEventLock()
 
 void CPeripherals::OnUserNotification()
 {
-  if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_INPUT_RUMBLENOTIFY))
+  if (!CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_INPUT_RUMBLENOTIFY))
     return;
 
   PeripheralVector peripherals;
@@ -979,7 +966,7 @@ void CPeripherals::Announce(ANNOUNCEMENT::AnnouncementFlag flag, const char *sen
   {
     if (strcmp(message, "OnQuit") == 0)
     {
-      if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_INPUT_CONTROLLERPOWEROFF))
+      if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_INPUT_CONTROLLERPOWEROFF))
         PowerOffDevices();
     }
   }

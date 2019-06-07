@@ -54,7 +54,7 @@ CmadVRAllocatorPresenter::CmadVRAllocatorPresenter(HWND hWnd, HRESULT& hr, std::
   //Init Variable
   m_firstBoot = true;
   m_isEnteringExclusive = false;
-  m_kodiGuiDirtyAlgo = g_advancedSettings.m_guiAlgorithmDirtyRegions;
+  m_kodiGuiDirtyAlgo = CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_guiAlgorithmDirtyRegions;
   m_activeVideoRect.SetRect(0, 0, 0, 0);
   m_frameCount = 0;
   
@@ -78,7 +78,7 @@ CmadVRAllocatorPresenter::~CmadVRAllocatorPresenter()
     ((COsdRenderCallback*)(IOsdRenderCallback*)m_pORCB)->SetDXRAP(nullptr);
   }
 
-  g_advancedSettings.m_guiAlgorithmDirtyRegions = m_kodiGuiDirtyAlgo;
+  CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_guiAlgorithmDirtyRegions = m_kodiGuiDirtyAlgo;
   
   // the order is important here
   SAFE_DELETE(m_pMadvrShared);
@@ -219,7 +219,7 @@ HRESULT CmadVRAllocatorPresenter::SetDevice(IDirect3DDevice9* pD3DDev)
     m_pMadvrShared->CreateTextures(DX::DeviceResources::Get()->GetD3DDevice(), m_pD3DDev, (int)m_ScreenSize.cx, (int)m_ScreenSize.cy);
 
     m_firstBoot = false;
-    g_advancedSettings.m_guiAlgorithmDirtyRegions = DIRTYREGION_SOLVER_FILL_VIEWPORT_ALWAYS;
+    CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_guiAlgorithmDirtyRegions = DIRTYREGION_SOLVER_FILL_VIEWPORT_ALWAYS;
   }
 
   Com::SmartSize size(m_ScreenSize.cx,m_ScreenSize.cy);

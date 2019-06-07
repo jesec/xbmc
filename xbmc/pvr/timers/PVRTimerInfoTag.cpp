@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "PVRTimerInfoTag.h"
@@ -25,6 +13,7 @@
 #include "guilib/LocalizeStrings.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
 #include "utils/Variant.h"
@@ -34,7 +23,6 @@
 #include "pvr/addons/PVRClients.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
 #include "pvr/epg/Epg.h"
-#include "pvr/epg/EpgContainer.h"
 #include "pvr/timers/PVRTimers.h"
 
 using namespace PVR;
@@ -49,8 +37,8 @@ CPVRTimerInfoTag::CPVRTimerInfoTag(bool bRadio /* = false */) :
   m_iLifetime(DEFAULT_RECORDING_LIFETIME),
   m_iPreventDupEpisodes(DEFAULT_RECORDING_DUPLICATEHANDLING),
   m_bIsRadio(bRadio),
-  m_iMarginStart(CServiceBroker::GetSettings().GetInt(CSettings::SETTING_PVRRECORD_MARGINSTART)),
-  m_iMarginEnd(CServiceBroker::GetSettings().GetInt(CSettings::SETTING_PVRRECORD_MARGINEND)),
+  m_iMarginStart(CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_PVRRECORD_MARGINSTART)),
+  m_iMarginEnd(CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_PVRRECORD_MARGINEND)),
   m_StartTime(CDateTime::GetUTCDateTime()),
   m_StopTime(m_StartTime),
   m_iEpgUid(EPG_TAG_INVALID_UID)
@@ -104,9 +92,9 @@ CPVRTimerInfoTag::CPVRTimerInfoTag(const PVR_TIMER &timer, const CPVRChannelPtr 
   m_bIsRadio(channel && channel->IsRadio()),
   m_iMarginStart(timer.iMarginStart),
   m_iMarginEnd(timer.iMarginEnd),
-  m_StartTime(timer.startTime + g_advancedSettings.m_iPVRTimeCorrection),
-  m_StopTime(timer.endTime + g_advancedSettings.m_iPVRTimeCorrection),
-  m_FirstDay(timer.firstDay + g_advancedSettings.m_iPVRTimeCorrection),
+  m_StartTime(timer.startTime + CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_iPVRTimeCorrection),
+  m_StopTime(timer.endTime + CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_iPVRTimeCorrection),
+  m_FirstDay(timer.firstDay + CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_iPVRTimeCorrection),
   m_strSeriesLink(timer.strSeriesLink),
   m_iEpgUid(timer.iEpgUid),
   m_channel(channel)
@@ -709,7 +697,7 @@ CPVRTimerInfoTagPtr CPVRTimerInfoTag::CreateInstantTimerTag(const CPVRChannelPtr
   newTimer->SetStartFromUTC(now);
 
   if (iDuration == DEFAULT_PVRRECORD_INSTANTRECORDTIME)
-    iDuration = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_PVRRECORD_INSTANTRECORDTIME);
+    iDuration = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_PVRRECORD_INSTANTRECORDTIME);
 
   CDateTime endTime = now + CDateTimeSpan(0, 0, iDuration ? iDuration : 120, 0);
   newTimer->SetEndFromUTC(endTime);
@@ -941,37 +929,40 @@ CPVREpgInfoTagPtr CPVRTimerInfoTag::GetEpgInfoTag(bool bCreate /* = true */) con
           {
             m_epgTag = epg->GetTagByBroadcastId(m_iEpgUid);
           }
-          else
+        }
+
+        if (!m_epgTag && m_epTagRefetchTimeout.IsTimePast())
+        {
+          m_epTagRefetchTimeout.Set(30000); // try to fetch missing epg tag from backend at most every 30 secs
+
+          time_t startTime = 0;
+          time_t endTime = 0;
+
+          StartAsUTC().GetAsTime(startTime);
+          if (startTime > 0)
+            EndAsUTC().GetAsTime(endTime);
+
+          if (startTime > 0 && endTime > 0)
           {
-            time_t startTime = 0;
-            time_t endTime = 0;
-
-            StartAsUTC().GetAsTime(startTime);
-            if (startTime > 0)
-              EndAsUTC().GetAsTime(endTime);
-
-            if (startTime > 0 && endTime > 0)
+            // try to fetch missing epg tag from backend
+            const CPVREpgInfoTagPtr epgTag = epg->GetTagBetween(StartAsUTC() - CDateTimeSpan(0, 0, 2, 0), EndAsUTC() + CDateTimeSpan(0, 0, 2, 0), true);
+            if (epgTag)
             {
-              // if no epg uid present, try to find a tag according to timer's start/end time
-              CPVREpgInfoTagPtr epgTag = epg->GetTagBetween(StartAsUTC() - CDateTimeSpan(0, 0, 2, 0), EndAsUTC() + CDateTimeSpan(0, 0, 2, 0));
-              if (epgTag)
+              bool bTagMatches = !IsTimerRule();
+              if (!bTagMatches)
               {
-                bool bTagMatches = !IsTimerRule();
-                if (!bTagMatches)
+                // Check whether the tag actually is an event that belongs to a child of this timer rule
+                const CPVRTimerInfoTagPtr timer = epgTag->Timer();
+                if (timer && (timer->GetTimerRuleId() == m_iClientIndex))
                 {
-                  // Check whether the tag actually is an event that belongs to a child of this timer rule
-                  const CPVRTimerInfoTagPtr timer = epgTag->Timer();
-                  if (timer && (timer->GetTimerRuleId() == m_iClientIndex))
-                  {
-                    bTagMatches = true;
-                  }
+                  bTagMatches = true;
                 }
+              }
 
-                if (bTagMatches)
-                {
-                  m_epgTag = epgTag;
-                  m_iEpgUid = m_epgTag->UniqueBroadcastID();
-                }
+              if (bTagMatches)
+              {
+                m_epgTag = epgTag;
+                m_iEpgUid = m_epgTag->UniqueBroadcastID();
               }
             }
           }

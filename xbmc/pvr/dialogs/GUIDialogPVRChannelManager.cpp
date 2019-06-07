@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GUIDialogPVRChannelManager.h"
@@ -37,8 +25,9 @@
 #include "guilib/LocalizeStrings.h"
 #include "input/Key.h"
 #include "messaging/helpers/DialogOKHelper.h"
-#include "profiles/ProfilesManager.h"
+#include "profiles/ProfileManager.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "storage/MediaManager.h"
 #include "utils/StringUtils.h"
 #include "utils/Variant.h"
@@ -336,9 +325,9 @@ bool CGUIDialogPVRChannelManager::OnClickButtonChannelLogo(CGUIMessage &message)
   if (!pItem)
     return false;
 
-  const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+  const std::shared_ptr<CProfileManager> profileManager = CServiceBroker::GetSettingsComponent()->GetProfileManager();
 
-  if (profileManager.GetCurrentProfile().canWriteSources() && !g_passwordManager.IsProfileLockUnlocked())
+  if (profileManager->GetCurrentProfile().canWriteSources() && !g_passwordManager.IsProfileLockUnlocked())
     return false;
 
   // setup our thumb list
@@ -368,10 +357,11 @@ bool CGUIDialogPVRChannelManager::OnClickButtonChannelLogo(CGUIMessage &message)
 
   std::string strThumb;
   VECSOURCES shares;
-  if (CServiceBroker::GetSettings().GetString(CSettings::SETTING_PVRMENU_ICONPATH) != "")
+  const std::shared_ptr<CSettings> settings = CServiceBroker::GetSettingsComponent()->GetSettings();
+  if (settings->GetString(CSettings::SETTING_PVRMENU_ICONPATH) != "")
   {
     CMediaSource share1;
-    share1.strPath = CServiceBroker::GetSettings().GetString(CSettings::SETTING_PVRMENU_ICONPATH);
+    share1.strPath = settings->GetString(CSettings::SETTING_PVRMENU_ICONPATH);
     share1.strName = g_localizeStrings.Get(19066);
     shares.push_back(share1);
   }

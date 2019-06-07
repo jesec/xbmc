@@ -1,28 +1,15 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "SortUtils.h"
 #include "LangInfo.h"
 #include "URL.h"
 #include "Util.h"
-#include "XBDateTime.h"
 #include "utils/CharsetConverter.h"
 #include "utils/StringUtils.h"
 #include "utils/Variant.h"
@@ -78,6 +65,9 @@ std::string ByPath(SortAttribute attributes, const SortItem &values)
 
 std::string ByLastPlayed(SortAttribute attributes, const SortItem &values)
 {
+  if (attributes & SortAttributeIgnoreLabel)
+    return values.at(FieldLastPlayed).asString();
+
   return StringUtils::Format("%s %s", values.at(FieldLastPlayed).asString().c_str(), ByLabel(attributes, values).c_str());
 }
 
@@ -962,18 +952,18 @@ const sort_map table[] = {
 
 SORT_METHOD SortUtils::TranslateOldSortMethod(SortBy sortBy, bool ignoreArticle)
 {
-  for (size_t i = 0; i < sizeof(table) / sizeof(sort_map); i++)
+  for (const sort_map& t : table)
   {
-    if (table[i].sort == sortBy)
+    if (t.sort == sortBy)
     {
-      if (ignoreArticle == ((table[i].flags & SortAttributeIgnoreArticle) == SortAttributeIgnoreArticle))
-        return table[i].old;
+      if (ignoreArticle == ((t.flags & SortAttributeIgnoreArticle) == SortAttributeIgnoreArticle))
+        return t.old;
     }
   }
-  for (size_t i = 0; i < sizeof(table) / sizeof(sort_map); i++)
+  for (const sort_map& t : table)
   {
-    if (table[i].sort == sortBy)
-      return table[i].old;
+    if (t.sort == sortBy)
+      return t.old;
   }
   return SORT_METHOD_NONE;
 }
@@ -981,12 +971,12 @@ SORT_METHOD SortUtils::TranslateOldSortMethod(SortBy sortBy, bool ignoreArticle)
 SortDescription SortUtils::TranslateOldSortMethod(SORT_METHOD sortBy)
 {
   SortDescription description;
-  for (size_t i = 0; i < sizeof(table) / sizeof(sort_map); i++)
+  for (const sort_map& t : table)
   {
-    if (table[i].old == sortBy)
+    if (t.old == sortBy)
     {
-      description.sortBy = table[i].sort;
-      description.sortAttributes = table[i].flags;
+      description.sortBy = t.sort;
+      description.sortAttributes = t.flags;
       break;
     }
   }
@@ -995,10 +985,10 @@ SortDescription SortUtils::TranslateOldSortMethod(SORT_METHOD sortBy)
 
 int SortUtils::GetSortLabel(SortBy sortBy)
 {
-  for (size_t i = 0; i < sizeof(table) / sizeof(sort_map); i++)
+  for (const sort_map& t : table)
   {
-    if (table[i].sort == sortBy)
-      return table[i].label;
+    if (t.sort == sortBy)
+      return t.label;
   }
   return 16018; // None
 }

@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "MediaManager.h"
@@ -43,6 +31,7 @@
 #include "GUIUserMessages.h"
 #include "settings/MediaSourceSettings.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "utils/XBMCTinyXML.h"
 #include "threads/SingleLock.h"
 #include "utils/log.h"
@@ -204,7 +193,7 @@ void CMediaManager::GetNetworkLocations(VECSOURCES &locations, bool autolocation
 #endif// HAS_FILESYSTEM_NFS
 
 #ifdef HAS_UPNP
-    if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SERVICES_UPNP))
+    if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_SERVICES_UPNP))
     {
       std::string strDevices = g_localizeStrings.Get(33040); //"% Devices"
       share.strPath = "upnp://";
@@ -696,27 +685,43 @@ std::vector<std::string> CMediaManager::GetDiskUsage()
   return m_platformStorage->GetDiskUsage();
 }
 
+namespace
+{
+void ShowGUINotification(CGUIDialogKaiToast::eMessageType eType, const std::string& caption, const std::string& message)
+{
+  int activeWindow = CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow();
+  if (activeWindow != WINDOW_FULLSCREEN_VIDEO &&
+      activeWindow != WINDOW_FULLSCREEN_GAME &&
+      activeWindow != WINDOW_VISUALISATION &&
+      activeWindow != WINDOW_SLIDESHOW)
+  {
+    CGUIDialogKaiToast::QueueNotification(eType, caption, message, TOAST_DISPLAY_TIME, false);
+  }
+}
+} // unnamed namespace
+
 void CMediaManager::OnStorageAdded(const std::string &label, const std::string &path)
 {
 #ifdef HAS_DVD_DRIVE
-  if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_AUDIOCDS_AUTOACTION) != AUTOCD_NONE || CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DVDS_AUTORUN))
-    if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_AUDIOCDS_AUTOACTION) == AUTOCD_RIP)
+  const std::shared_ptr<CSettings> settings = CServiceBroker::GetSettingsComponent()->GetSettings();
+  if (settings->GetInt(CSettings::SETTING_AUDIOCDS_AUTOACTION) != AUTOCD_NONE || settings->GetBool(CSettings::SETTING_DVDS_AUTORUN))
+    if (settings->GetInt(CSettings::SETTING_AUDIOCDS_AUTOACTION) == AUTOCD_RIP)
       CJobManager::GetInstance().AddJob(new CAutorunMediaJob(label, path), this, CJob::PRIORITY_LOW);
     else
       CJobManager::GetInstance().AddJob(new CAutorunMediaJob(label, path), this, CJob::PRIORITY_HIGH);
   else
-    CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Info, g_localizeStrings.Get(13021), label, TOAST_DISPLAY_TIME, false);
+    ShowGUINotification(CGUIDialogKaiToast::Info, g_localizeStrings.Get(13021), label);
 #endif
 }
 
 void CMediaManager::OnStorageSafelyRemoved(const std::string &label)
 {
-  CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Info, g_localizeStrings.Get(13023), label, TOAST_DISPLAY_TIME, false);
+  ShowGUINotification(CGUIDialogKaiToast::Info, g_localizeStrings.Get(13023), label);
 }
 
 void CMediaManager::OnStorageUnsafelyRemoved(const std::string &label)
 {
-  CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Warning, g_localizeStrings.Get(13022), label);
+  ShowGUINotification(CGUIDialogKaiToast::Warning, g_localizeStrings.Get(13022), label);
 }
 
 CMediaManager::DiscInfo CMediaManager::GetDiscInfo(const std::string& mediaPath)

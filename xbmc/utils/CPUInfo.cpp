@@ -1,27 +1,16 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include <cstdlib>
 
 #include "CPUInfo.h"
 #include "utils/log.h"
+#include "utils/SysfsUtils.h"
 #include "utils/Temperature.h"
 #include <string>
 #include <string.h>
@@ -104,7 +93,9 @@
 #endif
 
 #ifdef TARGET_POSIX
+#include "ServiceBroker.h"
 #include "settings/AdvancedSettings.h"
+#include "settings/SettingsComponent.h"
 #endif
 
 #include "utils/StringUtils.h"
@@ -431,6 +422,21 @@ CCPUInfo::CCPUInfo(void)
       }
     }
     fclose(fCPUInfo);
+    // new socs use the sysfs soc interface to describe the hardware
+    if (SysfsUtils::Has("/sys/bus/soc/devices/soc0"))
+    {
+      std::string machine, family, soc_id;
+      if (SysfsUtils::Has("/sys/bus/soc/devices/soc0/machine"))
+        SysfsUtils::GetString("/sys/bus/soc/devices/soc0/machine", machine);
+      if (SysfsUtils::Has("/sys/bus/soc/devices/soc0/family"))
+        SysfsUtils::GetString("/sys/bus/soc/devices/soc0/family", family);
+      if (SysfsUtils::Has("/sys/bus/soc/devices/soc0/soc_id"))
+        SysfsUtils::GetString("/sys/bus/soc/devices/soc0/soc_id", soc_id);
+      if (m_cpuHardware.empty() && !machine.empty())
+        m_cpuHardware = machine;
+      if (!family.empty() && !soc_id.empty())
+        m_cpuSoC = family + " " + soc_id;
+    }
     //  /proc/cpuinfo is not reliable on some Android platforms
     //  At least we should get the correct cpu count for multithreaded decoding
 #if defined(TARGET_ANDROID)
@@ -625,7 +631,7 @@ bool CCPUInfo::getTemperature(CTemperature& temperature)
 #else
   int         ret   = 0;
   FILE        *p    = NULL;
-  std::string  cmd   = g_advancedSettings.m_cpuTempCmd;
+  std::string  cmd   = CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_cpuTempCmd;
 
   temperature.SetValid(false);
 

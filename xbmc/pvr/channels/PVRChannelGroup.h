@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -326,13 +314,20 @@ namespace PVR
      */
     PVR_CHANNEL_GROUP_SORTED_MEMBERS GetMembers(void) const;
 
+    enum class Include
+    {
+      ALL,
+      ONLY_HIDDEN,
+      ONLY_VISIBLE
+    };
+
     /*!
-     * @brief Get the list of channels in a group.
+     * @brief Get a filtered list of channels in this group.
      * @param results The file list to store the results in.
-     * @param bGroupMembers If true, get the channels that are in this group. Get the channels that are not in this group otherwise.
+     * @param eFilter A filter to apply to the list.
      * @return The amount of channels that were added to the list.
      */
-    virtual int GetMembers(CFileItemList &results, bool bGroupMembers = true) const;
+    int GetMembers(CFileItemList &results, Include eFilter = Include::ONLY_VISIBLE) const;
 
     /*!
      * @brief Get the list of channel numbers in a group.
@@ -378,11 +373,6 @@ namespace PVR
     bool HasChanges(void) const;
 
     /*!
-     * @brief Reset the channel number cache if this is the selected group in the UI.
-     */
-    void ResetChannelNumberCache(void);
-
-    /*!
      * @brief Create an EPG table for each channel.
      * @brief bForce Create the tables, even if they already have been created before.
      * @return True if all tables were created successfully, false otherwise.
@@ -396,20 +386,6 @@ namespace PVR
      * @return The amount of entries that were added.
      */
     int GetEPGAll(CFileItemList &results, bool bIncludeChannelsWithoutEPG = false) const;
-
-    /*!
-     * @brief Get all entries that are active now.
-     * @param results The fileitem list to store the results in.
-     * @return The amount of entries that were added.
-     */
-    int GetEPGNow(CFileItemList &results) const { return GetEPGNowOrNext(results, false); }
-
-    /*!
-     * @brief Get all entries that will be active next.
-     * @param results The fileitem list to store the results in.
-     * @return The amount of entries that were added.
-     */
-    int GetEPGNext(CFileItemList &results) const { return GetEPGNowOrNext(results, true); }
 
     /*!
      * @brief Get the start time of the first entry.
@@ -440,8 +416,6 @@ namespace PVR
      */
     PVRChannelGroupMember& GetByUniqueID(const std::pair<int, int>& id);
     const PVRChannelGroupMember& GetByUniqueID(const std::pair<int, int>& id) const;
-
-    void SetSelectedGroup(bool bSetTo);
 
     void SetHidden(bool bHidden);
     bool IsHidden(void) const;
@@ -536,7 +510,6 @@ namespace PVR
     bool             m_bChanged = false;                    /*!< true if anything changed in this group that hasn't been persisted, false otherwise */
     bool             m_bUsingBackendChannelOrder = false;   /*!< true to use the channel order from backends, false otherwise */
     bool             m_bUsingBackendChannelNumbers = false; /*!< true to use the channel numbers from 1 backend, false otherwise */
-    bool             m_bSelectedGroup = false;              /*!< true when this is the selected group, false otherwise */
     bool             m_bPreventSortAndRenumber = false;     /*!< true when sorting and renumbering should not be done after adding/updating channels to the group */
     time_t           m_iLastWatched = 0;                /*!< last time group has been watched */
     bool             m_bHidden = false;                     /*!< true if this group is hidden, false otherwise */
@@ -549,12 +522,5 @@ namespace PVR
 
   private:
     CDateTime GetEPGDate(EpgDateType epgDateType) const;
-    /*!
-     * @brief Get all entries that will be active next.
-     * @param results The fileitem list to store the results in.
-     * @param bGetNext True to get the next item, false to get the current one
-     * @return The amount of entries that were added.
-     */
-    int GetEPGNowOrNext(CFileItemList &results, bool bGetNext) const;
   };
 }

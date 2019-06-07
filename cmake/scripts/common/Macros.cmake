@@ -72,11 +72,7 @@ function(core_add_library name)
     add_library(${name} STATIC ${SOURCES} ${HEADERS} ${OTHERS})
     set_target_properties(${name} PROPERTIES PREFIX "")
     set(core_DEPENDS ${name} ${core_DEPENDS} CACHE STRING "" FORCE)
-    set(lib_DEPS libcpluff ffmpeg crossguid ${PLATFORM_GLOBAL_TARGET_DEPS})
-    if(NOT CORE_SYSTEM_NAME STREQUAL windowsstore)
-      list(APPEND lib_DEPS dvdnav)
-    endif()
-    add_dependencies(${name} ${lib_DEPS})
+    add_dependencies(${name} ${GLOBAL_TARGET_DEPS})
     set(CORE_LIBRARY ${name} PARENT_SCOPE)
 
     # Add precompiled headers to Kodi main libraries
@@ -106,11 +102,7 @@ function(core_add_test_library name)
     set_target_properties(${name} PROPERTIES PREFIX ""
                                              EXCLUDE_FROM_ALL 1
                                              FOLDER "Build Utilities/tests")
-    set(lib_DEPS libcpluff ffmpeg crossguid ${PLATFORM_GLOBAL_TARGET_DEPS})
-    if(NOT CORE_SYSTEM_NAME STREQUAL windowsstore)
-      list(APPEND lib_DEPS dvdnav)
-    endif()
-    add_dependencies(${name} ${lib_DEPS})
+    add_dependencies(${name} ${GLOBAL_TARGET_DEPS})
     set(test_archives ${test_archives} ${name} CACHE STRING "" FORCE)
   endif()
   foreach(src IN LISTS SOURCES SUPPORTED_SOURCES HEADERS OTHERS)
@@ -668,12 +660,18 @@ function(core_find_git_rev stamp)
                       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
       string(REPLACE "\"" "" DATE ${DATE})
       string(REPLACE "-" "" DATE ${DATE})
+
+      # build date
+      string(TIMESTAMP APP_BUILD_DATE "%Y%m%d" UTC)
+      set(APP_BUILD_DATE ${APP_BUILD_DATE} PARENT_SCOPE)
     else()
       if(EXISTS ${CMAKE_SOURCE_DIR}/BUILDDATE)
         file(STRINGS ${CMAKE_SOURCE_DIR}/BUILDDATE DATE LIMIT_INPUT 8)
       else()
         string(TIMESTAMP DATE "%Y%m%d" UTC)
       endif()
+      set(APP_BUILD_DATE ${DATE} PARENT_SCOPE)
+
       if(EXISTS ${CMAKE_SOURCE_DIR}/VERSION)
         file(STRINGS ${CMAKE_SOURCE_DIR}/VERSION HASH LIMIT_INPUT 16)
       else()
@@ -728,6 +726,7 @@ macro(core_find_versions)
     APP_NAME
     APP_PACKAGE
     COMPANY_NAME
+    COPYRIGHT_YEARS
     JSONRPC_VERSION
     PACKAGE_DESCRIPTION
     PACKAGE_IDENTITY
@@ -791,6 +790,12 @@ endmacro()
 # find all folders containing addon.xml.in and used to define
 # ADDON_XML_OUTPUTS, ADDON_XML_DEPENDS and ADDON_INSTALL_DATA
 macro(find_addon_xml_in_files)
+  set(filter ${ARGV0})
+
+  if(filter AND VERBOSE)
+    message(STATUS "find_addon_xml_in_files: filtering ${filter}")
+  endif()
+
   file(GLOB ADDON_XML_IN_FILE ${CMAKE_SOURCE_DIR}/addons/*/addon.xml.in)
   foreach(loop_var ${ADDON_XML_IN_FILE})
     list(GET loop_var 0 xml_name)
@@ -799,7 +804,9 @@ macro(find_addon_xml_in_files)
     string(REPLACE "${CORE_SOURCE_DIR}/" "" xml_name ${xml_name})
 
     list(APPEND ADDON_XML_DEPENDS "${CORE_SOURCE_DIR}/${xml_name}/addon.xml.in")
-    list(APPEND ADDON_XML_OUTPUTS "${CMAKE_BINARY_DIR}/${xml_name}/addon.xml")
+    if(filter AND NOT xml_name MATCHES ${filter})
+      list(APPEND ADDON_XML_OUTPUTS "${CMAKE_BINARY_DIR}/${xml_name}/addon.xml")
+    endif()
 
     # Read content of add-on folder to have on install
     file(GLOB ADDON_FILES "${CORE_SOURCE_DIR}/${xml_name}/*")

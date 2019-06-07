@@ -51,11 +51,15 @@ endif()
 
 if(CORE_PLATFORM_NAME_LC STREQUAL gbm)
   list(APPEND SOURCES RendererDRMPRIME.cpp
-                      RendererDRMPRIMEGLES.cpp
-                      DRMPRIMEEGL.cpp)
+                      VideoLayerBridgeDRMPRIME.cpp)
   list(APPEND HEADERS RendererDRMPRIME.h
-                      RendererDRMPRIMEGLES.h
-                      DRMPRIMEEGL.h)
+                      VideoLayerBridgeDRMPRIME.h)
+  if(OPENGLES_FOUND)
+    list(APPEND SOURCES RendererDRMPRIMEGLES.cpp
+                        DRMPRIMEEGL.cpp)
+    list(APPEND HEADERS RendererDRMPRIMEGLES.h
+                        DRMPRIMEEGL.h)
+  endif()
 endif()
 
 # we might want to build on linux systems

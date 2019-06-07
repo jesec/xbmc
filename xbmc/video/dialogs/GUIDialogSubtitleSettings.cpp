@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2014 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GUIDialogSubtitleSettings.h"
@@ -23,6 +11,7 @@
 #include <string>
 #include <vector>
 
+#include "addons/VFSEntry.h"
 #include "addons/Skin.h"
 #include "Application.h"
 #include "ServiceBroker.h"
@@ -35,13 +24,14 @@
 #include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
-#include "profiles/ProfilesManager.h"
+#include "profiles/ProfileManager.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/lib/Setting.h"
 #include "settings/lib/SettingsManager.h"
 #include "settings/MediaSettings.h"
 #include "settings/MediaSourceSettings.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "URL.h"
 #include "utils/LangCodeExpander.h"
 #include "utils/log.h"
@@ -133,22 +123,33 @@ void CGUIDialogSubtitleSettings::OnSettingChanged(std::shared_ptr<const CSetting
 
 std::string CGUIDialogSubtitleSettings::BrowseForSubtitle()
 {
+  std::string extras;
+  for (const auto& vfsAddon : CServiceBroker::GetVFSAddonCache().GetAddonInstances())
+  {
+    if (vfsAddon->ID() == "vfs.rar" || vfsAddon->ID() == "vfs.libarchive")
+      extras += '|' + vfsAddon->GetExtensions();
+  }
+
   std::string strPath;
   if (URIUtils::IsInRAR(g_application.CurrentFileItem().GetPath()) || URIUtils::IsInZIP(g_application.CurrentFileItem().GetPath()))
     strPath = CURL(g_application.CurrentFileItem().GetPath()).GetHostName();
   else
     strPath = g_application.CurrentFileItem().GetPath();
 
-  std::string strMask = ".utf|.utf8|.utf-8|.sub|.srt|.smi|.rt|.txt|.ssa|.aqt|.jss|.ass|.idx|.rar|.zip";
+  std::string strMask = ".utf|.utf8|.utf-8|.sub|.srt|.smi|.rt|.txt|.ssa|.aqt|.jss|.ass|.idx|.zip";
+
   if (g_application.GetCurrentPlayer() == "VideoPlayer")
-    strMask = ".srt|.rar|.zip|.ifo|.smi|.sub|.idx|.ass|.ssa|.txt";
+    strMask = ".srt|.zip|.ifo|.smi|.sub|.idx|.ass|.ssa|.txt";
+
+  strMask += extras;
+
   VECSOURCES shares(*CMediaSourceSettings::GetInstance().GetSources("video"));
-  if (CMediaSettings::GetInstance().GetAdditionalSubtitleDirectoryChecked() != -1 && !CServiceBroker::GetSettings().GetString(CSettings::SETTING_SUBTITLES_CUSTOMPATH).empty())
+  if (CMediaSettings::GetInstance().GetAdditionalSubtitleDirectoryChecked() != -1 && !CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_SUBTITLES_CUSTOMPATH).empty())
   {
     CMediaSource share;
     std::vector<std::string> paths;
     paths.push_back(URIUtils::GetDirectory(strPath));
-    paths.push_back(CServiceBroker::GetSettings().GetString(CSettings::SETTING_SUBTITLES_CUSTOMPATH));
+    paths.push_back(CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_SUBTITLES_CUSTOMPATH));
     share.FromNameAndPaths("video",g_localizeStrings.Get(21367),paths);
     shares.push_back(share);
     strPath = share.strPath;
@@ -201,10 +202,10 @@ void CGUIDialogSubtitleSettings::OnSettingAction(std::shared_ptr<const CSetting>
 
 void CGUIDialogSubtitleSettings::Save()
 {
-  const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+  const std::shared_ptr<CProfileManager> profileManager = CServiceBroker::GetSettingsComponent()->GetProfileManager();
 
   if (!g_passwordManager.CheckSettingLevelLock(SettingLevel::Expert) &&
-      profileManager.GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE)
+      profileManager->GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE)
     return;
 
   // prompt user if they are sure
@@ -221,7 +222,7 @@ void CGUIDialogSubtitleSettings::Save()
 
   CMediaSettings::GetInstance().GetDefaultVideoSettings() = g_application.GetAppPlayer().GetVideoSettings();
   CMediaSettings::GetInstance().GetDefaultVideoSettings().m_SubtitleStream = -1;
-  CServiceBroker::GetSettings().Save();
+  CServiceBroker::GetSettingsComponent()->GetSettings()->Save();
 }
 
 void CGUIDialogSubtitleSettings::SetupView()
@@ -283,7 +284,7 @@ void CGUIDialogSubtitleSettings::InitializeSettings()
   // subtitle delay setting
   if (SupportsSubtitleFeature(IPC_SUBS_OFFSET))
   {
-    std::shared_ptr<CSettingNumber> settingSubtitleDelay = AddSlider(groupSubtitles, SETTING_SUBTITLE_DELAY, 22006, SettingLevel::Basic, videoSettings.m_SubtitleDelay, 0, -g_advancedSettings.m_videoSubsDelayRange, 0.1f, g_advancedSettings.m_videoSubsDelayRange, 22006, usePopup);
+    std::shared_ptr<CSettingNumber> settingSubtitleDelay = AddSlider(groupSubtitles, SETTING_SUBTITLE_DELAY, 22006, SettingLevel::Basic, videoSettings.m_SubtitleDelay, 0, -CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_videoSubsDelayRange, 0.1f, CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_videoSubsDelayRange, 22006, usePopup);
     std::static_pointer_cast<CSettingControlSlider>(settingSubtitleDelay->GetControl())->SetFormatter(SettingFormatterDelay);
   }
 

@@ -1,27 +1,13 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GUIWindowVisualisation.h"
 #include "Application.h"
-#include "messaging/ApplicationMessenger.h"
-#include "FileItem.h"
 #include "ServiceBroker.h"
 #include "music/dialogs/GUIDialogMusicOSD.h"
 #include "GUIUserMessages.h"
@@ -31,6 +17,7 @@
 #include "input/Key.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 
 using namespace MUSIC_INFO;
 
@@ -62,7 +49,7 @@ bool CGUIWindowVisualisation::OnAction(const CAction &action)
   case ACTION_SHOW_INFO:
     {
       m_initTimer.Stop();
-      CServiceBroker::GetSettings().SetBool(CSettings::SETTING_MYMUSIC_SONGTHUMBINVIS,
+      CServiceBroker::GetSettingsComponent()->GetSettings()->SetBool(CSettings::SETTING_MYMUSIC_SONGTHUMBINVIS,
                                             CServiceBroker::GetGUI()->GetInfoManager().GetInfoProviders().GetPlayerInfoProvider().ToggleShowInfo());
       return true;
     }
@@ -74,7 +61,7 @@ bool CGUIWindowVisualisation::OnAction(const CAction &action)
 
   case ACTION_SHOW_GUI:
     // save the settings
-    CServiceBroker::GetSettings().Save();
+    CServiceBroker::GetSettingsComponent()->GetSettings()->Save();
     CServiceBroker::GetGUI()->GetWindowManager().PreviousWindow();
     return true;
     break;
@@ -153,7 +140,7 @@ bool CGUIWindowVisualisation::OnMessage(CGUIMessage& message)
   case GUI_MSG_WINDOW_DEINIT:
     {
       if (IsActive()) // save any changed settings from the OSD
-        CServiceBroker::GetSettings().Save();
+        CServiceBroker::GetSettingsComponent()->GetSettings()->Save();
 
       // close all active modal dialogs
       CServiceBroker::GetGUI()->GetWindowManager().CloseInternalModalDialogs(true);
@@ -176,7 +163,7 @@ bool CGUIWindowVisualisation::OnMessage(CGUIMessage& message)
       if (infoMgr.GetCurrentSongTag())
         m_tag = *infoMgr.GetCurrentSongTag();
 
-      if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_MYMUSIC_SONGTHUMBINVIS))
+      if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_MYMUSIC_SONGTHUMBINVIS))
       { // always on
         m_initTimer.Stop();
       }
@@ -226,10 +213,10 @@ void CGUIWindowVisualisation::FrameMove()
     m_initTimer.StartZero();
     infoMgr.GetInfoProviders().GetPlayerInfoProvider().SetShowInfo(true);
   }
-  if (m_initTimer.IsRunning() && m_initTimer.GetElapsedSeconds() > (float)g_advancedSettings.m_songInfoDuration)
+  if (m_initTimer.IsRunning() && m_initTimer.GetElapsedSeconds() > (float)CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_songInfoDuration)
   {
     m_initTimer.Stop();
-    if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_MYMUSIC_SONGTHUMBINVIS))
+    if (!CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_MYMUSIC_SONGTHUMBINVIS))
     { // reached end of fade in, fade out again
       infoMgr.GetInfoProviders().GetPlayerInfoProvider().SetShowInfo(false);
     }

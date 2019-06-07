@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GUIControlFactory.h"
@@ -112,17 +100,17 @@ static const ControlMapping controls[] =
 
 CGUIControl::GUICONTROLTYPES CGUIControlFactory::TranslateControlType(const std::string &type)
 {
-  for (unsigned int i = 0; i < ARRAY_SIZE(controls); ++i)
-    if (StringUtils::EqualsNoCase(type, controls[i].name))
-      return controls[i].type;
+  for (const ControlMapping& control : controls)
+    if (StringUtils::EqualsNoCase(type, control.name))
+      return control.type;
   return CGUIControl::GUICONTROL_UNKNOWN;
 }
 
 std::string CGUIControlFactory::TranslateControlType(CGUIControl::GUICONTROLTYPES type)
 {
-  for (unsigned int i = 0; i < ARRAY_SIZE(controls); ++i)
-    if (type == controls[i].type)
-      return controls[i].name;
+  for (const ControlMapping& control : controls)
+    if (type == control.type)
+      return control.name;
   return "";
 }
 
@@ -679,6 +667,7 @@ CGUIControl* CGUIControlFactory::Create(int parentID, const CRect &rect, TiXmlEl
   bool  defaultAlways = false;
   std::string strTmp;
   int singleInfo = 0;
+  int singleInfo2 = 0;
   std::string strLabel;
   int iUrlSet=0;
   std::string toggleSelect;
@@ -867,6 +856,8 @@ CGUIControl* CGUIControlFactory::Create(int parentID, const CRect &rect, TiXmlEl
   std::string infoString;
   if (XMLUtils::GetString(pControlNode, "info", infoString))
     singleInfo = CServiceBroker::GetGUI()->GetInfoManager().TranslateString(infoString);
+  if (XMLUtils::GetString(pControlNode, "info2", infoString))
+    singleInfo2 = CServiceBroker::GetGUI()->GetInfoManager().TranslateString(infoString);
 
   GetTexture(pControlNode, "texturefocus", textureFocus);
   GetTexture(pControlNode, "texturenofocus", textureNoFocus);
@@ -1152,9 +1143,9 @@ CGUIControl* CGUIControlFactory::Create(int parentID, const CRect &rect, TiXmlEl
       GetInfoLabel(pControlNode, "videofilter", videoFilter, parentID);
       static_cast<RETRO::CGUIGameControl*>(control)->SetVideoFilter(videoFilter);
 
-      GUIINFO::CGUIInfoLabel viewMode;
-      GetInfoLabel(pControlNode, "viewmode", viewMode, parentID);
-      static_cast<RETRO::CGUIGameControl*>(control)->SetViewMode(viewMode);
+      GUIINFO::CGUIInfoLabel stretchMode;
+      GetInfoLabel(pControlNode, "stretchmode", stretchMode, parentID);
+      static_cast<RETRO::CGUIGameControl*>(control)->SetStretchMode(stretchMode);
 
       GUIINFO::CGUIInfoLabel rotation;
       GetInfoLabel(pControlNode, "rotation", rotation, parentID);
@@ -1300,7 +1291,7 @@ CGUIControl* CGUIControlFactory::Create(int parentID, const CRect &rect, TiXmlEl
         textureBackground, textureLeft, textureMid, textureRight,
         textureOverlay, bReveal);
 
-      static_cast<CGUIProgressControl*>(control)->SetInfo(singleInfo);
+      static_cast<CGUIProgressControl*>(control)->SetInfo(singleInfo, singleInfo2);
     }
     break;
   case CGUIControl::GUICONTROL_IMAGE:

@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2015 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "Scraper.h"
@@ -35,17 +23,18 @@
 #include "music/infoscanner/MusicAlbumInfo.h"
 #include "music/infoscanner/MusicArtistInfo.h"
 #include "settings/AdvancedSettings.h"
+#include "settings/SettingsComponent.h"
 #include "utils/CharsetConverter.h"
 #include "utils/ScraperParser.h"
 #include "utils/ScraperUrl.h"
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
 #include "utils/XMLUtils.h"
-#include "utils/fstrcmp.h"
 #include "utils/log.h"
 #include "video/VideoDatabase.h"
 
 #include <algorithm>
+#include <fstrcmp.h>
 #include <sstream>
 
 using namespace XFILE;
@@ -72,9 +61,8 @@ static const ContentMapping content[] = {{"unknown", CONTENT_NONE, 231},
 
 std::string TranslateContent(const CONTENT_TYPE &type, bool pretty /*=false*/)
 {
-  for (unsigned int index = 0; index < ARRAY_SIZE(content); ++index)
+  for (const ContentMapping& map : content)
   {
-    const ContentMapping &map = content[index];
     if (type == map.type)
     {
       if (pretty && map.pretty)
@@ -88,9 +76,8 @@ std::string TranslateContent(const CONTENT_TYPE &type, bool pretty /*=false*/)
 
 CONTENT_TYPE TranslateContent(const std::string &string)
 {
-  for (unsigned int index = 0; index < ARRAY_SIZE(content); ++index)
+  for (const ContentMapping& map : content)
   {
-    const ContentMapping &map = content[index];
     if (string == map.name)
       return map.type;
   }
@@ -222,7 +209,7 @@ std::string CScraper::GetPathSettings()
 
 void CScraper::ClearCache()
 {
-  std::string strCachePath = URIUtils::AddFileToFolder(g_advancedSettings.m_cachePath, "scrapers");
+  std::string strCachePath = URIUtils::AddFileToFolder(CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_cachePath, "scrapers");
 
   // create scraper cache dir if needed
   if (!CDirectory::Exists(strCachePath))
@@ -658,7 +645,7 @@ CMusicArtistInfo FromFileItem<CMusicArtistInfo>(const CFileItem &item)
   info = CMusicArtistInfo(sTitle, url);
   if (item.HasProperty("artist.genre"))
     info.GetArtist().genre = StringUtils::Split(item.GetProperty("artist.genre").asString(),
-                                                g_advancedSettings.m_musicItemSeparator);
+                                                CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_musicItemSeparator);
   if (item.HasProperty("artist.born"))
     info.GetArtist().strBorn = item.GetProperty("artist.born").asString();
 
@@ -693,8 +680,8 @@ static std::string FromString(const CFileItem &item, const std::string &key)
 static std::vector<std::string> FromArray(const CFileItem &item, const std::string &key, int sep)
 {
   return StringUtils::Split(item.GetProperty(key).asString(),
-                            sep ? g_advancedSettings.m_videoItemSeparator
-                                : g_advancedSettings.m_musicItemSeparator);
+                            sep ? CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_videoItemSeparator
+                                : CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_musicItemSeparator);
 }
 
 static void ParseThumbs(CScraperUrl &scurl,
@@ -770,6 +757,7 @@ void DetailsFromFileItem<CAlbum>(const CFileItem &item, CAlbum &album)
   album.fRating = item.GetProperty("album.rating").asFloat();
   album.iUserrating = item.GetProperty("album.user_rating").asInteger32();
   album.iVotes = item.GetProperty("album.votes").asInteger32();
+  album.art = item.GetArt();
 
   int nThumbs = item.GetProperty("album.thumbs").asInteger32();
   ParseThumbs(album.thumbURL, item, nThumbs, "album.thumb");
@@ -790,6 +778,7 @@ void DetailsFromFileItem<CArtist>(const CFileItem &item, CArtist &artist)
   artist.strBiography = FromString(item, "artist.biography");
   artist.strDied = FromString(item, "artist.died");
   artist.strDisbanded = FromString(item, "artist.disbanded");
+  artist.art = item.GetArt();
 
   int nAlbums = item.GetProperty("artist.albums").asInteger32();
   artist.discography.reserve(nAlbums);
@@ -959,7 +948,7 @@ std::vector<CScraperUrl> CScraper::FindMovie(XFILE::CCurlFile &fcurl,
           yearScore =
               std::max(0.0, 1 - 0.5 * abs(atoi(sYear.c_str()) - atoi(sCompareYear.c_str())));
 
-        scurlMovie.relevance = fstrcmp(sMatchTitle.c_str(), sCompareTitle.c_str(), 0.0) + yearScore;
+        scurlMovie.relevance = fstrcmp(sMatchTitle.c_str(), sCompareTitle.c_str()) + yearScore;
 
         // reconstruct a title for the user
         if (!sCompareYear.empty())
@@ -1162,7 +1151,7 @@ std::vector<CMusicArtistInfo> CScraper::FindArtist(CCurlFile &fcurl, const std::
         XMLUtils::GetString(pxeArtist, "genre", genre);
         if (!genre.empty())
           ari.GetArtist().genre =
-              StringUtils::Split(genre, g_advancedSettings.m_musicItemSeparator);
+              StringUtils::Split(genre, CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_musicItemSeparator);
         XMLUtils::GetString(pxeArtist, "year", ari.GetArtist().strBorn);
 
         vcari.push_back(ari);

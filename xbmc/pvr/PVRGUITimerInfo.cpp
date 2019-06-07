@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "PVRGUITimerInfo.h"
@@ -24,6 +12,7 @@
 #include "ServiceBroker.h"
 #include "guilib/LocalizeStrings.h"
 #include "settings/AdvancedSettings.h"
+#include "settings/SettingsComponent.h"
 #include "threads/SingleLock.h"
 #include "threads/SystemClock.h"
 #include "utils/StringUtils.h"
@@ -67,14 +56,19 @@ bool CPVRGUITimerInfo::TimerInfoToggle()
     return true;
   }
 
-  if ((int) (XbmcThreads::SystemClockMillis() - m_iTimerInfoToggleStart) > g_advancedSettings.m_iPVRInfoToggleInterval)
+  if (static_cast<int>(XbmcThreads::SystemClockMillis() - m_iTimerInfoToggleStart) >
+        CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_iPVRInfoToggleInterval)
   {
     unsigned int iPrevious = m_iTimerInfoToggleCurrent;
     unsigned int iBoundary = m_iRecordingTimerAmount > 0 ? m_iRecordingTimerAmount : m_iTimerAmount;
     if (++m_iTimerInfoToggleCurrent > iBoundary - 1)
       m_iTimerInfoToggleCurrent = 0;
 
-    return m_iTimerInfoToggleCurrent != iPrevious;
+    if (m_iTimerInfoToggleCurrent != iPrevious)
+    {
+      m_iTimerInfoToggleStart = XbmcThreads::SystemClockMillis();
+      return true;
+    }
   }
 
   return false;

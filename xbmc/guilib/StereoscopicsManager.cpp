@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
- *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
- *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
- *
+ *  SPDX-License-Identifier: LGPL-2.1-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 /*!
@@ -38,6 +26,7 @@
 #include "GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "settings/AdvancedSettings.h"
+#include "settings/SettingsComponent.h"
 #include "settings/lib/Setting.h"
 #include "settings/lib/SettingsManager.h"
 #include "settings/Settings.h"
@@ -46,7 +35,6 @@
 #include "utils/RegExp.h"
 #include "utils/StringUtils.h"
 #include "utils/Variant.h"
-#include "guilib/guiinfo/GUIInfoLabels.h"
 #include "cores/DataCacheCore.h"
 
 using namespace KODI::MESSAGING;
@@ -99,9 +87,10 @@ static const struct StereoModeMap StringToGuiModeMap[] =
 };
 
 
-CStereoscopicsManager::CStereoscopicsManager(CSettings &settings) :
-  m_settings(settings)
+CStereoscopicsManager::CStereoscopicsManager()
 {
+  m_settings = CServiceBroker::GetSettingsComponent()->GetSettings();
+
   m_stereoModeSetByUser = RENDER_STEREO_MODE_UNDEFINED;
   m_lastStereoModeSetByUser = RENDER_STEREO_MODE_UNDEFINED;
 
@@ -109,12 +98,12 @@ CStereoscopicsManager::CStereoscopicsManager(CSettings &settings) :
   std::set<std::string> settingSet{
     CSettings::SETTING_VIDEOSCREEN_STEREOSCOPICMODE
   };
-  m_settings.GetSettingsManager()->RegisterCallback(this, settingSet);
+  m_settings->GetSettingsManager()->RegisterCallback(this, settingSet);
 }
 
 CStereoscopicsManager::~CStereoscopicsManager(void)
 {
-  m_settings.GetSettingsManager()->UnregisterCallback(this);
+  m_settings->GetSettingsManager()->UnregisterCallback(this);
 }
 
 void CStereoscopicsManager::Initialize()
@@ -125,7 +114,7 @@ void CStereoscopicsManager::Initialize()
 
 RENDER_STEREO_MODE CStereoscopicsManager::GetStereoMode(void) const
 {
-  return static_cast<RENDER_STEREO_MODE>(m_settings.GetInt(CSettings::SETTING_VIDEOSCREEN_STEREOSCOPICMODE));
+  return static_cast<RENDER_STEREO_MODE>(m_settings->GetInt(CSettings::SETTING_VIDEOSCREEN_STEREOSCOPICMODE));
 }
 
 void CStereoscopicsManager::SetStereoModeByUser(const RENDER_STEREO_MODE &mode)
@@ -150,7 +139,7 @@ void CStereoscopicsManager::SetStereoMode(const RENDER_STEREO_MODE &mode)
   if (applyMode != currentMode && applyMode >= RENDER_STEREO_MODE_OFF)
   {
     if (CServiceBroker::GetRenderSystem()->SupportsStereo(applyMode))
-      m_settings.SetInt(CSettings::SETTING_VIDEOSCREEN_STEREOSCOPICMODE, applyMode);
+      m_settings->SetInt(CSettings::SETTING_VIDEOSCREEN_STEREOSCOPICMODE, applyMode);
   }
 }
 
@@ -175,18 +164,18 @@ std::string CStereoscopicsManager::DetectStereoModeByString(const std::string &n
   std::string searchString(needle);
   CRegExp re(true);
 
-  if (!re.RegComp(g_advancedSettings.m_stereoscopicregex_3d.c_str()))
+  if (!re.RegComp(CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_stereoscopicregex_3d.c_str()))
   {
-    CLog::Log(LOGERROR, "%s: Invalid RegExp for matching 3d content:'%s'", __FUNCTION__, g_advancedSettings.m_stereoscopicregex_3d.c_str());
+    CLog::Log(LOGERROR, "%s: Invalid RegExp for matching 3d content:'%s'", __FUNCTION__, CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_stereoscopicregex_3d.c_str());
     return stereoMode;
   }
 
   if (re.RegFind(searchString) == -1)
     return stereoMode;    // no match found for 3d content, assume mono mode
 
-  if (!re.RegComp(g_advancedSettings.m_stereoscopicregex_sbs.c_str()))
+  if (!re.RegComp(CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_stereoscopicregex_sbs.c_str()))
   {
-    CLog::Log(LOGERROR, "%s: Invalid RegExp for matching 3d SBS content:'%s'", __FUNCTION__, g_advancedSettings.m_stereoscopicregex_sbs.c_str());
+    CLog::Log(LOGERROR, "%s: Invalid RegExp for matching 3d SBS content:'%s'", __FUNCTION__, CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_stereoscopicregex_sbs.c_str());
     return stereoMode;
   }
 
@@ -196,9 +185,9 @@ std::string CStereoscopicsManager::DetectStereoModeByString(const std::string &n
     return stereoMode;
   }
 
-  if (!re.RegComp(g_advancedSettings.m_stereoscopicregex_tab.c_str()))
+  if (!re.RegComp(CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_stereoscopicregex_tab.c_str()))
   {
-    CLog::Log(LOGERROR, "%s: Invalid RegExp for matching 3d TAB content:'%s'", __FUNCTION__, g_advancedSettings.m_stereoscopicregex_tab.c_str());
+    CLog::Log(LOGERROR, "%s: Invalid RegExp for matching 3d TAB content:'%s'", __FUNCTION__, CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_stereoscopicregex_tab.c_str());
     return stereoMode;
   }
 
@@ -302,7 +291,7 @@ std::string CStereoscopicsManager::GetLabelForStereoMode(const RENDER_STEREO_MOD
 
 RENDER_STEREO_MODE CStereoscopicsManager::GetPreferredPlaybackMode(void) const
 {
-  return static_cast<RENDER_STEREO_MODE>(m_settings.GetInt(CSettings::SETTING_VIDEOSCREEN_PREFEREDSTEREOSCOPICMODE));
+  return static_cast<RENDER_STEREO_MODE>(m_settings->GetInt(CSettings::SETTING_VIDEOSCREEN_PREFEREDSTEREOSCOPICMODE));
 }
 
 int CStereoscopicsManager::ConvertVideoToGuiStereoMode(const std::string &mode)
@@ -525,7 +514,7 @@ bool CStereoscopicsManager::IsVideoStereoscopic() const
 
 void CStereoscopicsManager::OnStreamChange()
 {
-  STEREOSCOPIC_PLAYBACK_MODE playbackMode = static_cast<STEREOSCOPIC_PLAYBACK_MODE>(m_settings.GetInt(CSettings::SETTING_VIDEOPLAYER_STEREOSCOPICPLAYBACKMODE));
+  STEREOSCOPIC_PLAYBACK_MODE playbackMode = static_cast<STEREOSCOPIC_PLAYBACK_MODE>(m_settings->GetInt(CSettings::SETTING_VIDEOPLAYER_STEREOSCOPICPLAYBACKMODE));
   RENDER_STEREO_MODE mode = GetStereoMode();
 
   // early return if playback mode should be ignored and we're in no stereoscopic mode right now
@@ -536,7 +525,7 @@ void CStereoscopicsManager::OnStreamChange()
   {
     // exit stereo mode if started item is not stereoscopic
     // and if user prefers to stop 3D playback when movie is finished
-    if (mode != RENDER_STEREO_MODE_OFF && m_settings.GetBool(CSettings::SETTING_VIDEOPLAYER_QUITSTEREOMODEONSTOP))
+    if (mode != RENDER_STEREO_MODE_OFF && m_settings->GetBool(CSettings::SETTING_VIDEOPLAYER_QUITSTEREOMODEONSTOP))
       SetStereoMode(RENDER_STEREO_MODE_OFF);
     return;
   }
@@ -557,7 +546,7 @@ void CStereoscopicsManager::OnStreamChange()
     // users selecting this option usually have to manually switch their TV into 3D mode
     // and would be annoyed by having to switch TV modes when next movies comes up
     // @todo probably add a new setting for just this behavior
-    if (m_settings.GetBool(CSettings::SETTING_VIDEOPLAYER_QUITSTEREOMODEONSTOP) == false)
+    if (m_settings->GetBool(CSettings::SETTING_VIDEOPLAYER_QUITSTEREOMODEONSTOP) == false)
       return;
 
     // only change to new stereo mode if not yet in preferred stereo mode
@@ -624,7 +613,7 @@ void CStereoscopicsManager::OnPlaybackStopped(void)
 {
   RENDER_STEREO_MODE mode = GetStereoMode();
 
-  if (m_settings.GetBool(CSettings::SETTING_VIDEOPLAYER_QUITSTEREOMODEONSTOP) && mode != RENDER_STEREO_MODE_OFF)
+  if (m_settings->GetBool(CSettings::SETTING_VIDEOPLAYER_QUITSTEREOMODEONSTOP) && mode != RENDER_STEREO_MODE_OFF)
     SetStereoMode(RENDER_STEREO_MODE_OFF);
 
   // reset user modes on playback end to start over new on next playback and not end up in a probably unwanted mode

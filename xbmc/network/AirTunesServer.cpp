@@ -2,23 +2,11 @@
  * Many concepts and protocol specification in this code are taken
  * from Shairport, by James Laird.
  *
- *      Copyright (C) 2011-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2011-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2.1, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "AirTunesServer.h"
@@ -46,6 +34,7 @@
 #include "network/ZeroconfBrowser.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "URL.h"
 #include "utils/EndianSwap.h"
 #include "utils/log.h"
@@ -66,7 +55,6 @@
 #define ZEROCONF_DACP_SERVICE "_dacp._tcp"
 
 using namespace XFILE;
-using namespace ANNOUNCEMENT;
 using namespace KODI::MESSAGING;
 
 DllLibShairplay *CAirTunesServer::m_pLibShairplay = NULL;
@@ -171,9 +159,9 @@ void CAirTunesServer::SetMetadataFromBuffer(const char *buffer, unsigned int siz
   RefreshMetadata();
 }
 
-void CAirTunesServer::Announce(AnnouncementFlag flag, const char *sender, const char *message, const CVariant &data)
+void CAirTunesServer::Announce(ANNOUNCEMENT::AnnouncementFlag flag, const char *sender, const char *message, const CVariant &data)
 {
-  if ( (flag & Player) && strcmp(sender, "xbmc") == 0)
+  if ( (flag & ANNOUNCEMENT::Player) && strcmp(sender, "xbmc") == 0)
   {
     if ((strcmp(message, "OnPlay") == 0 || strcmp(message, "OnResume") == 0) && m_streamStarted)
     {
@@ -466,7 +454,7 @@ void  CAirTunesServer::AudioOutputFunctions::audio_set_volume(void *cls, void *s
 #ifdef HAS_AIRPLAY
   CAirPlayServer::backupVolume();
 #endif
-  if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SERVICES_AIRPLAYVOLUMECONTROL))
+  if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_SERVICES_AIRPLAYVOLUMECONTROL))
     g_application.SetVolume(volPercent, false);//non-percent volume 0.0-1.0
 }
 
@@ -512,7 +500,7 @@ void  CAirTunesServer::AudioOutputFunctions::audio_destroy(void *cls, void *sess
 void shairplay_log(void *cls, int level, const char *msg)
 {
   int xbmcLevel = LOGINFO;
-  if(!g_advancedSettings.CanLogComponent(LOGAIRTUNES))
+  if(!CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->CanLogComponent(LOGAIRTUNES))
     return;
 
   switch(level)
@@ -659,13 +647,13 @@ void CAirTunesServer::RegisterActionListener(bool doRegister)
 {
   if (doRegister)
   {
-    CAnnouncementManager::GetInstance().AddAnnouncer(this);
+    CServiceBroker::GetAnnouncementManager()->AddAnnouncer(this);
     g_application.RegisterActionListener(this);
     ServerInstance->Create();
   }
   else
   {
-    CAnnouncementManager::GetInstance().RemoveAnnouncer(this);
+    CServiceBroker::GetAnnouncementManager()->RemoveAnnouncer(this);
     g_application.UnregisterActionListener(this);
     ServerInstance->StopThread(true);
   }
@@ -700,7 +688,7 @@ bool CAirTunesServer::Initialize(const std::string &password)
       unsigned short port = (unsigned short)m_port;
 
       m_pLibShairplay->raop_set_log_level(m_pRaop, RAOP_LOG_WARNING);
-      if(g_advancedSettings.CanLogComponent(LOGAIRTUNES))
+      if(CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->CanLogComponent(LOGAIRTUNES))
       {
         m_pLibShairplay->raop_set_log_level(m_pRaop, RAOP_LOG_DEBUG);
       }

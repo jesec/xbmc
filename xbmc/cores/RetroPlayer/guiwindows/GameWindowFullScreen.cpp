@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2017 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2017-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this Program; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GameWindowFullScreen.h"
@@ -23,13 +11,17 @@
 #include "cores/RetroPlayer/guibridge/GUIGameRenderManager.h"
 #include "cores/RetroPlayer/guibridge/GUIRenderHandle.h"
 #include "windowing/GraphicContext.h" //! @todo Remove me
+#include "games/GameServices.h"
+#include "games/GameSettings.h"
 #include "guilib/GUIDialog.h"
 #include "guilib/GUIControl.h"
 #include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h" //! @todo Remove me
 #include "guilib/WindowIDs.h"
-#include "input/Action.h"
-#include "input/ActionIDs.h"
+#include "input/actions/Action.h"
+#include "input/actions/ActionIDs.h"
+#include "Application.h" //! @todo Remove me
+#include "ApplicationPlayer.h" //! @todo Remove me
 #include "GUIInfoManager.h" //! @todo Remove me
 #include "ServiceBroker.h"
 
@@ -90,10 +82,6 @@ bool CGameWindowFullScreen::OnAction(const CAction &action)
   switch (action.GetID())
   {
   case ACTION_SHOW_OSD:
-  {
-    ToggleOSD();
-    return true;
-  }
   case ACTION_TRIGGER_OSD:
   {
     TriggerOSD();
@@ -189,6 +177,22 @@ void CGameWindowFullScreen::OnInitWindow()
   CServiceBroker::GetWinSystem()->GetGfxContext().SetFullScreenVideo(true); //! @todo
 
   CGUIWindow::OnInitWindow();
+
+  // Show OSD help
+  GAME::CGameSettings &gameSettings = CServiceBroker::GetGameServices().GameSettings();
+  if (gameSettings.ShowOSDHelp())
+    TriggerOSD();
+  else
+  {
+    //! @todo We need to route this check through the GUI bridge. By adding the
+    //        dependency to the application player here, we are prevented from
+    //        having multiple players.
+    if (!g_application.GetAppPlayer().HasGameAgent())
+    {
+      gameSettings.SetShowOSDHelp(true);
+      TriggerOSD();
+    }
+  }
 }
 
 void CGameWindowFullScreen::OnDeinitWindow(int nextWindowID)
@@ -199,20 +203,6 @@ void CGameWindowFullScreen::OnDeinitWindow(int nextWindowID)
   CGUIWindow::OnDeinitWindow(nextWindowID);
 
   CServiceBroker::GetWinSystem()->GetGfxContext().SetFullScreenVideo(false); //! @todo
-}
-
-void CGameWindowFullScreen::ToggleOSD()
-{
-  CGUIDialog *pOSD = GetOSD();
-  if (pOSD != nullptr)
-  {
-    if (pOSD->IsDialogRunning())
-      pOSD->Close();
-    else
-      pOSD->Open();
-  }
-
-  MarkDirtyRegion();
 }
 
 void CGameWindowFullScreen::TriggerOSD()

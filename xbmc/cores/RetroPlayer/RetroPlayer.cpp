@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2017 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this Program; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "RetroPlayer.h"
@@ -23,18 +11,20 @@
 #include "RetroPlayerInput.h"
 #include "addons/AddonManager.h"
 #include "cores/DataCacheCore.h"
+#include "cores/IPlayerCallback.h"
 #include "cores/RetroPlayer/guibridge/GUIGameRenderManager.h"
+#include "cores/RetroPlayer/guiplayback/GUIPlaybackControl.h"
+#include "cores/RetroPlayer/playback/IPlayback.h"
+#include "cores/RetroPlayer/playback/RealtimePlayback.h"
+#include "cores/RetroPlayer/playback/ReversiblePlayback.h"
 #include "cores/RetroPlayer/process/RPProcessInfo.h"
 #include "cores/RetroPlayer/rendering/RPRenderManager.h"
+#include "cores/RetroPlayer/savestates/ISavestate.h"
+#include "cores/RetroPlayer/savestates/SavestateDatabase.h"
 #include "cores/RetroPlayer/streams/RPStreamManager.h"
 #include "dialogs/GUIDialogYesNo.h"
-#include "filesystem/File.h"
 #include "games/addons/input/GameClientInput.h"
-#include "games/addons/playback/IGameClientPlayback.h"
-#include "games/addons/savestates/Savestate.h"
-#include "games/addons/savestates/SavestateUtils.h"
 #include "games/addons/GameClient.h"
-#include "games/dialogs/osd/DialogGameVideoSelect.h"
 #include "games/tags/GameInfoTag.h"
 #include "games/GameServices.h"
 #include "games/GameSettings.h"
@@ -43,8 +33,9 @@
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
 #include "guilib/WindowIDs.h"
-#include "input/Action.h"
-#include "input/ActionIDs.h"
+#include "input/actions/Action.h"
+#include "input/actions/ActionIDs.h"
+#include "messaging/ApplicationMessenger.h"
 #include "settings/MediaSettings.h"
 #include "threads/SingleLock.h"
 #include "utils/JobManager.h"
@@ -64,6 +55,7 @@ CRetroPlayer::CRetroPlayer(IPlayerCallback& callback) :
   IPlayer(callback),
   m_gameServices(CServiceBroker::GetGameServices())
 {
+  ResetPlayback();
   CServiceBroker::GetWinSystem()->RegisterRenderLoop(this);
 }
 
@@ -152,16 +144,16 @@ bool CRetroPlayer::OpenFile(const CFileItem& file, const CPlayerOptions& options
 
   if (bSuccess && !bStandalone)
   {
-    std::string savestatePath = CSavestateUtils::MakeMetadataPath(fileCopy.GetPath());
+    CSavestateDatabase savestateDb;
 
-    CSavestate save;
-    if (save.Deserialize(savestatePath))
+    std::unique_ptr<ISavestate> save = savestateDb.CreateSavestate();
+    if (savestateDb.GetSavestate(fileCopy.GetPath(), *save))
     {
       // Check if game client is the same
-      if (save.GameClient() != m_gameClient->ID())
+      if (save->GameClientID() != m_gameClient->ID())
       {
         ADDON::AddonPtr addon;
-        if (CServiceBroker::GetAddonMgr().GetAddon(save.GameClient(), addon))
+        if (CServiceBroker::GetAddonMgr().GetAddon(save->GameClientID(), addon))
         {
           // Warn the user that continuing with a different game client will
           // overwrite the save
@@ -171,25 +163,23 @@ bool CRetroPlayer::OpenFile(const CFileItem& file, const CPlayerOptions& options
         }
       }
     }
-
-    if (bSuccess && m_gameServices.GameSettings().AutosaveEnabled())
-    {
-      std::string redactedSavestatePath = CURL::GetRedacted(savestatePath);
-      CLog::Log(LOGDEBUG, "RetroPlayer[SAVE]: Loading savestate %s", redactedSavestatePath.c_str());
-
-      if (!SetPlayerState(savestatePath))
-        CLog::Log(LOGERROR, "RetroPlayer[SAVE]: Failed to load savestate");
-    }
   }
 
   if (bSuccess)
   {
+    // Switch to fullscreen
+    MESSAGING::CApplicationMessenger::GetInstance().PostMsg(TMSG_SWITCHTOFULLSCREEN);
+
+    // Initialize gameplay
+    CreatePlayback(m_gameServices.GameSettings().AutosaveEnabled());
     RegisterWindowCallbacks();
-    SetSpeedInternal(1.0);
+    m_playbackControl.reset(new CGUIPlaybackControl(*this));
     m_callback.OnPlayBackStarted(fileCopy);
     m_callback.OnAVStarted(fileCopy);
     if (!bStandalone)
-      m_autoSave.reset(new CRetroPlayerAutoSave(*m_gameClient, m_gameServices.GameSettings()));
+      m_autoSave.reset(new CRetroPlayerAutoSave(*this, m_gameServices.GameSettings()));
+
+    // Set video framerate
     m_processInfo->SetVideoFps(static_cast<float>(m_gameClient->GetFrameRate()));
   }
   else
@@ -212,16 +202,20 @@ bool CRetroPlayer::CloseFile(bool reopen /* = false */)
 
   UnregisterWindowCallbacks();
 
+  m_playbackControl.reset();
+
   CSingleLock lock(m_mutex);
 
   if (m_gameClient && m_gameServices.GameSettings().AutosaveEnabled())
   {
-    std::string savePath = m_gameClient->GetPlayback()->CreateSavestate();
+    std::string savePath = m_playback->CreateSavestate();
     if (!savePath.empty())
       CLog::Log(LOGDEBUG, "RetroPlayer[SAVE]: Saved state to %s", CURL::GetRedacted(savePath).c_str());
     else
       CLog::Log(LOGDEBUG, "RetroPlayer[SAVE]: Failed to save state at close");
   }
+
+  m_playback.reset();
 
   if (m_gameClient)
     m_gameClient->CloseFile();
@@ -251,9 +245,7 @@ bool CRetroPlayer::IsPlaying() const
 
 bool CRetroPlayer::CanPause()
 {
-  if (m_gameClient)
-    return m_gameClient->GetPlayback()->CanPause();
-  return false;
+  return m_playback->CanPause();
 }
 
 void CRetroPlayer::Pause()
@@ -261,24 +253,19 @@ void CRetroPlayer::Pause()
   if (!CanPause())
     return;
 
-  if (m_gameClient)
-  {
-    float speed;
+  float speed;
 
-    if (m_gameClient->GetPlayback()->GetSpeed() == 0.0)
-      speed = 1.0f;
-    else
-      speed = 0.0f;
+  if (m_playback->GetSpeed() == 0.0)
+    speed = 1.0f;
+  else
+    speed = 0.0f;
 
-    SetSpeed(speed);
-  }
+  SetSpeed(speed);
 }
 
 bool CRetroPlayer::CanSeek()
 {
-  if (m_gameClient)
-    return m_gameClient->GetPlayback()->CanSeek();
-  return false;
+  return m_playback->CanSeek();
 }
 
 void CRetroPlayer::Seek(bool bPlus /* = true */,
@@ -295,16 +282,16 @@ void CRetroPlayer::Seek(bool bPlus /* = true */,
     if (bPlus)
     {
       if (bLargeStep)
-        m_gameClient->GetPlayback()->BigSkipForward();
+        m_playback->BigSkipForward();
       else
-        m_gameClient->GetPlayback()->SmallSkipForward();
+        m_playback->SmallSkipForward();
     }
     else
     {
       if (bLargeStep)
-        m_gameClient->GetPlayback()->BigSkipBackward();
+        m_playback->BigSkipBackward();
       else
-        m_gameClient->GetPlayback()->SmallSkipBackward();
+        m_playback->SmallSkipBackward();
     }
     */
   }
@@ -327,14 +314,12 @@ void CRetroPlayer::SeekPercentage(float fPercent /* = 0 */)
 
 float CRetroPlayer::GetCachePercentage()
 {
-  if (m_gameClient)
-  {
-    const float cacheMs = static_cast<float>(m_gameClient->GetPlayback()->GetCacheTimeMs());
-    const float totalMs = static_cast<float>(m_gameClient->GetPlayback()->GetTotalTimeMs());
+  const float cacheMs = static_cast<float>(m_playback->GetCacheTimeMs());
+  const float totalMs = static_cast<float>(m_playback->GetTotalTimeMs());
 
-    if (totalMs != 0.0f)
-      return cacheMs / totalMs * 100.0f;
-  }
+  if (totalMs != 0.0f)
+    return cacheMs / totalMs * 100.0f;
+
   return 0.0f;
 }
 
@@ -349,11 +334,7 @@ void CRetroPlayer::SeekTime(int64_t iTime /* = 0 */)
   if (!CanSeek())
     return;
 
-  if (m_gameClient)
-  {
-    m_gameClient->GetPlayback()->SeekTimeMs(static_cast<unsigned int>(iTime));
-    OnSpeedChange(m_gameClient->GetPlayback()->GetSpeed());
-  }
+  m_playback->SeekTimeMs(static_cast<unsigned int>(iTime));
 }
 
 bool CRetroPlayer::SeekTimeRelative(int64_t iTime)
@@ -368,31 +349,39 @@ bool CRetroPlayer::SeekTimeRelative(int64_t iTime)
 
 uint64_t CRetroPlayer::GetTime()
 {
-  if (m_gameClient)
-    return m_gameClient->GetPlayback()->GetTimeMs();
-  return 0;
+  return m_playback->GetTimeMs();
 }
 
 uint64_t CRetroPlayer::GetTotalTime()
 {
-  if (m_gameClient)
-    return m_gameClient->GetPlayback()->GetTotalTimeMs();
-  return 0;
+  return m_playback->GetTotalTimeMs();
 }
 
 void CRetroPlayer::SetSpeed(float speed)
 {
-  if (m_gameClient)
+  if (m_playback->GetSpeed() != speed)
   {
-    if (m_gameClient->GetPlayback()->GetSpeed() != speed)
-    {
-      if (speed == 1.0f)
-        m_callback.OnPlayBackResumed();
-      else if (speed == 0.0f)
-        m_callback.OnPlayBackPaused();
-    }
+    if (speed == 1.0f)
+      m_callback.OnPlayBackResumed();
+    else if (speed == 0.0f)
+      m_callback.OnPlayBackPaused();
 
     SetSpeedInternal(static_cast<double>(speed));
+
+    if (speed == 0.0f)
+    {
+      const int dialogId = CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindowOrDialog();
+      if (dialogId == WINDOW_FULLSCREEN_GAME)
+      {
+        CLog::Log(LOGDEBUG, "RetroPlayer[PLAYER]: Opening OSD via speed change (%f)", speed);
+        OpenOSD();
+      }
+    }
+    else
+    {
+      CLog::Log(LOGDEBUG, "RetroPlayer[PLAYER]: Closing OSD via speed change (%f)", speed);
+      CloseOSD();
+    }
   }
 }
 
@@ -404,9 +393,9 @@ bool CRetroPlayer::OnAction(const CAction &action)
   {
     if (m_gameClient)
     {
-      float speed = static_cast<float>(m_gameClient->GetPlayback()->GetSpeed());
+      float speed = static_cast<float>(m_playback->GetSpeed());
 
-      m_gameClient->GetPlayback()->SetSpeed(0.0);
+      m_playback->SetSpeed(0.0);
 
       CLog::Log(LOGDEBUG, "RetroPlayer[PLAYER]: Sending reset command via ACTION_PLAYER_RESET");
       m_gameClient->Input().HardwareReset();
@@ -421,7 +410,7 @@ bool CRetroPlayer::OnAction(const CAction &action)
   }
   case ACTION_SHOW_OSD:
   {
-    if (m_gameClient && m_gameClient->GetPlayback()->GetSpeed() == 0.0)
+    if (m_gameClient)
     {
       CLog::Log(LOGDEBUG, "RetroPlayer[PLAYER]: Closing OSD via ACTION_SHOW_OSD");
       CloseOSD();
@@ -439,9 +428,9 @@ std::string CRetroPlayer::GetPlayerState()
 {
   std::string savestatePath;
 
-  if (m_gameClient && m_autoSave)
+  if (m_autoSave)
   {
-    savestatePath = m_gameClient->GetPlayback()->CreateSavestate();
+    savestatePath = m_playback->CreateSavestate();
     if (savestatePath.empty())
     {
       CLog::Log(LOGDEBUG, "RetroPlayer[SAVE]: Continuing without saving");
@@ -453,9 +442,7 @@ std::string CRetroPlayer::GetPlayerState()
 
 bool CRetroPlayer::SetPlayerState(const std::string& state)
 {
-  if (m_gameClient)
-    return m_gameClient->GetPlayback()->LoadSavestate(state);
-  return false;
+  return m_playback->LoadSavestate(state);
 }
 
 void CRetroPlayer::FrameMove()
@@ -463,63 +450,11 @@ void CRetroPlayer::FrameMove()
   if (m_renderManager)
     m_renderManager->FrameMove();
 
-  if (m_gameClient)
-  {
-    const int activeId = CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindowOrDialog();
-    const bool bFullscreen = (activeId == WINDOW_FULLSCREEN_GAME);
+  if (m_playbackControl)
+    m_playbackControl->FrameMove();
 
-    switch (m_state)
-    {
-    case State::STARTING:
-    {
-      if (bFullscreen)
-        m_state = State::FULLSCREEN;
-      break;
-    }
-    case State::FULLSCREEN:
-    {
-      if (!bFullscreen)
-      {
-        m_priorSpeed = m_gameClient->GetPlayback()->GetSpeed();
-
-        if (m_priorSpeed != 0.0)
-        {
-          IPlayerCallback *callback = &m_callback;
-          CJobManager::GetInstance().Submit([callback]()
-            {
-              callback->OnPlayBackPaused();
-            }, CJob::PRIORITY_NORMAL);
-        }
-
-        SetSpeedInternal(0.0);
-
-        m_state = State::BACKGROUND;
-      }
-      break;
-    }
-    case State::BACKGROUND:
-    {
-      if (bFullscreen)
-      {
-        if (m_gameClient->GetPlayback()->GetSpeed() == 0.0 && m_priorSpeed != 0.0)
-        {
-          IPlayerCallback *callback = &m_callback;
-          CJobManager::GetInstance().Submit([callback]()
-            {
-              callback->OnPlayBackResumed();
-            }, CJob::PRIORITY_NORMAL);
-
-          SetSpeedInternal(m_priorSpeed);
-        }
-
-        m_state = State::FULLSCREEN;
-      }
-      break;
-    }
-    }
-
+  if (m_processInfo)
     m_processInfo->SetPlayTimes(0, GetTime(), 0, GetTotalTime());
-  }
 }
 
 void CRetroPlayer::Render(bool clear, uint32_t alpha /* = 255 */, bool gui /* = true */)
@@ -527,21 +462,17 @@ void CRetroPlayer::Render(bool clear, uint32_t alpha /* = 255 */, bool gui /* = 
   // Performed by callbacks
 }
 
-void CRetroPlayer::FlushRenderer()
-{
-  if (m_renderManager)
-    m_renderManager->Flush();
-}
-
-void CRetroPlayer::TriggerUpdateResolution()
-{
-  if (m_renderManager)
-    m_renderManager->TriggerUpdateResolution();
-}
-
 bool CRetroPlayer::IsRenderingVideo()
 {
   return true;
+}
+
+bool CRetroPlayer::HasGameAgent()
+{
+  if (m_gameClient)
+    return m_gameClient->Input().HasAgent();
+
+  return false;
 }
 
 std::string CRetroPlayer::GameClientID() const
@@ -552,14 +483,58 @@ std::string CRetroPlayer::GameClientID() const
   return "";
 }
 
+void CRetroPlayer::SetPlaybackSpeed(double speed)
+{
+  if (m_playback)
+  {
+    if (m_playback->GetSpeed() != speed)
+    {
+      if (speed == 1.0)
+      {
+        IPlayerCallback *callback = &m_callback;
+        CJobManager::GetInstance().Submit([callback]()
+          {
+            callback->OnPlayBackResumed();
+          }, CJob::PRIORITY_NORMAL);
+      }
+      else if (speed == 0.0)
+      {
+        IPlayerCallback *callback = &m_callback;
+        CJobManager::GetInstance().Submit([callback]()
+          {
+            callback->OnPlayBackPaused();
+          }, CJob::PRIORITY_NORMAL);
+      }
+    }
+  }
+
+  SetSpeedInternal(speed);
+}
+
+void CRetroPlayer::EnableInput(bool bEnable)
+{
+  if (m_input)
+    m_input->EnableInput(bEnable);
+}
+
+bool CRetroPlayer::IsAutoSaveEnabled() const
+{
+  return m_playback->GetSpeed() > 0.0;
+}
+
+std::string CRetroPlayer::CreateSavestate()
+{
+  return m_playback->CreateSavestate();
+}
+
 void CRetroPlayer::SetSpeedInternal(double speed)
 {
   OnSpeedChange(speed);
 
   if (speed == 0.0)
-    m_gameClient->GetPlayback()->PauseAsync();
+    m_playback->PauseAsync();
   else
-    m_gameClient->GetPlayback()->SetSpeed(speed);
+    m_playback->SetSpeed(speed);
 }
 
 void CRetroPlayer::OnSpeedChange(double newSpeed)
@@ -568,11 +543,45 @@ void CRetroPlayer::OnSpeedChange(double newSpeed)
   m_input->SetSpeed(newSpeed);
   m_renderManager->SetSpeed(newSpeed);
   m_processInfo->SetSpeed(static_cast<float>(newSpeed));
-  if (newSpeed != 0.0)
+}
+
+void CRetroPlayer::CreatePlayback(bool bRestoreState)
+{
+  if (m_gameClient->RequiresGameLoop())
   {
-    CLog::Log(LOGDEBUG, "RetroPlayer[PLAYER]: Closing OSD via speed change (%f)", newSpeed);
-    CloseOSD();
+    m_playback->Deinitialize();
+    m_playback.reset(new CReversiblePlayback(m_gameClient.get(), m_gameClient->GetFrameRate(), m_gameClient->GetSerializeSize()));
   }
+  else
+    ResetPlayback();
+
+  if (bRestoreState)
+  {
+    const bool bStandalone = m_gameClient->GetGamePath().empty();
+    if (!bStandalone)
+    {
+      CLog::Log(LOGDEBUG, "RetroPlayer[SAVE]: Loading savestate");
+
+      if (!SetPlayerState(m_gameClient->GetGamePath()))
+        CLog::Log(LOGERROR, "RetroPlayer[SAVE]: Failed to load savestate");
+    }
+  }
+
+  m_playback->Initialize();
+}
+
+void CRetroPlayer::ResetPlayback()
+{
+  // Called from the constructor, m_playback might not be initialized
+  if (m_playback)
+    m_playback->Deinitialize();
+
+  m_playback.reset(new CRealtimePlayback);
+}
+
+void CRetroPlayer::OpenOSD()
+{
+  CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(WINDOW_DIALOG_GAME_OSD);
 }
 
 void CRetroPlayer::CloseOSD()

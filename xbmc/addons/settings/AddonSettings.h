@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2017 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2017-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -86,9 +74,9 @@ namespace ADDON
 
     bool ParseSettingVersion(const CXBMCTinyXML& doc, uint32_t& version) const;
 
-    std::shared_ptr<CSettingGroup> ParseOldSettingElement(const TiXmlElement *categoryElement, std::shared_ptr<CSettingCategory> category, std::set<std::string>& actionSettings);
+    std::shared_ptr<CSettingGroup> ParseOldSettingElement(const TiXmlElement *categoryElement, std::shared_ptr<CSettingCategory> category, std::set<std::string>& actionSettings, std::set<std::string>& settingIds);
 
-    std::shared_ptr<CSettingCategory> ParseOldCategoryElement(uint32_t &categoryId, const TiXmlElement * categoryElement, std::set<std::string> &actionSettings);
+    std::shared_ptr<CSettingCategory> ParseOldCategoryElement(uint32_t &categoryId, const TiXmlElement * categoryElement, std::set<std::string> &actionSettings, std::set<std::string>& settingIds);
 
     bool InitializeFromOldSettingDefinitions(const CXBMCTinyXML& doc);
     std::shared_ptr<CSetting> InitializeFromOldSettingAction(std::string settingId, const TiXmlElement *settingElement, const std::string& defaultValue);

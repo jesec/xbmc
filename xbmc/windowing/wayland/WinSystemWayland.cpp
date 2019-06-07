@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2017 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2017-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "WinSystemWayland.h"
@@ -45,6 +33,7 @@
 #include "settings/AdvancedSettings.h"
 #include "settings/DisplaySettings.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "ShellSurfaceWlShell.h"
 #include "ShellSurfaceXdgShell.h"
 #include "ShellSurfaceXdgShellUnstableV6.h"
@@ -330,7 +319,7 @@ bool CWinSystemWayland::CreateNewWindow(const std::string& name,
   if (fullScreen)
   {
     // Try to start on correct monitor and with correct buffer scale
-    auto output = FindOutputByUserFriendlyName(CServiceBroker::GetSettings().GetString(CSettings::SETTING_VIDEOSCREEN_MONITOR));
+    auto output = FindOutputByUserFriendlyName(CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_VIDEOSCREEN_MONITOR));
     auto wlOutput = output ? output->GetWaylandOutput() : wayland::output_t{};
     m_lastSetOutput = wlOutput;
     m_shellSurface->SetFullScreen(wlOutput, res.fRefreshRate);
@@ -435,7 +424,7 @@ void CWinSystemWayland::GetConnectedOutputs(std::vector<std::string>* outputs)
 
 bool CWinSystemWayland::UseLimitedColor()
 {
-  return CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOSCREEN_LIMITEDRANGE);
+  return CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_VIDEOSCREEN_LIMITEDRANGE);
 }
 
 void CWinSystemWayland::UpdateResolutions()
@@ -446,7 +435,7 @@ void CWinSystemWayland::UpdateResolutions()
 
   // Mimic X11:
   // Only show resolutions for the currently selected output
-  std::string userOutput = CServiceBroker::GetSettings().GetString(CSettings::SETTING_VIDEOSCREEN_MONITOR);
+  std::string userOutput = CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_VIDEOSCREEN_MONITOR);
 
   CSingleLock lock(m_outputsMutex);
 

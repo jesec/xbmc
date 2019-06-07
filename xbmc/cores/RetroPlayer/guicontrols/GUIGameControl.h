@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2017 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2017-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this Program; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -42,12 +30,12 @@ public:
 
   // GUI functions
   void SetVideoFilter(const KODI::GUILIB::GUIINFO::CGUIInfoLabel &videoFilter);
-  void SetViewMode(const KODI::GUILIB::GUIINFO::CGUIInfoLabel &viewMode);
+  void SetStretchMode(const KODI::GUILIB::GUIINFO::CGUIInfoLabel &stretchMode);
   void SetRotation(const KODI::GUILIB::GUIINFO::CGUIInfoLabel &rotation);
 
   // Rendering functions
   bool HasVideoFilter() const { return m_bHasVideoFilter; }
-  bool HasViewMode() const { return m_bHasViewMode; }
+  bool HasStretchMode() const { return m_bHasStretchMode; }
   bool HasRotation() const { return m_bHasRotation; }
   IGUIRenderSettings *GetRenderSettings() const;
 
@@ -70,12 +58,12 @@ private:
 
   // GUI properties
   KODI::GUILIB::GUIINFO::CGUIInfoLabel m_videoFilterInfo;
-  KODI::GUILIB::GUIINFO::CGUIInfoLabel m_viewModeInfo;
+  KODI::GUILIB::GUIINFO::CGUIInfoLabel m_stretchModeInfo;
   KODI::GUILIB::GUIINFO::CGUIInfoLabel m_rotationInfo;
 
   // Rendering properties
   bool m_bHasVideoFilter = false;
-  bool m_bHasViewMode = false;
+  bool m_bHasStretchMode = false;
   bool m_bHasRotation = false;
   std::unique_ptr<CGUIRenderSettings> m_renderSettings;
   std::shared_ptr<CGUIRenderHandle> m_renderHandle;

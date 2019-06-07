@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GUIWindowVideoBase.h"
@@ -32,7 +20,6 @@
 #include "view/GUIViewState.h"
 #include "playlists/PlayListFactory.h"
 #include "Application.h"
-#include "NfoFile.h"
 #include "PlayListPlayer.h"
 #include "cores/playercorefactory/PlayerCoreFactory.h"
 #include "GUIPassword.h"
@@ -46,10 +33,11 @@
 #include "filesystem/Directory.h"
 #include "messaging/helpers/DialogOKHelper.h"
 #include "playlists/PlayList.h"
-#include "profiles/ProfilesManager.h"
-#include "settings/Settings.h"
+#include "profiles/ProfileManager.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/MediaSettings.h"
+#include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "settings/dialogs/GUIDialogContentSettings.h"
 #include "input/Key.h"
 #include "guilib/LocalizeStrings.h"
@@ -155,6 +143,11 @@ bool CGUIWindowVideoBase::OnMessage(CGUIMessage& message)
           OnQueueItem(iItem);
           return true;
         }
+        else if (iAction == ACTION_QUEUE_ITEM_NEXT)
+        {
+          OnQueueItem(iItem, true);
+          return true;
+        }
         else if (iAction == ACTION_SHOW_INFO)
         {
           return OnItemInfo(iItem);
@@ -175,10 +168,10 @@ bool CGUIWindowVideoBase::OnMessage(CGUIMessage& message)
         }
         else if (iAction == ACTION_DELETE_ITEM)
         {
-          const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+          const std::shared_ptr<CProfileManager> profileManager = CServiceBroker::GetSettingsComponent()->GetProfileManager();
 
           // is delete allowed?
-          if (profileManager.GetCurrentProfile().canWriteDatabases())
+          if (profileManager->GetCurrentProfile().canWriteDatabases())
           {
             // must be at the title window
             if (GetID() == WINDOW_VIDEO_NAV)
@@ -238,7 +231,7 @@ void CGUIWindowVideoBase::OnItemInfo(const CFileItem& fileItem, ADDON::ScraperPt
         CFileItemPtr item2 = items[i];
 
         if (item2->IsVideo() && !item2->IsPlayList() &&
-            !CUtil::ExcludeFileOrFolder(item2->GetPath(), g_advancedSettings.m_moviesExcludeFromScanRegExps))
+            !CUtil::ExcludeFileOrFolder(item2->GetPath(), CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_moviesExcludeFromScanRegExps))
         {
           item.SetPath(item2->GetPath());
           item.m_bIsFolder = false;
@@ -389,10 +382,10 @@ bool CGUIWindowVideoBase::ShowIMDB(CFileItemPtr item, const ScraperPtr &info2, b
     }
   }
 
-  const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+  const std::shared_ptr<CProfileManager> profileManager = CServiceBroker::GetSettingsComponent()->GetProfileManager();
 
   // quietly return if Internet lookups are disabled
-  if (!profileManager.GetCurrentProfile().canWriteDatabases() && !g_passwordManager.bMasterUser)
+  if (!profileManager->GetCurrentProfile().canWriteDatabases() && !g_passwordManager.bMasterUser)
     return false;
 
   if (!info)
@@ -426,7 +419,7 @@ bool CGUIWindowVideoBase::ShowIMDB(CFileItemPtr item, const ScraperPtr &info2, b
   return listNeedsUpdating;
 }
 
-void CGUIWindowVideoBase::OnQueueItem(int iItem)
+void CGUIWindowVideoBase::OnQueueItem(int iItem, bool first)
 {
   // Determine the proper list to queue this element
   int playlist = CServiceBroker::GetPlaylistPlayer().GetCurrentPlaylist();
@@ -457,7 +450,10 @@ void CGUIWindowVideoBase::OnQueueItem(int iItem)
     return;
   }
 
-  CServiceBroker::GetPlaylistPlayer().Add(playlist, queuedItems);
+  if (first && g_application.GetAppPlayer().IsPlaying())
+    CServiceBroker::GetPlaylistPlayer().Insert(playlist, queuedItems, CServiceBroker::GetPlaylistPlayer().GetCurrentSong()+1);
+  else
+    CServiceBroker::GetPlaylistPlayer().Add(playlist, queuedItems);
   CServiceBroker::GetPlaylistPlayer().SetCurrentPlaylist(playlist);
   // video does not auto play on queue like music
   m_viewControl.SetSelectedItem(iItem + 1);
@@ -642,7 +638,7 @@ bool CGUIWindowVideoBase::OnSelect(int iItem)
       !StringUtils::StartsWith(path, "newplaylist://") &&
       !StringUtils::StartsWith(path, "newtag://") &&
       !StringUtils::StartsWith(path, "script://"))
-    return OnFileAction(iItem, CServiceBroker::GetSettings().GetInt(CSettings::SETTING_MYVIDEOS_SELECTACTION), "");
+    return OnFileAction(iItem, CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_MYVIDEOS_SELECTACTION), "");
 
   return CGUIMediaWindow::OnSelect(iItem);
 }
@@ -873,7 +869,7 @@ void CGUIWindowVideoBase::GetContextButtons(int itemNumber, CContextButtons &but
 
         // allow a folder to be ad-hoc queued and played by the default player
         if (item->m_bIsFolder || (item->IsPlayList() &&
-           !g_advancedSettings.m_playlistAsFolders))
+           !CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_playlistAsFolders))
         {
           buttons.Add(CONTEXT_BUTTON_PLAY_ITEM, 208);
         }
@@ -882,10 +878,11 @@ void CGUIWindowVideoBase::GetContextButtons(int itemNumber, CContextButtons &but
             && !m_vecItems->IsSourcesPath())
         {
           buttons.Add(CONTEXT_BUTTON_QUEUE_ITEM, 13347);      // Add to Playlist
+          buttons.Add(CONTEXT_BUTTON_PLAY_NEXT, 10008);       // Play next
         }
       }
 
-      if (!item->m_bIsFolder && !(item->IsPlayList() && !g_advancedSettings.m_playlistAsFolders))
+      if (!item->m_bIsFolder && !(item->IsPlayList() && !CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_playlistAsFolders))
       {
         const CPlayerCoreFactory &playerCoreFactory = CServiceBroker::GetPlayerCoreFactory();
 
@@ -912,7 +909,7 @@ void CGUIWindowVideoBase::GetContextButtons(int itemNumber, CContextButtons &but
       //then add add either 'play from here' or 'play only this' depending on default behaviour
       if (!(item->m_bIsFolder || item->IsScript()) && m_vecItems->Size() > 1 && itemNumber < m_vecItems->Size()-1)
       {
-        if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOPLAYER_AUTOPLAYNEXTITEM))
+        if (!CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_VIDEOPLAYER_AUTOPLAYNEXTITEM))
           buttons.Add(CONTEXT_BUTTON_PLAY_AND_QUEUE, 13412);
         else
           buttons.Add(CONTEXT_BUTTON_PLAY_ONLY_THIS, 13434);
@@ -1025,6 +1022,10 @@ bool CGUIWindowVideoBase::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
     OnQueueItem(itemNumber);
     return true;
 
+  case CONTEXT_BUTTON_PLAY_NEXT:
+    OnQueueItem(itemNumber, true);
+    return true;
+
   case CONTEXT_BUTTON_PLAY_ITEM:
     PlayItem(itemNumber);
     return true;
@@ -1048,7 +1049,7 @@ bool CGUIWindowVideoBase::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
         // any other select actions but play or resume, resume, play or playpart
         // don't make any sense here since the user already decided that he'd
         // like to play the item (just with a specific player)
-        VideoSelectAction selectAction = (VideoSelectAction)CServiceBroker::GetSettings().GetInt(CSettings::SETTING_MYVIDEOS_SELECTACTION);
+        VideoSelectAction selectAction = (VideoSelectAction)CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_MYVIDEOS_SELECTACTION);
         if (selectAction != SELECT_ACTION_PLAY_OR_RESUME &&
             selectAction != SELECT_ACTION_RESUME &&
             selectAction != SELECT_ACTION_PLAY &&
@@ -1188,16 +1189,16 @@ void CGUIWindowVideoBase::OnDeleteItem(CFileItemPtr item)
   if (item->IsStack())
     item->m_bIsFolder = true;
 
-  const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+  const std::shared_ptr<CProfileManager> profileManager = CServiceBroker::GetSettingsComponent()->GetProfileManager();
 
-  if (profileManager.GetCurrentProfile().getLockMode() != LOCK_MODE_EVERYONE &&
-      profileManager.GetCurrentProfile().filesLocked())
+  if (profileManager->GetCurrentProfile().getLockMode() != LOCK_MODE_EVERYONE &&
+      profileManager->GetCurrentProfile().filesLocked())
   {
     if (!g_passwordManager.IsMasterLockUnlocked(true))
       return;
   }
 
-  if ((CServiceBroker::GetSettings().GetBool(CSettings::SETTING_FILELISTS_ALLOWFILEDELETION) ||
+  if ((CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_FILELISTS_ALLOWFILEDELETION) ||
        m_vecItems->IsPath("special://videoplaylists/")) &&
       CUtil::SupportsWriteFileOperations(item->GetPath()))
   {
@@ -1299,9 +1300,9 @@ bool CGUIWindowVideoBase::GetDirectory(const std::string &strDirectory, CFileIte
   // add in the "New Playlist" item if we're in the playlists folder
   if ((items.GetPath() == "special://videoplaylists/") && !items.Contains("newplaylist://"))
   {
-    const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+    const std::shared_ptr<CProfileManager> profileManager = CServiceBroker::GetSettingsComponent()->GetProfileManager();
 
-    CFileItemPtr newPlaylist(new CFileItem(profileManager.GetUserDataItem("PartyMode-Video.xsp"),false));
+    CFileItemPtr newPlaylist(new CFileItem(profileManager->GetUserDataItem("PartyMode-Video.xsp"),false));
     newPlaylist->SetLabel(g_localizeStrings.Get(16035));
     newPlaylist->SetLabelPreformatted(true);
     newPlaylist->SetIconImage("DefaultPartyMode.png");
@@ -1328,7 +1329,7 @@ bool CGUIWindowVideoBase::GetDirectory(const std::string &strDirectory, CFileIte
   if (info && info->Content() == CONTENT_TVSHOWS)
     m_stackingAvailable = false;
 
-  if (m_stackingAvailable && !items.IsStack() && CServiceBroker::GetSettings().GetBool(CSettings::SETTING_MYVIDEOS_STACKVIDEOS))
+  if (m_stackingAvailable && !items.IsStack() && CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_MYVIDEOS_STACKVIDEOS))
     items.Stack();
 
   return bResult;
@@ -1360,12 +1361,13 @@ void CGUIWindowVideoBase::GetGroupedItems(CFileItemList &items)
     CVideoDatabaseDirectory dir;
     dir.GetQueryParams(items.GetPath(), params);
     VIDEODATABASEDIRECTORY::NODE_TYPE nodeType = CVideoDatabaseDirectory::GetDirectoryChildType(m_strFilterPath);
+    const std::shared_ptr<CSettings> settings = CServiceBroker::GetSettingsComponent()->GetSettings();
     if (items.GetContent() == "movies" && params.GetSetId() <= 0 &&
         nodeType == NODE_TYPE_TITLE_MOVIES &&
-       (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOLIBRARY_GROUPMOVIESETS) || (StringUtils::EqualsNoCase(group, "sets") && mixed)))
+       (settings->GetBool(CSettings::SETTING_VIDEOLIBRARY_GROUPMOVIESETS) || (StringUtils::EqualsNoCase(group, "sets") && mixed)))
     {
       CFileItemList groupedItems;
-      GroupAttribute groupAttributes = CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOLIBRARY_GROUPSINGLEITEMSETS) ? GroupAttributeNone : GroupAttributeIgnoreSingleItems;
+      GroupAttribute groupAttributes = settings->GetBool(CSettings::SETTING_VIDEOLIBRARY_GROUPSINGLEITEMSETS) ? GroupAttributeNone : GroupAttributeIgnoreSingleItems;
       if (GroupUtils::GroupAndMix(GroupBySet, m_strFilterPath, items, groupedItems, groupAttributes))
       {
         items.ClearItems();
@@ -1449,7 +1451,7 @@ void CGUIWindowVideoBase::AddToDatabase(int iItem)
 
   // set movie info
   movie.m_strTitle = strTitle;
-  movie.m_genre = StringUtils::Split(strGenre, g_advancedSettings.m_videoItemSeparator);
+  movie.m_genre = StringUtils::Split(strGenre, CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_videoItemSeparator);
 
   // everything is ok, so add to database
   m_database.Open();
@@ -1460,7 +1462,7 @@ void CGUIWindowVideoBase::AddToDatabase(int iItem)
 
   // done...
   HELPERS::ShowOKDialogLines(CVariant{20177}, CVariant{movie.m_strTitle},
-                                CVariant{StringUtils::Join(movie.m_genre, g_advancedSettings.m_videoItemSeparator)},
+                                CVariant{StringUtils::Join(movie.m_genre, CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_videoItemSeparator)},
                                 CVariant{movie.GetUniqueID()});
 
   // library view cache needs to be cleared
@@ -1528,7 +1530,7 @@ void CGUIWindowVideoBase::OnSearchItemFound(const CFileItem* pSelItem)
 
     Update(strParentPath);
 
-    if (pSelItem->IsVideoDb() && CServiceBroker::GetSettings().GetBool(CSettings::SETTING_MYVIDEOS_FLATTEN))
+    if (pSelItem->IsVideoDb() && CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_MYVIDEOS_FLATTEN))
       SetHistoryForPath("");
     else
       SetHistoryForPath(strParentPath);
@@ -1554,7 +1556,7 @@ void CGUIWindowVideoBase::OnSearchItemFound(const CFileItem* pSelItem)
 
     Update(strPath);
 
-    if (pSelItem->IsVideoDb() && CServiceBroker::GetSettings().GetBool(CSettings::SETTING_MYVIDEOS_FLATTEN))
+    if (pSelItem->IsVideoDb() && CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_MYVIDEOS_FLATTEN))
       SetHistoryForPath("");
     else
       SetHistoryForPath(strPath);
@@ -1616,7 +1618,7 @@ void CGUIWindowVideoBase::AppendAndClearSearchItems(CFileItemList &searchItems, 
   if (!searchItems.Size())
     return;
 
-  searchItems.Sort(SortByLabel, SortOrderAscending, CServiceBroker::GetSettings().GetBool(CSettings::SETTING_FILELISTS_IGNORETHEWHENSORTING) ? SortAttributeIgnoreArticle : SortAttributeNone);
+  searchItems.Sort(SortByLabel, SortOrderAscending, CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_FILELISTS_IGNORETHEWHENSORTING) ? SortAttributeIgnoreArticle : SortAttributeNone);
   for (int i = 0; i < searchItems.Size(); i++)
     searchItems[i]->SetLabel(prependLabel + searchItems[i]->GetLabel());
   results.Append(searchItems);

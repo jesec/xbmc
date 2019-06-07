@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "threads/SystemClock.h"
@@ -28,7 +16,6 @@
 #include "guilib/GUIComponent.h"
 #include "guilib/GUIProgressControl.h"
 #include "guilib/GUILabelControl.h"
-#include "video/dialogs/GUIDialogVideoOSD.h"
 #include "video/dialogs/GUIDialogSubtitleSettings.h"
 #include "guilib/GUIWindowManager.h"
 #include "input/Key.h"
@@ -36,12 +23,10 @@
 #include "settings/DisplaySettings.h"
 #include "settings/MediaSettings.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "FileItem.h"
-#include "utils/CPUInfo.h"
 #include "guilib/LocalizeStrings.h"
-#include "threads/SingleLock.h"
 #include "utils/StringUtils.h"
-#include "XBDateTime.h"
 #include "windowing/WinSystem.h"
 #include "cores/IPlayer.h"
 #include "guilib/guiinfo/GUIInfoLabels.h"
@@ -107,14 +92,21 @@ bool CGUIWindowFullScreen::OnAction(const CAction &action)
   case ACTION_MOUSE_MOVE:
     if (action.GetAmount(2) || action.GetAmount(3))
     {
-      TriggerOSD();
-      return true;
+      if (!g_application.GetAppPlayer().IsInMenu())
+      {
+        TriggerOSD();
+        return true;
+      }
     }
     break;
 
   case ACTION_MOUSE_LEFT_CLICK:
-    TriggerOSD();
-    return true;
+    if (!g_application.GetAppPlayer().IsInMenu())
+    {
+      TriggerOSD();
+      return true;
+    }
+    break;
 
   case ACTION_SHOW_GUI:
     {
@@ -261,7 +253,7 @@ bool CGUIWindowFullScreen::OnMessage(CGUIMessage& message)
 
       CGUIWindow::OnMessage(message);
 
-      CServiceBroker::GetSettings().Save();
+      CServiceBroker::GetSettingsComponent()->GetSettings()->Save();
 
       CServiceBroker::GetWinSystem()->GetGfxContext().SetFullScreenVideo(false);
 

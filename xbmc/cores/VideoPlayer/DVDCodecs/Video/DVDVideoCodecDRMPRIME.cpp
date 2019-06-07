@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2017 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2017-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this Program; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "DVDVideoCodecDRMPRIME.h"
@@ -23,17 +11,18 @@
 #include "ServiceBroker.h"
 #include "cores/VideoPlayer/DVDCodecs/DVDFactoryCodec.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
+#include "settings/lib/Setting.h"
 #include "threads/SingleLock.h"
 #include "utils/log.h"
 #include "windowing/gbm/WinSystemGbm.h"
-
-#include <xf86drm.h>
-#include <xf86drmMode.h>
 
 extern "C" {
 #include "libavcodec/avcodec.h"
 #include "libavutil/pixdesc.h"
 }
+
+using namespace KODI::WINDOWING::GBM;
 
 //------------------------------------------------------------------------------
 // Video Buffers
@@ -58,23 +47,42 @@ void CVideoBufferDRMPRIME::SetRef(AVFrame* frame)
 
 void CVideoBufferDRMPRIME::Unref()
 {
-  if (m_fb_id)
-  {
-    drmModeRmFB(m_drm_fd, m_fb_id);
-    m_fb_id = 0;
-  }
-
-  for (int i = 0; i < AV_DRM_MAX_PLANES; i++)
-  {
-    if (m_handles[i])
-    {
-      struct drm_gem_close gem_close = { .handle = m_handles[i] };
-      drmIoctl(m_drm_fd, DRM_IOCTL_GEM_CLOSE, &gem_close);
-      m_handles[i] = 0;
-    }
-  }
-
   av_frame_unref(m_pFrame);
+}
+
+int CVideoBufferDRMPRIME::GetColorEncoding() const
+{
+  switch (m_pFrame->colorspace)
+  {
+    case AVCOL_SPC_BT2020_CL:
+    case AVCOL_SPC_BT2020_NCL:
+      return DRM_COLOR_YCBCR_BT2020;
+    case AVCOL_SPC_SMPTE170M:
+    case AVCOL_SPC_BT470BG:
+    case AVCOL_SPC_FCC:
+      return DRM_COLOR_YCBCR_BT601;
+    case AVCOL_SPC_BT709:
+      return DRM_COLOR_YCBCR_BT709;
+    case AVCOL_SPC_RESERVED:
+    case AVCOL_SPC_UNSPECIFIED:
+    default:
+      if (m_pFrame->width > 1024 || m_pFrame->height >= 600)
+        return DRM_COLOR_YCBCR_BT709;
+      else
+        return DRM_COLOR_YCBCR_BT601;
+  }
+}
+
+int CVideoBufferDRMPRIME::GetColorRange() const
+{
+  switch (m_pFrame->color_range)
+  {
+    case AVCOL_RANGE_JPEG:
+      return DRM_COLOR_YCBCR_FULL_RANGE;
+    case AVCOL_RANGE_MPEG:
+    default:
+      return DRM_COLOR_YCBCR_LIMITED_RANGE;
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -162,13 +170,14 @@ CDVDVideoCodecDRMPRIME::~CDVDVideoCodecDRMPRIME()
 
 CDVDVideoCodec* CDVDVideoCodecDRMPRIME::Create(CProcessInfo& processInfo)
 {
-  if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOPLAYER_USEPRIMEDECODER))
+  if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_VIDEOPLAYER_USEPRIMEDECODER))
     return new CDVDVideoCodecDRMPRIME(processInfo);
   return nullptr;
 }
 
 void CDVDVideoCodecDRMPRIME::Register()
 {
+  CServiceBroker::GetSettingsComponent()->GetSettings()->GetSetting(CSettings::SETTING_VIDEOPLAYER_USEPRIMEDECODER)->SetVisible(true);
   CDVDFactoryCodec::RegisterHWVideoCodec("drm_prime", CDVDVideoCodecDRMPRIME::Create);
 }
 
@@ -241,7 +250,7 @@ bool CDVDVideoCodecDRMPRIME::Open(CDVDStreamInfo& hints, CDVDCodecOptions& optio
       pConfig->device_type == AV_HWDEVICE_TYPE_DRM)
   {
     CWinSystemGbm* winSystem = dynamic_cast<CWinSystemGbm*>(CServiceBroker::GetWinSystem());
-    if (av_hwdevice_ctx_create(&m_pCodecContext->hw_device_ctx, AV_HWDEVICE_TYPE_DRM, winSystem->GetDevicePath().c_str(), nullptr, 0) < 0)
+    if (av_hwdevice_ctx_create(&m_pCodecContext->hw_device_ctx, AV_HWDEVICE_TYPE_DRM, drmGetDeviceNameFromFd2(winSystem->GetDrm()->GetFileDescriptor()), nullptr, 0) < 0)
     {
       CLog::Log(LOGNOTICE, "CDVDVideoCodecDRMPRIME::%s - unable to create hwdevice context", __FUNCTION__);
       avcodec_free_context(&m_pCodecContext);

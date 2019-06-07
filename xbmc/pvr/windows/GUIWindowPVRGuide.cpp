@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include <iterator>
@@ -31,6 +19,7 @@
 #include "messaging/ApplicationMessenger.h"
 #include "messaging/helpers/DialogHelper.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "threads/SingleLock.h"
 #include "view/GUIViewState.h"
 
@@ -48,6 +37,7 @@ CGUIWindowPVRGuideBase::CGUIWindowPVRGuideBase(bool bRadio, int id, const std::s
   m_bChannelSelectionRestored(false)
 {
   m_bRefreshTimelineItems = false;
+  m_bSyncRefreshTimelineItems = false;
   CServiceBroker::GetPVRManager().EpgContainer().RegisterObserver(this);
 }
 
@@ -56,6 +46,7 @@ CGUIWindowPVRGuideBase::~CGUIWindowPVRGuideBase()
   CServiceBroker::GetPVRManager().EpgContainer().UnregisterObserver(this);
 
   m_bRefreshTimelineItems = false;
+  m_bSyncRefreshTimelineItems = false;
   StopRefreshTimelineItemsThread();
 }
 
@@ -74,10 +65,7 @@ void CGUIWindowPVRGuideBase::InitEpgGridControl()
   }
 
   if (epgGridContainer && !epgGridContainer->HasData())
-  {
-    CSingleLock lock(m_critSection);
-    m_bRefreshTimelineItems = true; // force data update on first window open
-  }
+    m_bSyncRefreshTimelineItems = true; // force data update on first window open
 
   StartRefreshTimelineItemsThread();
 }
@@ -143,13 +131,21 @@ void CGUIWindowPVRGuideBase::Notify(const Observable &obs, const ObservableMessa
       msg == ObservableMessageChannelGroupReset ||
       msg == ObservableMessageChannelGroup)
   {
-    CSingleLock lock(m_critSection);
     m_bRefreshTimelineItems = true;
+    // no base class call => do async refresh
+    return;
   }
-  else
+  else if (msg == ObservableMessageChannelPlaybackStopped)
   {
-    CGUIWindowPVRBase::Notify(obs, msg);
+    if (m_guiState && m_guiState->GetSortMethod().sortBy == SortByLastPlayed)
+    {
+      // set dirty to force sync refresh
+      m_bSyncRefreshTimelineItems = true;
+    }
   }
+
+  // do sync refresh if dirty
+  CGUIWindowPVRBase::Notify(obs, msg);
 }
 
 void CGUIWindowPVRGuideBase::SetInvalid()
@@ -192,6 +188,15 @@ void CGUIWindowPVRGuideBase::UpdateButtons(void)
 
 bool CGUIWindowPVRGuideBase::Update(const std::string &strDirectory, bool updateFilterPath /* = true */)
 {
+  if (m_vecItemsUpdating)
+  {
+    // Prevent concurrent updates. Instead, let the timeline items refresh thread pick it up later.
+    m_bRefreshTimelineItems = true;
+    return true;
+  }
+
+  CUpdateGuard guard(m_vecItemsUpdating);
+
   bool bReturn = CGUIWindowPVRBase::Update(strDirectory, updateFilterPath);
 
   if (bReturn && !m_bChannelSelectionRestored)
@@ -206,21 +211,18 @@ bool CGUIWindowPVRGuideBase::Update(const std::string &strDirectory, bool update
 
 bool CGUIWindowPVRGuideBase::GetDirectory(const std::string &strDirectory, CFileItemList &items)
 {
-  bool bRefreshTimelineItems = false;
-
   {
     CSingleLock lock(m_critSection);
 
     if (m_cachedChannelGroup && *m_cachedChannelGroup != *GetChannelGroup())
     {
       // channel group change and not very first open of this window. force immediate update.
-      m_bRefreshTimelineItems = true;
-      bRefreshTimelineItems = true;
+      m_bSyncRefreshTimelineItems = true;
     }
   }
 
   // never call DoRefresh with locked mutex!
-  if (bRefreshTimelineItems)
+  if (m_bSyncRefreshTimelineItems)
     m_refreshTimelineItemsThread->DoRefresh();
 
   {
@@ -236,6 +238,16 @@ bool CGUIWindowPVRGuideBase::GetDirectory(const std::string &strDirectory, CFile
   }
 
   return true;
+}
+
+void CGUIWindowPVRGuideBase::FormatAndSort(CFileItemList &items)
+{
+  if (&items == m_vecItems)
+  {
+    // Speedup: Nothing to do here as sorting was already done in CGUIWindowPVRGuideBase::RefreshTimelineItems
+    return;
+  }
+  CGUIWindowPVRBase::FormatAndSort(items);
 }
 
 bool CGUIWindowPVRGuideBase::ShouldNavigateToGridContainer(int iAction)
@@ -328,6 +340,19 @@ bool CGUIWindowPVRGuideBase::OnAction(const CAction &action)
   return CGUIWindowPVRBase::OnAction(action);
 }
 
+void CGUIWindowPVRGuideBase::RefreshView(CGUIMessage& message, bool bInitGridControl)
+{
+  CGUIWindowPVRBase::OnMessage(message);
+
+  // force grid data update
+  m_bSyncRefreshTimelineItems = true;
+
+  if (bInitGridControl)
+    InitEpgGridControl();
+
+  Refresh(true);
+}
+
 bool CGUIWindowPVRGuideBase::OnMessage(CGUIMessage& message)
 {
   bool bReturn = false;
@@ -357,7 +382,7 @@ bool CGUIWindowPVRGuideBase::OnMessage(CGUIMessage& message)
           {
             case ACTION_SELECT_ITEM:
             case ACTION_MOUSE_LEFT_CLICK:
-              switch(CServiceBroker::GetSettings().GetInt(CSettings::SETTING_EPG_SELECTACTION))
+              switch(CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_EPG_SELECTACTION))
               {
                 case EPG_SELECT_ACTION_CONTEXT_MENU:
                   OnPopupMenu(iItem);
@@ -488,28 +513,19 @@ bool CGUIWindowPVRGuideBase::OnMessage(CGUIMessage& message)
           }
         }
       }
-      else if (message.GetSenderId() == CONTROL_BTNVIEWASICONS)
+      else if (message.GetSenderId() == CONTROL_BTNVIEWASICONS ||
+               message.GetSenderId() == CONTROL_BTNSORTBY)
       {
-        // let's set the view mode first before update
-        CGUIWindowPVRBase::OnMessage(message);
-        Refresh(true);
+        RefreshView(message, false);
         bReturn = true;
       }
       break;
     }
+    case GUI_MSG_CHANGE_SORT_DIRECTION:
+    case GUI_MSG_CHANGE_SORT_METHOD:
     case GUI_MSG_CHANGE_VIEW_MODE:
     {
-      // let's set the view mode first before update
-      CGUIWindowPVRBase::OnMessage(message);
-
-      // force data update for the new view control
-      {
-        CSingleLock lock(m_critSection);
-        m_bRefreshTimelineItems = true;
-      }
-      InitEpgGridControl();
-
-      Refresh(true);
+      RefreshView(message, message.GetMessage() == GUI_MSG_CHANGE_VIEW_MODE);
       bReturn = true;
       break;
     }
@@ -527,6 +543,7 @@ bool CGUIWindowPVRGuideBase::OnMessage(CGUIMessage& message)
         case ObservableMessageChannelGroup:
         case ObservableMessageEpg:
         case ObservableMessageEpgContainer:
+        case ObservableMessageChannelPlaybackStopped:
         {
           Refresh(true);
           break;
@@ -572,16 +589,11 @@ bool CGUIWindowPVRGuideBase::OnContextButton(int itemNumber, CONTEXT_BUTTON butt
 
 bool CGUIWindowPVRGuideBase::RefreshTimelineItems()
 {
-  bool bRefreshTimelineItems;
+  if (m_bRefreshTimelineItems || m_bSyncRefreshTimelineItems)
   {
-    CSingleLock lock(m_critSection);
-
-    bRefreshTimelineItems = m_bRefreshTimelineItems;
     m_bRefreshTimelineItems = false;
-  }
+    m_bSyncRefreshTimelineItems = false;
 
-  if (bRefreshTimelineItems)
-  {
     CGUIEPGGridContainer* epgGridContainer = GetGridControl();
     if (epgGridContainer)
     {
@@ -604,11 +616,22 @@ bool CGUIWindowPVRGuideBase::RefreshTimelineItems()
       if (!endDate.IsValid() || endDate < startDate)
         endDate = startDate;
 
-      // limit start to linger time
-      int iPastDays = CServiceBroker::GetPVRManager().EpgContainer().GetPastDaysToDisplay();
+      CPVREpgContainer& epgContainer = CServiceBroker::GetPVRManager().EpgContainer();
+
+      // limit start to past days to display
+      int iPastDays = epgContainer.GetPastDaysToDisplay();
       const CDateTime maxPastDate(currentDate - CDateTimeSpan(iPastDays, 0, 0, 0));
       if (startDate < maxPastDate)
         startDate = maxPastDate;
+
+      // limit end to future days to display
+      int iFutureDays = epgContainer.GetFutureDaysToDisplay();
+      const CDateTime maxFutureDate(currentDate + CDateTimeSpan(iFutureDays, 0, 0, 0));
+      if (endDate > maxFutureDate)
+        endDate = maxFutureDate;
+
+      if (m_guiState.get())
+        timeline->Sort(m_guiState->GetSortMethod());
 
       // can be very expensive. never call with lock acquired.
       epgGridContainer->SetTimelineItems(timeline, startDate, endDate);
@@ -665,7 +688,7 @@ void CGUIWindowPVRGuideBase::OnInputDone()
   const CPVRChannelNumber channelNumber = GetChannelNumber();
   if (channelNumber.IsValid())
   {
-    for (const CFileItemPtr event : m_vecItems->GetList())
+    for (const CFileItemPtr event : *m_vecItems)
     {
       const CPVREpgInfoTagPtr tag(event->GetEPGInfoTag());
       if (tag->HasChannel() && tag->Channel()->ChannelNumber() == channelNumber)

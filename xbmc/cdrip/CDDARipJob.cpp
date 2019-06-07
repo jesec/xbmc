@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "CDDARipJob.h"
@@ -32,8 +20,9 @@
 #include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
-#include "settings/Settings.h"
 #include "settings/AdvancedSettings.h"
+#include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "utils/StringUtils.h"
 #include "storage/MediaManager.h"
 #include "addons/AddonManager.h"
@@ -80,7 +69,7 @@ bool CCDDARipJob::DoWork()
 
   // init ripper
   CFile reader;
-  CEncoder* encoder;
+  CEncoder* encoder = nullptr;
   if (!reader.Open(m_input,READ_CACHED) || !(encoder=SetupEncoder(reader)))
   {
     CLog::Log(LOGERROR, "Error: CCDDARipper::Init failed");
@@ -183,16 +172,16 @@ int CCDDARipJob::RipChunk(CFile& reader, CEncoder* encoder, int& percent)
 
 CEncoder* CCDDARipJob::SetupEncoder(CFile& reader)
 {
-  CEncoder* encoder = NULL;
-  if (CServiceBroker::GetSettings().GetString(CSettings::SETTING_AUDIOCDS_ENCODER) == "audioencoder.kodi.builtin.aac" ||
-      CServiceBroker::GetSettings().GetString(CSettings::SETTING_AUDIOCDS_ENCODER) == "audioencoder.kodi.builtin.wma")
+  CEncoder* encoder = nullptr;
+  const std::string audioEncoder = CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_AUDIOCDS_ENCODER);
+  if (audioEncoder == "audioencoder.kodi.builtin.aac" || audioEncoder == "audioencoder.kodi.builtin.wma")
   {
     std::shared_ptr<IEncoder> enc(new CEncoderFFmpeg());
     encoder = new CEncoder(enc);
   }
   else
   {
-    const BinaryAddonBasePtr addonInfo = CServiceBroker::GetBinaryAddonManager().GetInstalledAddonInfo(CServiceBroker::GetSettings().GetString(CSettings::SETTING_AUDIOCDS_ENCODER), ADDON_AUDIOENCODER);
+    const BinaryAddonBasePtr addonInfo = CServiceBroker::GetBinaryAddonManager().GetInstalledAddonInfo(audioEncoder, ADDON_AUDIOENCODER);
     if (addonInfo)
     {
       std::shared_ptr<IEncoder> enc = std::make_shared<CAudioEncoder>(addonInfo);
@@ -203,24 +192,23 @@ CEncoder* CCDDARipJob::SetupEncoder(CFile& reader)
     return NULL;
 
   // we have to set the tags before we init the Encoder
-  std::string strTrack = StringUtils::Format("%li", strtol(m_input.substr(13, m_input.size() - 13 - 5).c_str(),NULL,10));
+  const std::string strTrack = StringUtils::Format("%li", strtol(m_input.substr(13, m_input.size() - 13 - 5).c_str(), nullptr, 10));
+
+  const std::string itemSeparator = CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_musicItemSeparator;
 
   encoder->SetComment(std::string("Ripped with ") + CSysInfo::GetAppName());
-  encoder->SetArtist(StringUtils::Join(m_tag.GetArtist(),
-                                      g_advancedSettings.m_musicItemSeparator));
+  encoder->SetArtist(StringUtils::Join(m_tag.GetArtist(), itemSeparator));
   encoder->SetTitle(m_tag.GetTitle());
   encoder->SetAlbum(m_tag.GetAlbum());
-  encoder->SetAlbumArtist(StringUtils::Join(m_tag.GetAlbumArtist(),
-                                      g_advancedSettings.m_musicItemSeparator));
-  encoder->SetGenre(StringUtils::Join(m_tag.GetGenre(),
-                                      g_advancedSettings.m_musicItemSeparator));
+  encoder->SetAlbumArtist(StringUtils::Join(m_tag.GetAlbumArtist(), itemSeparator));
+  encoder->SetGenre(StringUtils::Join(m_tag.GetGenre(), itemSeparator));
   encoder->SetTrack(strTrack);
   encoder->SetTrackLength(static_cast<int>(reader.GetLength()));
   encoder->SetYear(m_tag.GetYearString());
 
   // init encoder
   if (!encoder->Init(m_output.c_str(), m_channels, m_rate, m_bps))
-    delete encoder, encoder = NULL;
+    delete encoder, encoder = nullptr;
 
   return encoder;
 }

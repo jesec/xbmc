@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 // setting that here because otherwise SampleFormat is defined to AVSampleFormat
@@ -32,6 +20,7 @@
 #include "ServiceBroker.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "system.h"
 #include "utils/Log.h"
 #include "utils/StringUtils.h"
@@ -822,7 +811,7 @@ bool CDXVABufferPool::HasRefs()
 
 IHardwareDecoder* CDecoder::Create(CDVDStreamInfo &hint, CProcessInfo &processInfo, AVPixelFormat fmt)
 {
-  if (DXVA::CDecoder::Supports(fmt) && CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOPLAYER_USEDXVA2))
+  if (DXVA::CDecoder::Supports(fmt) && CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_VIDEOPLAYER_USEDXVA2))
     return new CDecoder(processInfo);
 
   return nullptr;
@@ -1002,10 +991,10 @@ static bool CheckCompatibility(AVCodecContext *avctx)
   // The advanced setting lets the user override the autodetection (in case of false positive or negative)
 
   bool checkcompat;
-  if (!g_advancedSettings.m_DXVACheckCompatibilityPresent)
+  if (!CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_DXVACheckCompatibilityPresent)
     checkcompat = IsL41LimitedATI();  // ATI UVD and UVD+ cards can only do L4.1 - corresponds roughly to series 3xxx
   else
-    checkcompat = g_advancedSettings.m_DXVACheckCompatibility;
+    checkcompat = CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_DXVACheckCompatibility;
 
   if (checkcompat && !CheckH264L41(avctx))
   {

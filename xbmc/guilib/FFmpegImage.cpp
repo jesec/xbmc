@@ -1,22 +1,9 @@
 /*
- *      Copyright (C) 2012-2015 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 #include "FFmpegImage.h"
 #include "utils/log.h"
@@ -92,7 +79,7 @@ static int mem_file_read(void *h, uint8_t* buf, int size)
   MemBuffer* mbuf = static_cast<MemBuffer*>(h);
   int64_t unread = mbuf->size - mbuf->pos;
   if (unread <= 0)
-    return 0;
+    return AVERROR_EOF;
 
   size_t tocopy = std::min((size_t)size, (size_t)unread);
   memcpy(buf, mbuf->data + mbuf->pos, tocopy);
@@ -186,6 +173,9 @@ bool CFFmpegImage::Initialize(unsigned char* buffer, size_t bufSize)
     CLog::LogF(LOGERROR, "Could not allocate AVIOContext");
     return false;
   }
+
+  // signal to ffmepg this is not streaming protocol
+  m_ioctx->max_packet_size = bufferSize;
 
   m_fctx = avformat_alloc_context();
   if (!m_fctx)

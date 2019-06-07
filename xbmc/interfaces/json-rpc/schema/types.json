@@ -111,7 +111,8 @@
                   "bitrate", "random" ]
       },
       "order": { "type": "string", "default": "ascending", "enum": [ "ascending", "descending" ] },
-      "ignorearticle": { "type": "boolean", "default": false }
+      "ignorearticle": { "type": "boolean", "default": false },
+      "useartistsortname": { "type": "boolean", "default": false }	  
     }
   },
   "Library.Id": {
@@ -424,8 +425,8 @@
     "extends": "Item.Details.Base",
     "properties": {
       "sourceid": { "$ref": "Library.Id", "required": true },
-	  "file": { "type": "string", "description": "The url encoded multipath string combining all paths of the source ", "required": true },
-	  "paths": { "$ref": "Array.String", "description": "The individual paths of the media source" }
+      "file": { "type": "string", "description": "The url encoded multipath string combining all paths of the source ", "required": true },
+      "paths": { "$ref": "Array.String", "description": "The individual paths of the media source" }
     }
   },
   "Library.Fields.Genre": {
@@ -688,7 +689,7 @@
     "extends": "Item.Fields.Base",
     "items": { "type": "string",
       "enum": [ "season", "showtitle", "playcount", "episode", "fanart", "thumbnail", "tvshowid",
-                "watchedepisodes", "art", "userrating" ]
+                "watchedepisodes", "art", "userrating", "title" ]
     }
   },
   "Video.Fields.Episode": {
@@ -883,7 +884,8 @@
       "episode": { "type": "integer" },
       "watchedepisodes": { "type": "integer" },
       "tvshowid": { "$ref": "Library.Id" },
-      "userrating": { "type": "integer" }
+      "userrating": { "type": "integer" },
+      "title": { "type": "string" }
     }
   },
   "Video.Details.Episode": {
@@ -1623,7 +1625,7 @@
   },
   "Application.Property.Name": {
     "type": "string",
-    "enum": [ "volume", "muted", "name", "version" ]
+    "enum": [ "volume", "muted", "name", "version", "volume", "sorttokens", "language" ]
   },
   "Application.Property.Value": {
     "type": "object",
@@ -1639,7 +1641,9 @@
           "tag": { "type": "string", "enum": [ "prealpha", "alpha", "beta", "releasecandidate", "stable" ], "required": true },
           "tagversion": { "type": "string" }
         }
-      }
+      },
+      "sorttokens": { "$ref": "Array.String", "description": "Articles ignored during sorting when ignorearticle is enabled." },
+      "language": { "type": "string", "minLength": 1, "description": "Current language code and region e.g. en_GB" }
     }
   },
   "Favourite.Fields.Favourite": {

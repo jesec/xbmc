@@ -1,27 +1,16 @@
 /*
- *      Copyright (C) 2005-2015 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "WinSystemX11.h"
 #include "ServiceBroker.h"
 #include "settings/DisplaySettings.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "settings/lib/Setting.h"
 #include "windowing/GraphicContext.h"
 #include "guilib/Texture.h"
@@ -137,7 +126,7 @@ bool CWinSystemX11::DestroyWindow()
 
 bool CWinSystemX11::ResizeWindow(int newWidth, int newHeight, int newLeft, int newTop)
 {
-  m_userOutput = CServiceBroker::GetSettings().GetString(CSettings::SETTING_VIDEOSCREEN_MONITOR);
+  m_userOutput = CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_VIDEOSCREEN_MONITOR);
   XOutput *out = NULL;
   if (m_userOutput.compare("Default") != 0)
   {
@@ -175,7 +164,7 @@ bool CWinSystemX11::ResizeWindow(int newWidth, int newHeight, int newLeft, int n
 
 void CWinSystemX11::FinishWindowResize(int newWidth, int newHeight)
 {
-  m_userOutput = CServiceBroker::GetSettings().GetString(CSettings::SETTING_VIDEOSCREEN_MONITOR);
+  m_userOutput = CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_VIDEOSCREEN_MONITOR);
   XOutput *out = NULL;
   if (m_userOutput.compare("Default") != 0)
   {
@@ -275,7 +264,7 @@ bool CWinSystemX11::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool bl
         OnLostDevice();
         m_bIsInternalXrr = true;
         g_xrandr.SetMode(out, mode);
-        int delay = CServiceBroker::GetSettings().GetInt("videoscreen.delayrefreshchange");
+        int delay = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt("videoscreen.delayrefreshchange");
         if (delay > 0)
         {
           m_delayDispReset = true;
@@ -304,8 +293,9 @@ void CWinSystemX11::UpdateResolutions()
   int numScreens = XScreenCount(m_dpy);
   g_xrandr.SetNumScreens(numScreens);
 
-  bool switchOnOff = CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOSCREEN_BLANKDISPLAYS);
-  m_userOutput = CServiceBroker::GetSettings().GetString(CSettings::SETTING_VIDEOSCREEN_MONITOR);
+  const std::shared_ptr<CSettings> settings = CServiceBroker::GetSettingsComponent()->GetSettings();
+  bool switchOnOff = settings->GetBool(CSettings::SETTING_VIDEOSCREEN_BLANKDISPLAYS);
+  m_userOutput = settings->GetString(CSettings::SETTING_VIDEOSCREEN_MONITOR);
   if (m_userOutput.compare("Default") == 0)
     switchOnOff = false;
 
@@ -373,20 +363,15 @@ void CWinSystemX11::UpdateResolutions()
   XOutput *out = g_xrandr.GetOutput(m_userOutput);
   if (out != NULL)
   {
-    std::vector<XMode>::iterator modeiter;
     CLog::Log(LOGINFO, "Output '%s' has %" PRIdS" modes", out->name.c_str(), out->modes.size());
 
-    for (modeiter = out->modes.begin() ; modeiter!=out->modes.end() ; modeiter++)
+    for (auto mode : out->modes)
     {
-      XMode mode = *modeiter;
       CLog::Log(LOGINFO, "ID:%s Name:%s Refresh:%f Width:%d Height:%d",
                 mode.id.c_str(), mode.name.c_str(), mode.hz, mode.w, mode.h);
       RESOLUTION_INFO res;
       res.dwFlags = 0;
-      res.iWidth  = mode.w;
-      res.iHeight = mode.h;
-      res.iScreenWidth  = mode.w;
-      res.iScreenHeight = mode.h;
+
       if (mode.IsInterlaced())
         res.dwFlags |= D3DPRESENTFLAG_INTERLACED;
 
@@ -394,13 +379,18 @@ void CWinSystemX11::UpdateResolutions()
       {
         res.iWidth  = mode.w;
         res.iHeight = mode.h;
+        res.iScreenWidth = mode.w;
+        res.iScreenHeight = mode.h;
       }
       else
       {
         res.iWidth  = mode.h;
         res.iHeight = mode.w;
+        res.iScreenWidth = mode.h;
+        res.iScreenHeight = mode.w;
       }
-      if (mode.h>0 && mode.w>0 && out->hmm>0 && out->wmm>0)
+
+      if (mode.h > 0 && mode.w > 0 && out->hmm > 0 && out->wmm > 0)
         res.fPixelRatio = ((float)out->wmm/(float)mode.w) / (((float)out->hmm/(float)mode.h));
       else
         res.fPixelRatio = 1.0f;
@@ -457,7 +447,7 @@ bool CWinSystemX11::HasCalibration(const RESOLUTION_INFO &resInfo)
 
 bool CWinSystemX11::UseLimitedColor()
 {
-  return CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOSCREEN_LIMITEDRANGE);
+  return CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_VIDEOSCREEN_LIMITEDRANGE);
 }
 
 void CWinSystemX11::GetConnectedOutputs(std::vector<std::string> *outputs)

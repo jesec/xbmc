@@ -1,33 +1,21 @@
 /*
- *      Copyright (C) 2010-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2010-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
 
 #include "cores/AudioEngine/Utils/AEAudioFormat.h"
-#include "cores/AudioEngine/Utils/AEStreamData.h"
-#include "cores/AudioEngine/Interfaces/IAudioCallback.h"
 #include <stdint.h>
 
 extern "C" {
 #include "libavcodec/avcodec.h"
 }
+
+class IAudioCallback;
 
 /**
  * Callback interface for VideoPlayer clock needed by AE for sync
@@ -69,6 +57,14 @@ protected:
   virtual ~IAEStream() = default;
 
 public:
+  struct ExtData
+  {
+    double pts = 0;
+    bool hasDownmix = false;
+    double centerMixLevel = 1;
+  };
+
+public:
   /**
    * Returns the amount of space available in the stream
    * @return The number of bytes AddData will consume
@@ -83,7 +79,7 @@ public:
    * @param pts timestamp
    * @return The number of frames consumed
    */
-  virtual unsigned int AddData(const uint8_t* const *data, unsigned int offset, unsigned int frames, double pts = 0.0) = 0;
+  virtual unsigned int AddData(const uint8_t* const *data, unsigned int offset, unsigned int frames, ExtData *extData) = 0;
 
   /**
    * Returns the time in seconds that it will take

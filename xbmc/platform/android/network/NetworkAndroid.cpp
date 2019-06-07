@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2016 Christian Browet
- *      http://kodi.tv
+ *  Copyright (C) 2016 Christian Browet
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 
@@ -59,12 +47,12 @@ std::vector<std::string> CNetworkInterfaceAndroid::GetNameServers()
   return ret;
 }
 
-std::string& CNetworkInterfaceAndroid::GetName()
+const std::string& CNetworkInterfaceAndroid::GetName() const
 {
   return m_name;
 }
 
-bool CNetworkInterfaceAndroid::IsEnabled()
+bool CNetworkInterfaceAndroid::IsEnabled() const
 {
   CJNIConnectivityManager connman(CXBMCApp::getSystemService(CJNIContext::CONNECTIVITY_SERVICE));
   CJNINetworkInfo ni = connman.getNetworkInfo(m_network);
@@ -74,7 +62,7 @@ bool CNetworkInterfaceAndroid::IsEnabled()
   return ni.isAvailable();
 }
 
-bool CNetworkInterfaceAndroid::IsConnected()
+bool CNetworkInterfaceAndroid::IsConnected() const
 {
   CJNIConnectivityManager connman(CXBMCApp::getSystemService(CJNIContext::CONNECTIVITY_SERVICE));
   CJNINetworkInfo ni = connman.getNetworkInfo(m_network);
@@ -84,7 +72,7 @@ bool CNetworkInterfaceAndroid::IsConnected()
   return ni.isConnected();
 }
 
-bool CNetworkInterfaceAndroid::IsWireless()
+bool CNetworkInterfaceAndroid::IsWireless() const
 {
   CJNIConnectivityManager connman(CXBMCApp::getSystemService(CJNIContext::CONNECTIVITY_SERVICE));
   CJNINetworkInfo ni = connman.getNetworkInfo(m_network);
@@ -95,7 +83,7 @@ bool CNetworkInterfaceAndroid::IsWireless()
   return !(type == CJNIConnectivityManager::TYPE_ETHERNET || type == CJNIConnectivityManager::TYPE_DUMMY);
 }
 
-std::string CNetworkInterfaceAndroid::GetMacAddress()
+std::string CNetworkInterfaceAndroid::GetMacAddress() const
 {
   auto interfaceMacAddrRaw = m_intf.getHardwareAddress();
   if (xbmc_jnienv()->ExceptionCheck())
@@ -117,7 +105,7 @@ std::string CNetworkInterfaceAndroid::GetMacAddress()
   return "";
 }
 
-void CNetworkInterfaceAndroid::GetMacAddressRaw(char rawMac[6])
+void CNetworkInterfaceAndroid::GetMacAddressRaw(char rawMac[6]) const
 {
   auto interfaceMacAddrRaw = m_intf.getHardwareAddress();
   if (xbmc_jnienv()->ExceptionCheck())
@@ -130,7 +118,7 @@ void CNetworkInterfaceAndroid::GetMacAddressRaw(char rawMac[6])
     memcpy(rawMac, interfaceMacAddrRaw.data(), 6);
 }
 
-bool CNetworkInterfaceAndroid::GetHostMacAddress(unsigned long host_ip, std::string& mac)
+bool CNetworkInterfaceAndroid::GetHostMacAddress(unsigned long host_ip, std::string& mac) const
 {
   struct arpreq areq;
   struct sockaddr_in* sin;
@@ -174,7 +162,7 @@ bool CNetworkInterfaceAndroid::GetHostMacAddress(unsigned long host_ip, std::str
   return false;
 }
 
-std::string CNetworkInterfaceAndroid::GetCurrentIPAddress()
+std::string CNetworkInterfaceAndroid::GetCurrentIPAddress() const
 {
   CJNIList<CJNILinkAddress> lla = m_lp.getLinkAddresses();
   if (lla.size() == 0)
@@ -194,7 +182,7 @@ std::string CNetworkInterfaceAndroid::GetCurrentIPAddress()
   return la.getAddress().getHostAddress();
 }
 
-std::string CNetworkInterfaceAndroid::GetCurrentNetmask()
+std::string CNetworkInterfaceAndroid::GetCurrentNetmask() const
 {
   CJNIList<CJNILinkAddress> lla = m_lp.getLinkAddresses();
   if (lla.size() == 0)
@@ -217,7 +205,7 @@ std::string CNetworkInterfaceAndroid::GetCurrentNetmask()
   return StringUtils::Format("%lu.%lu.%lu.%lu", mask >> 24, (mask >> 16) & 0xFF, (mask >> 8) & 0xFF, mask & 0xFF);
 }
 
-std::string CNetworkInterfaceAndroid::GetCurrentDefaultGateway()
+std::string CNetworkInterfaceAndroid::GetCurrentDefaultGateway() const
 {
   CJNIList<CJNIRouteInfo> ris = m_lp.getRoutes();
   for (int i = 0; i < ris.size(); ++i)
@@ -233,7 +221,7 @@ std::string CNetworkInterfaceAndroid::GetCurrentDefaultGateway()
   return "";
 }
 
-std::string CNetworkInterfaceAndroid::GetCurrentWirelessEssId()
+std::string CNetworkInterfaceAndroid::GetCurrentWirelessEssId() const
 {
   std::string ret;
 
@@ -254,18 +242,18 @@ std::string CNetworkInterfaceAndroid::GetCurrentWirelessEssId()
   return ret;
 }
 
-std::vector<NetworkAccessPoint> CNetworkInterfaceAndroid::GetAccessPoints()
+std::vector<NetworkAccessPoint> CNetworkInterfaceAndroid::GetAccessPoints() const
 {
   // TODO
   return std::vector<NetworkAccessPoint>();
 }
 
-void CNetworkInterfaceAndroid::GetSettings(NetworkAssignment& assignment, std::string& ipAddress, std::string& networkMask, std::string& defaultGateway, std::string& essId, std::string& key, EncMode& encryptionMode)
+void CNetworkInterfaceAndroid::GetSettings(NetworkAssignment& assignment, std::string& ipAddress, std::string& networkMask, std::string& defaultGateway, std::string& essId, std::string& key, EncMode& encryptionMode) const
 {
   // Not implemented
 }
 
-void CNetworkInterfaceAndroid::SetSettings(NetworkAssignment& assignment, std::string& ipAddress, std::string& networkMask, std::string& defaultGateway, std::string& essId, std::string& key, EncMode& encryptionMode)
+void CNetworkInterfaceAndroid::SetSettings(const NetworkAssignment& assignment, const std::string& ipAddress, const std::string& networkMask, const std::string& defaultGateway, const std::string& essId, const std::string& key, const EncMode& encryptionMode)
 {
   // Not implemented
 }
@@ -293,8 +281,8 @@ std::string CNetworkInterfaceAndroid::GetHostName()
 
 /*************************/
 
-CNetworkAndroid::CNetworkAndroid(CSettings &settings)
- : CNetworkBase(settings)
+CNetworkAndroid::CNetworkAndroid()
+ : CNetworkBase()
 {
   RetrieveInterfaces();
 }

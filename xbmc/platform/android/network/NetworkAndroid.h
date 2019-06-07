@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2016 Christian Browet
- *      http://kodi.tv
+ *  Copyright (C) 2016 Christian Browet
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -39,20 +27,20 @@ public:
 
   // CNetworkInterface interface
 public:
-  virtual std::string& GetName() override;
-  virtual bool IsEnabled() override;
-  virtual bool IsConnected() override;
-  virtual bool IsWireless() override;
-  virtual std::string GetMacAddress() override;
-  virtual void GetMacAddressRaw(char rawMac[6]) override;
-  virtual bool GetHostMacAddress(unsigned long host_ip, std::string& mac) override;
-  virtual std::string GetCurrentIPAddress() override;
-  virtual std::string GetCurrentNetmask() override;
-  virtual std::string GetCurrentDefaultGateway() override;
-  virtual std::string GetCurrentWirelessEssId() override;
-  virtual std::vector<NetworkAccessPoint> GetAccessPoints() override;
-  virtual void GetSettings(NetworkAssignment& assignment, std::string& ipAddress, std::string& networkMask, std::string& defaultGateway, std::string& essId, std::string& key, EncMode& encryptionMode) override;
-  virtual void SetSettings(NetworkAssignment& assignment, std::string& ipAddress, std::string& networkMask, std::string& defaultGateway, std::string& essId, std::string& key, EncMode& encryptionMode) override;
+  virtual const std::string& GetName() const override;
+  virtual bool IsEnabled() const override;
+  virtual bool IsConnected() const override;
+  virtual bool IsWireless() const override;
+  virtual std::string GetMacAddress() const override;
+  virtual void GetMacAddressRaw(char rawMac[6]) const override;
+  virtual bool GetHostMacAddress(unsigned long host_ip, std::string& mac) const override;
+  virtual std::string GetCurrentIPAddress() const override;
+  virtual std::string GetCurrentNetmask() const override;
+  virtual std::string GetCurrentDefaultGateway() const override;
+  virtual std::string GetCurrentWirelessEssId() const override;
+  virtual std::vector<NetworkAccessPoint> GetAccessPoints() const override;
+  virtual void GetSettings(NetworkAssignment& assignment, std::string& ipAddress, std::string& networkMask, std::string& defaultGateway, std::string& essId, std::string& key, EncMode& encryptionMode) const override;
+  virtual void SetSettings(const NetworkAssignment& assignment, const std::string& ipAddress, const std::string& networkMask, const std::string& defaultGateway, const std::string& essId, const std::string& key, const EncMode& encryptionMode) override;
 
   std::string GetHostName();
 
@@ -69,7 +57,7 @@ class CNetworkAndroid : public CNetworkBase
   friend class CXBMCApp;
 
 public:
-  CNetworkAndroid(CSettings &settings);
+  CNetworkAndroid();
   ~CNetworkAndroid();
 
   // CNetwork interface

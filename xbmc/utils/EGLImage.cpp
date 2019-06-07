@@ -1,28 +1,15 @@
 /*
- *      Copyright (C) 2017 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2017-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "EGLImage.h"
+
 #include "EGLUtils.h"
 #include "log.h"
-
-/* --- CEGLImage -------------------------------------------*/
 
 namespace
 {
@@ -79,11 +66,13 @@ bool CEGLImage::CreateImage(EglAttrs imageAttrs)
                {EGL_HEIGHT, imageAttrs.height},
                {EGL_LINUX_DRM_FOURCC_EXT, static_cast<EGLint>(imageAttrs.format)}});
 
-  /* this should be configurable at a later point */
-  attribs.Add({{EGL_YUV_COLOR_SPACE_HINT_EXT, EGL_ITU_REC709_EXT},
-               {EGL_SAMPLE_RANGE_HINT_EXT, EGL_YUV_NARROW_RANGE_EXT},
-               {EGL_YUV_CHROMA_VERTICAL_SITING_HINT_EXT, EGL_YUV_CHROMA_SITING_0_EXT},
-               {EGL_YUV_CHROMA_HORIZONTAL_SITING_HINT_EXT, EGL_YUV_CHROMA_SITING_0_EXT}});
+  if (imageAttrs.colorSpace != 0 && imageAttrs.colorRange != 0)
+  {
+    attribs.Add({{EGL_YUV_COLOR_SPACE_HINT_EXT, imageAttrs.colorSpace},
+                 {EGL_SAMPLE_RANGE_HINT_EXT, imageAttrs.colorRange},
+                 {EGL_YUV_CHROMA_VERTICAL_SITING_HINT_EXT, EGL_YUV_CHROMA_SITING_0_EXT},
+                 {EGL_YUV_CHROMA_HORIZONTAL_SITING_HINT_EXT, EGL_YUV_CHROMA_SITING_0_EXT}});
+  }
 
   for (int i = 0; i < MAX_NUM_PLANES; i++)
   {

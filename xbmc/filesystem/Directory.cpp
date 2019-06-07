@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "Directory.h"
@@ -26,13 +14,13 @@
 #include "FileItem.h"
 #include "DirectoryCache.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "utils/log.h"
 #include "utils/Job.h"
 #include "utils/JobManager.h"
 #include "Application.h"
 #include "guilib/GUIWindowManager.h"
 #include "dialogs/GUIDialogBusy.h"
-#include "threads/SingleLock.h"
 #include "utils/URIUtils.h"
 #include "URL.h"
 #include "PasswordManager.h"
@@ -278,7 +266,7 @@ bool CDirectory::GetDirectory(const CURL& url, std::shared_ptr<IDirectory> pDire
     }
     // filter hidden files
     //! @todo we shouldn't be checking the gui setting here, callers should use getHidden instead
-    if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_FILELISTS_SHOWHIDDEN) && !(hints.flags & DIR_FLAG_GET_HIDDEN))
+    if (!CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_FILELISTS_SHOWHIDDEN) && !(hints.flags & DIR_FLAG_GET_HIDDEN))
     {
       for (int i = 0; i < items.Size(); ++i)
       {
@@ -454,7 +442,7 @@ void CDirectory::FilterFileDirectories(CFileItemList &items, const std::string &
   for (int i=0; i< items.Size(); ++i)
   {
     CFileItemPtr pItem=items[i];
-    auto mode = expandImages ? EFILEFOLDER_TYPE_ONBROWSE : EFILEFOLDER_TYPE_ALWAYS;
+    auto mode = expandImages && pItem->IsDiscImage() ? EFILEFOLDER_TYPE_ONBROWSE : EFILEFOLDER_TYPE_ALWAYS;
     if (!pItem->m_bIsFolder && pItem->IsFileFolder(mode))
     {
       std::unique_ptr<IFileDirectory> pDirectory(CFileDirectoryFactory::Create(pItem->GetURL(),pItem.get(),mask));

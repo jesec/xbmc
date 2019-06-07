@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "PVRRecordings.h"
@@ -27,6 +15,7 @@
 #include "URL.h"
 #include "filesystem/Directory.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "threads/SingleLock.h"
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
@@ -34,7 +23,6 @@
 #include "video/VideoDatabase.h"
 
 #include "pvr/PVRManager.h"
-#include "pvr/PVREvent.h"
 #include "pvr/addons/PVRClients.h"
 #include "pvr/epg/EpgContainer.h"
 #include "pvr/epg/EpgInfoTag.h"
@@ -121,7 +109,7 @@ void CPVRRecordings::GetSubDirectories(const CPVRRecordingsPath &recParentPath, 
     else
     {
       pFileItem = results->Get(strFilePath);
-      if (pFileItem->m_dateTime<current->RecordingTimeAsLocalTime())
+      if (pFileItem->m_dateTime < current->RecordingTimeAsLocalTime())
         pFileItem->m_dateTime = current->RecordingTimeAsLocalTime();
     }
 
@@ -168,7 +156,7 @@ void CPVRRecordings::Update(void)
 
   CServiceBroker::GetPVRManager().SetChanged();
   CServiceBroker::GetPVRManager().NotifyObservers(ObservableMessageRecordings);
-  CServiceBroker::GetPVRManager().PublishEvent(RecordingsInvalidated);
+  CServiceBroker::GetPVRManager().PublishEvent(PVREvent::RecordingsInvalidated);
 }
 
 int CPVRRecordings::GetNumTVRecordings() const
@@ -206,12 +194,8 @@ bool CPVRRecordings::DeleteDirectory(const CFileItem& directory)
   XFILE::CDirectory::GetDirectory(directory.GetPath(), items, "", XFILE::DIR_FLAG_DEFAULTS);
 
   bool allDeleted = true;
-
-  VECFILEITEMS itemList = items.GetList();
-  CFileItem item;
-
-  for (const auto item : itemList)
-    allDeleted &= Delete(*(item.get()));
+  for (const auto& item : items)
+    allDeleted &= Delete(*item);
 
   return allDeleted;
 }
@@ -288,7 +272,7 @@ bool CPVRRecordings::GetDirectory(const std::string& strPath, CFileItemList &ite
   }
   else
   {
-    bGrouped = CServiceBroker::GetSettings().GetBool(CSettings::SETTING_PVRRECORD_GROUPRECORDINGS);
+    bGrouped = CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_PVRRECORD_GROUPRECORDINGS);
   }
 
   CPVRRecordingsPath recPath(url.GetWithoutOptions());
@@ -303,7 +287,7 @@ bool CPVRRecordings::GetDirectory(const std::string& strPath, CFileItemList &ite
     // get all files of the current directory or recursively all files starting at the current directory if in flatten mode
     for (const auto recording : m_recordings)
     {
-      CPVRRecordingPtr current = recording.second;
+      const CPVRRecordingPtr current = recording.second;
 
       // Omit recordings not matching criteria
       if (!IsDirectoryMember(strDirectory, current->m_strDirectory, bGrouped) ||
@@ -313,28 +297,9 @@ bool CPVRRecordings::GetDirectory(const std::string& strPath, CFileItemList &ite
 
       current->UpdateMetadata(GetVideoDatabase());
 
-      CFileItemPtr pFileItem(new CFileItem(current));
-      pFileItem->m_dateTime = current->RecordingTimeAsLocalTime();
-
-      // Set art
-      if (!current->m_strIconPath.empty())
-      {
-        pFileItem->SetIconImage(current->m_strIconPath);
-        pFileItem->SetArt("icon", current->m_strIconPath);
-      }
-
-      if (!current->m_strThumbnailPath.empty())
-        pFileItem->SetArt("thumb", current->m_strThumbnailPath);
-
-      if (!current->m_strFanartPath.empty())
-        pFileItem->SetArt("fanart", current->m_strFanartPath);
-
-      // Use the channel icon as a fallback when a thumbnail is not available
-      pFileItem->SetArtFallback("thumb", "icon");
-
-      pFileItem->SetOverlayImage(CGUIListItem::ICON_OVERLAY_UNWATCHED, pFileItem->GetPVRRecordingInfoTag()->GetPlayCount() > 0);
-
-      items.Add(pFileItem);
+      const CFileItemPtr item = std::make_shared<CFileItem>(current);
+      item->SetOverlayImage(CGUIListItem::ICON_OVERLAY_UNWATCHED, current->GetPlayCount() > 0);
+      items.Add(item);
     }
   }
 
@@ -346,17 +311,15 @@ void CPVRRecordings::GetAll(CFileItemList &items, bool bDeleted)
   CSingleLock lock(m_critSection);
   for (const auto recording : m_recordings)
   {
-    CPVRRecordingPtr current = recording.second;
+    const CPVRRecordingPtr current = recording.second;
     if (current->IsDeleted() != bDeleted)
       continue;
 
     current->UpdateMetadata(GetVideoDatabase());
 
-    CFileItemPtr pFileItem(new CFileItem(current));
-    pFileItem->m_dateTime = current->RecordingTimeAsLocalTime();
-    pFileItem->SetOverlayImage(CGUIListItem::ICON_OVERLAY_UNWATCHED, pFileItem->GetPVRRecordingInfoTag()->GetPlayCount() > 0);
-
-    items.Add(pFileItem);
+    const CFileItemPtr item = std::make_shared<CFileItem>(current);
+    item->SetOverlayImage(CGUIListItem::ICON_OVERLAY_UNWATCHED, current->GetPlayCount() > 0);
+    items.Add(item);
   }
 }
 
@@ -546,7 +509,7 @@ bool CPVRRecordings::ChangeRecordingsPlayCount(const CFileItemPtr &item, int cou
       }
     }
 
-    CServiceBroker::GetPVRManager().PublishEvent(RecordingsInvalidated);
+    CServiceBroker::GetPVRManager().PublishEvent(PVREvent::RecordingsInvalidated);
   }
 
   return bResult;
@@ -575,7 +538,7 @@ bool CPVRRecordings::ResetResumePoint(const CFileItemPtr item)
       db.ClearBookMarksOfFile(item->GetPath(), CBookmark::RESUME);
       recording->SetResumePoint(CBookmark());
 
-      CServiceBroker::GetPVRManager().PublishEvent(RecordingsInvalidated);
+      CServiceBroker::GetPVRManager().PublishEvent(PVREvent::RecordingsInvalidated);
     }
   }
   return bResult;

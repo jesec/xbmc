@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2015 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2015-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "PVRSettings.h"
@@ -23,33 +11,58 @@
 #include "ServiceBroker.h"
 #include "guilib/LocalizeStrings.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "settings/lib/SettingsManager.h"
 #include "utils/StringUtils.h"
 #include "utils/log.h"
 
+#include "pvr/PVRGUIActions.h"
 #include "pvr/PVRManager.h"
 #include "pvr/addons/PVRClients.h"
 
 using namespace PVR;
 
+unsigned int CPVRSettings::m_iInstances = 0;
+
 CPVRSettings::CPVRSettings(const std::set<std::string> &settingNames)
 {
   Init(settingNames);
-  CServiceBroker::GetSettings().GetSettingsManager()->RegisterSettingsHandler(this);
-  CServiceBroker::GetSettings().RegisterCallback(this, settingNames);
+
+  const std::shared_ptr<CSettings> settings = CServiceBroker::GetSettingsComponent()->GetSettings();
+  settings->GetSettingsManager()->RegisterSettingsHandler(this);
+  settings->RegisterCallback(this, settingNames);
+
+  if (m_iInstances == 0)
+  {
+    // statics must only be registered once, not per instance
+    settings->GetSettingsManager()->RegisterSettingOptionsFiller("pvrrecordmargins", MarginTimeFiller);
+    settings->GetSettingsManager()->AddDynamicCondition("pvrsettingvisible", IsSettingVisible);
+    settings->GetSettingsManager()->AddDynamicCondition("checkpvrparentalpin", CheckParentalPin);
+  }
+  m_iInstances++;
 }
 
 CPVRSettings::~CPVRSettings()
 {
-  CServiceBroker::GetSettings().UnregisterCallback(this);
-  CServiceBroker::GetSettings().GetSettingsManager()->UnregisterSettingsHandler(this);
+  const std::shared_ptr<CSettings> settings = CServiceBroker::GetSettingsComponent()->GetSettings();
+
+  m_iInstances--;
+  if (m_iInstances == 0)
+  {
+    settings->GetSettingsManager()->RemoveDynamicCondition("checkpvrparentalpin");
+    settings->GetSettingsManager()->RemoveDynamicCondition("pvrsettingvisible");
+    settings->GetSettingsManager()->UnregisterSettingOptionsFiller("pvrrecordmargins");
+  }
+
+  settings->UnregisterCallback(this);
+  settings->GetSettingsManager()->UnregisterSettingsHandler(this);
 }
 
 void CPVRSettings::Init(const std::set<std::string> &settingNames)
 {
   for (auto settingName : settingNames)
   {
-    SettingPtr setting = CServiceBroker::GetSettings().GetSetting(settingName);
+    SettingPtr setting = CServiceBroker::GetSettingsComponent()->GetSettings()->GetSetting(settingName);
     if (!setting)
     {
       CLog::LogF(LOGERROR, "Unknown PVR setting '%s'", settingName.c_str());
@@ -139,11 +152,9 @@ void CPVRSettings::MarginTimeFiller(
   {
     0, 1, 3, 5, 10, 15, 20, 30, 60, 90, 120, 180 // minutes
   };
-  static const size_t marginTimeValuesCount = sizeof(marginTimeValues) / sizeof(int);
 
-  for (size_t i = 0; i < marginTimeValuesCount; ++i)
+  for (int iValue : marginTimeValues)
   {
-    int iValue = marginTimeValues[i];
     list.push_back(
       std::make_pair(StringUtils::Format(g_localizeStrings.Get(14044).c_str(), iValue) /* %i min */, iValue));
   }
@@ -171,4 +182,9 @@ bool CPVRSettings::IsSettingVisible(const std::string &condition, const std::str
     // Show all other settings unconditionally.
     return true;
   }
+}
+
+bool CPVRSettings::CheckParentalPin(const std::string &condition, const std::string &value, std::shared_ptr<const CSetting> setting, void *data)
+{
+  return CServiceBroker::GetPVRManager().GUIActions()->CheckParentalPIN() == ParentalCheckResult::SUCCESS;
 }

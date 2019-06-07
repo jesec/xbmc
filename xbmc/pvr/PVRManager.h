@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -35,7 +23,6 @@
 #include "utils/Observer.h"
 
 #include "pvr/PVRActionListener.h"
-#include "pvr/PVREvent.h"
 #include "pvr/PVRSettings.h"
 #include "pvr/PVRTypes.h"
 #include "pvr/epg/EpgContainer.h"
@@ -49,6 +36,20 @@ namespace PVR
   class CPVRClient;
   class CPVRGUIInfo;
   class CPVRGUIProgressHandler;
+
+  enum class PVREvent
+  {
+    // PVR Manager states
+    ManagerError = 0,
+    ManagerStopped,
+    ManagerStarting,
+    ManagerStopping,
+    ManagerInterrupted,
+    ManagerStarted,
+
+    // Recording events
+    RecordingsInvalidated
+  };
 
   class CPVRManagerJobQueue
   {
@@ -204,12 +205,6 @@ namespace PVR
     bool IsPlayingEpgTag(const CPVREpgInfoTagPtr &epgTag) const;
 
     /*!
-     * @brief Check whether the currently playing livetv stream is timeshifted.
-     * @return True if there is a playing stream and if it is timeshifted, false otherwise.
-     */
-    bool IsTimeshifting() const;
-
-    /*!
      * @return True while the PVRManager is initialising.
      */
     inline bool IsInitialising(void) const
@@ -293,11 +288,6 @@ namespace PVR
     bool EpgsCreated(void) const;
 
     /*!
-     * @brief Reset the playing EPG tag.
-     */
-    void ResetPlayingTag(void);
-
-    /*!
      * @brief Inform PVR manager that playback of an item just started.
      * @param item The item that started to play.
      */
@@ -332,7 +322,7 @@ namespace PVR
      * @param bRadio True to get the current radio group, false to get the current TV group.
      * @return The current group or the group containing all channels if it's not set.
      */
-    CPVRChannelGroupPtr GetPlayingGroup(bool bRadio = false);
+    CPVRChannelGroupPtr GetPlayingGroup(bool bRadio = false) const;
 
     /*!
      * @brief Fill the file item for a recording, a channel or an epg tag with the properties required for playback. Values are obtained from the PVR backend.
@@ -455,8 +445,9 @@ namespace PVR
     /*!
      * @brief Updates the last watched timestamps of the channel and group which are currently playing.
      * @param channel The channel which is updated
+     * @param time The last watched time to set
      */
-    void UpdateLastWatched(const CPVRChannelPtr &channel);
+    void UpdateLastWatched(const CPVRChannelPtr &channel, const CDateTime& time);
 
     /*!
      * @brief Set the playing group to the first group the channel is in if the given channel is not part of the current playing group
@@ -533,8 +524,8 @@ namespace PVR
 
     CPVRDatabasePtr                 m_database;                    /*!< the database for all PVR related data */
     mutable CCriticalSection        m_critSection;                 /*!< critical section for all changes to this class, except for changes to triggers */
-    bool                            m_bFirstStart = true;                 /*!< true when the PVR manager was started first, false otherwise */
-    bool                            m_bEpgsCreated = false;                /*!< true if epg data for channels has been created */
+    bool                            m_bFirstStart = true;          /*!< true when the PVR manager was started first, false otherwise */
+    bool                            m_bEpgsCreated = false;        /*!< true if epg data for channels has been created */
 
     mutable CCriticalSection        m_managerStateMutex;
     ManagerState                    m_managerState = ManagerStateStopped;
@@ -552,5 +543,8 @@ namespace PVR
     CPVREpgInfoTagPtr m_playingEpgTag;
     std::string m_strPlayingClientName;
     int m_playingClientId = -1;
+
+    class CLastWatchedUpdateTimer;
+    std::unique_ptr<CLastWatchedUpdateTimer> m_lastWatchedUpdateTimer;
   };
 }

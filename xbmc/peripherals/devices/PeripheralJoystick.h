@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2014-2017 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2014-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this Program; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -64,6 +52,7 @@ namespace PERIPHERALS
     void UnregisterJoystickDriverHandler(KODI::JOYSTICK::IDriverHandler* handler) override;
     KODI::JOYSTICK::IDriverReceiver* GetDriverReceiver() override { return this; }
     IKeymap *GetKeymap(const std::string &controllerId) override;
+    CDateTime LastActive() override { return m_lastActive; }
 
     bool OnButtonMotion(unsigned int buttonIndex, bool bPressed);
     bool OnHatMotion(unsigned int hatIndex, KODI::JOYSTICK::HAT_STATE state);
@@ -134,5 +123,6 @@ namespace PERIPHERALS
     std::unique_ptr<KODI::JOYSTICK::CDeadzoneFilter> m_deadzoneFilter;
     std::vector<DriverHandler>          m_driverHandlers;
     CCriticalSection                    m_handlerMutex;
+    CDateTime m_lastActive;
   };
 }

@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "threads/SingleLock.h"
@@ -25,6 +13,7 @@
 #include "DVDCodecs/DVDFactoryCodec.h"
 #include "cores/VideoPlayer/Interface/Addon/DemuxPacket.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "system.h"
 #include "utils/log.h"
 #include "utils/MathUtils.h"
@@ -88,7 +77,7 @@ CVideoPlayerAudio::~CVideoPlayerAudio()
 bool CVideoPlayerAudio::OpenStream(CDVDStreamInfo hints)
 {
   CLog::Log(LOGNOTICE, "Finding audio codec for: %i", hints.codec);
-  bool allowpassthrough = !CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOPLAYER_USEDISPLAYASCLOCK);
+  bool allowpassthrough = !CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_VIDEOPLAYER_USEDISPLAYASCLOCK);
   if (m_processInfo.IsRealtimeStream())
     allowpassthrough = false;
 
@@ -143,7 +132,7 @@ void CVideoPlayerAudio::OpenStream(CDVDStreamInfo &hints, CDVDAudioCodec* codec)
 
   m_prevsynctype = -1;
   m_synctype = SYNC_DISCON;
-  if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOPLAYER_USEDISPLAYASCLOCK))
+  if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_VIDEOPLAYER_USEDISPLAYASCLOCK))
     m_synctype = SYNC_RESAMPLE;
   else if (m_processInfo.IsRealtimeStream())
     m_synctype = SYNC_RESAMPLE;
@@ -432,6 +421,8 @@ bool CVideoPlayerAudio::ProcessDecoderOutput(DVDAudioFrame &audioframe)
 {
   if (audioframe.nb_frames <= audioframe.framesOut)
   {
+    audioframe.hasDownmix = false;
+
     m_pAudioCodec->GetData(audioframe);
 
     if (audioframe.nb_frames == 0)
@@ -497,6 +488,12 @@ bool CVideoPlayerAudio::ProcessDecoderOutput(DVDAudioFrame &audioframe)
     }
 
     SetSyncType(audioframe.passthrough);
+
+    // downmix
+    double clev = audioframe.hasDownmix ? audioframe.centerMixLevel : M_SQRT1_2;
+    double curDB = 20 * log10(clev);
+    audioframe.centerMixLevel = pow(10, (curDB + m_processInfo.GetVideoSettings().m_CenterMixLevel) / 20);
+    audioframe.hasDownmix = true;
   }
 
 
@@ -606,7 +603,7 @@ bool CVideoPlayerAudio::AcceptsData() const
 bool CVideoPlayerAudio::SwitchCodecIfNeeded()
 {
   CLog::Log(LOGDEBUG, "CVideoPlayerAudio: stream props changed, checking for passthrough");
-  bool allowpassthrough = !CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOPLAYER_USEDISPLAYASCLOCK);
+  bool allowpassthrough = !CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_VIDEOPLAYER_USEDISPLAYASCLOCK);
   if (m_processInfo.IsRealtimeStream() || m_synctype == SYNC_RESAMPLE)
     allowpassthrough = false;
 

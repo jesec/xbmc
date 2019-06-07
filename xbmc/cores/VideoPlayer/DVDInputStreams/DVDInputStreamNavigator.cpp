@@ -1,28 +1,18 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "DVDInputStreamNavigator.h"
+#include "filesystem/IFileTypes.h"
 #include "utils/LangCodeExpander.h"
 #include "../DVDDemuxSPU.h"
 #include "DVDStateSerializer.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "LangInfo.h"
 #include "ServiceBroker.h"
 #include "utils/Geometry.h"
@@ -119,7 +109,7 @@ bool CDVDInputStreamNavigator::Open()
   if (m_item.IsDiscImage())
   {
     // if dvd image file (ISO or alike) open using libdvdnav stream callback functions
-    m_pstream.reset(new CDVDInputStreamFile(m_item));
+    m_pstream.reset(new CDVDInputStreamFile(m_item, XFILE::READ_TRUNCATED | XFILE::READ_BITRATE | XFILE::READ_CHUNKED));
     if (!m_pstream->Open() || m_dll.dvdnav_open_stream(&m_dvdnav, m_pstream.get(), &m_dvdnav_stream_cb) != DVDNAV_STATUS_OK)
     {
       CLog::Log(LOGERROR, "Error opening image file or Error on dvdnav_open_stream\n");
@@ -135,7 +125,7 @@ bool CDVDInputStreamNavigator::Open()
     return false;
   }
 
-  int region = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DVDS_PLAYERREGION);
+  int region = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_DVDS_PLAYERREGION);
   int mask = 0;
   if(region > 0)
     mask = 1 << (region-1);
@@ -213,7 +203,7 @@ bool CDVDInputStreamNavigator::Open()
   }
 
   // jump directly to title menu
-  if(CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DVDS_AUTOMENU))
+  if(CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_DVDS_AUTOMENU))
   {
     int len, event;
     uint8_t buf[2048];
@@ -768,12 +758,12 @@ int CDVDInputStreamNavigator::GetTotalButtons()
   pci_t* pci = m_dll.dvdnav_get_current_nav_pci(m_dvdnav);
 
   int counter = 0;
-  for (int i = 0; i < 36; i++)
+  for (const btni_t& buttonInfo : pci->hli.btnit)
   {
-    if (pci->hli.btnit[i].x_start ||
-        pci->hli.btnit[i].x_end ||
-        pci->hli.btnit[i].y_start ||
-        pci->hli.btnit[i].y_end)
+    if (buttonInfo.x_start ||
+        buttonInfo.x_end ||
+        buttonInfo.y_start ||
+        buttonInfo.y_end)
     {
       counter++;
     }
