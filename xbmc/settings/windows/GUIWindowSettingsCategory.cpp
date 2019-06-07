@@ -59,9 +59,7 @@ static const SettingGroup s_settingGroupMap[] = { { SETTINGS_SYSTEM,      "syste
 
 CGUIWindowSettingsCategory::CGUIWindowSettingsCategory()
     : CGUIDialogSettingsManagerBase(WINDOW_SETTINGS_SYSTEM, "SettingsCategory.xml"),
-      m_settings(CServiceBroker::GetSettings()),
-      m_iSection(0),
-      m_returningFromSkinLoad(false)
+      m_settings(CServiceBroker::GetSettings())
 {
   // set the correct ID range...
   m_idRange.clear();
@@ -82,7 +80,7 @@ bool CGUIWindowSettingsCategory::OnMessage(CGUIMessage &message)
   {
     case GUI_MSG_WINDOW_INIT:
     {
-      m_iSection = (int)message.GetParam2() - (int)CGUIDialogSettingsManagerBase::GetID();
+      m_iSection = message.GetParam2() - CGUIDialogSettingsManagerBase::GetID();
       CGUIDialogSettingsManagerBase::OnMessage(message);
       m_returningFromSkinLoad = false;
 

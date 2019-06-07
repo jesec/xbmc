@@ -494,9 +494,9 @@ namespace PVR
     bool EventOccursOnLocalBackend(const CFileItemPtr& item) const;
     bool IsNextEventWithinBackendIdleTime(void) const;
 
-    CCriticalSection m_critSection;
+    mutable CCriticalSection m_critSection;
     CPVRChannelSwitchingInputHandler m_channelNumberInputHandler;
-    bool m_bChannelScanRunning;
+    bool m_bChannelScanRunning = false;
     CPVRSettings m_settings;
     CPVRGUIChannelNavigator m_channelNavigator;
     std::string m_selectedItemPathTV;

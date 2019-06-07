@@ -204,7 +204,7 @@ namespace PVR
      * @param tag The epg tag containing the updated data
      * @param eNewState The kind of change (CREATED, UPDATED, DELETED)
      */
-    void UpdateFromClient(const CPVREpgInfoTagPtr tag, EPG_EVENT_STATE eNewState);
+    void UpdateFromClient(const CPVREpgInfoTagPtr &tag, EPG_EVENT_STATE eNewState);
 
     /*!
      * @brief Get the number of past days to show in the guide and to import from backends.
@@ -253,7 +253,7 @@ namespace PVR
      */
     void LoadFromDB(void);
 
-    void InsertFromDatabase(int iEpgID, const std::string &strName, const std::string &strScraperName);
+    void InsertFromDatabase(const CPVREpgPtr &newEpg);
 
     CPVREpgDatabasePtr m_database; /*!< the EPG database */
 
@@ -272,7 +272,7 @@ namespace PVR
     EPGMAP       m_epgs;                   /*!< the EPGs in this container */
     //@}
 
-    CCriticalSection               m_critSection;    /*!< a critical section for changes to this container */
+    mutable CCriticalSection       m_critSection;    /*!< a critical section for changes to this container */
     CEvent                         m_updateEvent;    /*!< trigger when an update finishes */
 
     std::list<CEpgUpdateRequest> m_updateRequests; /*!< list of update requests triggered by addon */
@@ -281,7 +281,7 @@ namespace PVR
     std::list<CEpgTagStateChange> m_epgTagChanges; /*!< list of updated epg tags announced by addon */
     CCriticalSection m_epgTagChangesLock;          /*!< protect changed epg tags list */
 
-    bool m_bUpdateNotificationPending; /*!< true while an epg updated notification to observers is pending. */
+    bool m_bUpdateNotificationPending = false; /*!< true while an epg updated notification to observers is pending. */
     CPVRSettings m_settings;
   };
 }

@@ -45,54 +45,22 @@
 
 using namespace PVR;
 
-CPVRChannelGroup::CPVRChannelGroup(void) :
-    m_bRadio(false),
-    m_iGroupType(PVR_GROUP_TYPE_DEFAULT),
-    m_iGroupId(-1),
-    m_bLoaded(false),
-    m_bChanged(false),
-    m_bUsingBackendChannelOrder(false),
-    m_bUsingBackendChannelNumbers(false),
-    m_bSelectedGroup(false),
-    m_bPreventSortAndRenumber(false),
-    m_iLastWatched(0),
-    m_bHidden(false),
-    m_iPosition(0)
+CPVRChannelGroup::CPVRChannelGroup(void)
 {
   OnInit();
 }
 
 CPVRChannelGroup::CPVRChannelGroup(bool bRadio, unsigned int iGroupId, const std::string &strGroupName) :
     m_bRadio(bRadio),
-    m_iGroupType(PVR_GROUP_TYPE_DEFAULT),
     m_iGroupId(iGroupId),
-    m_strGroupName(strGroupName),
-    m_bLoaded(false),
-    m_bChanged(false),
-    m_bUsingBackendChannelOrder(false),
-    m_bUsingBackendChannelNumbers(false),
-    m_bSelectedGroup(false),
-    m_bPreventSortAndRenumber(false),
-    m_iLastWatched(0),
-    m_bHidden(false),
-    m_iPosition(0)
+    m_strGroupName(strGroupName)
 {
   OnInit();
 }
 
 CPVRChannelGroup::CPVRChannelGroup(const PVR_CHANNEL_GROUP &group) :
     m_bRadio(group.bIsRadio),
-    m_iGroupType(PVR_GROUP_TYPE_DEFAULT),
-    m_iGroupId(-1),
     m_strGroupName(group.strGroupName),
-    m_bLoaded(false),
-    m_bChanged(false),
-    m_bUsingBackendChannelOrder(false),
-    m_bUsingBackendChannelNumbers(false),
-    m_bSelectedGroup(false),
-    m_bPreventSortAndRenumber(false),
-    m_iLastWatched(0),
-    m_bHidden(false),
     m_iPosition(group.iPosition)
 {
   OnInit();
@@ -159,19 +127,18 @@ bool CPVRChannelGroup::Load(void)
   m_bUsingBackendChannelNumbers = CServiceBroker::GetSettings().GetBool(CSettings::SETTING_PVRMANAGER_USEBACKENDCHANNELNUMBERS);
 
   int iChannelCount = m_iGroupId > 0 ? LoadFromDb() : 0;
-  CLog::Log(LOGDEBUG, "PVRChannelGroup - %s - %d channels loaded from the database for group '%s'",
-        __FUNCTION__, iChannelCount, m_strGroupName.c_str());
+  CLog::LogFC(LOGDEBUG, LOGPVR, "%d channels loaded from the database for group '%s'", iChannelCount, m_strGroupName.c_str());
 
   if (!Update())
   {
-    CLog::Log(LOGERROR, "PVRChannelGroup - %s - failed to update channels", __FUNCTION__);
+    CLog::LogF(LOGERROR, "Failed to update channels for group '%s', m_strGroupName.c_str()");
     return false;
   }
 
   if (Size() - iChannelCount > 0)
   {
-    CLog::Log(LOGDEBUG, "PVRChannelGroup - %s - %d channels added from clients to group '%s'",
-        __FUNCTION__, static_cast<int>(Size() - iChannelCount), m_strGroupName.c_str());
+    CLog::LogFC(LOGDEBUG, LOGPVR, "%d channels added from clients to group '%s'",
+                static_cast<int>(Size() - iChannelCount), m_strGroupName.c_str());
   }
 
   SortAndRenumber();
@@ -200,7 +167,6 @@ bool CPVRChannelGroup::Update(void)
   PVRChannels_tmp.SetPreventSortAndRenumber();
   PVRChannels_tmp.LoadFromClients();
   m_failedClientsForChannelGroupMembers = PVRChannels_tmp.m_failedClientsForChannelGroupMembers;
-
   return UpdateGroupEntries(PVRChannels_tmp);
 }
 
@@ -599,14 +565,10 @@ bool CPVRChannelGroup::LoadFromClients(void)
 bool CPVRChannelGroup::AddAndUpdateChannels(const CPVRChannelGroup &channels, bool bUseBackendChannelNumbers)
 {
   bool bReturn(false);
-  bool bPreventSortAndRenumber(PreventSortAndRenumber());
   const CPVRChannelGroupPtr groupAll(CServiceBroker::GetPVRManager().ChannelGroups()->GetGroupAll(m_bRadio));
-
-  SetPreventSortAndRenumber();
 
   /* go through the channel list and check for new channels.
      channels will only by updated in CPVRChannelGroupInternal to prevent dupe updates */
-  CSingleLock lock(channels.m_critSection);
   for (PVR_CHANNEL_GROUP_MEMBERS::const_iterator it = channels.m_members.begin(); it != channels.m_members.end(); ++it)
   {
     /* check whether this channel is known in the internal group */
@@ -622,12 +584,11 @@ bool CPVRChannelGroup::AddAndUpdateChannels(const CPVRChannelGroup &channels, bo
                  bUseBackendChannelNumbers);
 
       bReturn = true;
-      CLog::Log(LOGINFO,"PVRChannelGroup - %s - added %s channel '%s' to group '%s'",
-          __FUNCTION__, m_bRadio ? "radio" : "TV", existingChannel.channel->ChannelName().c_str(), GroupName().c_str());
+      CLog::Log(LOGINFO,"Added %s channel '%s' to group '%s'",
+                m_bRadio ? "radio" : "TV", existingChannel.channel->ChannelName().c_str(), GroupName().c_str());
     }
   }
 
-  SetPreventSortAndRenumber(bPreventSortAndRenumber);
   SortAndRenumber();
 
   return bReturn;
@@ -647,57 +608,26 @@ bool CPVRChannelGroup::IsMissingChannelGroupMembersFromClient(int iClientId) con
                    iClientId) != m_failedClientsForChannelGroupMembers.end();
 }
 
-bool CPVRChannelGroup::RemoveDeletedChannels(const CPVRChannelGroup &channels)
+std::vector<CPVRChannelPtr> CPVRChannelGroup::RemoveDeletedChannels(const CPVRChannelGroup &channels)
 {
-  bool bReturn(false);
-  CPVRChannelGroups *groups = CServiceBroker::GetPVRManager().ChannelGroups()->Get(m_bRadio);
-
+  std::vector<CPVRChannelPtr> removedChannels;
   CSingleLock lock(m_critSection);
 
   /* check for deleted channels */
   for (PVR_CHANNEL_GROUP_SORTED_MEMBERS::iterator it = m_sortedMembers.begin(); it != m_sortedMembers.end();)
   {
-    CSingleLock lock(channels.m_critSection);
-    if (channels.m_members.find((*it).channel->StorageId()) == channels.m_members.end())
+    const CPVRChannelPtr channel = (*it).channel;
+    if (channels.m_members.find(channel->StorageId()) == channels.m_members.end())
     {
       /* channel was not found */
-      CLog::Log(LOGINFO,"PVRChannelGroup - %s - deleted %s channel '%s' from group '%s'",
-          __FUNCTION__, m_bRadio ? "radio" : "TV", (*it).channel->ChannelName().c_str(), GroupName().c_str());
+      CLog::Log(LOGINFO,"Deleted %s channel '%s' from group '%s'",
+                m_bRadio ? "radio" : "TV", channel->ChannelName().c_str(), GroupName().c_str());
 
-      m_members.erase((*it).channel->StorageId());
+      removedChannels.emplace_back(channel);
 
-      //we need a copy of our iterators data so that we can find it later on
-      //if the vector has changed.
-      auto group = *it;
-      /* remove this channel from all non-system groups if this is the internal group */
-      if (IsInternalGroup())
-      {
-        groups->RemoveFromAllGroups((*it).channel);
-
-        if (!IsMissingChannelsFromClient(group.channel->ClientID()))
-        {
-          /* since it was not found in the internal group, it was deleted from the backend */
-          group.channel->Delete();
-        }
-      }
-
-      //our vector can have been modified during the call to RemoveFromAllGroups
-      //make no assumption and search for the value to be removed
-      auto possiblyRemovedGroup = std::find_if(m_sortedMembers.begin(), m_sortedMembers.end(), [&group](const PVRChannelGroupMember& it)
-      {
-        return  group.channel == it.channel &&
-                group.channelNumber == it.channelNumber &&
-                group.iClientPriority == it.iClientPriority;
-      });
-
-      if (possiblyRemovedGroup != m_sortedMembers.end())
-        m_sortedMembers.erase(possiblyRemovedGroup);
-
-      //We have to start over from the beginning, list can have been modified and
-      //resorted, there's no safe way to continue where we left of
-      it = m_sortedMembers.begin();
+      m_members.erase(channel->StorageId());
+      it = m_sortedMembers.erase(it);
       m_bChanged = true;
-      bReturn = true;
     }
     else
     {
@@ -705,7 +635,7 @@ bool CPVRChannelGroup::RemoveDeletedChannels(const CPVRChannelGroup &channels)
     }
   }
 
-  return bReturn;
+  return removedChannels;
 }
 
 bool CPVRChannelGroup::UpdateGroupEntries(const CPVRChannelGroup &channels)
@@ -718,8 +648,10 @@ bool CPVRChannelGroup::UpdateGroupEntries(const CPVRChannelGroup &channels)
   /* sort by client channel number if this is the first time or if SETTING_PVRMANAGER_BACKENDCHANNELORDER is true */
   bool bUseBackendChannelNumbers(m_members.empty() || m_bUsingBackendChannelOrder);
 
-  bRemoved = RemoveDeletedChannels(channels);
+  SetPreventSortAndRenumber(true);
+  bRemoved = !RemoveDeletedChannels(channels).empty();
   bChanged = AddAndUpdateChannels(channels, bUseBackendChannelNumbers) || bRemoved;
+  SetPreventSortAndRenumber(false);
 
   bChanged |= UpdateClientPriorities();
 
@@ -775,11 +707,9 @@ bool CPVRChannelGroup::RemoveFromGroup(const CPVRChannelPtr &channel)
 
 bool CPVRChannelGroup::AddToGroup(const CPVRChannelPtr &channel, const CPVRChannelNumber &channelNumber, bool bUseBackendChannelNumbers)
 {
-  const CPVRChannelGroupPtr groupAll(CServiceBroker::GetPVRManager().ChannelGroups()->GetGroupAll(m_bRadio));
-
-  CSingleLock lock(m_critSection);
-
   bool bReturn(false);
+  const CPVRChannelGroupPtr groupAll(CServiceBroker::GetPVRManager().ChannelGroups()->GetGroupAll(m_bRadio));
+  CSingleLock lock(m_critSection);
 
   if (!CPVRChannelGroup::IsGroupMember(channel))
   {
@@ -866,8 +796,8 @@ bool CPVRChannelGroup::Persist(void)
 
   if (database)
   {
-    CLog::Log(LOGDEBUG, "CPVRChannelGroup - %s - persisting channel group '%s' with %d channels",
-        __FUNCTION__, GroupName().c_str(), (int) m_members.size());
+    CLog::LogFC(LOGDEBUG, LOGPVR, "Persisting channel group '%s' with %d channels",
+                GroupName().c_str(), (int) m_members.size());
     m_bChanged = false;
 
     bReturn = database->Persist(*this);
@@ -977,7 +907,7 @@ void CPVRChannelGroup::OnSettingChanged(std::shared_ptr<const CSetting> setting)
   //! @todo while pvr manager is starting up do accept setting changes.
   if(!CServiceBroker::GetPVRManager().IsStarted())
   {
-    CLog::Log(LOGWARNING, "CPVRChannelGroup setting change ignored while PVRManager is starting\n");
+    CLog::Log(LOGWARNING, "Channel group setting change ignored while PVR Manager is starting\n");
     return;
   }
 
@@ -998,8 +928,8 @@ void CPVRChannelGroup::OnSettingChanged(std::shared_ptr<const CSetting> setting)
     /* check whether this channel group has to be renumbered */
     if (bChannelOrderChanged || bChannelNumbersChanged)
     {
-      CLog::Log(LOGDEBUG, "CPVRChannelGroup - %s - renumbering group '%s' to use the backend channel order and/or numbers",
-          __FUNCTION__, m_strGroupName.c_str());
+      CLog::LogFC(LOGDEBUG, LOGPVR, "Renumbering channel group '%s' to use the backend channel order and/or numbers",
+                  m_strGroupName.c_str());
 
       if (bChannelOrderChanged)
         UpdateClientPriorities();

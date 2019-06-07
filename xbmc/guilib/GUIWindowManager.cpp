@@ -158,9 +158,9 @@
 #include "games/windows/GUIWindowGames.h"
 #include "games/dialogs/osd/DialogGameAdvancedSettings.h"
 #include "games/dialogs/osd/DialogGameOSD.h"
+#include "games/dialogs/osd/DialogGameStretchMode.h"
 #include "games/dialogs/osd/DialogGameVideoFilter.h"
 #include "games/dialogs/osd/DialogGameVideoRotation.h"
-#include "games/dialogs/osd/DialogGameViewMode.h"
 #include "games/dialogs/osd/DialogGameVolume.h"
 
 #ifdef HAS_DS_PLAYER
@@ -344,7 +344,7 @@ void CGUIWindowManager::CreateWindows()
   Add(new GAME::CGUIWindowGames);
   Add(new GAME::CDialogGameOSD);
   Add(new GAME::CDialogGameVideoFilter);
-  Add(new GAME::CDialogGameViewMode);
+  Add(new GAME::CDialogGameStretchMode);
   Add(new GAME::CDialogGameVolume);
   Add(new GAME::CDialogGameAdvancedSettings);
   Add(new GAME::CDialogGameVideoRotation);
@@ -468,7 +468,7 @@ bool CGUIWindowManager::DestroyWindows()
     DestroyWindow(WINDOW_GAMES);
     DestroyWindow(WINDOW_DIALOG_GAME_OSD);
     DestroyWindow(WINDOW_DIALOG_GAME_VIDEO_FILTER);
-    DestroyWindow(WINDOW_DIALOG_GAME_VIEW_MODE);
+    DestroyWindow(WINDOW_DIALOG_GAME_STRETCH_MODE);
     DestroyWindow(WINDOW_DIALOG_GAME_VOLUME);
     DestroyWindow(WINDOW_DIALOG_GAME_ADVANCED_SETTINGS);
     DestroyWindow(WINDOW_DIALOG_GAME_VIDEO_ROTATION);
@@ -562,7 +562,7 @@ bool CGUIWindowManager::SendMessage(CGUIMessage& message)
   // don't use an iterator for this loop, as some messages mean that m_activeDialogs is altered,
   // which will invalidate any iterator
   CSingleLock lock(CServiceBroker::GetWinSystem()->GetGfxContext());
-  unsigned int topWindow = m_activeDialogs.size();
+  size_t topWindow = m_activeDialogs.size();
   while (topWindow)
   {
     CGUIWindow* dialog = m_activeDialogs[--topWindow];
@@ -872,7 +872,7 @@ void CGUIWindowManager::ActivateWindow_Internal(int iWindowID, const std::vector
   if (!force && HasModalDialog(true))
   {
     CLog::Log(LOGINFO, "Activate of window '%i' refused because there are active modal dialogs", iWindowID);
-    g_audioManager.PlayActionSound(CAction(ACTION_ERROR));
+    CServiceBroker::GetGUI()->GetAudioManager().PlayActionSound(CAction(ACTION_ERROR));
     return;
   }
 
@@ -1111,7 +1111,7 @@ bool CGUIWindowManager::OnAction(const CAction &action) const
 bool CGUIWindowManager::HandleAction(CAction const& action) const
 {
   CSingleLock lock(CServiceBroker::GetWinSystem()->GetGfxContext());
-  unsigned int topmost = m_activeDialogs.size();
+  size_t topmost = m_activeDialogs.size();
   while (topmost)
   {
     CGUIWindow *dialog = m_activeDialogs[--topmost];
@@ -1519,7 +1519,7 @@ void CGUIWindowManager::DispatchThreadMessages()
 
   CSingleLock lock(m_critSection);
 
-  for(int msgCount = m_vecThreadMessages.size(); !m_vecThreadMessages.empty() && msgCount > 0; --msgCount)
+  while (!m_vecThreadMessages.empty())
   {
     // pop up one message per time to make messages be processed by order.
     // this will ensure rule No.2 & No.3

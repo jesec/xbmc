@@ -34,7 +34,7 @@
 const float VIDEOASPECT_EPSILON = 0.025f;
 
 CStreamDetailVideo::CStreamDetailVideo() :
-  CStreamDetail(CStreamDetail::VIDEO), m_iWidth(0), m_iHeight(0), m_fAspect(0.0), m_iDuration(0)
+  CStreamDetail(CStreamDetail::VIDEO)
 {
 }
 
@@ -95,7 +95,7 @@ bool CStreamDetailVideo::IsWorseThan(const CStreamDetail &that) const
 }
 
 CStreamDetailAudio::CStreamDetailAudio() :
-  CStreamDetail(CStreamDetail::AUDIO), m_iChannels(-1)
+  CStreamDetail(CStreamDetail::AUDIO)
 {
 }
 

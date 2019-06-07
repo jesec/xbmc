@@ -26,16 +26,12 @@
 CHTTPFileHandler::CHTTPFileHandler()
   : IHTTPRequestHandler(),
     m_url(),
-    m_canHandleRanges(true),
-    m_canBeCached(true),
     m_lastModified()
 { }
 
 CHTTPFileHandler::CHTTPFileHandler(const HTTPRequest &request)
   : IHTTPRequestHandler(request),
     m_url(),
-    m_canHandleRanges(true),
-    m_canBeCached(true),
     m_lastModified()
 { }
 
@@ -108,7 +104,7 @@ void CHTTPFileHandler::SetLastModifiedDate(const struct __stat64 *statBuffer)
   struct tm *time;
 #ifdef HAVE_LOCALTIME_R
   struct tm result = { };
-  time = localtime_r((time_t*)&statBuffer->st_mtime, &result);
+  time = localtime_r((const time_t*)&statBuffer->st_mtime, &result);
 #else
   time = localtime((time_t *)&statBuffer->st_mtime);
 #endif

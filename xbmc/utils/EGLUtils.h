@@ -20,13 +20,12 @@
 
 #pragma once
 
+#include <array>
 #include <set>
 #include <string>
 #include <stdexcept>
 
 #include <EGL/egl.h>
-
-#include "StringUtils.h"
 
 class CEGLUtils
 {
@@ -143,5 +142,5 @@ public:
   EGLDisplay m_eglDisplay;
   EGLSurface m_eglSurface;
   EGLContext m_eglContext;
-  EGLConfig m_eglConfig;
+  EGLConfig m_eglConfig = 0;
 };

@@ -136,7 +136,7 @@ protected:
   void OnExecutionDone(int scriptId);
 
 private:
-  CScriptInvocationManager();
+  CScriptInvocationManager() = default;
   CScriptInvocationManager(const CScriptInvocationManager&) = delete;
   CScriptInvocationManager const& operator=(CScriptInvocationManager const&) = delete;
   virtual ~CScriptInvocationManager();
@@ -157,6 +157,6 @@ private:
   int m_lastPluginHandle;
 
   std::map<std::string, int> m_scriptPaths;
-  int m_nextId;
-  CCriticalSection m_critSection;
+  int m_nextId = 0;
+  mutable CCriticalSection m_critSection;
 };

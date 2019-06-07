@@ -292,7 +292,7 @@ bool CDVDDemuxFFmpeg::Open(std::shared_ptr<CDVDInputStream> pInput, bool streami
     if (StringUtils::StartsWith(content, "audio/l16"))
       iformat = av_find_input_format("s16be");
 
-    if( iformat == NULL )
+    if (iformat == nullptr)
     {
       // let ffmpeg decide which demuxer we have to open
 
@@ -317,7 +317,7 @@ bool CDVDDemuxFFmpeg::Open(std::shared_ptr<CDVDInputStream> pInput, bool streami
         pd.filename = strFile.c_str();
 
         // av_probe_input_buffer might have changed the buffer_size beyond our allocated amount
-        int buffer_size = std::min((int) probeBufferSize, m_ioContext->buffer_size);
+        int buffer_size = std::min(probeBufferSize, m_ioContext->buffer_size);
         buffer_size = m_ioContext->max_packet_size ? m_ioContext->max_packet_size : buffer_size;
         // read data using avformat's buffers
         pd.buf_size = avio_read(m_ioContext, pd.buf, buffer_size);
@@ -1601,7 +1601,7 @@ CDemuxStream* CDVDDemuxFFmpeg::AddStream(int streamIdx)
       default:
       {
         // if analyzing streams is skipped, unknown streams may become valid later
-        if (m_streaminfo || IsVideoReady())
+        if (m_streaminfo && IsVideoReady())
         {
           CLog::Log(LOGDEBUG, "CDVDDemuxFFmpeg::AddStream - discarding unknown stream with id: %d", pStream->index);
           pStream->discard = AVDISCARD_ALL;
@@ -1620,7 +1620,6 @@ CDemuxStream* CDVDDemuxFFmpeg::AddStream(int streamIdx)
     stream->codec_fourcc = pStream->codecpar->codec_tag;
     stream->profile = pStream->codecpar->profile;
     stream->level = pStream->codecpar->level;
-    stream->realtime = m_pInput->IsRealtime();
 
     stream->source = STREAM_SOURCE_DEMUX;
     stream->pPrivate = pStream;
@@ -1811,7 +1810,7 @@ bool CDVDDemuxFFmpeg::SeekChapter(int chapter, double* startpts)
 
     if(startpts)
     {
-      *startpts = DVD_SEC_TO_TIME(ich->GetChapterPos(chapter));
+      *startpts = DVD_SEC_TO_TIME(static_cast<double>(ich->GetChapterPos(chapter)));
     }
 
     Flush();
@@ -2065,7 +2064,7 @@ bool CDVDDemuxFFmpeg::IsVideoReady()
   AVStream *st;
   bool hasVideo = false;
 
-  if(!m_checkvideo)
+  if (!m_checkvideo)
     return true;
 
   if (m_program == 0 && !m_pFormatContext->nb_programs)

@@ -72,7 +72,7 @@ protected:
 
   float m_volume;
   int m_audioStream;
-  bool m_passthrough;
+  bool m_passthrough = false;
 #ifdef HAS_DS_PLAYER
   bool m_bIsDSPlayer;
 #endif

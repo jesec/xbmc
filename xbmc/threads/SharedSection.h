@@ -33,10 +33,10 @@ class CSharedSection
   XbmcThreads::ConditionVariable actualCv;
   XbmcThreads::TightConditionVariable<XbmcThreads::InversePredicate<unsigned int&> > cond;
 
-  unsigned int sharedCount;
+  unsigned int sharedCount = 0;
 
 public:
-  inline CSharedSection() : cond(actualCv,XbmcThreads::InversePredicate<unsigned int&>(sharedCount)), sharedCount(0)  {}
+  inline CSharedSection() : cond(actualCv,XbmcThreads::InversePredicate<unsigned int&>(sharedCount)) {}
 
   inline void lock() { CSingleLock l(sec); while (sharedCount) cond.wait(l); sec.lock(); }
   inline bool try_lock() { return (sec.try_lock() ? ((sharedCount == 0) ? true : (sec.unlock(), false)) : false); }
@@ -51,7 +51,6 @@ class CSharedLock : public XbmcThreads::SharedLock<CSharedSection>
 {
 public:
   inline explicit CSharedLock(CSharedSection& cs) : XbmcThreads::SharedLock<CSharedSection>(cs) {}
-  inline explicit CSharedLock(const CSharedSection& cs) : XbmcThreads::SharedLock<CSharedSection>((CSharedSection&)cs) {}
 
   inline bool IsOwner() const { return owns_lock(); }
   inline void Enter() { lock(); }
@@ -62,7 +61,6 @@ class CExclusiveLock : public XbmcThreads::UniqueLock<CSharedSection>
 {
 public:
   inline explicit CExclusiveLock(CSharedSection& cs) : XbmcThreads::UniqueLock<CSharedSection>(cs) {}
-  inline explicit CExclusiveLock(const CSharedSection& cs) : XbmcThreads::UniqueLock<CSharedSection> ((CSharedSection&)cs) {}
 
   inline bool IsOwner() const { return owns_lock(); }
   inline void Leave() { unlock(); }

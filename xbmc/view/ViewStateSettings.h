@@ -65,10 +65,10 @@ protected:
 
 private:
   std::map<std::string, CViewState*> m_viewStates;
-  SettingLevel m_settingLevel;
-  EventLevel m_eventLevel;
-  bool m_eventShowHigherLevels;
-  CCriticalSection m_critical;
+  SettingLevel m_settingLevel = SettingLevel::Standard;
+  EventLevel m_eventLevel = EventLevel::Basic;
+  bool m_eventShowHigherLevels = true;
+  mutable CCriticalSection m_critical;
 
   void AddViewState(const std::string& strTagName, int defaultView = DEFAULT_VIEW_LIST, SortBy defaultSort = SortByLabel);
 };

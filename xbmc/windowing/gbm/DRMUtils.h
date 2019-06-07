@@ -20,6 +20,7 @@
 
 #pragma once
 
+#include <drm_fourcc.h>
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 #include <gbm.h>
@@ -27,6 +28,12 @@
 
 #include "windowing/Resolution.h"
 #include "GBMUtils.h"
+
+enum EPLANETYPE
+{
+  VIDEO_PLANE,
+  GUI_PLANE
+};
 
 struct drm_object
 {
@@ -39,7 +46,7 @@ struct drm_object
 struct plane : drm_object
 {
   drmModePlanePtr plane = nullptr;
-  uint32_t format;
+  uint32_t format = DRM_FORMAT_XRGB8888;
 };
 
 struct connector : drm_object
@@ -61,6 +68,7 @@ struct drm_fb
 {
   struct gbm_bo *bo = nullptr;
   uint32_t fb_id;
+  uint32_t format;
 };
 
 class CDRMUtils
@@ -80,17 +88,17 @@ public:
   struct plane* GetPrimaryPlane() const { return m_primary_plane; }
   struct plane* GetOverlayPlane() const { return m_overlay_plane; }
   struct crtc* GetCrtc() const { return m_crtc; }
-  drmModeModeInfo* GetCurrentMode() const { return m_mode; }
 
-  std::vector<RESOLUTION_INFO> GetModes();
-  bool SetMode(const RESOLUTION_INFO& res);
-  void WaitVBlank();
+  virtual RESOLUTION_INFO GetCurrentMode();
+  virtual std::vector<RESOLUTION_INFO> GetModes();
+  virtual bool SetMode(const RESOLUTION_INFO& res);
+  virtual void WaitVBlank();
 
   virtual bool AddProperty(struct drm_object *object, const char *name, uint64_t value) { return false; }
   virtual bool SetProperty(struct drm_object *object, const char *name, uint64_t value) { return false; }
 
 protected:
-  bool OpenDrm();
+  bool OpenDrm(bool needConnector);
   uint32_t GetPropertyId(struct drm_object *object, const char *name);
   drm_fb* DrmFbGetFromBo(struct gbm_bo *bo);
 
@@ -102,7 +110,13 @@ protected:
   struct plane *m_overlay_plane = nullptr;
   drmModeModeInfo *m_mode = nullptr;
 
+  int m_width = 0;
+  int m_height = 0;
+
 private:
+  static bool SupportsFormat(drmModePlanePtr plane, uint32_t format);
+  drmModePlanePtr FindPlane(drmModePlaneResPtr resources, int crtc_index, int type);
+
   bool GetResources();
   bool FindConnector();
   bool FindEncoder();
@@ -111,6 +125,7 @@ private:
   bool FindPreferredMode();
   bool RestoreOriginalMode();
   static void DrmFbDestroyCallback(struct gbm_bo *bo, void *data);
+  RESOLUTION_INFO GetResolutionInfo(drmModeModeInfoPtr mode);
 
   int m_crtc_index;
   std::string m_module;

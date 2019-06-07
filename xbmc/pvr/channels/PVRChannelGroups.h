@@ -59,7 +59,7 @@ namespace PVR
     /*!
      * @return Amount of groups in this container
      */
-    int Size(void) const { CSingleLock lock(m_critSection); return m_groups.size(); }
+    size_t Size(void) const { CSingleLock lock(m_critSection); return m_groups.size(); }
 
     /*!
      * @brief Update a group or add it if it's not in here yet.
@@ -222,7 +222,7 @@ namespace PVR
     bool                             m_bRadio;         /*!< true if this is a container for radio channels, false if it is for tv channels */
     CPVRChannelGroupPtr              m_selectedGroup;  /*!< the group that's currently selected in the UI */
     std::vector<CPVRChannelGroupPtr> m_groups;         /*!< the groups in this container */
-    CCriticalSection m_critSection;
+    mutable CCriticalSection m_critSection;
     std::vector<int> m_failedClientsForChannelGroups;
   };
 }

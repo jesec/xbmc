@@ -20,6 +20,7 @@
 
 #include "GameClientStreams.h"
 #include "GameClientStreamAudio.h"
+#include "GameClientStreamSwFramebuffer.h"
 #include "GameClientStreamVideo.h"
 #include "cores/RetroPlayer/streams/IRetroPlayerStream.h"
 #include "cores/RetroPlayer/streams/IStreamManager.h"
@@ -90,6 +91,8 @@ void CGameClientStreams::CloseStream(IGameClientStream *stream)
   if (stream != nullptr)
   {
     std::unique_ptr<IGameClientStream> streamHolder(stream);
+    streamHolder->CloseStream();
+
     m_streamManager->CloseStream(std::move(m_streams[stream]));
     m_streams.erase(stream);
   }
@@ -109,6 +112,11 @@ std::unique_ptr<IGameClientStream> CGameClientStreams::CreateStream(GAME_STREAM_
   case GAME_STREAM_VIDEO:
   {
     gameStream.reset(new CGameClientStreamVideo);
+    break;
+  }
+  case GAME_STREAM_SW_FRAMEBUFFER:
+  {
+    gameStream.reset(new CGameClientStreamSwFramebuffer);
     break;
   }
   default:

@@ -44,7 +44,6 @@
 #include <fmt/printf.h>
 #endif
 
-#include "LangInfo.h"
 #include "XBDateTime.h"
 #include "utils/params_check_macros.h"
 
@@ -82,9 +81,9 @@ public:
   static std::string Format(const std::string& fmt, Args&&... args)
   {
     // coverity[fun_call_w_exception : FALSE]
-    auto result = fmt::format(fmt, std::forward<Args>(args)...);
+    auto result = ::fmt::format(fmt, std::forward<Args>(args)...);
     if (result == fmt)
-      result = fmt::sprintf(fmt, std::forward<Args>(args)...);
+      result = ::fmt::sprintf(fmt, std::forward<Args>(args)...);
 
     return result;
   }
@@ -92,9 +91,9 @@ public:
   static std::wstring Format(const std::wstring& fmt, Args&&... args)
   {
     // coverity[fun_call_w_exception : FALSE]
-    auto result = fmt::format(fmt, std::forward<Args>(args)...);
+    auto result = ::fmt::format(fmt, std::forward<Args>(args)...);
     if (result == fmt)
-      result = fmt::sprintf(fmt, std::forward<Args>(args)...);
+      result = ::fmt::sprintf(fmt, std::forward<Args>(args)...);
 
     return result;
   }
@@ -341,7 +340,7 @@ public:
 // ifdef is needed because when you set _ITERATOR_DEBUG_LEVEL=0 and you use custom numpunct you will get runtime error in debug mode
 // for more info https://connect.microsoft.com/VisualStudio/feedback/details/2655363
 #if !(defined(_DEBUG) && defined(TARGET_WINDOWS))
-    ss.imbue(g_langInfo.GetOriginalLocale());
+    ss.imbue(GetOriginalLocale());
 #endif
     ss.precision(1);
     ss << std::fixed << num;
@@ -380,6 +379,13 @@ public:
    * 102400 bytes as "100kB". See TestStringUtils for more examples.
    */
   static std::string FormatFileSize(uint64_t bytes);
+
+private:
+  /*!
+   * Wrapper for CLangInfo::GetOriginalLocale() which allows us to
+   * avoid including LangInfo.h from this header.
+   */
+  static const std::locale& GetOriginalLocale() noexcept;
 };
 
 struct sortstringbyname

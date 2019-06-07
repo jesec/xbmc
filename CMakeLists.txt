@@ -141,15 +141,12 @@ endif()
 if(CORE_SYSTEM_NAME STREQUAL android)
   list(APPEND required_deps Zip)
 endif()
-if(CORE_SYSTEM_NAME STREQUAL windowsstore)
-  #uses header only version of Fmt
-  list(REMOVE_ITEM required_deps Fmt)
-endif()
 
 # Optional dependencies. Keep in alphabetical order please
 set(optional_deps Alsa
                   Avahi
                   Bluetooth
+                  Bluray
                   CAP
                   CCache
                   CEC
@@ -167,8 +164,7 @@ set(optional_deps Alsa
                   ${PLATFORM_OPTIONAL_DEPS})
 
 # Optional, dyloaded deps. Keep in alphabetical order please
-set(dyload_optional Bluray
-                    NFS
+set(dyload_optional NFS
                     Plist)
 
 # Required tools
@@ -296,7 +292,7 @@ endif()
 
 # main library (used for main binary and tests)
 add_library(lib${APP_NAME_LC} STATIC $<TARGET_OBJECTS:compileinfo>)
-add_dependencies(lib${APP_NAME_LC} libcpluff ffmpeg dvdnav crossguid dsexternals ${PLATFORM_GLOBAL_TARGET_DEPS})
+add_dependencies(lib${APP_NAME_LC} libcpluff ffmpeg dvdnav crossguid fmt dsexternals ${PLATFORM_GLOBAL_TARGET_DEPS})
 set_target_properties(lib${APP_NAME_LC} PROPERTIES PREFIX "")
 
 # Other files (IDE)

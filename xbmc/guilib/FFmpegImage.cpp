@@ -35,17 +35,7 @@ extern "C"
 #include "libavutil/pixdesc.h"
 }
 
-Frame::Frame() :
-  m_pImage(nullptr),
-  m_delay(0),
-  m_imageSize(0),
-  m_height(0),
-  m_width(0)
-{}
-
-
 Frame::Frame(const Frame& src) :
-  m_pImage(nullptr),
   m_delay(src.m_delay),
   m_imageSize(src.m_imageSize),
   m_height(src.m_height),
@@ -107,7 +97,7 @@ static int mem_file_read(void *h, uint8_t* buf, int size)
   size_t tocopy = std::min((size_t)size, (size_t)unread);
   memcpy(buf, mbuf->data + mbuf->pos, tocopy);
   mbuf->pos += tocopy;
-  return tocopy;
+  return static_cast<int>(tocopy);
 }
 
 static int64_t mem_file_seek(void *h, int64_t pos, int whence)
@@ -174,7 +164,7 @@ bool CFFmpegImage::LoadImageFromMemory(unsigned char* buffer, unsigned int bufSi
   return !(m_pFrame == nullptr);
 }
 
-bool CFFmpegImage::Initialize(unsigned char* buffer, unsigned int bufSize)
+bool CFFmpegImage::Initialize(unsigned char* buffer, size_t bufSize)
 {
   int bufferSize = 4096;
   uint8_t* fbuffer = (uint8_t*)av_malloc(bufferSize + AV_INPUT_BUFFER_PADDING_SIZE);
@@ -696,9 +686,9 @@ bool CFFmpegImage::CreateThumbnailFromSurface(unsigned char* bufferin, unsigned 
   }
   tdm.frame_input->pts = 1;
   tdm.frame_input->quality = tdm.avOutctx->global_quality;
-  tdm.frame_input->data[0] = (uint8_t*) tdm.frame_temporary->data[0];
-  tdm.frame_input->data[1] = (uint8_t*) tdm.frame_temporary->data[1];
-  tdm.frame_input->data[2] = (uint8_t*) tdm.frame_temporary->data[2];
+  tdm.frame_input->data[0] = tdm.frame_temporary->data[0];
+  tdm.frame_input->data[1] = tdm.frame_temporary->data[1];
+  tdm.frame_input->data[2] = tdm.frame_temporary->data[2];
   tdm.frame_input->height = height;
   tdm.frame_input->width = width;
   tdm.frame_input->linesize[0] = tdm.frame_temporary->linesize[0];

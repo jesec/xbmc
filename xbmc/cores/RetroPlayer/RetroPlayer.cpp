@@ -37,6 +37,7 @@
 #include "games/dialogs/osd/DialogGameVideoSelect.h"
 #include "games/tags/GameInfoTag.h"
 #include "games/GameServices.h"
+#include "games/GameSettings.h"
 #include "games/GameUtils.h"
 #include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
@@ -171,7 +172,7 @@ bool CRetroPlayer::OpenFile(const CFileItem& file, const CPlayerOptions& options
       }
     }
 
-    if (bSuccess)
+    if (bSuccess && m_gameServices.GameSettings().AutosaveEnabled())
     {
       std::string redactedSavestatePath = CURL::GetRedacted(savestatePath);
       CLog::Log(LOGDEBUG, "RetroPlayer[SAVE]: Loading savestate %s", redactedSavestatePath.c_str());
@@ -188,14 +189,16 @@ bool CRetroPlayer::OpenFile(const CFileItem& file, const CPlayerOptions& options
     m_callback.OnPlayBackStarted(fileCopy);
     m_callback.OnAVStarted(fileCopy);
     if (!bStandalone)
-      m_autoSave.reset(new CRetroPlayerAutoSave(*m_gameClient));
+      m_autoSave.reset(new CRetroPlayerAutoSave(*m_gameClient, m_gameServices.GameSettings()));
     m_processInfo->SetVideoFps(static_cast<float>(m_gameClient->GetFrameRate()));
   }
   else
   {
-    m_gameClient.reset();
     m_input.reset();
     m_streamManager.reset();
+    if (m_gameClient)
+      m_gameClient->Unload();
+    m_gameClient.reset();
   }
 
   return bSuccess;
@@ -207,30 +210,34 @@ bool CRetroPlayer::CloseFile(bool reopen /* = false */)
 
   m_autoSave.reset();
 
+  UnregisterWindowCallbacks();
+
   CSingleLock lock(m_mutex);
 
-  if (m_gameClient)
+  if (m_gameClient && m_gameServices.GameSettings().AutosaveEnabled())
   {
     std::string savePath = m_gameClient->GetPlayback()->CreateSavestate();
     if (!savePath.empty())
       CLog::Log(LOGDEBUG, "RetroPlayer[SAVE]: Saved state to %s", CURL::GetRedacted(savePath).c_str());
     else
       CLog::Log(LOGDEBUG, "RetroPlayer[SAVE]: Failed to save state at close");
-
-    UnregisterWindowCallbacks();
-    m_gameClient->CloseFile();
-    m_gameClient->Unload();
-    m_gameClient.reset();
-    m_callback.OnPlayBackEnded();
   }
+
+  if (m_gameClient)
+    m_gameClient->CloseFile();
 
   m_input.reset();
   m_streamManager.reset();
+
+  if (m_gameClient)
+    m_gameClient->Unload();
+  m_gameClient.reset();
 
   m_renderManager.reset();
   m_processInfo.reset();
 
   CLog::Log(LOGDEBUG, "RetroPlayer[PLAYER]: Playback ended");
+  m_callback.OnPlayBackEnded();
 
   return true;
 }

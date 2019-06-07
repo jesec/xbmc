@@ -38,7 +38,7 @@ bool CGameClientStreamVideo::OpenStream(RETRO::IRetroPlayerStream* stream, const
   std::unique_ptr<RETRO::VideoStreamProperties> videoProperties(TranslateProperties(properties.video));
   if (videoProperties)
   {
-    if (videoStream->OpenStream(reinterpret_cast<const RETRO::StreamProperties&>(*videoProperties)))
+    if (videoStream->OpenStream(static_cast<const RETRO::StreamProperties&>(*videoProperties)))
       m_stream = stream;
   }
 
@@ -47,13 +47,16 @@ bool CGameClientStreamVideo::OpenStream(RETRO::IRetroPlayerStream* stream, const
 
 void CGameClientStreamVideo::CloseStream()
 {
-  m_stream->CloseStream();
-  m_stream = nullptr;
+  if (m_stream != nullptr)
+  {
+    m_stream->CloseStream();
+    m_stream = nullptr;
+  }
 }
 
 void CGameClientStreamVideo::AddData(const game_stream_packet& packet)
 {
-  if (packet.type != GAME_STREAM_VIDEO)
+  if (packet.type != GAME_STREAM_VIDEO && packet.type != GAME_STREAM_SW_FRAMEBUFFER)
     return;
 
   if (m_stream != nullptr)
@@ -70,7 +73,7 @@ void CGameClientStreamVideo::AddData(const game_stream_packet& packet)
       video.size,
     };
 
-    m_stream->AddStreamData(reinterpret_cast<const RETRO::StreamPacket&>(videoPacket));
+    m_stream->AddStreamData(static_cast<const RETRO::StreamPacket&>(videoPacket));
   }
 }
 

@@ -104,6 +104,7 @@ struct SPlayerState
     chapters.clear();
     canpause = false;
     canseek = false;
+    cantempo = false;
     caching = false;
     cache_bytes = 0;
     cache_level = 0.0;
@@ -133,6 +134,7 @@ struct SPlayerState
 
   bool canpause;            // pvr: can pause the current playing item
   bool canseek;             // pvr: can seek in the current playing item
+  bool cantempo;
   bool caching;
 
   int64_t cache_bytes;   // number of bytes current's cached
@@ -338,7 +340,7 @@ public:
   void SetProgram(int progId) override;
   int GetProgramsCount() override;
 
-  TextCacheStruct_t* GetTeletextCache() override;
+  std::shared_ptr<TextCacheStruct_t> GetTeletextCache() override;
   void LoadPage(int p, int sp, unsigned char* buffer) override;
 
   std::string GetRadioText(unsigned int line) override;
@@ -515,7 +517,7 @@ protected:
 
   struct SContent
   {
-    CCriticalSection m_section;
+    mutable CCriticalSection m_section;
     CSelectionStreams m_selectionStreams;
     std::vector<ProgramInfo> m_programs;
     int m_program;
@@ -534,9 +536,7 @@ protected:
     double lastseekpts;
     double lastabstime;
   } m_SpeedState;
-  std::atomic_bool m_canTempo;
 
-  int m_errorCount;
   double m_offset_pts;
 
   CDVDMessageQueue m_messenger;
@@ -581,7 +581,7 @@ protected:
   } m_dvd;
 
   SPlayerState m_State;
-  CCriticalSection m_StateSection;
+  mutable CCriticalSection m_StateSection;
   XbmcThreads::EndTime m_syncTimer;
 
   CEdl m_Edl;

@@ -56,7 +56,7 @@ using namespace Microsoft::WRL;
 
 static float zoomamount[10] = { 1.0f, 1.2f, 1.5f, 2.0f, 2.8f, 4.0f, 6.0f, 9.0f, 13.5f, 20.0f };
 
-CSlideShowPic::CSlideShowPic() : m_alpha(0)
+CSlideShowPic::CSlideShowPic()
 {
   m_pImage = NULL;
   m_bIsLoaded = false;
@@ -718,7 +718,7 @@ void CSlideShowPic::Rotate(float fRotateAngle, bool immediate /* = false */)
   m_transitionTemp.type = TRANSITION_ROTATE;
   m_transitionTemp.start = m_iCounter;
   m_transitionTemp.length = IMMEDIATE_TRANSITION_TIME;
-  m_fTransitionAngle = (float)fRotateAngle / (float)m_transitionTemp.length;
+  m_fTransitionAngle = fRotateAngle / (float)m_transitionTemp.length;
   // reset the timer
   m_transitionEnd.start = m_iCounter + m_transitionStart.length + (int)(CServiceBroker::GetWinSystem()->GetGfxContext().GetFPS() * CServiceBroker::GetSettings().GetInt(CSettings::SETTING_SLIDESHOW_STAYTIME));
 }

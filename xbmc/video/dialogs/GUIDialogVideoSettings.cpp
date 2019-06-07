@@ -83,16 +83,8 @@
 #define SETTING_VIDEO_STREAM              "video.stream"
 
 CGUIDialogVideoSettings::CGUIDialogVideoSettings()
-    : CGUIDialogSettingsManualBase(WINDOW_DIALOG_VIDEO_OSD_SETTINGS, "DialogSettings.xml"),
-      m_viewModeChanged(false)
-{
-
-#ifdef HAS_DS_PLAYER
-  m_scalingMethod = 0;
-  m_dsStats = 0;	 
-#endif
-
-}
+    : CGUIDialogSettingsManualBase(WINDOW_DIALOG_VIDEO_OSD_SETTINGS, "DialogSettings.xml")
+{ }
 
 CGUIDialogVideoSettings::~CGUIDialogVideoSettings() = default;
 
@@ -206,7 +198,7 @@ void CGUIDialogVideoSettings::OnSettingChanged(std::shared_ptr<const CSetting> s
   else if (settingId == SETTING_VIDEO_TONEMAP_METHOD)
   {
     CVideoSettings vs = g_application.GetAppPlayer().GetVideoSettings();
-    vs.m_ToneMapMethod = static_cast<int>(std::static_pointer_cast<const CSettingInt>(setting)->GetValue());
+    vs.m_ToneMapMethod = std::static_pointer_cast<const CSettingInt>(setting)->GetValue();
     g_application.GetAppPlayer().SetVideoSettings(vs);
   }
   else if (settingId == SETTING_VIDEO_TONEMAP_PARAM)
@@ -328,7 +320,7 @@ void CGUIDialogVideoSettings::Save()
     CVideoDatabase db;
     if (!db.Open())
       return;
-    db.EraseVideoSettings();
+    db.EraseAllVideoSettings();
     db.Close();
 
     CMediaSettings::GetInstance().GetDefaultVideoSettings() = g_application.GetAppPlayer().GetVideoSettings();

@@ -1886,22 +1886,12 @@ bool CFileItem::LoadTracksFromCueDocument(CFileItemList& scannedItems)
 //////////////////////////////////////////////////////////////////////////////////
 
 CFileItemList::CFileItemList()
-: CFileItem("", true),
-  m_ignoreURLOptions(false),
-  m_fastLookup(false),
-  m_sortIgnoreFolders(false),
-  m_cacheToDisc(CACHE_IF_SLOW),
-  m_replaceListing(false)
+: CFileItem("", true)
 {
 }
 
 CFileItemList::CFileItemList(const std::string& strPath)
-: CFileItem(strPath, true),
-  m_ignoreURLOptions(false),
-  m_fastLookup(false),
-  m_sortIgnoreFolders(false),
-  m_cacheToDisc(CACHE_IF_SLOW),
-  m_replaceListing(false)
+: CFileItem(strPath, true)
 {
 }
 
@@ -2062,7 +2052,7 @@ void CFileItemList::Remove(int iItem)
 {
   CSingleLock lock(m_lock);
 
-  if (iItem >= 0 && iItem < (int)Size())
+  if (iItem >= 0 && iItem < Size())
   {
     CFileItemPtr pItem = *(m_items.begin() + iItem);
     if (m_fastLookup)
@@ -2371,14 +2361,14 @@ void CFileItemList::Archive(CArchive& ar)
     ar >> fastLookup;
 
     int tempint;
-    ar >> (int&)tempint;
+    ar >> tempint;
     m_sortDescription.sortBy = (SortBy)tempint;
-    ar >> (int&)tempint;
+    ar >> tempint;
     m_sortDescription.sortOrder = (SortOrder)tempint;
-    ar >> (int&)tempint;
+    ar >> tempint;
     m_sortDescription.sortAttributes = (SortAttribute)tempint;
     ar >> m_sortIgnoreFolders;
-    ar >> (int&)tempint;
+    ar >> tempint;
     m_cacheToDisc = CACHE_TYPE(tempint);
 
     unsigned int detailSize = 0;
@@ -2386,11 +2376,11 @@ void CFileItemList::Archive(CArchive& ar)
     for (unsigned int j = 0; j < detailSize; ++j)
     {
       GUIViewSortDetails details;
-      ar >> (int&)tempint;
+      ar >> tempint;
       details.m_sortDescription.sortBy = (SortBy)tempint;
-      ar >> (int&)tempint;
+      ar >> tempint;
       details.m_sortDescription.sortOrder = (SortOrder)tempint;
-      ar >> (int&)tempint;
+      ar >> tempint;
       details.m_sortDescription.sortAttributes = (SortAttribute)tempint;
       ar >> details.m_buttonLabel;
       ar >> details.m_labelMasks.m_strLabelFile;
@@ -2892,7 +2882,7 @@ bool CFileItemList::Load(int windowID)
       return true;
     }
   }
-  catch(std::out_of_range ex)
+  catch(const std::out_of_range&)
   {
     CLog::Log(LOGERROR, "Corrupt archive: %s", CURL::GetRedacted(path).c_str());
   }

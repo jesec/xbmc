@@ -101,7 +101,7 @@ public:
   int GetSubtitleCount();
   void GetSubtitleStreamInfo(int index, SubtitleStreamInfo &info);
   bool GetSubtitleVisible();
-  TextCacheStruct_t* GetTeletextCache();
+  std::shared_ptr<TextCacheStruct_t> GetTeletextCache();
   std::string GetRadioText(unsigned int line);
   int64_t GetTime() const;
   int64_t GetMinTime() const;
@@ -196,7 +196,7 @@ private:
   void CloseFile(bool reopen = false);
 
   std::shared_ptr<IPlayer> m_pPlayer;
-  CCriticalSection m_playerLock;
+  mutable CCriticalSection m_playerLock;
   CSeekHandler m_seekHandler;
 
   // cache player state

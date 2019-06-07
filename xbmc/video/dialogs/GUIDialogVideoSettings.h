@@ -57,11 +57,11 @@ protected:
 
 private:
   int m_videoStream;
-  bool m_viewModeChanged;
+  bool m_viewModeChanged = false;
+
 #ifdef HAS_DS_PLAYER
   CDSPropertyPage* m_pDSPropertyPage;
-  int m_scalingMethod;
-  int m_dsStats;
+  int m_scalingMethod = 0;
+  int m_dsStats = 0;
 #endif
-
 };

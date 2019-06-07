@@ -21,11 +21,11 @@
 #include "EGLUtils.h"
 #include "log.h"
 
+#include "StringUtils.h"
 #include "guilib/IDirtyRegionSolver.h"
 #include "settings/AdvancedSettings.h"
 
 #include <EGL/eglext.h>
-#include <string.h>
 
 std::set<std::string> CEGLUtils::GetClientExtensions()
 {
@@ -65,8 +65,7 @@ void CEGLUtils::LogError(const std::string& what)
 CEGLContextUtils::CEGLContextUtils() :
   m_eglDisplay(EGL_NO_DISPLAY),
   m_eglSurface(EGL_NO_SURFACE),
-  m_eglContext(EGL_NO_CONTEXT),
-  m_eglConfig(0)
+  m_eglContext(EGL_NO_CONTEXT)
 {
 }
 

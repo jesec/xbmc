@@ -68,8 +68,7 @@
 #define SETTING_AUDIO_MAKE_DEFAULT             "audio.makedefault"
 
 CGUIDialogAudioSettings::CGUIDialogAudioSettings()
-  : CGUIDialogSettingsManualBase(WINDOW_DIALOG_AUDIO_OSD_SETTINGS, "DialogSettings.xml"),
-    m_passthrough(false)
+  : CGUIDialogSettingsManualBase(WINDOW_DIALOG_AUDIO_OSD_SETTINGS, "DialogSettings.xml")
 { }
 
 CGUIDialogAudioSettings::~CGUIDialogAudioSettings() = default;
@@ -190,7 +189,7 @@ void CGUIDialogAudioSettings::Save()
   if (!db.Open())
     return;
 
-  db.EraseVideoSettings();
+  db.EraseAllVideoSettings();
   db.Close();
 
   CMediaSettings::GetInstance().GetDefaultVideoSettings() = g_application.GetAppPlayer().GetVideoSettings();

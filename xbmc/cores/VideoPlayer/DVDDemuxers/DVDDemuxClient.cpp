@@ -31,13 +31,6 @@
 class CDemuxStreamClientInternal
 {
 public:
-  CDemuxStreamClientInternal()
-  : m_parser(nullptr)
-  , m_context(nullptr)
-  , m_parser_split(false)
-  {
-  }
-
   ~CDemuxStreamClientInternal()
   {
     DisposeParser();
@@ -57,9 +50,9 @@ public:
     }
   }
 
-  AVCodecParserContext *m_parser;
-  AVCodecContext *m_context;
-  bool m_parser_split;
+  AVCodecParserContext *m_parser = nullptr;
+  AVCodecContext *m_context = nullptr;
+  bool m_parser_split = false;
 };
 
 template <class T>
@@ -177,13 +170,13 @@ bool CDVDDemuxClient::ParsePacket(DemuxPacket* pkt)
     if (len > 0 && len < FF_MAX_EXTRADATA_SIZE)
     {
       if (st->ExtraData)
-        delete[] (uint8_t*)st->ExtraData;
+        delete[] st->ExtraData;
       st->changes++;
       st->disabled = false;
       st->ExtraSize = len;
       st->ExtraData = new uint8_t[len+AV_INPUT_BUFFER_PADDING_SIZE];
       memcpy(st->ExtraData, pkt->pData, len);
-      memset((uint8_t*)st->ExtraData + len, 0 , AV_INPUT_BUFFER_PADDING_SIZE);
+      memset(st->ExtraData + len, 0 , AV_INPUT_BUFFER_PADDING_SIZE);
       stream->m_parser_split = false;
       change = true;
       CLog::Log(LOGDEBUG, "CDVDDemuxClient::ParsePacket - split extradata");
@@ -551,8 +544,6 @@ void CDVDDemuxClient::SetStreamProps(CDemuxStream *stream, std::map<int, std::sh
   toStream->cryptoSession = stream->cryptoSession;
   toStream->externalInterfaces = stream->externalInterfaces;
   toStream->language = stream->language;
-
-  toStream->realtime = stream->realtime;
 
   CLog::Log(LOGDEBUG,"CDVDDemuxClient::RequestStream(): added/updated stream %d with codec_id %d",
       toStream->uniqueId,

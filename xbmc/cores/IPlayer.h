@@ -22,6 +22,7 @@
 
 #include <vector>
 #include <string>
+#include <memory>
 
 #include "IPlayerCallback.h"
 #include "VideoSettings.h"
@@ -40,6 +41,7 @@ struct TextCacheStruct_t;
 class TiXmlElement;
 class CStreamDetails;
 class CAction;
+class IPlayerCallback;
 
 class CPlayerOptions
 {
@@ -160,7 +162,7 @@ public:
   virtual void SetProgram(int progId) {}
   virtual int GetProgramsCount() { return 0; }
 
-  virtual TextCacheStruct_t* GetTeletextCache() { return NULL; };
+  virtual std::shared_ptr<TextCacheStruct_t> GetTeletextCache() { return NULL; };
   virtual void LoadPage(int p, int sp, unsigned char* buffer) {};
 
   virtual std::string GetRadioText(unsigned int line) { return ""; };
