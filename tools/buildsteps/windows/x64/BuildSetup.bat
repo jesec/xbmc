@@ -8,7 +8,7 @@ IF ERRORLEVEL 1 (
   EXIT /B 1
 )
 
-SET cmakeGenerator=Visual Studio %vsver% Win64
+SET cmakeGenerator=Visual Studio %vsver%
 SET TARGET_ARCHITECTURE=x64
 
 CALL BuildSetup.bat %*
