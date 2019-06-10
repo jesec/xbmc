@@ -1613,9 +1613,6 @@ extern "C"
   {
     if (!strnicmp(path, "shout://", 8)) // don't stat shoutcast
       return -1;
-    if (!strnicmp(path, "http://", 7)
-    ||  !strnicmp(path, "https://", 8)) // don't stat http
-      return -1;
     if (!strnicmp(path, "mms://", 6)) // don't stat mms
       return -1;
 
@@ -1658,9 +1655,6 @@ extern "C"
   int dll_stat64(const char *path, struct __stat64 *buffer)
   {
     if (!strnicmp(path, "shout://", 8)) // don't stat shoutcast
-      return -1;
-    if (!strnicmp(path, "http://", 7)
-    ||  !strnicmp(path, "https://", 8)) // don't stat http
       return -1;
     if (!strnicmp(path, "mms://", 6)) // don't stat mms
       return -1;
